@@ -52,15 +52,17 @@ export default function Navbar() {
     }
   };
 
-  // Not scrolled → transparent navbar over dark photo hero (ALL pages) → white text.
-  // Scrolled → colored navbar bg → use theme text.
+  // Not scrolled: subtle dark gradient → white text always readable (Netflix/Airbnb pattern).
+  // Scrolled: solid colored bg → theme text.
   const navTextColor = !scrolled
-    ? 'rgba(255,255,255,0.9)'
-    : dark ? 'rgba(255,255,255,0.82)' : 'rgba(25,20,15,0.85)';
+    ? 'rgba(255,255,255,0.92)'
+    : dark ? 'rgba(255,255,255,0.85)' : 'rgba(20,15,10,0.88)';
 
-  const scrolledBg = dark
-    ? 'rgba(10,12,18,0.92)'
-    : 'rgba(247,244,238,0.95)';
+  const navBg = scrolled
+    ? dark ? 'rgba(10,12,18,0.94)' : 'rgba(247,244,238,0.96)'
+    : 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.0) 100%)';
+
+  const navBrand = !scrolled ? '#ffffff' : dark ? '#ffffff' : '#1a1410';
 
   return (
     <>
@@ -72,7 +74,7 @@ export default function Navbar() {
           right: 0,
           zIndex: 100,
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          background: scrolled ? scrolledBg : 'transparent',
+          background: navBg,
           backdropFilter: scrolled ? 'blur(20px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
           borderBottom: scrolled
@@ -87,7 +89,7 @@ export default function Navbar() {
             <Image src="/img/Logo_color.png" alt="Pro Loco Gasperina" width={44} height={44} style={{ objectFit: 'contain' }} />
             <div style={{ lineHeight: 1.1 }}>
               <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-600)', textTransform: 'uppercase' }}>Pro Loco</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: !scrolled ? '#ffffff' : dark ? '#ffffff' : '#1a1410', letterSpacing: '0.03em' }}>Gasperina</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: navBrand, letterSpacing: '0.03em' }}>Gasperina</div>
             </div>
           </Link>
 
@@ -172,7 +174,7 @@ export default function Navbar() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: !scrolled ? '#ffffff' : dark ? '#ffffff' : '#1a1410',
+                color: navBrand,
                 padding: '0.4rem',
                 display: 'none',
               }}

@@ -1,9 +1,22 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Calendar, Map, Users } from 'lucide-react';
 
 export default function Hero() {
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Logo shrinks as user scrolls: 110px → 0px over 300px scroll
+  const logoSize = Math.max(0, 110 - scrollY * 0.37);
+  const logoOpacity = Math.max(0, 1 - scrollY / 200);
+
   return (
     <section
       id="hero"
@@ -57,13 +70,29 @@ export default function Hero() {
         padding: '2rem 1.5rem',
         maxWidth: '900px',
         margin: '0 auto',
+        width: '100%',
       }}>
-        {/* Logo above label */}
-        <div className="animate-fade-in" style={{ marginBottom: '1.25rem' }}>
+        {/* Logo — shrinks on scroll */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: logoSize > 10 ? '1.25rem' : '0',
+          overflow: 'hidden',
+          transition: 'margin-bottom 0.1s',
+        }}>
           <img
             src="/img/Logo_color.png"
             alt="Pro Loco Gasperina"
-            style={{ width: 72, height: 72, objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.4))' }}
+            style={{
+              width: logoSize,
+              height: logoSize,
+              objectFit: 'contain',
+              opacity: logoOpacity,
+              filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))',
+              transition: 'width 0.05s linear, height 0.05s linear, opacity 0.05s linear',
+              display: 'block',
+            }}
           />
         </div>
 
