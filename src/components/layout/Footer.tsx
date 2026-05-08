@@ -25,6 +25,7 @@ const footerLinks = {
     { href: '/volontari', label: 'Diventa Volontario' },
     { href: '/sostienici', label: 'Sostienici' },
     { href: '/contatti', label: 'Contattaci' },
+    { href: '/admin', label: 'Admin' },
   ],
 };
 
@@ -147,7 +148,7 @@ export default function Footer() {
           fontSize: '0.8rem',
           color: 'var(--neutral-600)',
         }}>
-          <span>© {new Date().getFullYear()} Pro Loco Gasperina APS · CF: 00000000000 · Tutti i diritti riservati</span>
+          <span>© {new Date().getFullYear()} Pro Loco Gasperina APS · C.F. 99330790793 · P.IVA 03923590792 · Tutti i diritti riservati</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             Fatto con <Heart size={12} style={{ color: 'var(--gold-500)' }} fill="currentColor" /> in Calabria
           </span>

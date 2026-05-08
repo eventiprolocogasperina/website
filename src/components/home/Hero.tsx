@@ -183,6 +183,7 @@ export default function Hero() {
           bottom: '2rem',
           left: '50%',
           transform: 'translateX(-50%)',
+          width: 'max-content',
           color: 'rgba(255,255,255,0.4)',
           display: 'flex',
           flexDirection: 'column',

@@ -10,11 +10,11 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/scopri-gasperina', label: 'Scopri Gasperina' },
   { href: '/eventi', label: 'Eventi' },
-  { href: '/progetti', label: 'Progetti' },
   { href: '/media', label: 'Galleria' },
   { href: '/associazione', label: 'Chi Siamo' },
   { href: '/sponsor', label: 'Sponsor' },
   { href: '/contatti', label: 'Contatti' },
+  // { href: '/progetti', label: 'Progetti' }, // nascosta temporaneamente
 ];
 
 export default function Navbar() {
@@ -23,12 +23,15 @@ export default function Navbar() {
   const [dark, setDark] = useState(false);
   const pathname = usePathname();
 
-  // Persist theme across sessions
+  // Light mode is the default (:root CSS). Only apply dark if user explicitly chose it.
   useEffect(() => {
     const stored = localStorage.getItem('theme');
     if (stored === 'dark') {
       setDark(true);
       document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      // Ensure light mode: remove any stale dark attribute
+      document.documentElement.removeAttribute('data-theme');
     }
   }, []);
 
@@ -148,22 +151,6 @@ export default function Navbar() {
               id="nav-cta"
             >
               Iscriviti
-            </Link>
-
-            <Link
-              href="/admin"
-              style={{
-                padding: '0.5rem 1rem',
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.8rem',
-                fontWeight: 500,
-                color: dark ? 'rgba(255,255,255,0.45)' : 'rgba(30,25,20,0.45)',
-                border: dark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.1)',
-                borderRadius: 'var(--radius-full)',
-                transition: 'all 0.2s',
-              }}
-            >
-              Admin
             </Link>
 
             {/* Hamburger */}
