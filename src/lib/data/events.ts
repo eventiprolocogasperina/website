@@ -88,7 +88,7 @@ Un viaggio tra storia, arte e bellezza per i soci e i simpatizzanti della Pro Lo
     id: '7',
     slug: 'festivalbeer-terza-edizione-2026',
     title: 'Festival Beer – 3ª Edizione',
-    date: '2026-08-01',
+    date: '2026-08-03',
     dateLabel: 'Ago 2026',
     time: 'TBD',
     location: 'Piazzale della Pace, Gasperina',
@@ -112,7 +112,7 @@ Maggiori dettagli in arrivo. Segui i nostri canali social!`,
     id: '6',
     slug: 'assaggia-passeggia-quarta-edizione-2026',
     title: 'Assaggia & Passeggia 4 – Calabria Straordinaria',
-    date: '2026-08-02',
+    date: '2026-08-01',
     dateLabel: 'Ago 2026',
     time: 'TBD',
     location: 'Centro Storico, Gasperina',
@@ -179,7 +179,7 @@ Maggiori dettagli in arrivo. Segui i nostri canali social!`,
     maxParticipants: 30,
     registeredCount: 0,
     price: 0,
-    featured: true,
+    featured: false,
     bookable: false,
   },
 
@@ -261,5 +261,7 @@ export function isEventPast(event: Event): boolean {
 
 export function getUpcomingEvents(): Event[] {
   const today = new Date().toISOString().split('T')[0];
-  return events.filter(e => e.date >= today);
+  return events
+    .filter(e => e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
 }

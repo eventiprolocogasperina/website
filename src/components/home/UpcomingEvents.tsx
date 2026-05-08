@@ -13,6 +13,11 @@ const categoryColors: Record<string, string> = {
   comunità: 'badge-gold',
 };
 
+// Abbreviate Italian month to 3-letter uppercase: "Ago 2026" → "AGO"
+function monthAbbr(label: string): string {
+  return label.split(' ')[0].slice(0, 3).toUpperCase();
+}
+
 export default function UpcomingEvents() {
   const events = getUpcomingEvents().filter(e => e.featured).slice(0, 3);
 
@@ -39,10 +44,17 @@ export default function UpcomingEvents() {
           gap: '1.5rem',
         }}>
           {events.map((event) => {
-            const dateObj = new Date(event.date);
-            const day = dateObj.toLocaleDateString('it-IT', { day: '2-digit' });
-            const month = dateObj.toLocaleDateString('it-IT', { month: 'short' }).toUpperCase();
-            const yearFull = dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            // If dateLabel exists → show only the 3-letter month abbreviation, no day
+            const hasLabel = Boolean(event.dateLabel);
+            const badgeLabel = hasLabel
+              ? monthAbbr(event.dateLabel!)
+              : null;
+            const dateObj = new Date(event.date + 'T12:00:00');
+            const day = hasLabel ? null : dateObj.toLocaleDateString('it-IT', { day: '2-digit' });
+            const month = hasLabel ? null : dateObj.toLocaleDateString('it-IT', { month: 'short' }).toUpperCase();
+            const dateText = hasLabel
+              ? event.dateLabel!
+              : dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
             return (
               <Link key={event.id} href={`/eventi/${event.slug}`} style={{ textDecoration: 'none' }}>
@@ -65,12 +77,21 @@ export default function UpcomingEvents() {
                       background: 'var(--gold-500)',
                       color: 'var(--neutral-950)',
                       borderRadius: 'var(--radius-md)',
-                      padding: '0.4rem 0.75rem',
+                      padding: hasLabel ? '0.55rem 0.85rem' : '0.4rem 0.75rem',
                       textAlign: 'center',
                       minWidth: '48px',
                     }}>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, lineHeight: 1 }}>{day}</div>
-                      <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em' }}>{month}</div>
+                      {hasLabel ? (
+                        // Only 3-letter month, no day number
+                        <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em' }}>
+                          {badgeLabel}
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, lineHeight: 1 }}>{day}</div>
+                          <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.05em' }}>{month}</div>
+                        </>
+                      )}
                     </div>
                     {/* Category */}
                     <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
@@ -105,12 +126,15 @@ export default function UpcomingEvents() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
                         <Calendar size={13} style={{ color: 'var(--gold-500)' }} />
-                        <span style={{ textTransform: 'capitalize' }}>{yearFull}</span>
+                        <span style={{ textTransform: 'capitalize' }}>{dateText}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
-                        <Clock size={13} style={{ color: 'var(--gold-500)' }} />
-                        <span>{event.time}</span>
-                      </div>
+                      {/* Only show time if known */}
+                      {event.time !== 'TBD' && (
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
+                          <Clock size={13} style={{ color: 'var(--gold-500)' }} />
+                          <span>{event.time}</span>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
                         <MapPin size={13} style={{ color: 'var(--gold-500)' }} />
                         <span>{event.location}</span>

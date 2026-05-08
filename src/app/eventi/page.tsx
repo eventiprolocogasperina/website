@@ -56,7 +56,10 @@ export default function EventiPage() {
               backdropFilter: 'blur(4px)',
             }}>
               {event.dateLabel ? (
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap' }}>{event.dateLabel}</div>
+                // Only month abbreviation, no year, no day
+                <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 800, letterSpacing: '0.08em' }}>
+                  {event.dateLabel.split(' ')[0].slice(0, 3).toUpperCase()}
+                </div>
               ) : (
                 <>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 700, lineHeight: 1 }}>{displayDay}</div>
