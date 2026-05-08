@@ -14,10 +14,14 @@ const pois = [
 ];
 
 const foods = [
-  { nome: 'Fichi di Calabria', desc: 'I fichi secchi del territorio, prodotto DOP di eccellenza.', emoji: '🫐' },
-  { nome: 'Nduja di Spilinga', desc: 'La celebre pasta di salame piccante, re della gastronomia calabrese.', emoji: '🌶️' },
-  { nome: 'Cipolla Rossa di Tropea', desc: 'La DOP più famosa di Calabria, dolce e versatile.', emoji: '🧅' },
-  { nome: 'Vino Cirò', desc: 'Il vino calabrese per eccellenza, prodotto sulle coste ioniche.', emoji: '🍷' },
+  { nome: 'Vino di Gasperina', desc: 'La produzione vinicola di Gasperina vanta una tradizione secolare, apprezzata ben oltre i confini locali. Un vino autentico che racconta il territorio.', emoji: '🍷' },
+  { nome: 'Olio Extravergine d\'Oliva', desc: 'Gli uliveti gasperinesi producono un olio di qualità eccellente, frutto di una vocazione agricola tramandata da generazioni tra le colline della Calabria ionica.', emoji: '🫒' },
+  { nome: 'Buccunotti', desc: 'Dolci tipici della tradizione gasperinese, fragranti e ripieni di marmellata o crema. Uno dei simboli della pasticceria locale.', emoji: '🍪' },
+  { nome: 'Zzìppuli', desc: 'Frittelle natalizie preparate con un impasto di farina, acqua, sale e lievito, fritte in abbondante olio d\'oliva. La variante con l\'acciuga è tipicamente gasperinese.', emoji: '🎄' },
+  { nome: 'Cuzzupi', desc: 'Biscotti pasquali dalla forma intrecciata, decorati con uova fresche intere che diventano sode durante la cottura. La forma classica è grande e rotonda.', emoji: '🥚' },
+  { nome: 'Chjàcchjari & Nguanti', desc: 'Dolci di Carnevale a base di acqua, uova e farina, ricoperti di zucchero a velo. Croccanti e leggeri, accompagnano le feste del periodo carnevalesco.', emoji: '🎭' },
+  { nome: 'Muruneḍi', desc: 'Dolci tradizionali a base di mosto cotto, legati alla stagione della vendemmia. Un connubio tra la tradizione vinicola e quella dolciaria del territorio.', emoji: '🍇' },
+  { nome: 'Taralli Pasquali', desc: 'Biscotti secchi a pasta dura del periodo pasquale, spesso ricoperti da una glassa bianca chiamata \'u nnaspu. Croccanti e profumati, sono un classico della Pasqua gasperinese.', emoji: '🥨' },
 ];
 
 export default function ScopriGasperinaPage() {
@@ -66,7 +70,7 @@ export default function ScopriGasperinaPage() {
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p className="label">Sapori autentici</p>
             <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-            <h2>La <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>gastronomia</em> calabrese</h2>
+            <h2>La <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>tradizione</em> gasperinese</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
             {foods.map(food => (

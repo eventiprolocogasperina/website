@@ -18,7 +18,7 @@ export default function AssociazionePagePage() {
         <div style={{ position: 'relative', textAlign: 'center' }}>
           <p className="label">Dal 1995</p>
           <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300 }}>Chi <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>siamo</em></h1>
+          <h1 style={{ fontWeight: 300, color: '#ffffff' }}>Chi <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>siamo</em></h1>
         </div>
       </div>
 
