@@ -104,7 +104,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <span className={`badge ${event.category === 'musica' ? 'badge-gold' : event.category === 'gastronomia' ? 'badge-green' : 'badge-blue'}`} style={{ marginBottom: '0.6rem', display: 'inline-flex' }}>
               {event.category}
             </span>
-            <h1 className="event-hero" style={{ fontWeight: 400, color: '#ffffff', marginBottom: '0.4rem', lineHeight: 1.15 }}>{event.title}</h1>
+            <h1 style={{ fontWeight: 400, color: '#ffffff', marginBottom: '0.4rem', lineHeight: 1.15 }}>{event.title}</h1>
             {event.price === 0 ? (
               <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>Evento Gratuito</span>
             ) : (

@@ -42,7 +42,7 @@ export default function IscrivitiPage() {
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <p className="label">Unisciti a noi</p>
           <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300, marginBottom: '0.75rem' }}>
+          <h1 style={{ fontWeight: 300, marginBottom: '0.75rem', color: '#ffffff' }}>
             Diventa <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>socio</em>
           </h1>
         </div>

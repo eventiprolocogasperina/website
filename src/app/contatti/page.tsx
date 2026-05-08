@@ -20,7 +20,7 @@ export default function ContattiPage() {
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p className="label">Scrivici</p>
             <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-            <h1 style={{ fontWeight: 300 }}>
+            <h1 style={{ fontWeight: 300, color: '#ffffff' }}>
               <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>Contattaci</em>
             </h1>
           </div>

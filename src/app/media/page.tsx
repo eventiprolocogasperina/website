@@ -27,7 +27,7 @@ export default function GalleryPage() {
         <div className="section-inner" style={{ textAlign: 'center' }}>
           <p className="label">Immagini</p>
           <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300, marginBottom: '0.75rem' }}>
+          <h1 style={{ fontWeight: 300, marginBottom: '0.75rem', color: '#ffffff' }}>
             La nostra <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>galleria</em>
           </h1>
           <p style={{ color: 'var(--neutral-400)', maxWidth: '540px', margin: '0 auto 2rem', lineHeight: 1.7 }}>
