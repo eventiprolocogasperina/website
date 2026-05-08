@@ -52,14 +52,15 @@ export default function Navbar() {
     }
   };
 
-  // Navbar text/bg adapts to theme
+  // In dark mode: always white text.
+  // In light mode: always dark text (page bg is cream, even when not scrolled).
   const navTextColor = dark
-    ? 'rgba(255,255,255,0.8)'
-    : scrolled ? 'rgba(30,25,20,0.85)' : 'rgba(255,255,255,0.9)';
+    ? 'rgba(255,255,255,0.82)'
+    : 'rgba(25,20,15,0.85)';
 
   const scrolledBg = dark
     ? 'rgba(10,12,18,0.92)'
-    : 'rgba(247,244,238,0.92)';
+    : 'rgba(247,244,238,0.95)';
 
   return (
     <>
@@ -86,7 +87,7 @@ export default function Navbar() {
             <Image src="/img/Logo_color.png" alt="Pro Loco Gasperina" width={44} height={44} style={{ objectFit: 'contain' }} />
             <div style={{ lineHeight: 1.1 }}>
               <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-600)', textTransform: 'uppercase' }}>Pro Loco</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: dark || !scrolled ? 'var(--white)' : 'var(--neutral-100)', letterSpacing: '0.03em' }}>Gasperina</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: dark ? 'var(--white)' : 'var(--neutral-950)', letterSpacing: '0.03em' }}>Gasperina</div>
             </div>
           </Link>
 
@@ -171,7 +172,7 @@ export default function Navbar() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: dark || !scrolled ? 'var(--white)' : 'var(--neutral-100)',
+                color: dark ? 'var(--white)' : 'var(--neutral-900)',
                 padding: '0.4rem',
                 display: 'none',
               }}
