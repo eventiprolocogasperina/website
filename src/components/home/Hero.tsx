@@ -60,7 +60,7 @@ export default function Hero() {
       }}>
         {/* Label */}
         <div className="label animate-fade-up" style={{ marginBottom: '1.5rem' }}>
-          Gasperina · Calabria · dal 1978
+          Gasperina · Calabria · dal 1995
         </div>
 
         {/* Title */}
@@ -119,9 +119,9 @@ export default function Hero() {
           flexWrap: 'wrap',
         }}>
           {[
-            { value: '45+', label: 'Anni di attività' },
-            { value: '200+', label: 'Soci attivi' },
-            { value: '30+', label: 'Eventi ogni anno' },
+            { value: '30+', label: 'Anni di attività' },
+            { value: '47', label: 'Soci attivi' },
+            { value: '7+', label: 'Eventi ogni anno' },
           ].map(stat => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
               <div style={{

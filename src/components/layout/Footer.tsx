@@ -53,8 +53,8 @@ export default function Footer() {
             </p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               {[
-                { icon: Camera, href: '#', label: 'Instagram' },
-                { icon: Share2, href: '#', label: 'Facebook' },
+                { icon: Camera, href: 'https://www.instagram.com/prolocogasperina_aps/', label: 'Instagram' },
+                { icon: Share2, href: 'https://www.facebook.com/prolocogasperina/', label: 'Facebook' },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}
@@ -123,9 +123,9 @@ export default function Footer() {
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {[
-                { icon: MapPin, text: 'Piazza Roma, Gasperina (CZ), Calabria' },
-                { icon: Mail, text: 'info@prolocogasperina.it' },
-                { icon: Phone, text: '+39 000 000 0000' },
+                { icon: MapPin, text: 'Via Raffaele Milano SNC, Gasperina (CZ)' },
+                { icon: Mail, text: 'prolocogasperina@gmail.com' },
+                { icon: Phone, text: '+39 327 978 3232' },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
                   <Icon size={15} style={{ color: 'var(--gold-500)', marginTop: '2px', flexShrink: 0 }} />

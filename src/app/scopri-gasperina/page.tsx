@@ -7,10 +7,10 @@ export const metadata: Metadata = {
 };
 
 const pois = [
-  { nome: 'Chiesa Madre di San Nicola', cat: 'religioso', desc: 'La principale chiesa del paese, dedicata al Santo Patrono, risalente al XVI secolo.' },
-  { nome: 'Belvedere Panoramico', cat: 'panorama', desc: 'Vista mozzafiato sul Mar Ionio e sulle colline calabresi fino all\'orizzonte.' },
-  { nome: 'Centro Storico Medievale', cat: 'cultura', desc: 'Vicoli, archi e piazzette che raccontano secoli di storia del borgo.' },
-  { nome: 'Parco Naturale Serre', cat: 'natura', desc: 'A pochi km da Gasperina, boschi di faggio e castagno tra le Serre Calabresi.' },
+  { nome: 'Santuario della Madonna dei Termini', cat: 'religioso', desc: 'Luogo di grande devozione popolare, legato alla leggenda della statua della Madonna ritrovata in mare e trasportata su un carro trainato da buoi.' },
+  { nome: 'Belvedere sul Golfo di Squillace', cat: 'panorama', desc: 'Vista mozzafiato sul Mar Ionio: nelle giornate più limpide lo sguardo arriva fino a Punta Stilo e Capo Rizzuto.' },
+  { nome: 'Centro Storico – Le Rughe', cat: 'cultura', desc: 'Strette viuzze, archi in pietra e scalinate intrecciate. I "vicoli" nel dialetto locale rivelano antichi palazzi nobiliari e chiese storiche.' },
+  { nome: 'Parco Naturale delle Serre', cat: 'natura', desc: 'A pochi chilometri da Gasperina, boschi di faggio e castagno tra le Serre Calabresi, già frequentate dai monaci certosini.' },
 ];
 
 const foods = [
@@ -34,8 +34,8 @@ export default function ScopriGasperinaPage() {
           <h1 style={{ fontWeight: 300, color: 'var(--color-heading)' }}>
             Scopri <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>Gasperina</em>
           </h1>
-          <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.75)', maxWidth: '600px', margin: '1rem auto 0', lineHeight: 1.7 }}>
-            Un borgo antico aggrappato alle colline calabresi, con vista sul Mar Ionio e un'anima autentica da scoprire passo dopo passo.
+          <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.85)', maxWidth: '640px', margin: '1rem auto 0', lineHeight: 1.7 }}>
+            Arroccata a circa 500 metri sul livello del mare, Gasperina è una vera terrazza naturale affacciata sul Golfo di Squillace — un piccolo gioiello della Calabria ionica capace di sorprendere con la sua autenticità e il suo fascino senza tempo.
           </p>
         </div>
       </div>
@@ -48,14 +48,10 @@ export default function ScopriGasperinaPage() {
             <div className="divider-gold" />
             <h2>Storia e <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>identità</em></h2>
             <p style={{ color: 'var(--neutral-400)', lineHeight: 1.8, margin: '1.25rem 0', fontSize: '0.95rem' }}>
-              Gasperina nasce come borgo medievale arroccato sulle colline tra il Marchesato Crotonese e le Serre calabresi.
-              Il suo nome è legato alla tradizione cristiana e alla figura di San Gaspare.
-              Attraverso i secoli ha mantenuto vive le sue tradizioni: dalla processione patronale ai mestieri antichi.
+              Le origini di Gasperina risalgono almeno all&apos;XI secolo, in epoca medievale, ma è probabile che il territorio fosse già abitato tra il VII e l&apos;VIII secolo, quando le popolazioni costiere cercavano rifugio sulle alture per sfuggire alle incursioni saracene. Nel corso dei secoli, il borgo è stato influenzato da diverse dominazioni, tra cui quella normanna e quella sveva, che hanno contribuito a modellarne l&apos;identità culturale e architettonica.
             </p>
             <p style={{ color: 'var(--neutral-400)', lineHeight: 1.8, fontSize: '0.95rem' }}>
-              Il territorio comunale si estende per circa 30 km² tra colline olivate, vigneti e boschi.
-              Dal belvedere del paese si può spaziare con lo sguardo fino al Mar Ionio, in una delle
-              viste più suggestive della Calabria centrale.
+              Un ruolo importante nella storia locale è stato svolto dai monaci certosini, legati alla vicina Certosa di Serra San Bruno, che hanno favorito lo sviluppo agricolo e spirituale della zona. Il centro storico conserva ancora oggi un impianto urbanistico tipico, fatto di strette viuzze, archi in pietra e scalinate — le cosiddette <em style={{ color: 'var(--gold-400)' }}>&ldquo;rughe&rdquo;</em> — che si intrecciano tra loro, creando un&apos;atmosfera intima e raccolta.
             </p>
           </div>
           <div style={{ position: 'relative', height: '400px', borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>

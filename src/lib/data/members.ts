@@ -1,4 +1,4 @@
-// ─── Members Data (Admin) ─────────────────────────────────────
+// ─── Members Data ─────────────────────────────────────────────
 export interface Member {
   id: string;
   nome: string;
@@ -19,9 +19,14 @@ export const members: Member[] = [
   { id: '7', nome: 'Francesco', cognome: 'Catanzaro', email: 'f.catanzaro@example.com', tipo: 'ordinario', dataIscrizione: '2025-01-22', stato: 'attivo' },
 ];
 
+// ─── Consiglio Direttivo ──────────────────────────────────────
 export const teamMembers = [
-  { nome: 'Francesco Martello', ruolo: 'Presidente', bio: 'Presidente della Pro Loco Gasperina APS, impegnato nella valorizzazione del territorio.' },
-  { nome: 'Niccolò Vono', ruolo: 'Vicepresidente', bio: 'Responsabile dei progetti culturali e delle relazioni con le istituzioni.' },
-  { nome: 'Giuseppe Torchia', ruolo: 'Segretario', bio: 'Coordina le attività amministrative e la gestione dei soci.' },
-  { nome: 'Anna Procopio', ruolo: 'Tesoriere', bio: 'Gestisce la contabilità e i rapporti con i partner e sponsor.' },
+  { nome: 'Francesco Martello', ruolo: 'Presidente' },
+  { nome: 'Niccolò Vono', ruolo: 'Vicepresidente' },
+  { nome: 'Antonella Bellocci', ruolo: 'Segretario' },
+  { nome: 'Eleonora Truglia', ruolo: 'Tesoriere' },
+  { nome: 'Stefania Fiorentino', ruolo: 'Consigliere' },
+  { nome: 'Maria Assunta Fiorentino', ruolo: 'Consigliere' },
+  { nome: 'Michele Gualtieri', ruolo: 'Consigliere' },
+  { nome: 'Pasquale Lupica', ruolo: 'Consigliere' },
 ];

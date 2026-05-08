@@ -5,7 +5,7 @@ import { Download, FileText } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Chi Siamo',
-  description: 'Scopri la storia, la missione e il team della Pro Loco Gasperina APS, associazione di promozione sociale fondata nel 1978.',
+  description: 'Scopri la storia, la missione e il team della Pro Loco Gasperina APS, associazione di promozione sociale fondata nel 1995.',
 };
 
 export default function AssociazionePagePage() {
@@ -16,7 +16,7 @@ export default function AssociazionePagePage() {
         <Image src="/img/IMG1.jpg" alt="Gasperina" fill style={{ objectFit: 'cover', objectPosition: 'center 60%' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,12,18,0.5), rgba(10,12,18,0.9))' }} />
         <div style={{ position: 'relative', textAlign: 'center' }}>
-          <p className="label">Dal 1978</p>
+          <p className="label">Dal 1995</p>
           <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
           <h1 style={{ fontWeight: 300 }}>Chi <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>siamo</em></h1>
         </div>
@@ -29,9 +29,9 @@ export default function AssociazionePagePage() {
           <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
           <h2 style={{ marginBottom: '1.5rem' }}>Promuovere, <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>valorizzare</em>, connettere</h2>
           <p style={{ fontSize: '1.05rem', color: 'var(--neutral-400)', lineHeight: 1.8, marginBottom: '1rem' }}>
-            La Pro Loco Gasperina APS è un'associazione di promozione sociale fondata nel 1978.
-            Da oltre 45 anni promuoviamo la cultura, le tradizioni e il turismo del nostro borgo,
-            organizzando eventi, gestendo progetti culturali e creando comunità.
+            La Pro Loco Gasperina APS è un'associazione di promozione sociale nata nel 1995.
+            Con passione e dedizione promuoviamo la cultura, le tradizioni e il turismo del nostro borgo,
+            organizzando eventi, gestendo progetti culturali e rafforzando il senso di comunità.
           </p>
           <p style={{ fontSize: '1.05rem', color: 'var(--neutral-400)', lineHeight: 1.8 }}>
             Siamo un'associazione apartitica, senza scopo di lucro, guidata dalla passione per Gasperina
@@ -81,13 +81,12 @@ export default function AssociazionePagePage() {
                   background: 'linear-gradient(135deg, var(--blue-700), var(--blue-900))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 1rem',
-                  fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--color-heading)',
+                  fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: '#ffffff',
                 }}>
                   {m.nome.split(' ').map(n => n[0]).join('')}
                 </div>
                 <h4 style={{ color: 'var(--color-heading)', marginBottom: '0.25rem' }}>{m.nome}</h4>
-                <p className="label" style={{ marginBottom: '0.75rem' }}>{m.ruolo}</p>
-                <p style={{ fontSize: '0.825rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>{m.bio}</p>
+                <p className="label">{m.ruolo}</p>
               </div>
             ))}
           </div>
@@ -104,9 +103,9 @@ export default function AssociazionePagePage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {[
-              { name: 'Statuto Associativo', date: 'Aggiornato 2023', type: 'PDF' },
-              { name: 'Atto Costitutivo', date: '1978', type: 'PDF' },
-              { name: 'Regolamento Interno', date: 'Aggiornato 2024', type: 'PDF' },
+              { name: 'Statuto Associativo', date: 'In caricamento', type: 'PDF' },
+              { name: 'Atto Costitutivo', date: '1995', type: 'PDF' },
+              { name: 'Regolamento Interno', date: 'In caricamento', type: 'PDF' },
             ].map(doc => (
               <div key={doc.name} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',

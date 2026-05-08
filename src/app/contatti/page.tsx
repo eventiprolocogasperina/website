@@ -33,9 +33,9 @@ export default function ContattiPage() {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
                 {[
-                  { icon: MapPin, title: 'Sede', text: 'Piazza Roma, Gasperina (CZ)\nCalabria, Italia' },
-                  { icon: Mail, title: 'Email', text: 'info@prolocogasperina.it' },
-                  { icon: Phone, title: 'Telefono', text: '+39 000 000 0000' },
+                  { icon: MapPin, title: 'Sede', text: 'Via Raffaele Milano SNC\nGasperina (CZ), Calabria' },
+                  { icon: Mail, title: 'Email', text: 'prolocogasperina@gmail.com' },
+                  { icon: Phone, title: 'Telefono', text: '+39 327 978 3232' },
                 ].map(({ icon: Icon, title, text }) => (
                   <div key={title} style={{ display: 'flex', gap: '1rem' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'rgba(27,75,170,0.15)', border: '1px solid rgba(27,75,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -49,7 +49,7 @@ export default function ContattiPage() {
                 ))}
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
-                {[{ icon: Camera, href: '#' }, { icon: Share2, href: '#' }].map(({ icon: Icon, href }, i) => (
+                {[{ icon: Camera, href: 'https://www.instagram.com/prolocogasperina_aps/' }, { icon: Share2, href: 'https://www.facebook.com/prolocogasperina/' }].map(({ icon: Icon, href }, i) => (
                   <a key={i} href={href} style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', color: 'var(--neutral-400)', transition: 'all 0.2s' }}>
                     <Icon size={16} />
                   </a>
