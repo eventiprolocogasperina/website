@@ -58,6 +58,15 @@ export default function Hero() {
         maxWidth: '900px',
         margin: '0 auto',
       }}>
+        {/* Logo above label */}
+        <div className="animate-fade-in" style={{ marginBottom: '1.25rem' }}>
+          <img
+            src="/img/Logo_color.png"
+            alt="Pro Loco Gasperina"
+            style={{ width: 72, height: 72, objectFit: 'contain', filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.4))' }}
+          />
+        </div>
+
         {/* Label */}
         <div className="label animate-fade-up" style={{ marginBottom: '1.5rem' }}>
           Gasperina · Calabria · dal 1995
