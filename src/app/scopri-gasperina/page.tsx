@@ -31,7 +31,7 @@ export default function ScopriGasperinaPage() {
         <div style={{ position: 'relative', textAlign: 'center', padding: '0 1.5rem' }}>
           <p className="label">450 m s.l.m. · Calabria Centrale</p>
           <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300, color: 'var(--color-heading)' }}>
+          <h1 style={{ fontWeight: 300, color: '#ffffff' }}>
             Scopri <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>Gasperina</em>
           </h1>
           <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.85)', maxWidth: '640px', margin: '1rem auto 0', lineHeight: 1.7 }}>

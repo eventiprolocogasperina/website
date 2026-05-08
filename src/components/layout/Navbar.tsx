@@ -13,6 +13,7 @@ const navLinks = [
   { href: '/progetti', label: 'Progetti' },
   { href: '/media', label: 'Galleria' },
   { href: '/associazione', label: 'Chi Siamo' },
+  { href: '/sponsor', label: 'Sponsor' },
   { href: '/contatti', label: 'Contatti' },
 ];
 

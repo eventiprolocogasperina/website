@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Calendar, MapPin, Clock, Users, ArrowLeft, ExternalLink } from 'lucide-react';
-import { events, getEventBySlug } from '@/lib/data/events';
+import { events, getEventBySlug, isEventPast } from '@/lib/data/events';
 import BookingForm from '@/components/events/BookingForm';
 import type { Metadata } from 'next';
 
@@ -25,8 +25,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const event = getEventBySlug(slug);
   if (!event) notFound();
 
-  const dateObj = new Date(event.date);
-  const fullDate = dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const isPast = isEventPast(event);
+  const showBooking = event.bookable && !isPast;
+
+  const dateObj = new Date(event.date + 'T12:00:00');
+  const fullDate = event.dateLabel
+    ? event.dateLabel
+    : dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const pct = Math.round((event.registeredCount / event.maxParticipants) * 100);
 
   return (
@@ -42,7 +47,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
           <span className={`badge ${event.category === 'musica' ? 'badge-gold' : event.category === 'gastronomia' ? 'badge-green' : 'badge-blue'}`} style={{ marginBottom: '0.75rem', display: 'inline-flex' }}>
             {event.category}
           </span>
-          <h1 style={{ fontWeight: 400, color: 'var(--color-heading)', marginBottom: '0.5rem' }}>{event.title}</h1>
+          <h1 style={{ fontWeight: 400, color: '#ffffff', marginBottom: '0.5rem' }}>{event.title}</h1>
           {event.price === 0 ? (
             <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>Evento Gratuito</span>
           ) : (
@@ -61,9 +66,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2rem' }}>
               {[
                 { icon: Calendar, text: fullDate },
-                { icon: Clock, text: `Ore ${event.time}` },
+                ...(!event.dateLabel && event.time !== 'TBD' ? [{ icon: Clock, text: `Ore ${event.time}` }] : []),
                 { icon: MapPin, text: event.location },
-                { icon: Users, text: `${event.registeredCount} / ${event.maxParticipants} partecipanti` },
+                { icon: Users, text: isPast ? `${event.registeredCount} partecipanti` : `${event.maxParticipants - event.registeredCount} posti disponibili` },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} style={{
                   display: 'flex', alignItems: 'center', gap: '0.5rem',
@@ -94,24 +99,59 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             ))}
           </div>
 
-          {/* Right: booking form */}
+          {/* Right: booking form or info box */}
           <div style={{ position: 'sticky', top: '6rem' }}>
-            <div style={{
-              background: 'var(--neutral-800)',
-              border: '1px solid var(--neutral-700)',
-              borderRadius: 'var(--radius-xl)',
-              overflow: 'hidden',
-            }}>
-              <div style={{ padding: '1.5rem 1.5rem 0', borderBottom: '1px solid var(--neutral-700)' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 500, marginBottom: '0.25rem' }}>Prenota il tuo posto</h3>
-                <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', paddingBottom: '1rem' }}>
-                  Posti disponibili: {event.maxParticipants - event.registeredCount}
+            {showBooking ? (
+              <div style={{
+                background: 'var(--neutral-800)',
+                border: '1px solid var(--neutral-700)',
+                borderRadius: 'var(--radius-xl)',
+                overflow: 'hidden',
+              }}>
+                <div style={{ padding: '1.5rem 1.5rem 0', borderBottom: '1px solid var(--neutral-700)' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 500, marginBottom: '0.25rem' }}>Prenota il tuo posto</h3>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', paddingBottom: '1rem' }}>
+                    Posti disponibili: {event.maxParticipants - event.registeredCount}
+                  </p>
+                </div>
+                <div style={{ padding: '1.5rem' }}>
+                  <BookingForm eventTitle={event.title} eventSlug={event.slug} />
+                </div>
+              </div>
+            ) : isPast ? (
+              <div style={{
+                background: 'var(--neutral-800)',
+                border: '1px solid var(--neutral-700)',
+                borderRadius: 'var(--radius-xl)',
+                padding: '2rem',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🎉</div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>Evento concluso</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>
+                  Questo evento si è già svolto. Resta aggiornato sui nostri prossimi appuntamenti!
                 </p>
+                <a href="/eventi" className="btn btn-primary" style={{ marginTop: '1.25rem', display: 'inline-flex' }}>Vedi i prossimi</a>
               </div>
-              <div style={{ padding: '1.5rem' }}>
-                <BookingForm eventTitle={event.title} eventSlug={event.slug} />
+            ) : (
+              <div style={{
+                background: 'var(--neutral-800)',
+                border: '1px solid var(--neutral-700)',
+                borderRadius: 'var(--radius-xl)',
+                padding: '2rem',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📅</div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>Dettagli in arrivo</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>
+                  Le iscrizioni per questo evento non sono ancora aperte. Seguici sui social per non perderti gli aggiornamenti!
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                  <a href="https://www.instagram.com/prolocogasperina_aps/" target="_blank" rel="noopener noreferrer" className="btn btn-gold" style={{ fontSize: '0.82rem', padding: '0.55rem 1.2rem' }}>Instagram</a>
+                  <a href="https://www.facebook.com/prolocogasperina/" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ fontSize: '0.82rem', padding: '0.55rem 1.2rem' }}>Facebook</a>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

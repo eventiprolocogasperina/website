@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, ChevronRight, Clock } from 'lucide-react';
-import { getFeaturedEvents } from '@/lib/data/events';
+import { getUpcomingEvents } from '@/lib/data/events';
 
 const categoryColors: Record<string, string> = {
   cultura: 'badge-blue',
@@ -14,7 +14,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function UpcomingEvents() {
-  const events = getFeaturedEvents();
+  const events = getUpcomingEvents().filter(e => e.featured).slice(0, 3);
 
   return (
     <section className="section" style={{ background: 'var(--neutral-950)' }}>
