@@ -2,7 +2,44 @@
 
 import { useState } from 'react';
 import type { Event } from '@/lib/data/events';
-import { Loader2, X, Trash2, Save } from 'lucide-react';
+import { Loader2, X, Trash2, Save, UploadCloud } from 'lucide-react';
+
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality JPEG
+      };
+      img.onerror = (error) => reject(error);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 interface EventFormProps {
   initialData?: Event;
@@ -39,6 +76,27 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
   const handleChange = (field: keyof Event) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setError('L\'immagine è troppo grande. Massimo 5MB ammessi.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const base64Image = await compressImage(file);
+      setFormData(prev => ({ ...prev, image: base64Image }));
+      setError('');
+    } catch (err) {
+      setError('Errore durante il caricamento dell\'immagine.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const generateSlug = () => {
@@ -150,10 +208,24 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               </div>
             </div>
 
-            {/* Image */}
+            {/* Image Upload */}
             <div>
-              <label className="label">URL Immagine</label>
-              <input required className="input" value={formData.image} onChange={handleChange('image')} placeholder="/img/Event_1.jpeg" />
+              <label className="label">Immagine di Copertina *</label>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                {formData.image && formData.image.startsWith('data:image') ? (
+                  <img src={formData.image} alt="Preview" style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
+                ) : formData.image ? (
+                  <img src={formData.image} alt="Preview" style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
+                ) : null}
+                <label style={{ 
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+                  padding: '0.5rem 1rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)',
+                  borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--white)'
+                }}>
+                  <UploadCloud size={16} /> Carica Immagine
+                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
             </div>
 
             {/* Descriptions */}

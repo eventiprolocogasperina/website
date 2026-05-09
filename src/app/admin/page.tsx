@@ -9,17 +9,16 @@ import {
   TrendingUp, UserPlus, CalendarCheck, Eye, Loader2
 } from 'lucide-react';
 import type { Event } from '@/lib/data/events';
-import { members } from '@/lib/data/members';
-import { projects } from '@/lib/data/projects';
+import type { Member } from '@/lib/data/members';
 import EventForm from '@/components/admin/EventForm';
+import MemberForm from '@/components/admin/MemberForm';
 
-type AdminSection = 'dashboard' | 'eventi' | 'soci' | 'progetti' | 'analytics';
+type AdminSection = 'dashboard' | 'eventi' | 'soci' | 'analytics';
 
 const navItems: { id: AdminSection; icon: typeof LayoutDashboard; label: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { id: 'eventi', icon: Calendar, label: 'Eventi' },
   { id: 'soci', icon: Users, label: 'Soci' },
-  { id: 'progetti', icon: FolderOpen, label: 'Progetti' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics' },
 ];
 
@@ -32,8 +31,10 @@ const statusColors: Record<string, string> = {
 export default function AdminPage() {
   const [section, setSection] = useState<AdminSection>('dashboard');
   const [events, setEvents] = useState<Event[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState<Event | null | 'new'>(null);
+  const [editingMember, setEditingMember] = useState<Member | null | 'new'>(null);
 
   const fetchEvents = () => {
     fetch('/api/events')
@@ -48,13 +49,30 @@ export default function AdminPage() {
       });
   };
 
+  const fetchMembers = () => {
+    fetch('/api/members')
+      .then(res => res.json())
+      .then(data => {
+        setMembers(data);
+      })
+      .catch(err => {
+        console.error(err);
+      });
+  };
+
   useEffect(() => {
     fetchEvents();
+    fetchMembers();
   }, []);
 
   const handleSaveEvent = () => {
     setEditingEvent(null);
     fetchEvents(); // Refresh data
+  };
+
+  const handleSaveMember = () => {
+    setEditingMember(null);
+    fetchMembers(); // Refresh data
   };
 
   const handleDeleteEvent = async (id: string) => {
@@ -63,6 +81,18 @@ export default function AdminPage() {
       await fetch(`/api/events/${id}`, { method: 'DELETE' });
       setEditingEvent(null);
       fetchEvents();
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante l\'eliminazione');
+    }
+  };
+
+  const handleDeleteMember = async (id: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questo socio?')) return;
+    try {
+      await fetch(`/api/members/${id}`, { method: 'DELETE' });
+      setEditingMember(null);
+      fetchMembers();
     } catch (err) {
       console.error(err);
       alert('Errore durante l\'eliminazione');
@@ -193,7 +223,6 @@ export default function AdminPage() {
                 { icon: Users, label: 'Soci Totali', value: members.length, delta: '+3 questo mese', color: 'var(--blue-700)' },
                 { icon: Calendar, label: 'Eventi Totali', value: events.length, delta: '3 in arrivo', color: 'var(--gold-500)' },
                 { icon: UserPlus, label: 'Prenotazioni', value: events.reduce((a, e) => a + e.registeredCount, 0), delta: 'questo mese', color: '#4ade80' },
-                { icon: FolderOpen, label: 'Progetti Attivi', value: projects.filter(p => p.status === 'in corso').length, delta: 'in corso', color: '#a78bfa' },
               ].map(kpi => {
                 const Icon = kpi.icon;
                 return (
@@ -316,7 +345,11 @@ export default function AdminPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{members.length} soci registrati</p>
-              <button className="btn btn-primary" style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}>
+              <button 
+                onClick={() => setEditingMember('new')}
+                className="btn btn-primary" 
+                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
+              >
                 + Aggiungi socio
               </button>
             </div>
@@ -329,6 +362,7 @@ export default function AdminPage() {
                     <th>Tipo</th>
                     <th>Iscrizione</th>
                     <th>Stato</th>
+                    <th>Azioni</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -351,6 +385,14 @@ export default function AdminPage() {
                           {m.stato.charAt(0).toUpperCase() + m.stato.slice(1)}
                         </span>
                       </td>
+                      <td>
+                        <button 
+                          onClick={() => setEditingMember(m)}
+                          style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
+                          Modifica
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -359,32 +401,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* ── PROGETTI ── */}
-        {section === 'progetti' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{projects.length} progetti</p>
-              <button className="btn btn-primary" style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}>+ Nuovo progetto</button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-              {projects.map(p => (
-                <div key={p.id} className="card" style={{ padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                    <span className={`badge ${p.status === 'completato' ? 'badge-green' : p.status === 'in corso' ? 'badge-blue' : 'badge-gold'}`} style={{ textTransform: 'capitalize' }}>{p.status}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--neutral-500)' }}>{p.year}</span>
-                  </div>
-                  <h4 style={{ color: 'var(--white)', marginBottom: '0.5rem' }}>{p.title}</h4>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', lineHeight: 1.5, marginBottom: '0.75rem' }}>{p.description}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                    {p.partners.map(partner => (
-                      <span key={partner} style={{ fontSize: '0.68rem', color: 'var(--neutral-500)', background: 'var(--neutral-700)', padding: '0.15rem 0.5rem', borderRadius: 'var(--radius-full)' }}>{partner}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* ── ANALYTICS ── */}
         {section === 'analytics' && (
@@ -456,6 +472,16 @@ export default function AdminPage() {
           onClose={() => setEditingEvent(null)}
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
+        />
+      )}
+
+      {/* Member Form Modal */}
+      {editingMember && (
+        <MemberForm 
+          initialData={editingMember === 'new' ? undefined : editingMember}
+          onClose={() => setEditingMember(null)}
+          onSave={handleSaveMember}
+          onDelete={handleDeleteMember}
         />
       )}
     </div>

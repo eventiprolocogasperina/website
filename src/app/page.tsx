@@ -1,6 +1,5 @@
 import Hero from '@/components/home/Hero';
 import UpcomingEvents from '@/components/home/UpcomingEvents';
-import FeaturedProjects from '@/components/home/FeaturedProjects';
 import CommunityImpact from '@/components/home/CommunityImpact';
 import DiscoverTeaser from '@/components/home/DiscoverTeaser';
 import { getUpcomingEvents } from '@/lib/data/events';
@@ -21,7 +20,6 @@ export default async function HomePage() {
       <Hero />
       <UpcomingEvents events={events} />
       <DiscoverTeaser />
-      <FeaturedProjects />
       <CommunityImpact />
     </>
   );
