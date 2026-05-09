@@ -6,6 +6,8 @@ import { Download, CheckCircle, Send } from 'lucide-react';
 export default function IscrivitiPage() {
   const [form, setForm] = useState({ nome: '', cognome: '', email: '', tipoSocio: 'ordinario', gdpr: false, statuto: false });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -19,7 +21,30 @@ export default function IscrivitiPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (ev: React.FormEvent) => { ev.preventDefault(); if (validate()) setSubmitted(true); };
+  const handleSubmit = async (ev: React.FormEvent) => { 
+    ev.preventDefault(); 
+    setApiError('');
+    if (!validate()) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+      
+      if (!res.ok) {
+        throw new Error('Errore durante l\\'invio della richiesta.');
+      }
+      
+      setSubmitted(true);
+    } catch (err: any) {
+      setApiError(err.message || 'Qualcosa è andato storto. Riprova più tardi.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const downloadCard = () => {
     const content = `TESSERA ASSOCIATIVA\n============================\nPro Loco Gasperina APS\n============================\nSocio: ${form.nome} ${form.cognome}\nTipo: ${form.tipoSocio}\nAnno: ${new Date().getFullYear()}\nID: PLG-${Date.now().toString(36).toUpperCase()}`;
@@ -105,8 +130,13 @@ export default function IscrivitiPage() {
                 </label>
               </div>
               {errors.gdpr && <p style={{ fontSize: '0.72rem', color: '#f87171' }}>{errors.gdpr}</p>}
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} id="membership-submit">
-                <Send size={15} /> Invia richiesta di iscrizione
+              {apiError && (
+                <div style={{ padding: '0.75rem', background: 'rgba(248, 113, 113, 0.1)', border: '1px solid #f87171', borderRadius: 'var(--radius-md)', color: '#f87171', fontSize: '0.85rem', textAlign: 'center' }}>
+                  {apiError}
+                </div>
+              )}
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', opacity: loading ? 0.7 : 1 }} id="membership-submit" disabled={loading}>
+                <Send size={15} /> {loading ? 'Invio in corso...' : 'Invia richiesta di iscrizione'}
               </button>
             </form>
           </>
