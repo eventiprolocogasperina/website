@@ -20,19 +20,19 @@
   --gold-100: #fef6dc;
   --gold-50:  #fffcf0;
 
-  /* ── Light mode (default) ── */
-  --neutral-950: #f7f4ee;
-  --neutral-900: #ede9df;
-  --neutral-800: #ffffff;
-  --neutral-700: #ddd8ce;
-  --neutral-600: #b8b3a8;
-  --neutral-400: #7a7268;
-  --neutral-200: #3a3530;
-  --neutral-100: #1a1510;
-  --neutral-50:  #0f0c08;
+  /* ── Dark mode (default) ── */
+  --neutral-950: #0a0c12;
+  --neutral-900: #10131d;
+  --neutral-800: #181c2a;
+  --neutral-700: #252a3c;
+  --neutral-600: #3c4258;
+  --neutral-400: #7a819a;
+  --neutral-200: #d0d4e0;
+  --neutral-100: #eceef5;
+  --neutral-50:  #f8f9fc;
 
   --white: #ffffff;
-  --surface: #f5f6fa;
+  --surface: #10131d;
 
   /* Semantic tokens */
   --color-primary: var(--blue-700);
@@ -41,9 +41,9 @@
   --color-surface: var(--neutral-900);
   --color-card:    var(--neutral-800);
   --color-border:  var(--neutral-700);
-  --color-text:    #2a2520;
+  --color-text:    #e8eaf2;
   --color-muted:   var(--neutral-400);
-  --color-heading: #1a1510;
+  --color-heading: #ffffff;
 
   /* Typography */
   --font-display: 'Cormorant Garamond', Georgia, serif;
@@ -68,23 +68,25 @@
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* ─── Dark mode ──────────────────────────────────────────────── */
-[data-theme="dark"] {
-  --neutral-950: #0a0c12;
-  --neutral-900: #10131d;
-  --neutral-800: #181c2a;
-  --neutral-700: #252a3c;
-  --neutral-600: #3c4258;
-  --neutral-400: #7a819a;
-  --neutral-200: #d0d4e0;
-  --neutral-100: #eceef5;
-  --neutral-50:  #f8f9fc;
+/* ─── Light mode ──────────────────────────────────────────────── */
+[data-theme="light"] {
+  --neutral-950: #f7f4ee;
+  --neutral-900: #ede9df;
+  --neutral-800: #ffffff;
+  --neutral-700: #ddd8ce;
+  --neutral-600: #b8b3a8;
+  --neutral-400: #5c554c; /* Darkened for better contrast on white */
+  --neutral-200: #3a3530;
+  --neutral-100: #1a1510;
+  --neutral-50:  #0f0c08;
+  
+  --surface: #f5f6fa;
 
-  --color-text:    #e8eaf2;
-  --color-heading: #ffffff;
+  --color-text:    #2a2520;
+  --color-heading: #1a1510;
 
-  --shadow-card: 0 4px 24px rgba(0,0,0,0.35);
-  --shadow-lg:   0 12px 48px rgba(0,0,0,0.5);
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.1);
+  --shadow-lg:   0 12px 48px rgba(0,0,0,0.15);
 }
 
 /* ─── Base Reset ─────────────────────────────────────────────── */

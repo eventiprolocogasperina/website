@@ -20,17 +20,17 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
   const pathname = usePathname();
 
-  // Light mode is the default (:root CSS). Only apply dark if user explicitly chose it.
+  // Dark mode is now the default (:root CSS). Only apply light if user explicitly chose it.
   useEffect(() => {
     const stored = localStorage.getItem('theme');
-    if (stored === 'dark') {
-      setDark(true);
-      document.documentElement.setAttribute('data-theme', 'dark');
+    if (stored === 'light') {
+      setDark(false);
+      document.documentElement.setAttribute('data-theme', 'light');
     } else {
-      // Ensure light mode: remove any stale dark attribute
+      setDark(true);
       document.documentElement.removeAttribute('data-theme');
     }
   }, []);
@@ -47,10 +47,10 @@ export default function Navbar() {
     const next = !dark;
     setDark(next);
     if (next) {
-      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.removeAttribute('data-theme');
       localStorage.setItem('theme', 'dark');
     } else {
-      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.setAttribute('data-theme', 'light');
       localStorage.setItem('theme', 'light');
     }
   };
