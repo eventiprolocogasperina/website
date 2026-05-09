@@ -35,7 +35,7 @@ export default function IscrivitiPage() {
       });
       
       if (!res.ok) {
-        throw new Error('Errore durante l\\'invio della richiesta.');
+        throw new Error("Errore durante l'invio della richiesta.");
       }
       
       setSubmitted(true);

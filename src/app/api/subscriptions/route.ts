@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-// Vercel prenderà automaticamente la chiave se salvata come RESEND_API_KEY
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   try {
+    // Instantiate Resend here so it doesn't fail at build time if the ENV var is missing locally
+    const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy_key');
+    
     const body = await request.json();
     const { nome, cognome, email, tipoSocio, gdpr, statuto } = body;
 
