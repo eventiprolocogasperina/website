@@ -181,9 +181,8 @@ export default function Hero() {
         style={{
           position: 'absolute',
           bottom: '2rem',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 'max-content',
+          left: '0',
+          width: '100%',
           color: 'rgba(255,255,255,0.4)',
           display: 'flex',
           flexDirection: 'column',

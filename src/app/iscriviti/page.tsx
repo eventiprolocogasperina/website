@@ -31,8 +31,8 @@ export default function IscrivitiPage() {
   };
 
   const tipi = [
-    { id: 'ordinario', label: 'Socio Ordinario', price: '€ 10/anno' },
-    { id: 'sostenitore', label: 'Socio Sostenitore', price: '€ 25/anno' },
+    { id: 'ordinario', label: 'Socio Ordinario', price: '€ 20/anno' },
+    { id: 'sostenitore', label: 'Socio Sostenitore', price: 'Da € 20/anno' },
     { id: 'onorario', label: 'Socio Onorario', price: 'Su nomina' },
   ];
 
