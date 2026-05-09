@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: 'La Pro Loco Gasperina APS promuove la cultura, le tradizioni e il turismo nel borgo calabrese di Gasperina. Scopri gli eventi, i progetti e la bellezza del territorio.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const events = await getUpcomingEvents();
 

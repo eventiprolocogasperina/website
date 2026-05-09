@@ -6,10 +6,7 @@ import { getAllEvents, getEventBySlug, isEventPast } from '@/lib/data/events';
 import BookingForm from '@/components/events/BookingForm';
 import type { Metadata } from 'next';
 
-export async function generateStaticParams() {
-  const events = await getAllEvents();
-  return events.map(e => ({ slug: e.slug }));
-}
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

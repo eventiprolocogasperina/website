@@ -17,6 +17,8 @@ const categoryColors: Record<string, string> = {
   comunità: 'badge-gold',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function EventiPage() {
   const events = await getAllEvents();
   const today = new Date().toISOString().split('T')[0];
