@@ -158,7 +158,6 @@ export default function Hero() {
         }}>
           {[
             { value: '30+', label: 'Anni di attività' },
-            { value: '47', label: 'Soci attivi' },
             { value: '7+', label: 'Eventi ogni anno' },
           ].map(stat => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
