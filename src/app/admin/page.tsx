@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   LayoutDashboard, Calendar, Users, FolderOpen, ImageIcon,
   BarChart2, ChevronRight, LogOut, Settings, Bell,
-  TrendingUp, UserPlus, CalendarCheck, Eye,
+  TrendingUp, UserPlus, CalendarCheck, Eye, Loader2
 } from 'lucide-react';
-import { events } from '@/lib/data/events';
+import type { Event } from '@/lib/data/events';
 import { members } from '@/lib/data/members';
 import { projects } from '@/lib/data/projects';
+import EventForm from '@/components/admin/EventForm';
 
 type AdminSection = 'dashboard' | 'eventi' | 'soci' | 'progetti' | 'analytics';
 
@@ -30,6 +31,43 @@ const statusColors: Record<string, string> = {
 
 export default function AdminPage() {
   const [section, setSection] = useState<AdminSection>('dashboard');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingEvent, setEditingEvent] = useState<Event | null | 'new'>(null);
+
+  const fetchEvents = () => {
+    fetch('/api/events')
+      .then(res => res.json())
+      .then(data => {
+        setEvents(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const handleSaveEvent = () => {
+    setEditingEvent(null);
+    fetchEvents(); // Refresh data
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (!confirm('Sei sicuro di voler eliminare questo evento?')) return;
+    try {
+      await fetch(`/api/events/${id}`, { method: 'DELETE' });
+      setEditingEvent(null);
+      fetchEvents();
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante l\'eliminazione');
+    }
+  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--neutral-950)', paddingTop: '0' }}>
@@ -143,6 +181,12 @@ export default function AdminPage() {
         {/* ── DASHBOARD ── */}
         {section === 'dashboard' && (
           <div>
+            {loading ? (
+               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
+                 <Loader2 className="animate-spin" size={32} />
+               </div>
+            ) : (
+              <>
             {/* KPI cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
               {[
@@ -209,6 +253,8 @@ export default function AdminPage() {
                 ))}
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
 
@@ -217,10 +263,19 @@ export default function AdminPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{events.length} eventi totali</p>
-              <button className="btn btn-primary" style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}>
+              <button 
+                onClick={() => setEditingEvent('new')}
+                className="btn btn-primary" 
+                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
+              >
                 + Nuovo evento
               </button>
             </div>
+            {loading ? (
+               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
+                 <Loader2 className="animate-spin" size={32} />
+               </div>
+            ) : (
             <div className="card" style={{ overflow: 'hidden' }}>
               <table className="data-table">
                 <thead>
@@ -243,8 +298,8 @@ export default function AdminPage() {
                       <td><span style={{ color: ev.price === 0 ? '#4ade80' : 'var(--gold-400)', fontSize: '0.82rem' }}>{ev.price === 0 ? 'Sì' : `€${ev.price}`}</span></td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Link href={`/eventi/${ev.slug}`} style={{ fontSize: '0.78rem', color: 'var(--blue-500)', textDecoration: 'underline' }}>Vedi</Link>
-                          <button style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }}>Modifica</button>
+                          <Link href={`/eventi/${ev.slug}`} target="_blank" style={{ fontSize: '0.78rem', color: 'var(--blue-500)', textDecoration: 'underline' }}>Vedi</Link>
+                          <button onClick={() => setEditingEvent(ev)} style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }}>Modifica</button>
                         </div>
                       </td>
                     </tr>
@@ -252,6 +307,7 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 
@@ -333,6 +389,12 @@ export default function AdminPage() {
         {/* ── ANALYTICS ── */}
         {section === 'analytics' && (
           <div>
+            {loading ? (
+               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
+                 <Loader2 className="animate-spin" size={32} />
+               </div>
+            ) : (
+              <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
               {[
                 { label: 'Tasso di riempimento eventi', value: `${Math.round(events.reduce((a,e) => a + e.registeredCount/e.maxParticipants, 0) / events.length * 100)}%`, icon: TrendingUp, color: 'var(--blue-700)' },
@@ -381,9 +443,21 @@ export default function AdminPage() {
                 })}
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
       </main>
+
+      {/* Event Form Modal */}
+      {editingEvent && (
+        <EventForm 
+          initialData={editingEvent === 'new' ? undefined : editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onSave={handleSaveEvent}
+          onDelete={handleDeleteEvent}
+        />
+      )}
     </div>
   );
 }

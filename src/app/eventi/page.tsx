@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, Clock, Users } from 'lucide-react';
-import { events, isEventPast } from '@/lib/data/events';
+import { getAllEvents, isEventPast, type Event } from '@/lib/data/events';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -17,12 +17,13 @@ const categoryColors: Record<string, string> = {
   comunità: 'badge-gold',
 };
 
-export default function EventiPage() {
+export default async function EventiPage() {
+  const events = await getAllEvents();
   const today = new Date().toISOString().split('T')[0];
-  const upcoming = events.filter(e => e.date >= today);
+  const upcoming = events.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
   const past = events.filter(e => e.date < today);
 
-  const EventCard = ({ event }: { event: typeof events[0] }) => {
+  const EventCard = ({ event }: { event: Event }) => {
     const isPast = isEventPast(event);
     // Use dateLabel override if present, otherwise format the date
     let displayDay = '';

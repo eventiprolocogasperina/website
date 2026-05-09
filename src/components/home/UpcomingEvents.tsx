@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, ChevronRight, Clock } from 'lucide-react';
-import { getUpcomingEvents } from '@/lib/data/events';
+import type { Event } from '@/lib/data/events';
 
 const categoryColors: Record<string, string> = {
   cultura: 'badge-blue',
@@ -18,8 +18,8 @@ function monthAbbr(label: string): string {
   return label.split(' ')[0].slice(0, 3).toUpperCase();
 }
 
-export default function UpcomingEvents() {
-  const events = getUpcomingEvents().filter(e => e.featured).slice(0, 3);
+export default function UpcomingEvents({ events }: { events: Event[] }) {
+  const featuredEvents = events.filter(e => e.featured).slice(0, 3);
 
   return (
     <section className="section" style={{ background: 'var(--neutral-950)' }}>
@@ -38,12 +38,8 @@ export default function UpcomingEvents() {
         </div>
 
         {/* Cards grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: '1.5rem',
-        }}>
-          {events.map((event) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+          {featuredEvents.map((event) => {
             // If dateLabel exists → show only the 3-letter month abbreviation, no day
             const hasLabel = Boolean(event.dateLabel);
             const badgeLabel = hasLabel

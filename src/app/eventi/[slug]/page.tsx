@@ -2,24 +2,26 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Calendar, MapPin, Clock, Users, ArrowLeft } from 'lucide-react';
-import { events, getEventBySlug, isEventPast } from '@/lib/data/events';
+import { getAllEvents, getEventBySlug, isEventPast } from '@/lib/data/events';
 import BookingForm from '@/components/events/BookingForm';
 import type { Metadata } from 'next';
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const events = await getAllEvents();
   return events.map(e => ({ slug: e.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) return { title: 'Evento non trovato' };
   return { title: event.title, description: event.description };
 }
 
 export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
+  
   if (!event) notFound();
 
   const isPast = isEventPast(event);
