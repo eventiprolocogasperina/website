@@ -120,7 +120,7 @@ export default function IscrivitiPage() {
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <Image src="/img/Logo_color.png" alt="Pro Loco Gasperina" width={80} height={80} style={{ margin: '0 auto 1rem', objectFit: 'contain' }} />
+          <Image src="/img/Logo_color_sm.png" alt="Pro Loco Gasperina" width={80} height={80} style={{ margin: '0 auto 1rem', objectFit: 'contain' }} />
           <p className="label">Anno {new Date().getFullYear()}</p>
           <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
           <h1 style={{ fontWeight: 300, marginBottom: '0.5rem', color: 'var(--color-heading)' }}>

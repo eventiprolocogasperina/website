@@ -50,7 +50,7 @@ export default function AdminPage() {
       }}>
         {/* Logo */}
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Image src="/img/Logo_color.png" alt="Logo" width={36} height={36} style={{ objectFit: 'contain' }} />
+          <Image src="/img/Logo_color_sm.png" alt="Logo" width={36} height={36} style={{ objectFit: 'contain' }} />
           <div style={{ lineHeight: 1.1 }}>
             <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.55rem', color: 'var(--gold-500)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pro Loco</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: 'var(--white)', fontWeight: 500 }}>Gasperina</div>

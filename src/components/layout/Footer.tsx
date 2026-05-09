@@ -43,7 +43,7 @@ export default function Footer() {
           {/* Brand col */}
           <div style={{ gridColumn: 'span 1' }}>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <Image src="/img/Logo_color.png" alt="Pro Loco Gasperina" width={48} height={48} style={{ objectFit: 'contain' }} />
+              <Image src="/img/Logo_color_sm.png" alt="Pro Loco Gasperina" width={48} height={48} style={{ objectFit: 'contain' }} />
               <div>
                 <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.6rem', letterSpacing: '0.15em', color: 'var(--gold-500)', textTransform: 'uppercase' }}>Pro Loco</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: 'var(--color-heading)' }}>Gasperina APS</div>

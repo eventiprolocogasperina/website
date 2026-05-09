@@ -89,7 +89,7 @@ export default function Navbar() {
         <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Image src="/img/Logo_color.png" alt="Pro Loco Gasperina" width={44} height={44} style={{ objectFit: 'contain' }} />
+            <Image src="/img/Logo_color_sm.png" alt="Pro Loco Gasperina" width={44} height={44} style={{ objectFit: 'contain' }} />
             <div style={{ lineHeight: 1.1 }}>
               <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-600)', textTransform: 'uppercase' }}>Pro Loco</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, color: navBrand, letterSpacing: '0.03em' }}>Gasperina</div>
