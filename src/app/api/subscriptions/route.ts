@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     const data = await resend.emails.send({
       from: 'Pro Loco Gasperina <noreply@prolocogasperina.it>',
-      to: 'iscrizioni@prolocogasperina.it',
+      to: 'prolocogasperina@gmail.com',
       subject: `Nuova Iscrizione: ${nome} ${cognome}`,
       replyTo: email,
       html: htmlContent,
