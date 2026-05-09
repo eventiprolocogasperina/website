@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 import { teamMembers } from '@/lib/data/members';
-import { Download, FileText } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Chi Siamo',
@@ -93,39 +94,19 @@ export default function AssociazionePagePage() {
         </div>
       </section>
 
-      {/* Documents */}
+      {/* Diventa Socio CTA */}
       <section className="section" style={{ background: 'var(--neutral-900)' }}>
-        <div className="section-inner" style={{ maxWidth: '700px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <p className="label">Documenti</p>
-            <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-            <h2>Atti e <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>documenti</em></h2>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[
-              { name: 'Statuto Associativo', date: 'In caricamento', type: 'PDF' },
-              { name: 'Atto Costitutivo', date: '1995', type: 'PDF' },
-              { name: 'Regolamento Interno', date: 'In caricamento', type: 'PDF' },
-            ].map(doc => (
-              <div key={doc.name} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '1rem 1.25rem',
-                background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)',
-                borderRadius: 'var(--radius-md)',
-              }}>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <FileText size={18} style={{ color: 'var(--blue-500)' }} />
-                  <div>
-                    <div style={{ fontSize: '0.9rem', color: 'var(--color-heading)', fontWeight: 500 }}>{doc.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{doc.date}</div>
-                  </div>
-                </div>
-                <button className="btn btn-outline" style={{ padding: '0.4rem 0.9rem', fontSize: '0.78rem', gap: '0.35rem' }}>
-                  <Download size={13} /> {doc.type}
-                </button>
-              </div>
-            ))}
-          </div>
+        <div className="section-inner" style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+          <p className="label">Unisciti a noi</p>
+          <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
+          <h2>Diventa <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>socio</em></h2>
+          <p style={{ color: 'var(--neutral-400)', lineHeight: 1.8, margin: '1.25rem auto 2rem', maxWidth: '520px', fontSize: '0.95rem' }}>
+            Entra a far parte della nostra comunità! Come socio potrai partecipare attivamente alla vita dell&apos;associazione,
+            ai nostri eventi e contribuire alla valorizzazione del territorio gasperinese.
+          </p>
+          <Link href="/iscriviti" className="btn btn-gold" style={{ display: 'inline-flex', gap: '0.4rem' }}>
+            Compila il modulo di iscrizione <ChevronRight size={16} />
+          </Link>
         </div>
       </section>
     </div>
