@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { generateSubscriptionPDF } from '@/lib/generatePDF';
 
 export async function POST(request: Request) {
   try {
@@ -140,6 +141,16 @@ export async function POST(request: Request) {
       </div>
     `;
 
+    // Generate PDF
+    const pdfBuffer = generateSubscriptionPDF({
+      nome, cognome, luogoNascita, provNascita, dataNascita,
+      residenza, provResidenza, cap, indirizzo, civico,
+      codiceFiscale, cellulare, email, tipoSocio, quotaSostenitore,
+    });
+
+    const pdfFilename = `Iscrizione_${cognome}_${nome}_${anno}.pdf`;
+    const attachment = { filename: pdfFilename, content: pdfBuffer };
+
     // Send both emails concurrently
     const [adminResult, userResult] = await Promise.all([
       resend.emails.send({
@@ -148,12 +159,14 @@ export async function POST(request: Request) {
         subject: `Nuova Iscrizione: ${nome} ${cognome} — Socio ${tipoSocio}`,
         replyTo: email,
         html: adminHtml,
+        attachments: [attachment],
       }),
       resend.emails.send({
         from: 'Pro Loco Gasperina <noreply@prolocogasperina.it>',
         to: email,
         subject: `Conferma richiesta di iscrizione — Pro Loco di Gasperina APS`,
         html: userHtml,
+        attachments: [attachment],
       }),
     ]);
 
