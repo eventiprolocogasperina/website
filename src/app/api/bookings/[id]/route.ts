@@ -3,10 +3,10 @@ import { neon } from '@neondatabase/serverless';
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { checkedIn, stato } = body;
 
@@ -40,10 +40,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const sql = neon(process.env.POSTGRES_URL!);
 
     // Get booking details first to know how many participants to decrement
