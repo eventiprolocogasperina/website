@@ -159,179 +159,171 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)',
+      background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 100, padding: '2rem'
+      zIndex: 100, padding: '1rem'
     }}>
       <div style={{
         background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)',
-        borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '800px',
-        maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '900px',
+        maxHeight: '95vh', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
       }}>
         
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--white)' }}>
-            {isEdit ? 'Modifica Evento' : 'Nuovo Evento'}
-          </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>
-            <X size={20} />
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--neutral-950)', borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '100%', height: '10px', borderRadius: '50%', background: isEdit ? 'var(--blue-500)' : 'var(--gold-500)' }} />
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--white)' }}>
+              {isEdit ? 'Modifica Evento' : 'Nuovo Evento'}
+            </h3>
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--neutral-800)', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+            <X size={18} />
           </button>
         </div>
 
-        <div style={{ overflowY: 'auto', padding: '1.5rem', flex: 1 }}>
-          <form id="event-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ overflowY: 'auto', padding: '1.5rem', flex: 1, scrollbarWidth: 'thin' }}>
+          <form id="event-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
-            {/* Title & Slug */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label className="label">Titolo *</label>
-                <input required className="input" value={formData.title} onChange={handleChange('title')} onBlur={!isEdit ? generateSlug : undefined} />
+            {/* ── SEZIONE 1: INFO BASE ────────────────────────────────── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label className="label">Titolo dell'evento *</label>
+                  <input required className="input" value={formData.title} onChange={handleChange('title')} onBlur={!isEdit ? generateSlug : undefined} placeholder="Es. Festival della Birra" />
+                </div>
+                <div>
+                  <label className="label">Slug (URL personalizzata) *</label>
+                  <input required className="input" value={formData.slug} onChange={handleChange('slug')} placeholder="es-festival-birra" />
+                </div>
+                <div>
+                  <label className="label">Categoria</label>
+                  <select className="input" value={formData.category} onChange={handleChange('category')}>
+                    <option value="cultura">🏛 Cultura</option>
+                    <option value="musica">🎵 Musica</option>
+                    <option value="gastronomia">🍴 Gastronomia</option>
+                    <option value="sport">⚽ Sport</option>
+                    <option value="comunità">🤝 Comunità</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="label">Slug (URL) *</label>
-                <input required className="input" value={formData.slug} onChange={handleChange('slug')} />
-              </div>
-            </div>
 
-            {/* Date + dateLabel, Time, Location */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label className="label">Data precisa *</label>
-                <input type="date" required className="input" value={formData.date} onChange={handleChange('date')} />
-                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', marginTop: '0.3rem' }}>
-                  Usata per l'ordinamento cronologico
-                </p>
-              </div>
-              <div>
-                <label className="label">Etichetta data pubblica</label>
-                <input
-                  className="input"
-                  value={formData.dateLabel ?? ''}
-                  onChange={handleChange('dateLabel')}
-                  placeholder="Es. Luglio 2026 · Estate Gasperinese"
-                />
-                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', marginTop: '0.3rem' }}>
-                  Se compilata, sostituisce la data precisa nel sito
-                </p>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label className="label">Ora *</label>
-                <input required className="input" value={formData.time} onChange={handleChange('time')} placeholder="19:00" />
-              </div>
-              <div>
-                <label className="label">Luogo *</label>
-                <input required className="input" value={formData.location} onChange={handleChange('location')} placeholder="Piazza Roma" />
-              </div>
-            </div>
-
-            {/* Category & Numbers */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label className="label">Categoria</label>
-                <select className="input" value={formData.category} onChange={handleChange('category')}>
-                  <option value="cultura">Cultura</option>
-                  <option value="musica">Musica</option>
-                  <option value="gastronomia">Gastronomia</option>
-                  <option value="sport">Sport</option>
-                  <option value="comunità">Comunità</option>
-                </select>
-              </div>
-              <div>
-                <label className="label">Max Partecipanti</label>
-                <input type="number" required className="input" value={formData.maxParticipants} onChange={handleChange('maxParticipants')} />
-              </div>
-              <div>
-                <label className="label">Prezzo (€)</label>
-                <input type="number" required className="input" value={formData.price} onChange={handleChange('price')} />
-              </div>
-            </div>
-
-            {/* Image Upload */}
-            <div>
-              <label className="label">Immagine di Copertina *</label>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
-                {formData.image && formData.image.startsWith('data:image') ? (
-                  <img src={formData.image} alt="Preview" style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
-                ) : formData.image ? (
-                  <img src={formData.image} alt="Preview" style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
-                ) : null}
-                <label style={{ 
-                  display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
-                  padding: '0.5rem 1rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)',
-                  borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--white)'
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <label className="label">Immagine di Copertina *</label>
+                <div style={{ 
+                  border: '2px dashed var(--neutral-800)', borderRadius: 'var(--radius-lg)', 
+                  padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', 
+                  gap: '1rem', background: 'var(--neutral-950)', minHeight: '160px', justifyContent: 'center'
                 }}>
-                  <UploadCloud size={16} /> Carica Immagine
-                  <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-                </label>
+                  {formData.image ? (
+                    <img src={formData.image} alt="Preview" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
+                  ) : (
+                    <UploadCloud size={40} style={{ color: 'var(--neutral-700)' }} />
+                  )}
+                  <label style={{ 
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
+                    padding: '0.5rem 1rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)',
+                    borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--white)', transition: 'all 0.2s'
+                  }}>
+                    <UploadCloud size={14} /> {formData.image ? 'Cambia Immagine' : 'Carica Immagine'}
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                  </label>
+                </div>
               </div>
             </div>
 
-            {/* Descriptions */}
-            <div>
-              <label className="label">Descrizione Breve * (Mostrata nelle card)</label>
-              <textarea required className="input" rows={2} value={formData.description} onChange={handleChange('description')} />
-            </div>
-            <div>
-              <label className="label">Descrizione Completa * (Supporta HTML/Markdown)</label>
-              <textarea required className="input" rows={5} value={formData.fullDescription} onChange={handleChange('fullDescription')} />
-            </div>
-
-            {/* Toggles */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', padding: '1rem', background: 'var(--neutral-950)', borderRadius: 'var(--radius-md)' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--neutral-300)', fontSize: '0.85rem' }}>
-                <input type="checkbox" checked={formData.featured} onChange={handleChange('featured')} style={{ accentColor: 'var(--gold-500)' }} />
-                In evidenza (Home)
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--neutral-300)', fontSize: '0.85rem' }}>
-                <input type="checkbox" checked={formData.bookable} onChange={handleChange('bookable')} style={{ accentColor: 'var(--gold-500)' }} />
-                Prenotabile
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4ade80', fontSize: '0.85rem', fontWeight: 500 }}>
-                <input type="checkbox" checked={formData.isFree} onChange={handleChange('isFree')} style={{ accentColor: '#4ade80' }} />
-                Evento Gratuito
-              </label>
-            </div>
-
-            {/* ── RCM Config ───────────────────────────────────────────── */}
-            <div style={{ borderTop: '1px solid var(--neutral-800)', paddingTop: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <label className="label" style={{ margin: 0 }}>Personalizzazione pagina (RCM)</label>
-                <Info size={13} style={{ color: 'var(--neutral-600)', flexShrink: 0 }} />
+            {/* ── SEZIONE 2: LOGISTICA ────────────────────────────────── */}
+            <div style={{ background: 'var(--neutral-950)', padding: '1.25rem', borderRadius: 'var(--radius-lg)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label className="label">Data *</label>
+                    <input type="date" required className="input" value={formData.date} onChange={handleChange('date')} />
+                  </div>
+                  <div>
+                    <label className="label">Ora *</label>
+                    <input required className="input" value={formData.time} onChange={handleChange('time')} placeholder="19:00" />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Luogo *</label>
+                  <input required className="input" value={formData.location} onChange={handleChange('location')} placeholder="Piazza Municipio" />
+                </div>
               </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginBottom: '0.6rem', lineHeight: 1.6 }}>
-                JSON opzionale. Supporta: 
-                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>accentColor</code>,
-                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>tagline</code>,
-                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>extraSections</code>
-                <br/>
-                Tipi sezioni: <code style={{ color: 'var(--neutral-400)' }}>text, image, link, html</code>
-              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label className="label">Etichetta data (opzionale)</label>
+                  <input className="input" value={formData.dateLabel ?? ''} onChange={handleChange('dateLabel')} placeholder="Es. Estate 2026" />
+                  <p style={{ fontSize: '0.65rem', color: 'var(--neutral-600)', marginTop: '0.4rem' }}>Verrà mostrata al posto della data precisa</p>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label className="label">Prezzo (€)</label>
+                    <input type="number" required className="input" value={formData.price} onChange={handleChange('price')} />
+                  </div>
+                  <div>
+                    <label className="label">Posti Max</label>
+                    <input type="number" required className="input" value={formData.maxParticipants} onChange={handleChange('maxParticipants')} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SEZIONE 3: VISIBILITÀ & PRENOTAZIONI ──────────────────── */}
+            <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem', background: 'var(--neutral-950)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--neutral-800)' }}>
+              <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--neutral-300)', fontSize: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }}>
+                <input type="checkbox" checked={formData.featured} onChange={handleChange('featured')} style={{ width: '16px', height: '16px', accentColor: 'var(--gold-500)' }} />
+                <span>In evidenza (Home)</span>
+              </label>
+              <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--neutral-300)', fontSize: '0.8rem', padding: '0.5rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }}>
+                <input type="checkbox" checked={formData.bookable} onChange={handleChange('bookable')} style={{ width: '16px', height: '16px', accentColor: 'var(--blue-500)' }} />
+                <span>Abilita Prenotazioni</span>
+              </label>
+              <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#4ade80', fontSize: '0.8rem', fontWeight: 500, padding: '0.5rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }}>
+                <input type="checkbox" checked={formData.isFree} onChange={handleChange('isFree')} style={{ width: '16px', height: '16px', accentColor: '#4ade80' }} />
+                <span>Evento Gratuito</span>
+              </label>
+            </div>
+
+            {/* ── SEZIONE 4: DESCRIZIONI ───────────────────────────────── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label className="label">Descrizione Breve *</label>
+                <textarea required className="input" rows={2} value={formData.description} onChange={handleChange('description')} placeholder="Un riassunto rapido per le card..." />
+              </div>
+              <div>
+                <label className="label">Descrizione Completa *</label>
+                <textarea required className="input" rows={4} value={formData.fullDescription} onChange={handleChange('fullDescription')} placeholder="Tutti i dettagli dell'evento..." />
+              </div>
+            </div>
+
+            {/* ── SEZIONE 5: PERSONALIZZAZIONE (RCM) ────────────────────── */}
+            <div style={{ borderTop: '1px solid var(--neutral-800)', paddingTop: '1.5rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label className="label" style={{ margin: 0 }}>Design Avanzato (JSON)</label>
+                  <Info size={14} style={{ color: 'var(--neutral-600)' }} />
+                </div>
+                <span style={{ fontSize: '0.7rem', color: 'var(--neutral-500)' }}>accentColor, tagline, extraSections</span>
+              </div>
               <textarea
                 className="input"
-                rows={8}
-                style={{ fontFamily: 'monospace', fontSize: '0.78rem', resize: 'vertical' }}
+                rows={6}
+                style={{ fontFamily: 'monospace', fontSize: '0.75rem', resize: 'vertical', background: '#0a0a0a' }}
                 value={formData.config as unknown as string}
                 onChange={e => setFormData(prev => ({ ...prev, config: e.target.value as any }))}
-                placeholder={JSON.stringify({
-                  accentColor: "#d97706",
-                  tagline: "Un'esperienza indimenticabile",
-                  extraSections: [
-                    { type: "text", title: "Programma", content: "21:00 Apertura\n22:00 Inizio" },
-                    { type: "image", title: "Location", src: "/img/IMG1.jpg" },
-                    { type: "link", linkText: "Sito Ufficiale", linkUrl: "https://..." }
-                  ]
-                }, null, 2)}
+                placeholder='{ "accentColor": "#d97706", "tagline": "...", "extraSections": [] }'
                 spellCheck={false}
               />
               {configError && (
-                <div style={{ color: '#f87171', fontSize: '0.8rem', marginTop: '0.4rem' }}>{configError}</div>
+                <div style={{ color: '#f87171', fontSize: '0.75rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                   <X size={12} /> {configError}
+                </div>
               )}
             </div>
 
-            {error && <div style={{ color: '#f87171', fontSize: '0.85rem', padding: '0.5rem', background: 'rgba(248,113,113,0.1)', borderRadius: 'var(--radius-sm)' }}>{error}</div>}
+            {error && <div style={{ color: '#f87171', fontSize: '0.8rem', padding: '0.75rem', background: 'rgba(248,113,113,0.1)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(248,113,113,0.2)' }}>{error}</div>}
           </form>
         </div>
 
@@ -340,17 +332,19 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
             <button 
               type="button" 
               onClick={() => onDelete && onDelete(formData.id)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f87171', background: 'rgba(248,113,113,0.1)', border: 'none', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--neutral-400)', background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', transition: 'color 0.2s' }}
+              onMouseOver={e => e.currentTarget.style.color = '#f87171'}
+              onMouseOut={e => e.currentTarget.style.color = 'var(--neutral-400)'}
             >
-              <Trash2 size={16} /> Elimina Evento
+              <Trash2 size={14} /> Elimina
             </button>
           ) : <div/>}
 
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button type="button" onClick={onClose} style={{ color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <button type="button" onClick={onClose} style={{ color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
               Annulla
             </button>
-            <button type="submit" form="event-form" disabled={loading} className="btn btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}>
+            <button type="submit" form="event-form" disabled={loading} className="btn btn-primary" style={{ padding: '0.6rem 1.5rem', fontSize: '0.85rem', minWidth: '140px' }}>
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {isEdit ? 'Salva Modifiche' : 'Crea Evento'}
             </button>
