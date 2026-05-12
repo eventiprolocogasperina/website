@@ -84,7 +84,7 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
             animate={{ opacity: 1 }} 
             transition={{ delay: 0.5 }}
           >
-            {event.price === 0 ? (
+            {event.isFree ? (
               <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>Evento Gratuito</span>
             ) : (
               <span style={{ fontSize: '0.85rem', color: 'var(--gold-400)' }}>€{event.price} a persona</span>
@@ -147,16 +147,37 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
               {extraSections.map((sec, i) => (
                 <motion.div 
                   key={i} 
-                  initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--neutral-800)' }}
+                  transition={{ delay: i * 0.1 }}
+                  style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
                 >
-                  <div style={{ width: '30px', height: '2px', background: accentColor, marginBottom: '0.75rem' }} />
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--white)', marginBottom: '0.75rem' }}>{sec.title}</h3>
-                  {sec.content.split('\n').filter(Boolean).map((line, j) => (
-                    <p key={j} style={{ color: 'var(--neutral-400)', lineHeight: 1.8, marginBottom: '0.5rem', fontSize: '0.9rem' }}>{line.trim()}</p>
-                  ))}
+                  {sec.title && <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--white)', marginBottom: '1.25rem' }}>{sec.title}</h3>}
+                  
+                  {sec.type === 'text' && sec.content && (
+                    sec.content.split('\n').filter(Boolean).map((line, j) => (
+                      <p key={j} style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.8rem', fontSize: '0.95rem' }}>{line.trim()}</p>
+                    ))
+                  )}
+
+                  {sec.type === 'image' && sec.src && (
+                    <div style={{ position: 'relative', width: '100%', height: '350px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '1rem' }}>
+                      <Image src={sec.src} alt={sec.title || 'Image'} fill style={{ objectFit: 'cover' }} />
+                    </div>
+                  )}
+
+                  {sec.type === 'link' && sec.linkUrl && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <a href={sec.linkUrl} target="_blank" rel="noopener noreferrer" className="btn btn-gold" style={{ display: 'inline-flex' }}>
+                        {sec.linkText || 'Scopri di più'}
+                      </a>
+                    </div>
+                  )}
+
+                  {sec.type === 'html' && sec.content && (
+                    <div dangerouslySetInnerHTML={{ __html: sec.content }} style={{ color: 'var(--neutral-300)', lineHeight: 1.8 }} />
+                  )}
                 </motion.div>
               ))}
             </motion.div>

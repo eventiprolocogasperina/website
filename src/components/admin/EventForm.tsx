@@ -63,6 +63,7 @@ const emptyEvent: Omit<Event, 'config'> & { config: string } = {
   maxParticipants: 100,
   registeredCount: 0,
   price: 0,
+  isFree: false,
   featured: false,
   bookable: false,
   config: '{}',
@@ -279,7 +280,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
             </div>
 
             {/* Toggles */}
-            <div style={{ display: 'flex', gap: '2rem', padding: '1rem', background: 'var(--neutral-950)', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', padding: '1rem', background: 'var(--neutral-950)', borderRadius: 'var(--radius-md)' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--neutral-300)', fontSize: '0.85rem' }}>
                 <input type="checkbox" checked={formData.featured} onChange={handleChange('featured')} style={{ accentColor: 'var(--gold-500)' }} />
                 In evidenza (Home)
@@ -287,6 +288,10 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--neutral-300)', fontSize: '0.85rem' }}>
                 <input type="checkbox" checked={formData.bookable} onChange={handleChange('bookable')} style={{ accentColor: 'var(--gold-500)' }} />
                 Prenotabile
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#4ade80', fontSize: '0.85rem', fontWeight: 500 }}>
+                <input type="checkbox" checked={formData.isFree} onChange={handleChange('isFree')} style={{ accentColor: '#4ade80' }} />
+                Evento Gratuito
               </label>
             </div>
 
@@ -297,19 +302,28 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                 <Info size={13} style={{ color: 'var(--neutral-600)', flexShrink: 0 }} />
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginBottom: '0.6rem', lineHeight: 1.6 }}>
-                JSON opzionale. Campi supportati:
-                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>accentColor</code>
-                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>tagline</code>
-                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>hideCapacity</code>
+                JSON opzionale. Supporta: 
+                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>accentColor</code>,
+                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>tagline</code>,
                 <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>extraSections</code>
+                <br/>
+                Tipi sezioni: <code style={{ color: 'var(--neutral-400)' }}>text, image, link, html</code>
               </p>
               <textarea
                 className="input"
-                rows={6}
+                rows={8}
                 style={{ fontFamily: 'monospace', fontSize: '0.78rem', resize: 'vertical' }}
                 value={formData.config as unknown as string}
                 onChange={e => setFormData(prev => ({ ...prev, config: e.target.value as any }))}
-                placeholder={'{ "accentColor": "#d97706", "tagline": "L\'estate si accende!", "extraSections": [{ "title": "Programma", "content": "21:00 – Apertura\\n22:00 – Musica live" }] }'}
+                placeholder={JSON.stringify({
+                  accentColor: "#d97706",
+                  tagline: "Un'esperienza indimenticabile",
+                  extraSections: [
+                    { type: "text", title: "Programma", content: "21:00 Apertura\n22:00 Inizio" },
+                    { type: "image", title: "Location", src: "/img/IMG1.jpg" },
+                    { type: "link", linkText: "Sito Ufficiale", linkUrl: "https://..." }
+                  ]
+                }, null, 2)}
                 spellCheck={false}
               />
               {configError && (

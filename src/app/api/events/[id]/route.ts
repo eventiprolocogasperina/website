@@ -39,7 +39,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const {
       slug, title, date, dateLabel, time, location, category,
       description, fullDescription, image, maxParticipants,
-      registeredCount, price, featured, bookable, config
+      registeredCount, price, isFree, featured, bookable, config
     } = body;
 
     const result = await sql`
@@ -57,6 +57,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         "maxParticipants" = COALESCE(${maxParticipants}, "maxParticipants"),
         "registeredCount" = COALESCE(${registeredCount}, "registeredCount"),
         price = COALESCE(${price}, price),
+        "isFree" = COALESCE(${isFree}, "isFree"),
         featured = COALESCE(${featured}, featured),
         bookable = COALESCE(${bookable}, bookable),
         config = CASE WHEN ${config !== undefined ? 'update' : 'skip'} = 'update' THEN ${config ? JSON.stringify(config) : null}::jsonb ELSE config END

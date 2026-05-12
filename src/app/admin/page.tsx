@@ -356,7 +356,7 @@ export default function AdminPage() {
                       <td>{new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                       <td><span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>{ev.category}</span></td>
                       <td>{ev.bookable ? `${ev.registeredCount} / ${ev.maxParticipants}` : <span style={{ color: 'var(--neutral-600)', fontStyle: 'italic' }}>—</span>}</td>
-                      <td><span style={{ color: ev.price === 0 ? '#4ade80' : 'var(--gold-400)', fontSize: '0.82rem' }}>{ev.price === 0 ? 'Sì' : `€${ev.price}`}</span></td>
+                      <td><span style={{ color: ev.isFree ? '#4ade80' : 'var(--gold-400)', fontSize: '0.82rem' }}>{ev.isFree ? 'Sì' : `€${ev.price}`}</span></td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <Link href={`/eventi/${ev.slug}`} target="_blank" style={{ fontSize: '0.78rem', color: 'var(--blue-500)', textDecoration: 'underline' }}>Vedi</Link>
