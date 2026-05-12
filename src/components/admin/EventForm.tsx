@@ -165,14 +165,14 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
     }}>
       <div style={{
         background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)',
-        borderRadius: 'var(--radius-xl)', width: '100%', maxWidth: '900px',
+        borderRadius: 'var(--radius-xl)', width: '95%', maxWidth: '1000px',
         maxHeight: '95vh', display: 'flex', flexDirection: 'column',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
       }}>
         
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--neutral-950)', borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '100%', height: '10px', borderRadius: '50%', background: isEdit ? 'var(--blue-500)' : 'var(--gold-500)' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isEdit ? 'var(--blue-500)' : 'var(--gold-500)' }} />
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--white)' }}>
               {isEdit ? 'Modifica Evento' : 'Nuovo Evento'}
             </h3>
