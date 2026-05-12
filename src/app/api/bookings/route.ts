@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(request: Request) {
   try {
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     const sql = neon(process.env.POSTGRES_URL!);
-    const id = `bk_${uuidv4().replace(/-/g, '').slice(0, 12)}`;
+    const id = `bk_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
 
     // 1. Insert booking
     await sql`
