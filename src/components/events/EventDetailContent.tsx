@@ -18,7 +18,7 @@ interface EventDetailContentProps {
 export default function EventDetailContent({ event, isPast, showBooking, fullDate, pct }: EventDetailContentProps) {
   const cfg = event.config || {};
   const accentColor = cfg.accentColor || 'var(--gold-500)';
-  const extraSections: Array<{ title: string; content: string }> = cfg.extraSections || [];
+  const extraSections = cfg.extraSections || [];
   const hideCapacity = cfg.hideCapacity ?? false;
   const tagline = cfg.tagline || '';
 
