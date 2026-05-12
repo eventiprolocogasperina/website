@@ -6,7 +6,8 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Calendar, Users, ImageIcon,
   BarChart2, LogOut, Settings, Bell,
-  TrendingUp, UserPlus, CalendarCheck, Eye, Loader2
+  TrendingUp, UserPlus, CalendarCheck, Eye, Loader2,
+  Ticket
 } from 'lucide-react';
 import type { Event } from '@/lib/data/events';
 import type { Member } from '@/lib/data/members';
@@ -14,12 +15,14 @@ import type { GalleryItem } from '@/lib/data/gallery';
 import EventForm from '@/components/admin/EventForm';
 import MemberForm from '@/components/admin/MemberForm';
 import GalleryForm from '@/components/admin/GalleryForm';
+import BookingManager from '@/components/admin/BookingManager';
 
-type AdminSection = 'dashboard' | 'eventi' | 'soci' | 'media' | 'analytics';
+type AdminSection = 'dashboard' | 'eventi' | 'prenotazioni' | 'soci' | 'media' | 'analytics';
 
 const navItems: { id: AdminSection; icon: typeof LayoutDashboard; label: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { id: 'eventi', icon: Calendar, label: 'Eventi' },
+  { id: 'prenotazioni', icon: CalendarCheck, label: 'Prenotazioni' },
   { id: 'soci', icon: Users, label: 'Soci' },
   { id: 'media', icon: ImageIcon, label: 'Media' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics' },
@@ -69,6 +72,9 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
+    // Run setup silently to ensure tables exist
+    fetch('/api/setup').catch(() => {});
+    
     fetchEvents();
     fetchMembers();
     fetchGallery();
@@ -370,6 +376,11 @@ export default function AdminPage() {
             </div>
             )}
           </div>
+        )}
+
+        {/* ── PRENOTAZIONI ── */}
+        {section === 'prenotazioni' && (
+          <BookingManager />
         )}
 
         {/* ── SOCI ── */}

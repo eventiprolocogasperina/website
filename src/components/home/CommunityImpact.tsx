@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface StatItem { value: number; suffix: string; label: string; }
 const stats: StatItem[] = [
-  { value: 30, suffix: '+', label: 'Anni di attività' },
+  { value: 30, suffix: '+', label: 'Anni dalla fondazione' },
   { value: 7, suffix: '+', label: 'Eventi ogni anno' },
   { value: 10, suffix: 'k', label: 'Persone raggiunte' },
 ];

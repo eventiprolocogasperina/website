@@ -198,7 +198,7 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                     </p>
                   </div>
                   <div style={{ padding: '1.5rem' }}>
-                    <BookingForm eventTitle={event.title} eventSlug={event.slug} />
+                    <BookingForm eventId={event.id} eventTitle={event.title} eventSlug={event.slug} />
                   </div>
                 </div>
               ) : isPast ? (

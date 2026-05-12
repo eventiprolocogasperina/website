@@ -36,15 +36,31 @@ export async function GET() {
 
     // 2. config column on events
     try {
-      await sql`ALTER TABLE events ADD COLUMN config JSONB DEFAULT NULL;`;
-      log.push('events.config column: added');
+      await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS config JSONB DEFAULT NULL;`;
+      await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS "isFree" BOOLEAN DEFAULT FALSE;`;
+      await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS "dateLabel" VARCHAR(255);`;
+      log.push('events columns updated');
     } catch (e: any) {
-      if (e.message?.includes('already exists')) {
-        log.push('events.config column: already exists');
-      } else {
-        throw e;
-      }
+      log.push('events update note: ' + e.message);
     }
+
+    // 3. Bookings table
+    await sql`
+      CREATE TABLE IF NOT EXISTS bookings (
+        id           VARCHAR(255) PRIMARY KEY,
+        event_id     VARCHAR(255) NOT NULL,
+        nome         VARCHAR(255) NOT NULL,
+        cognome      VARCHAR(255) NOT NULL,
+        email        VARCHAR(255) NOT NULL,
+        telefono     VARCHAR(255),
+        partecipanti INTEGER      NOT NULL DEFAULT 1,
+        note         TEXT,
+        stato        VARCHAR(50)  NOT NULL DEFAULT 'confermato',
+        "createdAt"  TIMESTAMPTZ  DEFAULT CURRENT_TIMESTAMP,
+        "checkedIn"  BOOLEAN      DEFAULT FALSE
+      );
+    `;
+    log.push('bookings table: ok');
 
     return NextResponse.json({ ok: true, log });
   } catch (error: any) {

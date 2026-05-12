@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, CheckCircle, Download } from 'lucide-react';
+import { Send, CheckCircle, Download, Loader2 } from 'lucide-react';
 
 interface BookingFormProps {
+  eventId: string;
   eventTitle: string;
   eventSlug: string;
 }
 
 interface FormData {
+  event_id: string;
   nome: string;
   cognome: string;
   email: string;
@@ -18,11 +20,12 @@ interface FormData {
   gdpr: boolean;
 }
 
-export default function BookingForm({ eventTitle, eventSlug }: BookingFormProps) {
+export default function BookingForm({ eventId, eventTitle, eventSlug }: BookingFormProps) {
   const [form, setForm] = useState<FormData>({
-    nome: '', cognome: '', email: '', telefono: '', partecipanti: '1', note: '', gdpr: false,
+    event_id: eventId, nome: '', cognome: '', email: '', telefono: '', partecipanti: '1', note: '', gdpr: false,
   });
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
   const validate = () => {
@@ -35,10 +38,28 @@ export default function BookingForm({ eventTitle, eventSlug }: BookingFormProps)
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    setSubmitted(true);
+    
+    setLoading(true);
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) {
+        throw new Error('Errore durante la prenotazione');
+      }
+
+      setSubmitted(true);
+    } catch (err: any) {
+      alert(err.message || 'Qualcosa è andato storto. Riprova più tardi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const downloadTicket = () => {
@@ -130,8 +151,9 @@ info@prolocogasperina.it`;
         </label>
       </div>
       {errors.gdpr && <p style={{ fontSize: '0.75rem', color: '#f87171', marginTop: '-0.4rem' }}>{errors.gdpr}</p>}
-      <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.25rem' }} id="booking-submit">
-        <Send size={15} /> Prenota ora
+      <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.25rem' }} id="booking-submit">
+        {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+        {loading ? 'Elaborazione...' : 'Prenota ora'}
       </button>
     </form>
   );

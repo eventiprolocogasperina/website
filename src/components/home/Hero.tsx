@@ -157,7 +157,7 @@ export default function Hero() {
           flexWrap: 'wrap',
         }}>
           {[
-            { value: '30+', label: 'Anni di attività' },
+            { value: '30+', label: 'Anni dalla fondazione' },
             { value: '7+', label: 'Eventi ogni anno' },
           ].map(stat => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
