@@ -1,4 +1,5 @@
 // ─── Gallery Data ─────────────────────────────────────────────
+// GalleryItem is also imported by src/components/admin/GalleryForm.tsx
 export interface GalleryItem {
   id: string;
   src: string;

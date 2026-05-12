@@ -1,19 +1,27 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import { galleryItems, type GalleryItem } from '@/lib/data/gallery';
 import { X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const categories = ['tutte', 'eventi', 'territorio', 'cultura', 'comunità'] as const;
 
 export default function GalleryPage() {
+  const [items, setItems] = useState<GalleryItem[]>(galleryItems);
   const [filter, setFilter] = useState<string>('tutte');
   const [lightbox, setLightbox] = useState<number | null>(null);
 
+  // Hydrate from DB on mount (falls back to static if API fails)
+  useEffect(() => {
+    fetch('/api/gallery')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data) && data.length > 0) setItems(data); })
+      .catch(() => {/* keep static fallback */});
+  }, []);
+
   const filtered = filter === 'tutte'
-    ? galleryItems
-    : galleryItems.filter(item => item.category === filter);
+    ? items
+    : items.filter(item => item.category === filter);
 
   const openLightbox = (idx: number) => { setLightbox(idx); document.body.style.overflow = 'hidden'; };
   const closeLightbox = () => { setLightbox(null); document.body.style.overflow = ''; };
@@ -82,11 +90,10 @@ export default function GalleryPage() {
                 display: 'block',
               }}
             >
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={item.src}
                 alt={item.alt}
-                width={item.width}
-                height={item.height}
                 style={{ width: '100%', height: 'auto', display: 'block', transition: 'transform 0.4s ease' }}
               />
               <div style={{
@@ -145,12 +152,11 @@ export default function GalleryPage() {
 
           {/* Image */}
           <div style={{ maxWidth: '90vw', maxHeight: '85vh', position: 'relative' }} onClick={e => e.stopPropagation()}>
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={filtered[lightbox].src}
               alt={filtered[lightbox].alt}
-              width={filtered[lightbox].width}
-              height={filtered[lightbox].height}
-              style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 'var(--radius-lg)' }}
+              style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 'var(--radius-lg)', display: 'block' }}
             />
             <p style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--neutral-400)' }}>
               {filtered[lightbox].alt}

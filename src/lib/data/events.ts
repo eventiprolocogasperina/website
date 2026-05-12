@@ -1,5 +1,16 @@
 import { neon } from '@neondatabase/serverless';
 
+export interface EventConfig {
+  /** Override the accent colour for this event's page (CSS colour value, e.g. "#e84040") */
+  accentColor?: string;
+  /** Extra content sections rendered below the description */
+  extraSections?: Array<{ title: string; content: string }>;
+  /** Hide the capacity bar on the event page */
+  hideCapacity?: boolean;
+  /** A short tag line shown beneath the hero title */
+  tagline?: string;
+}
+
 export interface Event {
   id: string;
   slug: string;
@@ -17,6 +28,8 @@ export interface Event {
   price: number;
   featured: boolean;
   bookable: boolean;
+  /** Per-event page personalisation (RCM) */
+  config?: EventConfig | null;
 }
 
 function getDb() {

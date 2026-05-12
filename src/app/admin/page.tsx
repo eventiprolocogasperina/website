@@ -4,21 +4,24 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  LayoutDashboard, Calendar, Users, FolderOpen, ImageIcon,
-  BarChart2, ChevronRight, LogOut, Settings, Bell,
+  LayoutDashboard, Calendar, Users, ImageIcon,
+  BarChart2, LogOut, Settings, Bell,
   TrendingUp, UserPlus, CalendarCheck, Eye, Loader2
 } from 'lucide-react';
 import type { Event } from '@/lib/data/events';
 import type { Member } from '@/lib/data/members';
+import type { GalleryItem } from '@/lib/data/gallery';
 import EventForm from '@/components/admin/EventForm';
 import MemberForm from '@/components/admin/MemberForm';
+import GalleryForm from '@/components/admin/GalleryForm';
 
-type AdminSection = 'dashboard' | 'eventi' | 'soci' | 'analytics';
+type AdminSection = 'dashboard' | 'eventi' | 'soci' | 'media' | 'analytics';
 
 const navItems: { id: AdminSection; icon: typeof LayoutDashboard; label: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { id: 'eventi', icon: Calendar, label: 'Eventi' },
   { id: 'soci', icon: Users, label: 'Soci' },
+  { id: 'media', icon: ImageIcon, label: 'Media' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics' },
 ];
 
@@ -32,9 +35,11 @@ export default function AdminPage() {
   const [section, setSection] = useState<AdminSection>('dashboard');
   const [events, setEvents] = useState<Event[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState<Event | null | 'new'>(null);
   const [editingMember, setEditingMember] = useState<Member | null | 'new'>(null);
+  const [editingPhoto, setEditingPhoto] = useState<GalleryItem | null | 'new'>(null);
 
   const fetchEvents = () => {
     fetch('/api/events')
@@ -52,17 +57,21 @@ export default function AdminPage() {
   const fetchMembers = () => {
     fetch('/api/members')
       .then(res => res.json())
-      .then(data => {
-        setMembers(data);
-      })
-      .catch(err => {
-        console.error(err);
-      });
+      .then(data => { setMembers(data); })
+      .catch(err => { console.error(err); });
+  };
+
+  const fetchGallery = () => {
+    fetch('/api/gallery')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setGallery(data); })
+      .catch(err => { console.error(err); });
   };
 
   useEffect(() => {
     fetchEvents();
     fetchMembers();
+    fetchGallery();
   }, []);
 
   const handleSaveEvent = () => {
@@ -93,6 +102,23 @@ export default function AdminPage() {
       await fetch(`/api/members/${id}`, { method: 'DELETE' });
       setEditingMember(null);
       fetchMembers();
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante l\'eliminazione');
+    }
+  };
+
+  const handleSavePhoto = () => {
+    setEditingPhoto(null);
+    fetchGallery();
+  };
+
+  const handleDeletePhoto = async (id: string) => {
+    if (!confirm('Eliminare questa foto dalla galleria?')) return;
+    try {
+      await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
+      setEditingPhoto(null);
+      fetchGallery();
     } catch (err) {
       console.error(err);
       alert('Errore durante l\'eliminazione');
@@ -251,10 +277,16 @@ export default function AdminPage() {
                       <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{new Date(ev.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · {ev.location}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{ev.registeredCount}/{ev.maxParticipants}</div>
-                      <div style={{ height: '3px', width: '60px', background: 'var(--neutral-700)', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${Math.round(ev.registeredCount/ev.maxParticipants*100)}%`, background: 'var(--blue-700)' }} />
-                      </div>
+                      {ev.bookable ? (
+                        <>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{ev.registeredCount}/{ev.maxParticipants}</div>
+                          <div style={{ height: '3px', width: '60px', background: 'var(--neutral-700)', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.round(ev.registeredCount/ev.maxParticipants*100)}%`, background: 'var(--blue-700)' }} />
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ fontSize: '0.7rem', color: 'var(--neutral-500)', fontStyle: 'italic' }}>No prenot.</div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -323,7 +355,7 @@ export default function AdminPage() {
                       <td style={{ color: 'var(--white)', fontWeight: 500 }}>{ev.title}</td>
                       <td>{new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                       <td><span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>{ev.category}</span></td>
-                      <td>{ev.registeredCount} / {ev.maxParticipants}</td>
+                      <td>{ev.bookable ? `${ev.registeredCount} / ${ev.maxParticipants}` : <span style={{ color: 'var(--neutral-600)', fontStyle: 'italic' }}>—</span>}</td>
                       <td><span style={{ color: ev.price === 0 ? '#4ade80' : 'var(--gold-400)', fontSize: '0.82rem' }}>{ev.price === 0 ? 'Sì' : `€${ev.price}`}</span></td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -463,6 +495,51 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* ── MEDIA ── */}
+        {section === 'media' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{gallery.length} foto in galleria</p>
+              <button
+                onClick={() => setEditingPhoto('new')}
+                className="btn btn-primary"
+                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
+              >
+                + Aggiungi foto
+              </button>
+            </div>
+
+            {gallery.length === 0 ? (
+              <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--neutral-600)' }}>
+                <ImageIcon size={32} style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
+                <p style={{ fontSize: '0.9rem' }}>Nessuna foto ancora. Aggiungine una!</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                {gallery.map(item => (
+                  <div
+                    key={item.id}
+                    className="card"
+                    style={{ overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s, box-shadow 0.18s' }}
+                    onClick={() => setEditingPhoto(item)}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.4)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
+                  >
+                    <div style={{ position: 'relative', aspectRatio: '16/10', overflow: 'hidden' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.src} alt={item.alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    </div>
+                    <div style={{ padding: '0.75rem 0.9rem' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>{item.category}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--neutral-200)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.alt}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Event Form Modal */}
@@ -482,6 +559,16 @@ export default function AdminPage() {
           onClose={() => setEditingMember(null)}
           onSave={handleSaveMember}
           onDelete={handleDeleteMember}
+        />
+      )}
+
+      {/* Gallery Form Modal */}
+      {editingPhoto && (
+        <GalleryForm
+          initialData={editingPhoto === 'new' ? undefined : editingPhoto}
+          onClose={() => setEditingPhoto(null)}
+          onSave={handleSavePhoto}
+          onDelete={handleDeletePhoto}
         />
       )}
     </div>

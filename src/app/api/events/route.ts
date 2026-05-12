@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const {
       id, slug, title, date, dateLabel, time, location, category,
       description, fullDescription, image, maxParticipants,
-      registeredCount, price, featured, bookable
+      registeredCount, price, featured, bookable, config
     } = body;
 
     if (!id || !slug || !title || !date || !time || !location || !category || !description || !fullDescription || !image) {
@@ -53,11 +53,12 @@ export async function POST(request: Request) {
       INSERT INTO events (
         id, slug, title, date, "dateLabel", time, location, category, 
         description, "fullDescription", image, "maxParticipants", "registeredCount", 
-        price, featured, bookable
+        price, featured, bookable, config
       ) VALUES (
         ${id}, ${slug}, ${title}, ${date}, ${dateLabel || null}, ${time}, ${location}, ${category},
         ${description}, ${fullDescription}, ${image}, ${maxParticipants || 0}, ${registeredCount || 0},
-        ${price || 0}, ${featured || false}, ${bookable || false}
+        ${price || 0}, ${featured || false}, ${bookable || false},
+        ${config ? JSON.stringify(config) : null}
       )
       RETURNING *;
     `;

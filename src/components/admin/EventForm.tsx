@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { Event } from '@/lib/data/events';
-import { Loader2, X, Trash2, Save, UploadCloud } from 'lucide-react';
+import { Loader2, X, Trash2, Save, UploadCloud, Info } from 'lucide-react';
 
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -48,11 +48,12 @@ interface EventFormProps {
   onDelete?: (id: string) => void;
 }
 
-const emptyEvent: Event = {
+const emptyEvent: Omit<Event, 'config'> & { config: string } = {
   id: '',
   slug: '',
   title: '',
   date: '',
+  dateLabel: '',
   time: 'TBD',
   location: '',
   category: 'cultura',
@@ -64,12 +65,22 @@ const emptyEvent: Event = {
   price: 0,
   featured: false,
   bookable: false,
+  config: '{}',
 };
 
 export default function EventForm({ initialData, onClose, onSave, onDelete }: EventFormProps) {
-  const [formData, setFormData] = useState<Event>(initialData || emptyEvent);
+  // Normalise config to a pretty-printed JSON string for the textarea
+  const toConfigStr = (ev?: Event) =>
+    ev?.config ? JSON.stringify(ev.config, null, 2) : '{}';
+
+  const [formData, setFormData] = useState<typeof emptyEvent>(
+    initialData
+      ? { ...initialData, config: toConfigStr(initialData) }
+      : emptyEvent
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [configError, setConfigError] = useState('');
 
   const isEdit = !!initialData;
 
@@ -108,6 +119,18 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
     e.preventDefault();
     setLoading(true);
     setError('');
+    setConfigError('');
+
+    // Parse config JSON before sending
+    let parsedConfig: object | null = null;
+    try {
+      const trimmed = (formData.config as unknown as string).trim();
+      parsedConfig = trimmed && trimmed !== '{}' ? JSON.parse(trimmed) : null;
+    } catch {
+      setConfigError('Il JSON di configurazione non è valido. Correggilo prima di salvare.');
+      setLoading(false);
+      return;
+    }
 
     try {
       const url = isEdit ? `/api/events/${formData.id}` : '/api/events';
@@ -116,7 +139,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, config: parsedConfig }),
       });
 
       if (!res.ok) {
@@ -170,12 +193,29 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               </div>
             </div>
 
-            {/* Date, Time, Location */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+            {/* Date + dateLabel, Time, Location */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label className="label">Data (YYYY-MM-DD) *</label>
+                <label className="label">Data precisa *</label>
                 <input type="date" required className="input" value={formData.date} onChange={handleChange('date')} />
+                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', marginTop: '0.3rem' }}>
+                  Usata per l'ordinamento cronologico
+                </p>
               </div>
+              <div>
+                <label className="label">Etichetta data pubblica</label>
+                <input
+                  className="input"
+                  value={formData.dateLabel ?? ''}
+                  onChange={handleChange('dateLabel')}
+                  placeholder="Es. Luglio 2026 · Estate Gasperinese"
+                />
+                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', marginTop: '0.3rem' }}>
+                  Se compilata, sostituisce la data precisa nel sito
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label className="label">Ora *</label>
                 <input required className="input" value={formData.time} onChange={handleChange('time')} placeholder="19:00" />
@@ -248,6 +288,33 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                 <input type="checkbox" checked={formData.bookable} onChange={handleChange('bookable')} style={{ accentColor: 'var(--gold-500)' }} />
                 Prenotabile
               </label>
+            </div>
+
+            {/* ── RCM Config ───────────────────────────────────────────── */}
+            <div style={{ borderTop: '1px solid var(--neutral-800)', paddingTop: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <label className="label" style={{ margin: 0 }}>Personalizzazione pagina (RCM)</label>
+                <Info size={13} style={{ color: 'var(--neutral-600)', flexShrink: 0 }} />
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginBottom: '0.6rem', lineHeight: 1.6 }}>
+                JSON opzionale. Campi supportati:
+                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>accentColor</code>
+                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>tagline</code>
+                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>hideCapacity</code>
+                <code style={{ background: 'var(--neutral-800)', borderRadius: '3px', padding: '0 4px', marginLeft: '4px' }}>extraSections</code>
+              </p>
+              <textarea
+                className="input"
+                rows={6}
+                style={{ fontFamily: 'monospace', fontSize: '0.78rem', resize: 'vertical' }}
+                value={formData.config as unknown as string}
+                onChange={e => setFormData(prev => ({ ...prev, config: e.target.value as any }))}
+                placeholder={'{ "accentColor": "#d97706", "tagline": "L\'estate si accende!", "extraSections": [{ "title": "Programma", "content": "21:00 – Apertura\\n22:00 – Musica live" }] }'}
+                spellCheck={false}
+              />
+              {configError && (
+                <div style={{ color: '#f87171', fontSize: '0.8rem', marginTop: '0.4rem' }}>{configError}</div>
+              )}
             </div>
 
             {error && <div style={{ color: '#f87171', fontSize: '0.85rem', padding: '0.5rem', background: 'rgba(248,113,113,0.1)', borderRadius: 'var(--radius-sm)' }}>{error}</div>}
