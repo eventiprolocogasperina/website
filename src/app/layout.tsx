@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     icon: '/img/Logo_color_sm.png',
     apple: '/img/Logo_color_sm.png',
   },
+  verification: {
+    google: '5a7cyeWSdzLeQfO6uutHBD2s1A9Zpmb40I7qedPI8oE',
+  },
 };
 
 export default function RootLayout({
