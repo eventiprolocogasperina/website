@@ -9,7 +9,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const event = await getEventBySlug(slug);
   if (!event) return { title: 'Evento non trovato' };
-  return { title: event.title, description: event.description };
+  
+  return { 
+    title: event.title, 
+    description: event.description,
+    openGraph: {
+      title: event.title,
+      description: event.description,
+      images: [{ url: event.image }],
+      type: 'article',
+    },
+    alternates: {
+      canonical: `https://prolocogasperina.it/eventi/${event.slug}`,
+    }
+  };
 }
 
 export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -27,13 +40,54 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     : dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const pct = Math.round((event.registeredCount / event.maxParticipants) * 100);
 
+  // JSON-LD for SEO (Schema.org Event)
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.title,
+    startDate: event.date,
+    eventStatus: isPast ? 'https://schema.org/EventScheduled' : 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    location: {
+      '@type': 'Place',
+      name: event.location,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: event.location,
+        addressLocality: 'Gasperina',
+        addressRegion: 'CZ',
+        addressCountry: 'IT',
+      },
+    },
+    image: [event.image],
+    description: event.description,
+    offers: {
+      '@type': 'Offer',
+      url: `https://prolocogasperina.it/eventi/${event.slug}`,
+      price: event.price,
+      priceCurrency: 'EUR',
+      availability: showBooking ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    },
+    organizer: {
+      '@type': 'Organization',
+      name: 'Pro Loco Gasperina APS',
+      url: 'https://prolocogasperina.it',
+    },
+  };
+
   return (
-    <EventDetailContent 
-      event={event} 
-      isPast={isPast} 
-      showBooking={showBooking} 
-      fullDate={fullDate} 
-      pct={pct} 
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <EventDetailContent 
+        event={event} 
+        isPast={isPast} 
+        showBooking={showBooking} 
+        fullDate={fullDate} 
+        pct={pct} 
+      />
+    </>
   );
 }
