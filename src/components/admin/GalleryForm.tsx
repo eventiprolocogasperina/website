@@ -36,7 +36,12 @@ interface GalleryFormProps {
   onDelete?: (id: string) => void;
 }
 
-const CATEGORIES: GalleryItem['category'][] = ['eventi', 'territorio', 'cultura', 'comunità'];
+const CATEGORIES: GalleryItem['category'][] = ['eventi', 'territorio', 'cultura', 'comunità', 'video'];
+
+function extractYoutubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
 
 const empty: Omit<GalleryItem, 'id'> = {
   src: '',
@@ -133,56 +138,89 @@ export default function GalleryForm({ initialData, onClose, onSave, onDelete }: 
         <div style={{ overflowY: 'auto', padding: '1.5rem', flex: 1 }}>
           <form id="gallery-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* Image upload / preview */}
-            <div>
-              <label className="label">Immagine *</label>
-              <label style={{
-                display: 'block', position: 'relative', cursor: 'pointer',
-                borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                border: '2px dashed var(--neutral-700)',
-                background: 'var(--neutral-950)',
-                aspectRatio: '16 / 9',
-              }}>
-                {form.src ? (
-                  // preview
-                  <img
-                    src={form.src}
-                    alt="Preview"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                ) : (
-                  // placeholder
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--neutral-600)' }}>
-                    <UploadCloud size={32} />
-                    <span style={{ fontSize: '0.85rem', fontFamily: 'var(--font-body)' }}>Clicca per caricare</span>
-                  </div>
-                )}
-                {/* Overlay on hover when image already loaded */}
-                {form.src && (
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'rgba(0,0,0,0.5)', opacity: 0, transition: 'opacity 0.2s',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                    color: 'var(--white)', fontSize: '0.85rem', fontFamily: 'var(--font-body)',
-                  }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '0'}
-                  >
-                    <UploadCloud size={18} /> Cambia foto
-                  </div>
-                )}
+            {/* Image/Video upload/input */}
+            {form.category === 'video' ? (
+              <div>
+                <label className="label">Link del video YouTube *</label>
                 <input
-                  type="file" accept="image/*"
-                  onChange={handleFile}
-                  style={{ display: 'none' }}
+                  required
+                  className="input"
+                  type="url"
+                  value={form.src}
+                  onChange={e => {
+                    const url = e.target.value;
+                    const id = extractYoutubeId(url);
+                    if (id && !form.alt) {
+                      // Try to provide a default if empty, though Youtube API would be needed for real title
+                    }
+                    set('src', url);
+                    set('width', 1920);
+                    set('height', 1080);
+                  }}
+                  placeholder="https://www.youtube.com/watch?v=..."
                 />
-              </label>
-              {form.src && (
-                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', marginTop: '0.35rem' }}>
-                  {form.width} × {form.height} px · clicca per sostituire
-                </p>
-              )}
-            </div>
+                {form.src && extractYoutubeId(form.src) && (
+                  <div style={{ marginTop: '0.75rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--neutral-700)', position: 'relative', aspectRatio: '16/9' }}>
+                    <img 
+                      src={`https://img.youtube.com/vi/${extractYoutubeId(form.src)}/maxresdefault.jpg`} 
+                      alt="YouTube Thumbnail"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${extractYoutubeId(form.src!)}/hqdefault.jpg`; }}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label className="label">Immagine *</label>
+                <label style={{
+                  display: 'block', position: 'relative', cursor: 'pointer',
+                  borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                  border: '2px dashed var(--neutral-700)',
+                  background: 'var(--neutral-950)',
+                  aspectRatio: '16 / 9',
+                }}>
+                  {form.src ? (
+                    // preview
+                    <img
+                      src={form.src}
+                      alt="Preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  ) : (
+                    // placeholder
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--neutral-600)' }}>
+                      <UploadCloud size={32} />
+                      <span style={{ fontSize: '0.85rem', fontFamily: 'var(--font-body)' }}>Clicca per caricare</span>
+                    </div>
+                  )}
+                  {/* Overlay on hover when image already loaded */}
+                  {form.src && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'rgba(0,0,0,0.5)', opacity: 0, transition: 'opacity 0.2s',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      color: 'var(--white)', fontSize: '0.85rem', fontFamily: 'var(--font-body)',
+                    }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '0'}
+                    >
+                      <UploadCloud size={18} /> Cambia foto
+                    </div>
+                  )}
+                  <input
+                    type="file" accept="image/*"
+                    onChange={handleFile}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {form.src && (
+                  <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', marginTop: '0.35rem' }}>
+                    {form.width} × {form.height} px · clicca per sostituire
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Alt / description */}
             <div>
@@ -205,7 +243,14 @@ export default function GalleryForm({ initialData, onClose, onSave, onDelete }: 
               <select
                 className="input"
                 value={form.category}
-                onChange={e => set('category', e.target.value as GalleryItem['category'])}
+                onChange={e => {
+                  const newCat = e.target.value as GalleryItem['category'];
+                  // If switching from video to image or vice versa, clear src
+                  if ((form.category === 'video' && newCat !== 'video') || (form.category !== 'video' && newCat === 'video')) {
+                    set('src', '');
+                  }
+                  set('category', newCat);
+                }}
               >
                 {CATEGORIES.map(c => (
                   <option key={c} value={c} style={{ textTransform: 'capitalize' }}>{c}</option>

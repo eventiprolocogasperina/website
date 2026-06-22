@@ -67,7 +67,7 @@ export default function Hero() {
         position: 'relative',
         zIndex: 2,
         textAlign: 'center',
-        padding: '2rem 1.5rem',
+        padding: '8rem 1.5rem 2rem',
         maxWidth: '900px',
         margin: '0 auto',
         width: '100%',

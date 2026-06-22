@@ -49,6 +49,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const configJson = config ? JSON.stringify(config) : null;
+
     const result = await sql`
       INSERT INTO events (
         id, slug, title, date, "dateLabel", time, location, category, 
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
         ${id}, ${slug}, ${title}, ${date}, ${dateLabel || null}, ${time}, ${location}, ${category},
         ${description}, ${fullDescription}, ${image}, ${maxParticipants || 0}, ${registeredCount || 0},
         ${price || 0}, ${isFree || false}, ${featured || false}, ${bookable || false},
-        ${config ? JSON.stringify(config) : null}
+        ${configJson}::jsonb
       )
       RETURNING *;
     `;

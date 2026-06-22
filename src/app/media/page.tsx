@@ -6,6 +6,11 @@ import { X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const categories = ['tutte', 'eventi', 'territorio', 'cultura', 'comunità'] as const;
 
+function extractYoutubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
 export default function GalleryPage() {
   const [items, setItems] = useState<GalleryItem[]>(galleryItems);
   const [filter, setFilter] = useState<string>('tutte');
@@ -19,9 +24,12 @@ export default function GalleryPage() {
       .catch(() => {/* keep static fallback */});
   }, []);
 
+  const images = items.filter(item => item.category !== 'video');
+  const videos = items.filter(item => item.category === 'video');
+
   const filtered = filter === 'tutte'
-    ? items
-    : items.filter(item => item.category === filter);
+    ? images
+    : images.filter(item => item.category === filter);
 
   const openLightbox = (idx: number) => { setLightbox(idx); document.body.style.overflow = 'hidden'; };
   const closeLightbox = () => { setLightbox(null); document.body.style.overflow = ''; };
@@ -116,6 +124,38 @@ export default function GalleryPage() {
           ))}
         </div>
       </section>
+
+      {/* Video section */}
+      {videos.length > 0 && (
+        <section style={{ padding: '0 1.5rem 5rem', maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <div className="divider-gold" style={{ margin: '0 auto 1.5rem' }} />
+            <h2 style={{ fontWeight: 300, fontSize: '2rem', color: 'var(--color-heading)' }}>
+              I nostri <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>video</em>
+            </h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+            {videos.map(item => {
+              const videoId = extractYoutubeId(item.src);
+              if (!videoId) return null;
+              return (
+                <div key={item.id} style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--neutral-800)', background: 'var(--neutral-900)' }}>
+                  <iframe 
+                    src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`} 
+                    width="100%" 
+                    style={{ aspectRatio: '16/9', display: 'block' }} 
+                    frameBorder="0" 
+                    allowFullScreen 
+                  />
+                  <div style={{ padding: '1.25rem' }}>
+                    <p style={{ color: 'var(--color-text)', fontSize: '0.95rem', lineHeight: 1.5 }}>{item.alt}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Lightbox */}
       {lightbox !== null && (

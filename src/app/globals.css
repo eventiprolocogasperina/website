@@ -26,6 +26,7 @@
   --neutral-800: #181c2a;
   --neutral-700: #252a3c;
   --neutral-600: #3c4258;
+  --neutral-500: #59617a;
   --neutral-400: #7a819a;
   --neutral-200: #d0d4e0;
   --neutral-100: #eceef5;
@@ -75,6 +76,7 @@
   --neutral-800: #ffffff;
   --neutral-700: #ddd8ce;
   --neutral-600: #b8b3a8;
+  --neutral-500: #8c867b;
   --neutral-400: #5c554c; /* Darkened for better contrast on white */
   --neutral-200: #3a3530;
   --neutral-100: #1a1510;

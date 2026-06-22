@@ -9,15 +9,57 @@ export interface EventSection {
   linkUrl?: string;
 }
 
+export interface EventAttachment {
+  /** Etichetta mostrata all'utente, es. "Locandina", "Programma", "Modulo iscrizione" */
+  label: string;
+  /** URL diretto al PDF (Google Drive, Cloudinary, ecc.) */
+  url: string;
+  /** Nome file opzionale per il download, es. "locandina-festa-2026.pdf" */
+  filename?: string;
+}
+
+export interface EventVideo {
+  /** Titolo del video */
+  title: string;
+  /** URL YouTube (sia watch?v= che youtu.be/ sono supportati) */
+  youtubeUrl: string;
+  /** Descrizione breve opzionale */
+  description?: string;
+}
+
+export interface EventLink {
+  /** Testo del link */
+  label: string;
+  /** URL di destinazione */
+  url: string;
+  /** Icona da mostrare accanto al link */
+  icon?: 'external' | 'map' | 'phone' | 'mail' | 'instagram' | 'facebook' | 'ticket' | 'info';
+}
+
 export interface EventConfig {
-  /** Override the accent colour for this event's page (CSS colour value, e.g. "#e84040") */
   accentColor?: string;
-  /** Extra content sections rendered below the description */
-  extraSections?: EventSection[];
-  /** Hide the capacity bar on the event page */
   hideCapacity?: boolean;
-  /** A short tag line shown beneath the hero title */
   tagline?: string;
+  /** Legacy JSON sezioni aggiuntive (es. testo, immagini, html/instagram) */
+  extraSections?: {
+    type: 'text' | 'image' | 'link' | 'html';
+    title?: string;
+    content?: string;
+    src?: string;
+    linkUrl?: string;
+    linkText?: string;
+  }[];
+  /** Allegati (PDF ecc) collegati all'evento */
+  attachments?: EventAttachment[];
+  /** Video YouTube collegati all'evento */
+  videos?: EventVideo[];
+  /** Link utili relativi all'evento */
+  links?: EventLink[];
+  /** Native oEmbed JSON support (e.g., pasted Instagram JSON) */
+  type?: string;
+  media_url?: string;
+  // Fallback for any other custom keys injected via advanced JSON
+  [key: string]: any;
 }
 
 export interface Event {

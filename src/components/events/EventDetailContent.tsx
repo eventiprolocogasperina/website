@@ -1,12 +1,42 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Clock, Users, ArrowLeft } from 'lucide-react';
+import {
+  Calendar, MapPin, Clock, Users, ArrowLeft,
+  FileText, Download, Play, ExternalLink, Phone,
+  Mail, AtSign, Share2, Ticket, Info as InfoIcon,
+  Link2,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import BookingForm from '@/components/events/BookingForm';
-import type { Event } from '@/lib/data/events';
+import type { Event, EventLink } from '@/lib/data/events';
 
+// ─── YouTube helpers ──────────────────────────────────────────────────────────
+function extractYoutubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function getYoutubeEmbed(url: string): string | null {
+  const id = extractYoutubeId(url);
+  return id ? `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1` : null;
+}
+
+// ─── Icon map for links ───────────────────────────────────────────────────────
+const LINK_ICONS: Record<string, React.FC<{ size?: number; style?: React.CSSProperties }>> = {
+  external:  ExternalLink,
+  map:       MapPin,
+  phone:     Phone,
+  mail:      Mail,
+  instagram: AtSign,
+  facebook:  Share2,
+  ticket:    Ticket,
+  info:      InfoIcon,
+};
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 interface EventDetailContentProps {
   event: Event;
   isPast: boolean;
@@ -21,29 +51,66 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
   const extraSections = cfg.extraSections || [];
   const hideCapacity = cfg.hideCapacity ?? false;
   const tagline = cfg.tagline || '';
+  const attachments = cfg.attachments || [];
+  const videos = cfg.videos || [];
+  const links = cfg.links || [];
 
-  // Only show the capacity/users info if the event is bookable
+  // Special case: User pasted Instagram oEmbed JSON directly
+  const isInstagramJson = cfg.type === 'instagram' && cfg.media_url;
+  const instagramUrl = isInstagramJson ? cfg.media_url : null;
+
   const infoPills = [
     { icon: Calendar, text: fullDate },
     ...(!event.dateLabel && event.time !== 'TBD' ? [{ icon: Clock, text: `Ore ${event.time}` }] : []),
     { icon: MapPin, text: event.location },
-    ...(event.bookable ? [{ 
-      icon: Users, 
-      text: isPast ? `${event.registeredCount} partecipanti` : `${event.maxParticipants - event.registeredCount} posti disponibili` 
+    ...(event.bookable ? [{
+      icon: Users,
+      text: isPast
+        ? `${event.registeredCount} partecipanti`
+        : `${event.maxParticipants - event.registeredCount} posti disponibili`,
     }] : []),
   ];
+
+  // ─── Execute Instagram embed scripts ──────────────────────────────────────────
+  useEffect(() => {
+    const hasHtmlSection = extraSections.some(s => s.type === 'html' && s.content?.includes('instagram-media'));
+    if (hasHtmlSection) {
+      // Load Instagram script if not already present
+      if (!window.document.getElementById('instagram-embed-script')) {
+        const script = window.document.createElement('script');
+        script.id = 'instagram-embed-script';
+        script.src = '//www.instagram.com/embed.js';
+        script.async = true;
+        window.document.body.appendChild(script);
+      } else {
+        // If already loaded, trigger processing again (e.g. for client-side navigation)
+        // @ts-ignore
+        if (window.instgrm) {
+          // @ts-ignore
+          window.instgrm.Embeds.process();
+        }
+      }
+    }
+  }, [extraSections]);
 
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: "easeOut" }
+    transition: { duration: 0.6, ease: 'easeOut' },
   } as const;
 
   return (
     <div style={{ paddingTop: '5rem', background: 'var(--neutral-950)', minHeight: '100vh' }}>
-      {/* Hero image */}
+
+      {/* ── Hero ── */}
       <div className="event-hero" style={{ position: 'relative', overflow: 'hidden' }}>
-        <Image src={event.image} alt={event.title} fill style={{ objectFit: 'cover', objectPosition: 'center 40%' }} priority />
+        <Image
+          src={event.image}
+          alt={event.title}
+          fill
+          style={{ objectFit: 'cover', objectPosition: 'center 40%' }}
+          priority
+        />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,12,18,0.2) 0%, rgba(10,12,18,0.92) 100%)' }} />
         <div className="event-hero-text" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '900px' }}>
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
@@ -52,38 +119,24 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
             </Link>
           </motion.div>
           <br />
-          <motion.span 
-            initial={{ opacity: 0, scale: 0.9 }} 
-            animate={{ opacity: 1, scale: 1 }} 
+          <motion.span
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1, duration: 0.4 }}
-            className={`badge ${event.category === 'musica' ? 'badge-gold' : event.category === 'gastronomia' ? 'badge-green' : 'badge-blue'}`} 
+            className={`badge ${event.category === 'musica' ? 'badge-gold' : event.category === 'gastronomia' ? 'badge-green' : 'badge-blue'}`}
             style={{ marginBottom: '0.6rem', display: 'inline-flex' }}
           >
             {event.category}
           </motion.span>
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }} 
-            animate={{ opacity: 1, y: 0 }} 
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
             style={{ fontWeight: 400, color: '#ffffff', marginBottom: '0.4rem', lineHeight: 1.15 }}
           >
             {event.title}
           </motion.h1>
-          {tagline && (
-            <motion.p 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              transition={{ delay: 0.4, duration: 0.6 }}
-              style={{ fontSize: '1rem', color: accentColor, marginBottom: '0.4rem', fontStyle: 'italic' }}
-            >
-              {tagline}
-            </motion.p>
-          )}
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            transition={{ delay: 0.5 }}
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             {event.isFree ? (
               <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>Evento Gratuito</span>
             ) : (
@@ -93,12 +146,14 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
         </div>
       </div>
 
+      {/* ── Body ── */}
       <div className="section">
         <div className="section-inner">
           <div className="event-detail-grid">
 
-            {/* Left: details */}
+            {/* ── Left: main content ── */}
             <motion.div {...fadeIn}>
+
               {/* Info pills */}
               <div className="event-info-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2rem' }}>
                 {infoPills.map(({ icon: Icon, text }) => (
@@ -106,17 +161,16 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                     display: 'flex', alignItems: 'center', gap: '0.5rem',
                     background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)',
                     borderRadius: 'var(--radius-full)', padding: '0.5rem 1rem',
-                    fontSize: '0.85rem', color: 'var(--neutral-200)',
-                    textTransform: 'capitalize',
+                    fontSize: '0.85rem', color: 'var(--neutral-200)', textTransform: 'capitalize',
                   }}>
                     <Icon size={14} style={{ color: accentColor, flexShrink: 0 }} /> {text}
                   </div>
                 ))}
               </div>
 
-              {/* Capacity bar - Only show if bookable AND not hidden by config */}
+              {/* Capacity bar */}
               {event.bookable && !hideCapacity && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, scaleX: 0 }}
                   animate={{ opacity: 1, scaleX: 1 }}
                   transition={{ delay: 0.3, duration: 0.8 }}
@@ -131,42 +185,229 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                 </motion.div>
               )}
 
-              <motion.div 
+              {/* Accent bar */}
+              <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: 50 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
-                style={{ height: '2px', background: accentColor, marginBottom: '1.5rem' }} 
+                style={{ height: '2px', background: accentColor, marginBottom: '1.5rem' }}
               />
-              
+
+              {/* Description */}
               <h2 style={{ fontSize: '1.5rem', fontWeight: 500, marginBottom: '1rem' }}>Descrizione</h2>
               {event.fullDescription.split('\n').filter(Boolean).map((para, i) => (
                 <p key={i} style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.9rem', fontSize: '0.95rem' }}>{para.trim()}</p>
               ))}
 
-              {/* Extra sections from RCM config */}
+              {/* ── PDF Attachments ── */}
+              {attachments.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: 'rgba(248,113,113,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FileText size={15} style={{ color: '#f87171' }} />
+                    </div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--color-heading)' }}>Allegati</h3>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                    {attachments.map((att, i) => (
+                      <motion.a
+                        key={i}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={att.filename || true}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.07 }}
+                        whileHover={{ y: -2 }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.75rem',
+                          padding: '0.9rem 1.1rem',
+                          background: 'var(--neutral-800)',
+                          border: '1px solid var(--neutral-700)',
+                          borderRadius: 'var(--radius-md)',
+                          cursor: 'pointer',
+                          textDecoration: 'none',
+                          transition: 'border-color 0.2s, box-shadow 0.2s',
+                        }}
+                        onMouseEnter={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = 'rgba(248,113,113,0.4)';
+                          (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(248,113,113,0.1)';
+                        }}
+                        onMouseLeave={e => {
+                          (e.currentTarget as HTMLElement).style.borderColor = 'var(--neutral-700)';
+                          (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                        }}
+                      >
+                        <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <FileText size={18} style={{ color: '#f87171' }} />
+                        </div>
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--neutral-100)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.label}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--neutral-500)', marginTop: '0.1rem' }}>PDF</div>
+                        </div>
+                        <Download size={14} style={{ color: 'var(--neutral-500)', flexShrink: 0 }} />
+                      </motion.a>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Videos ── */}
+              {videos.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: 'rgba(255,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Play size={15} style={{ color: '#ff4444' }} />
+                    </div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--color-heading)' }}>Video</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {videos.map((vid, i) => {
+                      const embedUrl = getYoutubeEmbed(vid.youtubeUrl);
+                      return (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.1 }}
+                        >
+                          {vid.title && (
+                            <h4 style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--neutral-100)', marginBottom: '0.75rem' }}>{vid.title}</h4>
+                          )}
+                          {embedUrl ? (
+                            <div style={{
+                              position: 'relative',
+                              paddingBottom: '56.25%', // 16:9
+                              height: 0,
+                              overflow: 'hidden',
+                              borderRadius: 'var(--radius-lg)',
+                              border: '1px solid var(--neutral-700)',
+                              background: '#000',
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                            }}>
+                              <iframe
+                                src={embedUrl}
+                                title={vid.title || 'Video'}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                              />
+                            </div>
+                          ) : (
+                            <a
+                              href={vid.youtubeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-outline"
+                              style={{ display: 'inline-flex' }}
+                            >
+                              <Play size={14} /> Guarda su YouTube
+                            </a>
+                          )}
+                          {vid.description && (
+                            <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', marginTop: '0.75rem', lineHeight: 1.6 }}>{vid.description}</p>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Useful Links ── */}
+              {links.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: 'rgba(27,75,170,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Link2 size={15} style={{ color: 'var(--blue-500)' }} />
+                    </div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--color-heading)' }}>Link Utili</h3>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
+                    {links.map((lnk, i) => {
+                      const IconComp = LINK_ICONS[lnk.icon ?? 'external'] || ExternalLink;
+                      return (
+                        <motion.a
+                          key={i}
+                          href={lnk.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          whileInView={{ opacity: 1, scale: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.05 }}
+                          whileHover={{ y: -2 }}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                            padding: '0.55rem 1.1rem',
+                            background: 'var(--neutral-800)',
+                            border: '1px solid var(--neutral-700)',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.85rem', fontWeight: 500,
+                            color: 'var(--neutral-200)',
+                            textDecoration: 'none',
+                            transition: 'border-color 0.2s, color 0.2s, box-shadow 0.2s',
+                          }}
+                          onMouseEnter={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = accentColor;
+                            (e.currentTarget as HTMLElement).style.color = 'var(--color-heading)';
+                          }}
+                          onMouseLeave={e => {
+                            (e.currentTarget as HTMLElement).style.borderColor = 'var(--neutral-700)';
+                            (e.currentTarget as HTMLElement).style.color = 'var(--neutral-200)';
+                          }}
+                        >
+                          <IconComp size={13} style={{ color: accentColor }} />
+                          {lnk.label}
+                        </motion.a>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Legacy extra sections ── */}
               {extraSections.map((sec, i) => (
-                <motion.div 
-                  key={i} 
+                <motion.div
+                  key={i}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                   style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
                 >
-                  {sec.title && <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--white)', marginBottom: '1.25rem' }}>{sec.title}</h3>}
-                  
+                  {sec.title && <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '1.25rem' }}>{sec.title}</h3>}
                   {sec.type === 'text' && sec.content && (
                     sec.content.split('\n').filter(Boolean).map((line, j) => (
                       <p key={j} style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.8rem', fontSize: '0.95rem' }}>{line.trim()}</p>
                     ))
                   )}
-
                   {sec.type === 'image' && sec.src && (
                     <div style={{ position: 'relative', width: '100%', height: '350px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '1rem' }}>
                       <Image src={sec.src} alt={sec.title || 'Image'} fill style={{ objectFit: 'cover' }} />
                     </div>
                   )}
-
                   {sec.type === 'link' && sec.linkUrl && (
                     <div style={{ marginTop: '1rem' }}>
                       <a href={sec.linkUrl} target="_blank" rel="noopener noreferrer" className="btn btn-gold" style={{ display: 'inline-flex' }}>
@@ -174,16 +415,44 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                       </a>
                     </div>
                   )}
-
                   {sec.type === 'html' && sec.content && (
                     <div dangerouslySetInnerHTML={{ __html: sec.content }} style={{ color: 'var(--neutral-300)', lineHeight: 1.8 }} />
                   )}
                 </motion.div>
               ))}
+
+              {/* ── Native Instagram JSON Support ── */}
+              {instagramUrl && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: 'rgba(225,48,108,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <AtSign size={15} style={{ color: '#E1306C' }} />
+                    </div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--color-heading)' }}>Post di Instagram</h3>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
+                    <iframe 
+                      src={`${instagramUrl.replace(/\/$/, '')}/embed`} 
+                      width="400" 
+                      height="480" 
+                      frameBorder="0" 
+                      scrolling="no" 
+                      allowTransparency={true}
+                      style={{ maxWidth: '100%', borderRadius: 'var(--radius-lg)', border: '1px solid var(--neutral-700)', background: '#fff' }}
+                    />
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
 
-            {/* Right: sidebar card */}
-            <motion.div 
+            {/* ── Right: sidebar ── */}
+            <motion.div
               className="event-sidebar"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -210,10 +479,17 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                   </p>
                   <Link href="/eventi" className="btn btn-primary" style={{ marginTop: '1.25rem', display: 'inline-flex' }}>Vedi i prossimi</Link>
                 </div>
-              ) : !event.bookable ? (
+              ) : tagline ? (
+                <div style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-xl)', padding: '2.5rem 2rem', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 500, marginBottom: '1rem', color: accentColor, fontStyle: 'italic' }}>In Breve</h3>
+                  <p style={{ fontSize: '1rem', color: 'var(--neutral-300)', lineHeight: 1.6 }}>
+                    {tagline}
+                  </p>
+                </div>
+              ) : !event.bookable && !cfg.hideFreeEntryPanel ? (
                 <div style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-xl)', padding: '2.5rem 2rem', textAlign: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>✨</div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 500, marginBottom: '0.75rem', color: 'var(--white)' }}>Ingresso Libero</h3>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 500, marginBottom: '0.75rem', color: 'var(--color-heading)' }}>Ingresso Libero</h3>
                   <p style={{ fontSize: '0.875rem', color: 'var(--neutral-400)', lineHeight: 1.7 }}>
                     Per questo evento non è necessaria la prenotazione. Ti aspettiamo direttamente sul posto!
                   </p>
@@ -225,6 +501,8 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                     </div>
                   </div>
                 </div>
+              ) : !event.bookable && cfg.hideFreeEntryPanel ? (
+                null
               ) : (
                 <div style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-xl)', padding: '2rem', textAlign: 'center' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📅</div>
@@ -239,6 +517,7 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                 </div>
               )}
             </motion.div>
+
           </div>
         </div>
       </div>

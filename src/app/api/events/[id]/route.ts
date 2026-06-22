@@ -35,32 +35,40 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const sql = getDb();
     const body = await request.json();
 
-    // Fields that can be updated
     const {
       slug, title, date, dateLabel, time, location, category,
       description, fullDescription, image, maxParticipants,
       registeredCount, price, isFree, featured, bookable, config
     } = body;
 
+    // Always write config explicitly — the previous CASE WHEN trick doesn't
+    // work with Neon's tagged template driver. configJson is either a JSON
+    // string to cast to JSONB, or null to set the column to NULL.
+    const configJson: string | null = config !== null && config !== undefined
+      ? JSON.stringify(config)
+      : null;
+
+    // Neon's tagged template driver handles null → SQL NULL automatically,
+    // and a string gets sent as a text parameter which Postgres casts to JSONB.
     const result = await sql`
       UPDATE events SET
-        slug = COALESCE(${slug}, slug),
-        title = COALESCE(${title}, title),
-        date = COALESCE(${date}, date),
-        "dateLabel" = COALESCE(${dateLabel}, "dateLabel"),
-        time = COALESCE(${time}, time),
-        location = COALESCE(${location}, location),
-        category = COALESCE(${category}, category),
-        description = COALESCE(${description}, description),
+        slug              = COALESCE(${slug}, slug),
+        title             = COALESCE(${title}, title),
+        date              = COALESCE(${date}, date),
+        "dateLabel"       = ${dateLabel ?? null},
+        time              = COALESCE(${time}, time),
+        location          = COALESCE(${location}, location),
+        category          = COALESCE(${category}, category),
+        description       = COALESCE(${description}, description),
         "fullDescription" = COALESCE(${fullDescription}, "fullDescription"),
-        image = COALESCE(${image}, image),
+        image             = COALESCE(${image}, image),
         "maxParticipants" = COALESCE(${maxParticipants}, "maxParticipants"),
         "registeredCount" = COALESCE(${registeredCount}, "registeredCount"),
-        price = COALESCE(${price}, price),
-        "isFree" = COALESCE(${isFree}, "isFree"),
-        featured = COALESCE(${featured}, featured),
-        bookable = COALESCE(${bookable}, bookable),
-        config = CASE WHEN ${config !== undefined ? 'update' : 'skip'} = 'update' THEN ${config ? JSON.stringify(config) : null}::jsonb ELSE config END
+        price             = COALESCE(${price}, price),
+        "isFree"          = COALESCE(${isFree !== undefined ? isFree : null}, "isFree"),
+        featured          = COALESCE(${featured !== undefined ? featured : null}, featured),
+        bookable          = COALESCE(${bookable !== undefined ? bookable : null}, bookable),
+        config            = ${configJson}::jsonb
       WHERE id = ${id}
       RETURNING *;
     `;
