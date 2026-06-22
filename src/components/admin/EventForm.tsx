@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Event, EventAttachment, EventVideo, EventLink } from '@/lib/data/events';
 import {
   Loader2, X, Trash2, Save, UploadCloud, Info, Plus,
   FileText, PlayCircle, Link2, ChevronDown, ChevronUp,
   ExternalLink, MapPin, Phone, Mail, AtSign, Share2,
-  Ticket, AlertCircle, Eye,
+  Ticket, AlertCircle, Eye, Image as ImageIcon,
 } from 'lucide-react';
 
 // ─── Image compression ────────────────────────────────────────────────────────
-const compressImage = (file: File): Promise<string> => {
+const compressImage = (file: File, type: string = 'image/jpeg'): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -31,7 +31,7 @@ const compressImage = (file: File): Promise<string> => {
         canvas.width = width;
         canvas.height = height;
         canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
+        resolve(canvas.toDataURL(type, 0.8));
       };
       img.onerror = (e) => reject(e);
     };
@@ -174,6 +174,8 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
   const [tagline, setTagline] = useState(initialData?.config?.tagline ?? '');
   const [hideCapacity, setHideCapacity] = useState(initialData?.config?.hideCapacity ?? false);
   const [hideFreeEntryPanel, setHideFreeEntryPanel] = useState(initialData?.config?.hideFreeEntryPanel ?? false);
+  const [logoSrc, setLogoSrc] = useState(initialData?.config?.logoSrc ?? '');
+  const [carouselPhotos, setCarouselPhotos] = useState<{src: string; alt?: string}[]>(initialData?.config?.carouselPhotos ?? []);
 
   // Structured arrays
   const [attachments, setAttachments] = useState<EventAttachment[]>(initialData?.config?.attachments ?? []);
@@ -184,7 +186,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
   const [showAdvanced, setShowAdvanced] = useState(false);
   const legacyConfig = initialData?.config
     ? (() => {
-        const { accentColor: _, tagline: __, hideCapacity: ___, hideFreeEntryPanel: _____, attachments: ____, videos: ______, links: _______, ...rest } = initialData.config;
+        const { accentColor: _, tagline: __, hideCapacity: ___, hideFreeEntryPanel: _____, attachments: ____, videos: ______, links: _______, logoSrc: ________, carouselPhotos: _________, ...rest } = initialData.config;
         return Object.keys(rest).length ? JSON.stringify(rest, null, 2) : '';
       })()
     : '';
@@ -238,6 +240,50 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
     finally { setLoading(false); }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { setError("Logo troppo grande. Massimo 2MB."); return; }
+    try {
+      setLoading(true);
+      const base64 = await compressImage(file, 'image/png');
+      setLogoSrc(base64);
+      setError('');
+    } catch { setError("Errore durante il caricamento del logo."); }
+    finally { setLoading(false); }
+  };
+
+  const carouselInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCarouselUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    // Reset immediately so the same files can be picked again later
+    e.target.value = '';
+    if (!files.length) return;
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    const skipped = files.filter(f => f.size > MAX_BYTES);
+    const valid   = files.filter(f => f.size <= MAX_BYTES);
+    if (skipped.length) {
+      setError(`${skipped.length} foto ignorat${skipped.length > 1 ? 'e' : 'a'} (oltre 10 MB).`);
+    }
+    if (!valid.length) return;
+    try {
+      setLoading(true);
+      const newPhotos: { src: string; alt: string }[] = [];
+      for (const file of valid) {
+        const base64 = await compressImage(file);
+        newPhotos.push({ src: base64, alt: '' });
+      }
+      setCarouselPhotos(p => [...p, ...newPhotos]);
+      if (!skipped.length) setError('');
+    } catch { setError('Errore durante il caricamento delle foto.'); }
+    finally { setLoading(false); }
+  };
+
+  const removeCarouselPhoto = (idx: number) => {
+    setCarouselPhotos(p => p.filter((_, i) => i !== idx));
+  };
+
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,6 +307,8 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
       ...(tagline ? { tagline } : {}),
       ...(hideCapacity ? { hideCapacity } : {}),
       ...(hideFreeEntryPanel ? { hideFreeEntryPanel } : {}),
+      ...(logoSrc ? { logoSrc } : {}),
+      ...(carouselPhotos.length ? { carouselPhotos } : {}),
       ...(attachments.filter(a => a.label && a.url).length ? { attachments: attachments.filter(a => a.label && a.url) } : {}),
       ...(videos.filter(v => v.title && v.youtubeUrl).length ? { videos: videos.filter(v => v.title && v.youtubeUrl) } : {}),
       ...(links.filter(l => l.label && l.url).length ? { links: links.filter(l => l.label && l.url) } : {}),
@@ -727,6 +775,45 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
             </div>
 
             {/* ════════════════════════════════════════════════════
+                BLOCCO 7B — Foto Carosello
+            ════════════════════════════════════════════════════ */}
+            <div style={{
+              background: 'var(--neutral-950)', borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--neutral-800)', padding: '1.25rem',
+              marginBottom: '1.25rem',
+            }}>
+              <SectionHeader
+                icon={<ImageIcon size={15} style={{ color: '#c084fc' }} />}
+                label="Foto Carosello"
+                count={carouselPhotos.length}
+                color="#c084fc"
+              />
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                {carouselPhotos.map((photo, i) => (
+                  <div key={i} style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '1' }}>
+                    <img src={photo.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button
+                      type="button"
+                      onClick={() => removeCarouselPhoto(i)}
+                      style={{ position: 'absolute', top: '0.25rem', right: '0.25rem', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                
+                {/* Upload button for multiple images */}
+                <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', border: '2px dashed var(--neutral-700)', borderRadius: 'var(--radius-md)', cursor: 'pointer', aspectRatio: '1' }}>
+                  <UploadCloud size={24} style={{ color: 'var(--neutral-500)', marginBottom: '0.5rem' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Aggiungi Foto</span>
+                  <input ref={carouselInputRef} type="file" multiple accept="image/*" onChange={handleCarouselUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', margin: 0 }}>Queste foto appariranno in un carosello scorrevole nella pagina dell'evento.</p>
+            </div>
+
+            {/* ════════════════════════════════════════════════════
                 BLOCCO 8 — Design avanzato
             ════════════════════════════════════════════════════ */}
             <div style={{
@@ -735,7 +822,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
             }}>
               {/* Compact row: accent color + tagline + hideCapacity */}
               <div style={{
-                display: 'grid', gridTemplateColumns: '140px 1fr auto',
+                display: 'grid', gridTemplateColumns: '140px 1fr auto auto',
                 gap: '1rem', alignItems: 'center', padding: '1rem 1.25rem',
               }}>
                 <div>
@@ -795,6 +882,24 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                     />
                     Nascondi "Ingresso Libero"
                   </label>
+                </div>
+                <div style={{ paddingLeft: '1rem', borderLeft: '1px solid var(--neutral-800)' }}>
+                  <label className="label" style={{ marginBottom: '0.4rem' }}>Logo Evento (PNG)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    {logoSrc ? (
+                      <div style={{ position: 'relative', width: 60, height: 40, background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neutral-700)' }}>
+                        <img src={logoSrc} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        <button type="button" onClick={() => setLogoSrc('')} style={{ position: 'absolute', top: -8, right: -8, background: '#f87171', border: 'none', color: 'white', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--neutral-800)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--neutral-300)' }}>
+                        <UploadCloud size={14} /> Carica
+                        <input type="file" accept="image/png,image/svg+xml" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
 

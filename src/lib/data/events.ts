@@ -39,7 +39,12 @@ export interface EventLink {
 export interface EventConfig {
   accentColor?: string;
   hideCapacity?: boolean;
+  hideFreeEntryPanel?: boolean;
   tagline?: string;
+  /** Logo personalizzato (PNG trasparente) da mostrare al posto del titolo testuale */
+  logoSrc?: string;
+  /** Foto aggiuntive da mostrare in un carosello a scorrimento orizzontale */
+  carouselPhotos?: { src: string; alt?: string }[];
   /** Legacy JSON sezioni aggiuntive (es. testo, immagini, html/instagram) */
   extraSections?: {
     type: 'text' | 'image' | 'link' | 'html';

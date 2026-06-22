@@ -1,15 +1,15 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, MapPin, Clock, Users, ArrowLeft,
   FileText, Download, Play, ExternalLink, Phone,
   Mail, AtSign, Share2, Ticket, Info as InfoIcon,
-  Link2,
+  Link2, Image as ImageIcon, X, ChevronLeft, ChevronRight, ZoomIn,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import BookingForm from '@/components/events/BookingForm';
 import type { Event, EventLink } from '@/lib/data/events';
 
@@ -54,6 +54,36 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
   const attachments = cfg.attachments || [];
   const videos = cfg.videos || [];
   const links = cfg.links || [];
+
+  // ─── Carousel lightbox state ──────────────────────────────────────────────
+  const carouselPhotos = cfg.carouselPhotos || [];
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const openLightbox = (i: number) => {
+    setLightboxIndex(i);
+    document.body.style.overflow = 'hidden';
+  };
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
+    document.body.style.overflow = '';
+  }, []);
+  const prevPhoto = useCallback(() => {
+    setLightboxIndex(prev => prev !== null ? (prev - 1 + carouselPhotos.length) % carouselPhotos.length : null);
+  }, [carouselPhotos.length]);
+  const nextPhoto = useCallback(() => {
+    setLightboxIndex(prev => prev !== null ? (prev + 1) % carouselPhotos.length : null);
+  }, [carouselPhotos.length]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') prevPhoto();
+      if (e.key === 'ArrowRight') nextPhoto();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIndex, closeLightbox, prevPhoto, nextPhoto]);
 
   // Special case: User pasted Instagram oEmbed JSON directly
   const isInstagramJson = cfg.type === 'instagram' && cfg.media_url;
@@ -128,14 +158,25 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
           >
             {event.category}
           </motion.span>
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            style={{ fontWeight: 400, color: '#ffffff', marginBottom: '0.4rem', lineHeight: 1.15 }}
-          >
-            {event.title}
-          </motion.h1>
+          {event.config?.logoSrc ? (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              style={{ marginBottom: '0.4rem', display: 'flex', justifyContent: 'center' }}
+            >
+              <img src={event.config.logoSrc} alt={event.title} style={{ maxHeight: '140px', width: 'auto', maxWidth: '100%', objectFit: 'contain' }} />
+            </motion.div>
+          ) : (
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              style={{ fontWeight: 400, color: '#ffffff', marginBottom: '0.4rem', lineHeight: 1.15 }}
+            >
+              {event.title}
+            </motion.h1>
+          )}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
             {event.isFree ? (
               <span style={{ fontSize: '0.85rem', color: '#4ade80' }}>Evento Gratuito</span>
@@ -420,6 +461,193 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                   )}
                 </motion.div>
               ))}
+
+              {/* ── Carousel Photos ── */}
+              {carouselPhotos.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: 'rgba(192,132,252,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ImageIcon size={15} style={{ color: '#c084fc' }} />
+                    </div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 500, color: 'var(--color-heading)' }}>Galleria Fotografica</h3>
+                  </div>
+
+                  {/* Scrollable thumbnail strip */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    overflowX: 'auto',
+                    paddingBottom: '0.75rem',
+                    scrollSnapType: 'x mandatory',
+                    WebkitOverflowScrolling: 'touch',
+                  }}>
+                    {carouselPhotos.map((photo, i) => (
+                      <motion.div
+                        key={i}
+                        onClick={() => openLightbox(i)}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        style={{
+                          flex: '0 0 auto',
+                          width: '220px',
+                          height: '165px',
+                          scrollSnapAlign: 'start',
+                          borderRadius: 'var(--radius-lg)',
+                          overflow: 'hidden',
+                          position: 'relative',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                          border: '1px solid var(--neutral-800)',
+                        }}
+                      >
+                        <img
+                          src={photo.src}
+                          alt={photo.alt || `Foto evento ${i + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                        {/* Zoom hint overlay */}
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'rgba(0,0,0,0)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'background 0.25s',
+                        }}
+                          onMouseEnter={e => {
+                            (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.35)';
+                            (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('style', 'opacity:1');
+                          }}
+                          onMouseLeave={e => {
+                            (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0)';
+                            (e.currentTarget.querySelector('svg') as SVGElement | null)?.setAttribute('style', 'opacity:0');
+                          }}
+                        >
+                          <ZoomIn size={28} style={{ color: 'white', opacity: 0, transition: 'opacity 0.25s' }} />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Photo Lightbox ── */}
+              <AnimatePresence>
+                {lightboxIndex !== null && (
+                  <motion.div
+                    key="lightbox"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    onClick={closeLightbox}
+                    style={{
+                      position: 'fixed', inset: 0, zIndex: 300,
+                      background: 'rgba(5,7,12,0.96)',
+                      backdropFilter: 'blur(8px)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    {/* Close button */}
+                    <button
+                      onClick={closeLightbox}
+                      style={{
+                        position: 'absolute', top: '1.25rem', right: '1.25rem',
+                        background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: '50%', width: 44, height: 44,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', cursor: 'pointer', zIndex: 1,
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                    >
+                      <X size={20} />
+                    </button>
+
+                    {/* Prev */}
+                    {carouselPhotos.length > 1 && (
+                      <button
+                        onClick={e => { e.stopPropagation(); prevPhoto(); }}
+                        style={{
+                          position: 'absolute', left: '1.25rem',
+                          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '50%', width: 50, height: 50,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', cursor: 'pointer',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                      >
+                        <ChevronLeft size={24} />
+                      </button>
+                    )}
+
+                    {/* Image */}
+                    <motion.div
+                      key={lightboxIndex}
+                      initial={{ opacity: 0, scale: 0.93 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.93 }}
+                      transition={{ duration: 0.22, ease: 'easeOut' }}
+                      onClick={e => e.stopPropagation()}
+                      style={{ maxWidth: '90vw', maxHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}
+                    >
+                      <img
+                        src={carouselPhotos[lightboxIndex].src}
+                        alt={carouselPhotos[lightboxIndex].alt || `Foto ${lightboxIndex + 1}`}
+                        style={{
+                          maxWidth: '90vw', maxHeight: '80vh',
+                          objectFit: 'contain',
+                          borderRadius: 'var(--radius-lg)',
+                          boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
+                          display: 'block',
+                        }}
+                      />
+                      {carouselPhotos[lightboxIndex].alt && (
+                        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>
+                          {carouselPhotos[lightboxIndex].alt}
+                        </p>
+                      )}
+                    </motion.div>
+
+                    {/* Next */}
+                    {carouselPhotos.length > 1 && (
+                      <button
+                        onClick={e => { e.stopPropagation(); nextPhoto(); }}
+                        style={{
+                          position: 'absolute', right: '1.25rem',
+                          background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                          borderRadius: '50%', width: 50, height: 50,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'white', cursor: 'pointer',
+                          transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                      >
+                        <ChevronRight size={24} />
+                      </button>
+                    )}
+
+                    {/* Counter */}
+                    {carouselPhotos.length > 1 && (
+                      <div style={{
+                        position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+                        fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)',
+                        background: 'rgba(0,0,0,0.4)', padding: '0.3rem 0.8rem', borderRadius: 'var(--radius-full)',
+                      }}>
+                        {lightboxIndex + 1} / {carouselPhotos.length}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* ── Native Instagram JSON Support ── */}
               {instagramUrl && (
