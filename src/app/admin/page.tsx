@@ -7,22 +7,30 @@ import {
   LayoutDashboard, Calendar, Users, ImageIcon,
   BarChart2, LogOut, Settings, Bell,
   TrendingUp, UserPlus, CalendarCheck, Eye, Loader2,
-  Ticket
+  Ticket, QrCode
 } from 'lucide-react';
 import type { Event } from '@/lib/data/events';
 import type { Member } from '@/lib/data/members';
 import type { GalleryItem } from '@/lib/data/gallery';
+import type { NewsArticle } from '@/lib/data/news';
 import EventForm from '@/components/admin/EventForm';
 import MemberForm from '@/components/admin/MemberForm';
 import GalleryForm from '@/components/admin/GalleryForm';
 import BookingManager from '@/components/admin/BookingManager';
+import NewsForm from '@/components/admin/NewsForm';
+import { FileText, ShoppingCart, Tag } from 'lucide-react';
+import OrderManager from '@/components/admin/OrderManager';
+import DiscountManager from '@/components/admin/DiscountManager';
 
-type AdminSection = 'dashboard' | 'eventi' | 'prenotazioni' | 'soci' | 'media' | 'analytics';
+type AdminSection = 'dashboard' | 'eventi' | 'notizie' | 'prenotazioni' | 'soci' | 'media' | 'ordini' | 'sconti' | 'analytics';
 
-const navItems: { id: AdminSection; icon: typeof LayoutDashboard; label: string }[] = [
+const navItems: { id: AdminSection; icon: any; label: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { id: 'eventi', icon: Calendar, label: 'Eventi' },
+  { id: 'notizie', icon: FileText, label: 'Notizie' },
   { id: 'prenotazioni', icon: CalendarCheck, label: 'Prenotazioni' },
+  { id: 'ordini', icon: ShoppingCart, label: 'Ordini A&P' },
+  { id: 'sconti', icon: Tag, label: 'Sconti A&P' },
   { id: 'soci', icon: Users, label: 'Soci' },
   { id: 'media', icon: ImageIcon, label: 'Media' },
   { id: 'analytics', icon: BarChart2, label: 'Analytics' },
@@ -39,10 +47,13 @@ export default function AdminPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [ticketStats, setTicketStats] = useState({ totalTickets: 0, totalRevenue: 0, checkedIn: 0 });
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState<Event | null | 'new'>(null);
   const [editingMember, setEditingMember] = useState<Member | null | 'new'>(null);
   const [editingPhoto, setEditingPhoto] = useState<GalleryItem | null | 'new'>(null);
+  const [editingNews, setEditingNews] = useState<NewsArticle | null | 'new'>(null);
 
   const fetchEvents = () => {
     fetch('/api/events')
@@ -71,6 +82,20 @@ export default function AdminPage() {
       .catch(err => { console.error(err); });
   };
 
+  const fetchNews = () => {
+    fetch('/api/news')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setNews(data); })
+      .catch(err => { console.error(err); });
+  };
+
+  const fetchTicketStats = () => {
+    fetch('/api/tickets/stats?eventId=assaggia-passeggia')
+      .then(res => res.json())
+      .then(data => { if (data.success) setTicketStats(data.stats); })
+      .catch(err => { console.error(err); });
+  };
+
   useEffect(() => {
     // Run setup silently to ensure tables exist
     fetch('/api/setup').catch(() => {});
@@ -78,6 +103,8 @@ export default function AdminPage() {
     fetchEvents();
     fetchMembers();
     fetchGallery();
+    fetchNews();
+    fetchTicketStats();
   }, []);
 
   const handleSaveEvent = () => {
@@ -131,6 +158,23 @@ export default function AdminPage() {
     }
   };
 
+  const handleSaveNews = () => {
+    setEditingNews(null);
+    fetchNews();
+  };
+
+  const handleDeleteNews = async (id: string) => {
+    if (!confirm('Eliminare questa notizia?')) return;
+    try {
+      await fetch(`/api/news/${id}`, { method: 'DELETE' });
+      setEditingNews(null);
+      fetchNews();
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante l\'eliminazione');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--neutral-950)', paddingTop: '0' }}>
 
@@ -153,7 +197,7 @@ export default function AdminPage() {
           <Image src="/img/Logo_color_sm.png" alt="Logo" width={36} height={36} style={{ objectFit: 'contain' }} />
           <div style={{ lineHeight: 1.1 }}>
             <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.55rem', color: 'var(--gold-500)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pro Loco</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: 'var(--white)', fontWeight: 500 }}>Gasperina</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: 'var(--color-heading)', fontWeight: 500 }}>Gasperina</div>
           </div>
         </div>
 
@@ -180,7 +224,7 @@ export default function AdminPage() {
                   fontFamily: 'var(--font-body)',
                   fontSize: '0.88rem',
                   fontWeight: active ? 600 : 400,
-                  color: active ? 'var(--white)' : 'var(--neutral-400)',
+                  color: active ? 'var(--color-heading)' : 'var(--neutral-400)',
                   background: active ? 'rgba(27,75,170,0.2)' : 'transparent',
                   transition: 'all 0.2s',
                   textAlign: 'left',
@@ -197,6 +241,13 @@ export default function AdminPage() {
 
         {/* Bottom actions */}
         <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid var(--neutral-800)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          <Link href="/admin/scanner" target="_blank" style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)',
+            color: 'var(--neutral-400)', fontSize: '0.85rem', fontFamily: 'var(--font-body)',
+          }}>
+            <QrCode size={15} /> Scanner Biglietti
+          </Link>
           <Link href="/" style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem',
             padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)',
@@ -222,7 +273,7 @@ export default function AdminPage() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--white)' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--color-heading)' }}>
               {navItems.find(n => n.id === section)?.label}
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>Pro Loco Gasperina APS · Area Amministrativa</p>
@@ -234,7 +285,7 @@ export default function AdminPage() {
             <button style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--neutral-400)' }}>
               <Settings size={16} />
             </button>
-            <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--white)' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-heading)' }}>
               A
             </div>
           </div>
@@ -252,9 +303,9 @@ export default function AdminPage() {
             {/* KPI cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
               {[
-                { icon: Users, label: 'Soci Totali', value: members.length, delta: '+3 questo mese', color: 'var(--blue-700)' },
-                { icon: Calendar, label: 'Eventi Totali', value: events.length, delta: '3 in arrivo', color: 'var(--gold-500)' },
-                { icon: UserPlus, label: 'Prenotazioni', value: events.reduce((a, e) => a + e.registeredCount, 0), delta: 'questo mese', color: '#4ade80' },
+                { icon: Users, label: 'Soci Totali', value: members.length, delta: 'Attivi', color: 'var(--blue-700)' },
+                { icon: Ticket, label: 'Biglietti Venduti (A&P)', value: ticketStats.totalTickets, delta: `Incasso: €${ticketStats.totalRevenue}`, color: '#eab308' },
+                { icon: QrCode, label: 'Check-in (A&P)', value: ticketStats.checkedIn, delta: `${ticketStats.totalTickets > 0 ? Math.round((ticketStats.checkedIn / ticketStats.totalTickets) * 100) : 0}% completati`, color: '#4ade80' },
               ].map(kpi => {
                 const Icon = kpi.icon;
                 return (
@@ -265,21 +316,32 @@ export default function AdminPage() {
                         <Icon size={15} style={{ color: kpi.color }} />
                       </div>
                     </div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 500, color: 'var(--white)', lineHeight: 1 }}>{kpi.value}</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 500, color: 'var(--color-heading)', lineHeight: 1 }}>{kpi.value}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginTop: '0.4rem' }}>{kpi.delta}</div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Recent events + members */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+              
               <div className="card" style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--white)', marginBottom: '1rem' }}>Prossimi eventi</h4>
+                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Pagine Speciali</h4>
+                <div style={{ padding: '1rem', background: 'var(--neutral-800)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--color-heading)', fontWeight: 500 }}>Assaggia & Passeggia</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Gestisci le tappe, il menù e i testi</div>
+                  </div>
+                  <Link href="/admin/pagine/assaggia" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Gestisci</Link>
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '1.25rem' }}>
+                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Prossimi eventi</h4>
                 {events.slice(0, 4).map(ev => (
-                  <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
                     <div>
-                      <div style={{ fontSize: '0.875rem', color: 'var(--white)', fontWeight: 500 }}>{ev.title}</div>
+                      <div style={{ fontSize: '0.875rem', color: 'var(--color-heading)', fontWeight: 500 }}>{ev.title}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{new Date(ev.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · {ev.location}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -299,15 +361,15 @@ export default function AdminPage() {
               </div>
 
               <div className="card" style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--white)', marginBottom: '1rem' }}>Soci recenti</h4>
+                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Soci recenti</h4>
                 {members.slice(0, 5).map(m => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
                     <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                       <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(27,75,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600, color: 'var(--blue-500)' }}>
                         {m.nome[0]}{m.cognome[0]}
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--white)', fontWeight: 500 }}>{m.nome} {m.cognome}</div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--color-heading)', fontWeight: 500 }}>{m.nome} {m.cognome}</div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', textTransform: 'capitalize' }}>{m.tipo}</div>
                       </div>
                     </div>
@@ -358,7 +420,7 @@ export default function AdminPage() {
                 <tbody>
                   {events.map(ev => (
                     <tr key={ev.id}>
-                      <td style={{ color: 'var(--white)', fontWeight: 500 }}>{ev.title}</td>
+                      <td style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{ev.title}</td>
                       <td>{new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                       <td><span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>{ev.category}</span></td>
                       <td>{ev.bookable ? `${ev.registeredCount} / ${ev.maxParticipants}` : <span style={{ color: 'var(--neutral-600)', fontStyle: 'italic' }}>—</span>}</td>
@@ -378,9 +440,73 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── NOTIZIE ── */}
+        {section === 'notizie' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{news.length} notizie totali</p>
+              <button 
+                onClick={() => setEditingNews('new')}
+                className="btn btn-primary" 
+                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
+              >
+                + Nuova notizia
+              </button>
+            </div>
+            {loading ? (
+               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
+                 <Loader2 className="animate-spin" size={32} />
+               </div>
+            ) : (
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Titolo</th>
+                    <th>Data Pubblicazione</th>
+                    <th>In Evidenza</th>
+                    <th>Azioni</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {news.map(n => (
+                    <tr key={n.id}>
+                      <td style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{n.title}</td>
+                      <td>{new Date(n.publishedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                      <td><span style={{ color: n.featured ? '#4ade80' : 'var(--neutral-400)', fontSize: '0.82rem' }}>{n.featured ? 'Sì' : 'No'}</span></td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <Link href={`/notizie/${n.slug}`} target="_blank" style={{ fontSize: '0.78rem', color: 'var(--blue-500)', textDecoration: 'underline' }}>Vedi</Link>
+                          <button onClick={() => setEditingNews(n)} style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }}>Modifica</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {news.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', color: 'var(--neutral-500)', padding: '2rem' }}>Nessuna notizia presente.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            )}
+          </div>
+        )}
+
         {/* ── PRENOTAZIONI ── */}
         {section === 'prenotazioni' && (
           <BookingManager />
+        )}
+
+        {/* ── ORDINI A&P ── */}
+        {section === 'ordini' && (
+          <OrderManager />
+        )}
+
+        {/* ── SCONTI A&P ── */}
+        {section === 'sconti' && (
+          <DiscountManager />
         )}
 
         {/* ── SOCI ── */}
@@ -416,7 +542,7 @@ export default function AdminPage() {
                           <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(27,75,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 600, color: 'var(--blue-500)', flexShrink: 0 }}>
                             {m.nome[0]}{m.cognome[0]}
                           </div>
-                          <span style={{ color: 'var(--white)', fontWeight: 500 }}>{m.nome} {m.cognome}</span>
+                          <span style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{m.nome} {m.cognome}</span>
                         </div>
                       </td>
                       <td style={{ color: 'var(--neutral-400)' }}>{m.email}</td>
@@ -464,7 +590,7 @@ export default function AdminPage() {
                 return (
                   <div key={kpi.label} className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
                     <Icon size={24} style={{ color: kpi.color, marginBottom: '0.75rem' }} />
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'var(--white)' }}>{kpi.value}</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'var(--color-heading)' }}>{kpi.value}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', marginTop: '0.3rem' }}>{kpi.label}</div>
                   </div>
                 );
@@ -473,7 +599,7 @@ export default function AdminPage() {
 
             {/* Events breakdown */}
             <div className="card" style={{ padding: '1.5rem' }}>
-              <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--white)', marginBottom: '1.25rem' }}>Partecipazione per evento</h4>
+              <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1.25rem' }}>Partecipazione per evento</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {events.map(ev => {
                   const pct = Math.round(ev.registeredCount / ev.maxParticipants * 100);
@@ -580,6 +706,30 @@ export default function AdminPage() {
           onClose={() => setEditingPhoto(null)}
           onSave={handleSavePhoto}
           onDelete={handleDeletePhoto}
+        />
+      )}
+
+      {/* News Form Modal */}
+      {editingNews && (
+        <NewsForm 
+          initialData={editingNews === 'new' ? undefined : editingNews} 
+          onClose={() => setEditingNews(null)} 
+          onSave={() => {
+            setEditingNews(null);
+            fetchData();
+          }}
+          onDelete={async (id) => {
+            if (!confirm('Eliminare questa notizia?')) return;
+            try {
+              const res = await fetch(`/api/news/${id}`, { method: 'DELETE' });
+              if (res.ok) {
+                setEditingNews(null);
+                fetchData();
+              }
+            } catch (error) {
+              console.error(error);
+            }
+          }}
         />
       )}
     </div>

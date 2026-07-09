@@ -9,6 +9,7 @@ import { Menu, X, Sun, Moon } from 'lucide-react';
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/scopri-gasperina', label: 'Scopri Gasperina' },
+  { href: '/notizie', label: 'Notizie' },
   { href: '/eventi', label: 'Eventi' },
   { href: '/media', label: 'Galleria' },
   { href: '/associazione', label: 'Chi Siamo' },
@@ -41,7 +42,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  if (pathname?.startsWith('/admin')) return null;
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/assaggia-e-passeggia')) return null;
 
   const toggleTheme = () => {
     const next = !dark;

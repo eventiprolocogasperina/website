@@ -366,7 +366,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               background: isEdit ? 'var(--blue-500)' : 'var(--gold-500)',
               boxShadow: isEdit ? '0 0 8px rgba(58,109,232,0.6)' : '0 0 8px rgba(232,169,26,0.6)',
             }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--white)', fontFamily: 'var(--font-body)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-heading)', fontFamily: 'var(--font-body)' }}>
               {isEdit ? `Modifica: ${initialData?.title}` : 'Nuovo Evento'}
             </h3>
           </div>
@@ -379,7 +379,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'all 0.2s',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--neutral-700)'; (e.currentTarget as HTMLElement).style.color = 'var(--white)'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--neutral-700)'; (e.currentTarget as HTMLElement).style.color = 'var(--color-heading)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--neutral-800)'; (e.currentTarget as HTMLElement).style.color = 'var(--neutral-400)'; }}
           >
             <X size={16} />
@@ -996,7 +996,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                   border: '1px solid var(--neutral-700)', transition: 'all 0.2s',
                   fontFamily: 'var(--font-body)',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--white)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--neutral-500)'; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--color-heading)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--neutral-500)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--neutral-400)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--neutral-700)'; }}
               >
                 <Eye size={13} /> Anteprima

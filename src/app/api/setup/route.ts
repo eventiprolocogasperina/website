@@ -62,6 +62,62 @@ export async function GET() {
     `;
     log.push('bookings table: ok');
 
+    // 4. News table
+    await sql`
+      CREATE TABLE IF NOT EXISTS news (
+        id            VARCHAR(255) PRIMARY KEY,
+        slug          VARCHAR(255) NOT NULL UNIQUE,
+        title         VARCHAR(255) NOT NULL,
+        "coverImage"  TEXT,
+        content       TEXT         NOT NULL,
+        "publishedAt" TIMESTAMPTZ  DEFAULT CURRENT_TIMESTAMP,
+        author        VARCHAR(255),
+        featured      BOOLEAN      DEFAULT FALSE,
+        config        JSONB        DEFAULT NULL
+      );
+    `;
+    log.push('news table: ok');
+
+    // 5. Orders table (for Ticketing & Nexi XPAY)
+    await sql`
+      CREATE TABLE IF NOT EXISTS orders (
+        id            VARCHAR(255) PRIMARY KEY,
+        "buyerName"   VARCHAR(255) NOT NULL,
+        "buyerEmail"  VARCHAR(255) NOT NULL,
+        "totalAmount" DECIMAL(10,2) NOT NULL,
+        status        VARCHAR(50)  NOT NULL DEFAULT 'PENDING',
+        "nexiMac"     VARCHAR(255),
+        "createdAt"   TIMESTAMPTZ  DEFAULT CURRENT_TIMESTAMP,
+        "paidAt"      TIMESTAMPTZ
+      );
+    `;
+    log.push('orders table: ok');
+
+    // 6. Tickets table
+    await sql`
+      CREATE TABLE IF NOT EXISTS tickets (
+        id            VARCHAR(255) PRIMARY KEY,
+        "orderId"     VARCHAR(255) NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        "eventId"     VARCHAR(255) NOT NULL,
+        type          VARCHAR(100) NOT NULL,
+        price         DECIMAL(10,2) NOT NULL,
+        "qrCodeData"  VARCHAR(255) NOT NULL UNIQUE,
+        "isCheckedIn" BOOLEAN      DEFAULT FALSE,
+        "checkInTime" TIMESTAMPTZ
+      );
+    `;
+    log.push('tickets table: ok');
+
+    // 7. Pages content table (for CMS)
+    await sql`
+      CREATE TABLE IF NOT EXISTS pages_content (
+        slug          VARCHAR(255) PRIMARY KEY,
+        content       JSONB        NOT NULL,
+        "updatedAt"   TIMESTAMPTZ  DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    log.push('pages_content table: ok');
+
     return NextResponse.json({ ok: true, log });
   } catch (error: any) {
     console.error('/api/setup error:', error);

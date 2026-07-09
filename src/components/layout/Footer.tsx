@@ -31,7 +31,7 @@ const footerLinks = {
 
 export default function Footer() {
   const pathname = usePathname();
-  if (pathname?.startsWith('/admin')) return null;
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/assaggia-e-passeggia')) return null;
   return (
     <footer style={{ background: 'var(--neutral-900)', borderTop: '1px solid var(--neutral-800)', paddingTop: '4rem' }}>
 
