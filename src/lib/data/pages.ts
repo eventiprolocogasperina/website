@@ -38,6 +38,11 @@ export interface AssaggiaEPasseggiaContent {
     ctaText: string;
     ctaLink: string;
   };
+  logistics: {
+    ticketInfo: string;
+    parkingInfo: string;
+    disclaimer: string;
+  };
 }
 
 // Default content used if nothing is found in the DB

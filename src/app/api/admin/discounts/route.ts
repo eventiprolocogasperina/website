@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { crypto } from 'crypto';
+import crypto from 'crypto';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createOrderWithTickets, markOrderPaid, getOrder } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
-import { crypto } from 'crypto';
+import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {

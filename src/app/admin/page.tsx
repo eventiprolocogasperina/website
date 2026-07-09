@@ -716,7 +716,7 @@ export default function AdminPage() {
           onClose={() => setEditingNews(null)} 
           onSave={() => {
             setEditingNews(null);
-            fetchData();
+            fetchNews();
           }}
           onDelete={async (id) => {
             if (!confirm('Eliminare questa notizia?')) return;
@@ -724,7 +724,7 @@ export default function AdminPage() {
               const res = await fetch(`/api/news/${id}`, { method: 'DELETE' });
               if (res.ok) {
                 setEditingNews(null);
-                fetchData();
+                fetchNews();
               }
             } catch (error) {
               console.error(error);

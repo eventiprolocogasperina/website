@@ -5,7 +5,7 @@ function getDb() {
   return neon(process.env.POSTGRES_URL!);
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const data = await req.json();
     const { code, type, value, max_uses, expiry_date, active } = data;
@@ -25,7 +25,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         max_uses = ${max_uses || 0}, 
         expiry_date = ${expiry_date || null}, 
         active = ${active ?? true}
-      WHERE id = ${params.id}
+      WHERE id = ${(await params).id}
     `;
 
     return NextResponse.json({ success: true });
@@ -37,10 +37,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const sql = getDb();
-    await sql`DELETE FROM discounts WHERE id = ${params.id}`;
+    await sql`DELETE FROM discounts WHERE id = ${(await params).id}`;
     return NextResponse.json({ success: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
