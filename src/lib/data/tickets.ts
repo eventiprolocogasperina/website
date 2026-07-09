@@ -11,6 +11,7 @@ export interface Order {
   discountId?: string;
   createdAt: string;
   paidAt?: string;
+  notes?: string;
 }
 
 export interface Ticket {
@@ -45,8 +46,8 @@ export async function createOrderWithTickets(order: Omit<Order, 'createdAt'>, ti
 
   // Create order
   await sql`
-    INSERT INTO orders (id, "buyerName", "buyerEmail", "buyerPhone", "totalAmount", status, "nexiMac", "discountId", "createdAt")
-    VALUES (${orderId}, ${order.buyerName}, ${order.buyerEmail}, ${order.buyerPhone || null}, ${order.totalAmount}, ${order.status}, ${order.nexiMac || null}, ${order.discountId || null}, ${createdAt})
+    INSERT INTO orders (id, "buyerName", "buyerEmail", "buyerPhone", "totalAmount", status, "nexiMac", "discountId", "createdAt", notes)
+    VALUES (${orderId}, ${order.buyerName}, ${order.buyerEmail}, ${order.buyerPhone || null}, ${order.totalAmount}, ${order.status}, ${order.nexiMac || null}, ${order.discountId || null}, ${createdAt}, ${order.notes || null})
   `;
 
   // Insert tickets
@@ -102,22 +103,49 @@ export async function markOrderPaidByCodTrans(codTrans: string) {
   await markOrderPaid(codTrans);
 }
 
-export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: boolean; message: string; ticket?: Ticket }> {
+export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: boolean; message: string; ticket?: Ticket; order?: any, orderTickets?: Ticket[], stats?: any }> {
   const sql = getDb();
   
-  const tickets = await sql`SELECT * FROM tickets WHERE "qrCodeData" = ${qrCodeData}`;
+  let tickets = await sql`SELECT * FROM tickets WHERE "qrCodeData" = ${qrCodeData} OR id = ${qrCodeData}`;
+  
   if (tickets.length === 0) {
+    // Prova una ricerca permissiva (sostituendo caratteri speciali con jolly) per aggirare problemi di layout tastiera dello scanner
+    const lenientSearch = qrCodeData.replace(/[^a-zA-Z0-9]/g, '%');
+    // Aggiungiamo i jolly anche all'inizio e alla fine nel caso in cui lo scanner perda il primo/ultimo carattere
+    const wildcardSearch = `%${lenientSearch}%`;
+    tickets = await sql`SELECT * FROM tickets WHERE "qrCodeData" ILIKE ${wildcardSearch}`;
+  }
+  if (tickets.length === 0) {
+    // If no ticket found, try searching by order ID
+    const orders = await sql`SELECT * FROM orders WHERE id = ${qrCodeData}`;
+    if (orders.length > 0) {
+      const order = orders[0];
+      const orderTickets = await sql`SELECT * FROM tickets WHERE "orderId" = ${order.id}`;
+      return { 
+        success: false, 
+        message: 'Ordine trovato. Scegli un biglietto da verificare.', 
+        order, 
+        orderTickets: orderTickets as Ticket[]
+      };
+    }
+
     return { success: false, message: 'Biglietto non trovato.' };
   }
 
   const ticket = tickets[0] as Ticket;
   
+  const orders = await sql`SELECT * FROM orders WHERE id = ${ticket.orderId}`;
+  const order = orders.length > 0 ? orders[0] : null;
+  const orderTickets = await sql`SELECT * FROM tickets WHERE "orderId" = ${ticket.orderId}`;
+
   if (ticket.isCheckedIn) {
-    return { success: false, message: `Biglietto già utilizzato il ${new Date(ticket.checkInTime!).toLocaleString('it-IT')}.`, ticket };
+    const stats = await getTicketingStats('assaggia-e-passeggia-2024');
+    return { success: false, message: `Biglietto già utilizzato il ${new Date(ticket.checkInTime!).toLocaleString('it-IT')}.`, ticket, order, orderTickets, stats };
   }
 
   await sql`UPDATE tickets SET "isCheckedIn" = true, "checkInTime" = CURRENT_TIMESTAMP WHERE id = ${ticket.id}`;
-  return { success: true, message: 'Biglietto verificato con successo!', ticket: { ...ticket, isCheckedIn: true } };
+  const stats = await getTicketingStats('assaggia-e-passeggia-2024');
+  return { success: true, message: 'Biglietto verificato con successo!', ticket: { ...ticket, isCheckedIn: true }, order, orderTickets, stats };
 }
 
 export async function getTicketingStats(eventId: string) {
@@ -153,6 +181,7 @@ export interface Discount {
   current_uses: number;
   expiry_date?: string;
   active: boolean;
+  applies_to?: 'ALL' | 'FULL_TICKET';
 }
 
 export async function getDiscountByCode(code: string): Promise<Discount | null> {

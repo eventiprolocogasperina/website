@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Search, Download, CheckCircle2, XCircle, 
-  Clock, Phone, Mail, FileText, Loader2, Plus, MailOpen, Trash2
+  Clock, Phone, Mail, FileText, Loader2, Plus, MailOpen, Trash2, Edit
 } from 'lucide-react';
 import type { OrderWithTickets } from '@/lib/data/tickets';
 
@@ -23,6 +23,9 @@ export default function OrderManager() {
     note: ''
   });
   const [creatingOrder, setCreatingOrder] = useState(false);
+
+  const [editingOrder, setEditingOrder] = useState<OrderWithTickets | null>(null);
+  const [editForm, setEditForm] = useState({ buyerName: '', buyerEmail: '', buyerPhone: '', notes: '' });
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -98,6 +101,31 @@ export default function OrderManager() {
     }
   };
 
+  const handleEditClick = (o: OrderWithTickets) => {
+    setEditingOrder(o);
+    setEditForm({ buyerName: o.buyerName, buyerEmail: o.buyerEmail, buyerPhone: o.buyerPhone || '', notes: o.notes || '' });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingOrder) return;
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: editingOrder.id, action: 'UPDATE_DETAILS', ...editForm }),
+      });
+      if (res.ok) {
+        setEditingOrder(null);
+        fetchOrders();
+      } else {
+        alert('Errore durante il salvataggio');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante il salvataggio');
+    }
+  };
+
   const handleCreateManualOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreatingOrder(true);
@@ -152,8 +180,30 @@ export default function OrderManager() {
     return matchesSearch && matchesStatus;
   });
 
+  // Calculate totals
+  const paidOrders = filteredOrders.filter(o => o.status === 'PAID');
+  const totalTickets = paidOrders.reduce((acc, o) => acc + o.tickets.length, 0);
+  const totalRevenue = paidOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const freeOrdersCount = paidOrders.filter(o => o.totalAmount === 0).length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      
+      {/* STATS HEADER */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Biglietti Venduti</div>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--white)', lineHeight: 1 }}>{totalTickets}</div>
+        </div>
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Incasso Totale</div>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--gold-500)', lineHeight: 1 }}>€{totalRevenue.toFixed(2)}</div>
+        </div>
+        <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Ordini Omaggio</div>
+          <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--blue-400)', lineHeight: 1 }}>{freeOrdersCount}</div>
+        </div>
+      </div>
       
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '1rem', flex: 1, minWidth: '300px' }}>
@@ -233,6 +283,11 @@ export default function OrderManager() {
                           <Phone size={12} /> {o.buyerPhone}
                         </span>
                       )}
+                      {o.notes && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--blue-400)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
+                          <FileText size={12} /> {o.notes}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td>
@@ -241,7 +296,13 @@ export default function OrderManager() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: '1rem', color: 'var(--white)', fontWeight: 600 }}>€{o.totalAmount.toFixed(2)}</div>
+                    <div style={{ fontSize: '1rem', color: 'var(--white)', fontWeight: 600 }}>
+                      {o.totalAmount === 0 && o.status === 'PAID' ? (
+                        <span style={{ color: 'var(--blue-400)' }}>OMAGGIO</span>
+                      ) : (
+                        `€${o.totalAmount.toFixed(2)}`
+                      )}
+                    </div>
                   </td>
                   <td>
                     <span style={{ 
@@ -278,6 +339,9 @@ export default function OrderManager() {
                           </button>
                         </>
                       )}
+                      <button onClick={() => handleEditClick(o)} style={{ color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }} title="Modifica Ordine">
+                        <Edit size={16} />
+                      </button>
                       <button 
                         onClick={() => handleDeleteOrder(o.id, o.status)} 
                         style={{ color: 'var(--red-400)', background: 'none', border: 'none', cursor: 'pointer' }} 
@@ -333,6 +397,65 @@ export default function OrderManager() {
                 {creatingOrder ? 'Creazione...' : 'Crea Ordine e Invia Biglietti'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Order Modal */}
+      {editingOrder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.25rem', color: 'white', margin: 0 }}>Modifica Ordine {editingOrder.id.substring(0,8).toUpperCase()}</h2>
+              <button onClick={() => setEditingOrder(null)} style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--neutral-400)', marginBottom: '0.5rem' }}>Nome Acquirente</label>
+                <input 
+                  className="input" 
+                  value={editForm.buyerName}
+                  onChange={e => setEditForm(f => ({ ...f, buyerName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--neutral-400)', marginBottom: '0.5rem' }}>Email</label>
+                <input 
+                  className="input" 
+                  type="email"
+                  value={editForm.buyerEmail}
+                  onChange={e => setEditForm(f => ({ ...f, buyerEmail: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--neutral-400)', marginBottom: '0.5rem' }}>Telefono</label>
+                <input 
+                  className="input" 
+                  value={editForm.buyerPhone}
+                  onChange={e => setEditForm(f => ({ ...f, buyerPhone: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--neutral-400)', marginBottom: '0.5rem' }}>Note sull'ordine</label>
+                <textarea 
+                  className="input" 
+                  rows={3}
+                  value={editForm.notes}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                />
+              </div>
+              
+              <button 
+                className="btn" 
+                onClick={handleSaveEdit}
+                style={{ width: '100%', marginTop: '1rem' }}
+              >
+                Salva Modifiche
+              </button>
+            </div>
           </div>
         </div>
       )}

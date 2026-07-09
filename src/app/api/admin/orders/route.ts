@@ -30,7 +30,22 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const { orderId, action } = await req.json();
+    const body = await req.json();
+    const { orderId, action } = body;
+    
+    if (action === 'UPDATE_DETAILS') {
+      const sql = getDb();
+      const { buyerName, buyerEmail, buyerPhone, notes } = body;
+      await sql`
+        UPDATE orders 
+        SET "buyerName" = ${buyerName}, 
+            "buyerEmail" = ${buyerEmail}, 
+            "buyerPhone" = ${buyerPhone || null}, 
+            notes = ${notes || null}
+        WHERE id = ${orderId}
+      `;
+      return NextResponse.json({ success: true });
+    }
     
     if (action === 'MARK_PAID') {
       await markOrderPaid(orderId);

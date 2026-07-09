@@ -34,10 +34,16 @@ export default function TicketPage() {
   
   let discountAmount = 0;
   if (discount) {
+    let targetBasePrice = basePrice;
+    if (discount.applies_to === 'FULL_TICKET') {
+      const fullTicketObj = TICKET_TYPES.find(t => t.id === 'full');
+      targetBasePrice = fullTicketObj ? (fullTicketObj.price * (cart['full'] || 0)) : 0;
+    }
+
     if (discount.type === 'FIXED') {
-      discountAmount = discount.value;
+      discountAmount = Math.min(targetBasePrice, discount.value);
     } else if (discount.type === 'PERCENTAGE') {
-      discountAmount = basePrice * (discount.value / 100);
+      discountAmount = targetBasePrice * (discount.value / 100);
     }
   }
   const totalPrice = Math.max(0, basePrice - discountAmount);

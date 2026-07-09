@@ -43,6 +43,14 @@ export async function GET() {
     } catch (e: any) {
       log.push('events update note: ' + e.message);
     }
+    
+    // orders table updates
+    try {
+      await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes TEXT;`;
+      log.push('orders notes column updated');
+    } catch (e: any) {
+      log.push('orders update note: ' + e.message);
+    }
 
     // 3. Bookings table
     await sql`
@@ -117,6 +125,31 @@ export async function GET() {
       );
     `;
     log.push('pages_content table: ok');
+
+    // 8. Discounts table
+    await sql`
+      CREATE TABLE IF NOT EXISTS discounts (
+        id            VARCHAR(255) PRIMARY KEY,
+        code          VARCHAR(255) NOT NULL UNIQUE,
+        type          VARCHAR(50)  NOT NULL,
+        value         DECIMAL(10,2) NOT NULL,
+        max_uses      INTEGER      DEFAULT 0,
+        current_uses  INTEGER      DEFAULT 0,
+        expiry_date   TIMESTAMPTZ,
+        active        BOOLEAN      DEFAULT TRUE,
+        created_at    TIMESTAMPTZ  DEFAULT CURRENT_TIMESTAMP,
+        applies_to    VARCHAR(50)  DEFAULT 'ALL'
+      );
+    `;
+    
+    try {
+      await sql`ALTER TABLE discounts ADD COLUMN IF NOT EXISTS applies_to VARCHAR(50) DEFAULT 'ALL';`;
+      log.push('discounts table updated');
+    } catch (e: any) {
+      log.push('discounts update note: ' + e.message);
+    }
+    
+    log.push('discounts table: ok');
 
     return NextResponse.json({ ok: true, log });
   } catch (error: any) {

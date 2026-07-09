@@ -255,7 +255,7 @@ export default function AdminPage() {
           }}>
             <Eye size={15} /> Visualizza sito
           </Link>
-          <button style={{
+          <button onClick={() => { sessionStorage.removeItem('admin_auth'); window.location.reload(); }} style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem',
             padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)',
             border: 'none', cursor: 'pointer', background: 'transparent',
