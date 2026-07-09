@@ -27,120 +27,127 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: palette.primary,
-    padding: '30 40',
+    padding: '40 40 30 40',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottom: '4 solid #E8C042'
   },
   headerLeft: { flexDirection: 'column' },
   eventTitle: {
     color: palette.white,
-    fontSize: 22,
+    fontSize: 28,
     fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1,
+    letterSpacing: -0.5,
   },
   eventSubtitle: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 10,
-    marginTop: 4,
-    letterSpacing: 0.5,
+    color: palette.gold,
+    fontSize: 12,
+    marginTop: 6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   logoText: {
     color: palette.gold,
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'right',
     letterSpacing: 1,
   },
+  logoImage: {
+    height: 70, // Fatto più grande
+    objectFit: 'contain',
+  },
   body: {
-    padding: '30 40',
+    padding: '25 40',
     flexDirection: 'column',
-    gap: 20,
+    gap: 15,
   },
   ticketCard: {
     backgroundColor: palette.white,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 8, // Margini ridotti per farne stare di più
     border: `1 solid #e5ddd4`,
   },
   ticketStripe: {
-    width: 8,
+    width: 6,
     backgroundColor: palette.primary,
   },
   ticketContent: {
     flex: 1,
-    padding: '20 24',
+    padding: '12 16',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   ticketLeft: { flexDirection: 'column', flex: 1 },
   ticketLabel: {
-    fontSize: 9,
+    fontSize: 8,
     color: palette.muted,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 1,
     marginBottom: 4,
   },
   ticketType: {
-    fontSize: 18,
+    fontSize: 16,
     color: palette.dark,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   ticketMeta: {
-    fontSize: 10,
+    fontSize: 9,
     color: palette.muted,
     marginBottom: 2,
   },
   ticketPrice: {
-    fontSize: 20,
+    fontSize: 14,
     color: palette.primary,
     fontFamily: 'Helvetica-Bold',
+    marginTop: 4,
   },
   qrContainer: {
     alignItems: 'center',
-    padding: '10 16 10 24',
-    borderLeft: `1 dashed #ccc`,
+    padding: '5 10',
+    borderLeft: `1 dashed #e5ddd4`,
     flexDirection: 'column',
     justifyContent: 'center',
+    marginLeft: 10,
   },
   qrImage: {
-    width: 80,
-    height: 80,
+    width: 65,
+    height: 65,
   },
   qrId: {
-    fontSize: 7,
+    fontSize: 6,
     color: palette.muted,
-    marginTop: 6,
+    marginTop: 4,
     textAlign: 'center',
-    letterSpacing: 0.5,
   },
   buyerSection: {
     backgroundColor: palette.white,
     borderRadius: 8,
-    padding: '16 20',
+    padding: '12 16',
     border: `1 solid #e5ddd4`,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   buyerTitle: {
-    fontSize: 9,
+    fontSize: 8,
     color: palette.muted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   buyerRow: {
     flexDirection: 'row',
-    gap: 40,
+    gap: 30,
   },
   buyerField: { flexDirection: 'column' },
   buyerFieldLabel: {
     fontSize: 8,
     color: palette.muted,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   buyerFieldValue: {
     fontSize: 11,
@@ -148,17 +155,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
   },
   infoBox: {
-    backgroundColor: '#fef9f0',
+    backgroundColor: '#fff4e5',
     borderRadius: 8,
-    padding: '14 20',
-    border: `1 solid #e8d9b8`,
+    padding: '12 16',
+    border: `1 solid #ffd8a8`,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
+    marginTop: 10,
   },
   infoText: {
-    fontSize: 8,
-    color: '#7a6040',
+    fontSize: 9,
+    color: '#92400e',
     lineHeight: 1.5,
     flex: 1,
   },
@@ -168,7 +176,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 'auto',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   footerText: {
     color: 'rgba(255,255,255,0.5)',
@@ -181,52 +192,27 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   orderId: {
-    fontSize: 8,
+    fontSize: 9,
     color: palette.muted,
-    marginBottom: 16,
+    marginBottom: 10,
     letterSpacing: 0.5,
   },
   cutLineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 5,
+    marginBottom: 5,
   },
   cutLine: {
     flex: 1,
     borderBottom: '1 dashed #ccc',
   },
   cutText: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#ccc',
     textTransform: 'uppercase',
     letterSpacing: 1,
-  },
-  menuBox: {
-    backgroundColor: palette.white,
-    borderRadius: 12,
-    padding: '20',
-    border: `1 solid #e5ddd4`,
-    marginBottom: 16,
-    minHeight: 120,
-  },
-  menuTitle: {
-    fontSize: 12,
-    color: palette.dark,
-    fontFamily: 'Helvetica-Bold',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  menuContent: {
-    fontSize: 9,
-    color: palette.muted,
-    lineHeight: 1.6,
-  },
-  logoImage: {
-    height: 40,
-    objectFit: 'contain',
   }
 });
 
@@ -275,7 +261,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
           </View>
           <View>
             {proLocoLogoBase64 ? (
-              <Image src={proLocoLogoBase64} style={{ height: 45, objectFit: 'contain' }} />
+              <Image src={proLocoLogoBase64} style={{ height: 60, objectFit: 'contain' }} />
             ) : (
               <Text style={styles.logoText}>PRO LOCO{'\n'}GASPERINA</Text>
             )}
@@ -287,7 +273,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
 
           {/* Order reference */}
           <Text style={styles.orderId}>
-            Riferimento ordine: #{orderRef} · Acquistato il {paidDate}
+            Ricevuta Prenotazione: #{orderRef} · Emessa il {paidDate}
           </Text>
 
           {/* Buyer info */}
@@ -322,9 +308,9 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                 <View style={styles.ticketStripe} />
                 <View style={styles.ticketContent}>
                   <View style={styles.ticketLeft}>
-                    <Text style={styles.ticketLabel}>Biglietto {index + 1} di {order.tickets.length}</Text>
+                    <Text style={styles.ticketLabel}>Ricevuta {index + 1} di {order.tickets.length}</Text>
                     <Text style={styles.ticketType}>{ticket.type}</Text>
-                    <Text style={{ fontSize: 9, color: palette.primary, marginBottom: 8, fontFamily: 'Helvetica-Bold' }}>Data: 10 Agosto 2026 - Inizio percorso ore 19:00</Text>
+                    <Text style={{ fontSize: 9, color: palette.primary, marginBottom: 6, fontFamily: 'Helvetica-Bold' }}>Data: 10 Agosto 2026 - Ritiro dalle ore 19:00</Text>
                     <Text style={styles.ticketMeta}>ID: {ticket.id.substring(0, 16).toUpperCase()}</Text>
                     <Text style={styles.ticketPrice}>€{ticket.price.toFixed(2)}</Text>
                   </View>
@@ -332,27 +318,19 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                     {qrDataUris[ticket.id] && (
                       <Image src={qrDataUris[ticket.id]} style={styles.qrImage} />
                     )}
-                    <Text style={styles.qrId}>Scansiona all&apos;ingresso</Text>
+                    <Text style={styles.qrId}>Scansiona in cassa</Text>
                   </View>
                 </View>
               </View>
             </View>
           ))}
 
-          <View style={styles.menuBox} wrap={false}>
-            <Text style={styles.menuTitle}>Menù / Timbri Tappe</Text>
-            <Text style={styles.menuContent}>
-              Usa questo spazio per prendere nota dei piatti assaggiati, dei tuoi vini preferiti o per raccogliere i timbri delle varie tappe del percorso enogastronomico.
-            </Text>
-          </View>
-
           {/* Info box */}
           <View style={styles.infoBox} wrap={false}>
             <Text style={styles.infoText}>
-              ⚠ Questo biglietto è personale e non cedibile. Presentare il QR code all&apos;ingresso per la verifica.
-              Il biglietto è valido solo se integro e leggibile. L'acquirente dichiara di non avere intolleranze alimentari 
-              e si assume ogni responsabilità legata alla consumazione dei prodotti offerti lungo il percorso. 
-              In caso di maltempo l'evento potrà subire variazioni; nessun rimborso è previsto per mancata partecipazione.
+              ⚠ ATTENZIONE: Questo documento non è il biglietto finale. 
+              Presentalo al botteghino il giorno dell'evento (mostrando il QR code dal telefono o stampato) 
+              per ritirare i tuoi biglietti fisici e il tuo calice. La ricevuta è strettamente personale e non cedibile.
             </Text>
           </View>
         </View>

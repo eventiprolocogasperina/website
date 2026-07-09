@@ -37,14 +37,24 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
 
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
   const ticketCount = order.tickets.length;
+  
+  // Raggruppa i biglietti per tipo
+  const ticketTypesCount = order.tickets.reduce((acc, t) => {
+    acc[t.type] = (acc[t.type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const ticketsListHtml = Object.entries(ticketTypesCount)
+    .map(([type, count]) => `<li><b>${count}x</b> ${type}</li>`)
+    .join('');
 
   // 3. Send email via Resend
   const { error } = await resend.emails.send({
     from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
     to: order.buyerEmail,
     replyTo: 'info@prolocogasperina.it',
-    subject: `🎟 I tuoi biglietti per Assaggia & Passeggia - Ord. #${orderRef}`,
-    html: buildEmailHtml(order, orderRef, ticketCount),
+    subject: `🎟 Ricevuta di prenotazione - Assaggia & Passeggia - Ord. #${orderRef}`,
+    html: buildEmailHtml(order, orderRef, ticketCount, ticketsListHtml),
     attachments: [
       {
         filename: `biglietti-assaggia-passeggia-${orderRef}.pdf`,
@@ -66,7 +76,7 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   console.log(`✅ Ticket email sent to ${order.buyerEmail} for order ${orderRef}`);
 }
 
-function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number): string {
+function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number, ticketsListHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -80,29 +90,23 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
 
-          <!-- Hero Image Placeholder -->
-          <tr>
-            <td style="background:#f2e2bf;text-align:center;vertical-align:middle;position:relative;">
-              <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/img/LOGO_ap_ga.png" width="600" alt="Assaggia e Passeggia" style="display:block;width:100%;max-width:600px;height:auto;object-fit:cover;" />
-            </td>
-          </tr>
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);border:1px solid #e8d9b8;">
 
           <!-- Header -->
           <tr>
-            <td style="background:#283983;padding:30px 40px;text-align:center;">
-              <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/img/logo_white_fg.png" width="100" alt="Pro Loco Gasperina" style="display:block;margin:0 auto 15px auto;" />
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;letter-spacing:-0.5px;">Assaggia &amp; Passeggia</h1>
-              <div style="color:#E8C042;font-size:14px;margin-top:8px;font-weight:600;">Gasperina, Calabria</div>
+            <td style="background:#283983;padding:40px 40px;text-align:center;">
+              <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/img/logo_white_fg.png" width="120" alt="Pro Loco Gasperina" style="display:block;margin:0 auto 20px auto;" />
+              <h1 style="color:#ffffff;margin:0;font-size:32px;font-weight:700;letter-spacing:-0.5px;">Assaggia &amp; Passeggia</h1>
+              <div style="color:#E8C042;font-size:16px;margin-top:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Gasperina, Calabria</div>
             </td>
           </tr>
 
           <!-- Body -->
           <tr>
             <td style="background:#ffffff;padding:40px;">
-              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Ciao ${order.buyerName}! 🎉</p>
+              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Ciao ${order.buyerName}!</p>
               <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
-                Il tuo pagamento è andato a buon fine. Trovi in allegato il PDF con 
-                <strong>${ticketCount} ${ticketCount === 1 ? 'biglietto' : 'biglietti'}</strong> per Assaggia &amp; Passeggia, e un PDF aggiuntivo con il <strong>Menù della serata</strong>.
+                La tua prenotazione è andata a buon fine. Trovi in allegato il PDF della tua <strong>ricevuta di prenotazione</strong>, valido per ritirare i tuoi biglietti fisici. Troverai anche un PDF aggiuntivo con il <strong>Menù della serata</strong>.
               </p>
 
               <!-- Order Summary -->
@@ -114,8 +118,12 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
                     <td style="text-align:right;font-size:13px;color:#1a1a1a;font-weight:600;padding-bottom:8px;">#${orderRef}</td>
                   </tr>
                   <tr>
-                    <td style="font-size:13px;color:#555;padding-bottom:8px;">Biglietti</td>
-                    <td style="text-align:right;font-size:13px;color:#1a1a1a;font-weight:600;padding-bottom:8px;">${ticketCount}</td>
+                    <td style="font-size:13px;color:#555;padding-bottom:12px;vertical-align:top;">Dettaglio</td>
+                    <td style="text-align:right;font-size:13px;color:#1a1a1a;font-weight:500;padding-bottom:12px;">
+                      <ul style="margin:0;padding:0;list-style:none;">
+                        ${ticketsListHtml}
+                      </ul>
+                    </td>
                   </tr>
                   <tr>
                     <td style="border-top:1px dashed #ccc;padding-top:12px;font-size:14px;color:#1a1a1a;font-weight:700;">Totale pagato</td>
@@ -125,13 +133,17 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
               </div>
 
               <!-- Instructions -->
-              <div style="background:#fef9f0;border-radius:12px;padding:20px 24px;border:1px solid #e8d9b8;margin-bottom:28px;">
-                <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#7a6040;">📋 Come usare il tuo biglietto</p>
-                <ul style="margin:0;padding-left:20px;font-size:13px;color:#7a6040;line-height:2;">
-                  <li>Apri il PDF allegato a questa email</li>
-                  <li>Presenta il <strong>QR code</strong> all'ingresso per la verifica</li>
-                  <li>Puoi mostrarlo dal telefono o stamparlo</li>
-                  <li>Il biglietto è personale e non cedibile</li>
+              <div style="background:#fff4e5;border-radius:12px;padding:20px 24px;border:1px solid #ffd8a8;margin-bottom:28px;">
+                <p style="margin:0 0 10px;font-size:15px;font-weight:700;color:#d97706;">⚠️ Informazione Importante</p>
+                <p style="margin:0 0 12px;font-size:14px;color:#92400e;line-height:1.5;">
+                  Il documento in allegato <strong>vale come ricevuta di prenotazione</strong>. 
+                  Dovrai obbligatoriamente presentarlo al botteghino il giorno dell'evento per <strong>ritirare il tuo biglietto e calice fisici</strong>.
+                </p>
+                <ul style="margin:0;padding-left:20px;font-size:13px;color:#92400e;line-height:1.8;">
+                  <li>Apri il PDF allegato a questa email e tienilo a portata di mano</li>
+                  <li>Presenta il <strong>QR code</strong> alla cassa dedicata alle prenotazioni online</li>
+                  <li>Puoi mostrarlo comodamente dal telefono senza stamparlo</li>
+                  <li>La ricevuta è personale e non cedibile</li>
                 </ul>
               </div>
               
