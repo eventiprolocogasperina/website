@@ -140,12 +140,12 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: b
 
   if (ticket.isCheckedIn) {
     const stats = await getTicketingStats('assaggia-e-passeggia-2024');
-    return { success: false, message: `Biglietto già utilizzato il ${new Date(ticket.checkInTime!).toLocaleString('it-IT')}.`, ticket, order, orderTickets, stats };
+    return { success: false, message: `Biglietto già utilizzato il ${new Date(ticket.checkInTime!).toLocaleString('it-IT')}.`, ticket, order, orderTickets: orderTickets as Ticket[], stats };
   }
 
   await sql`UPDATE tickets SET "isCheckedIn" = true, "checkInTime" = CURRENT_TIMESTAMP WHERE id = ${ticket.id}`;
   const stats = await getTicketingStats('assaggia-e-passeggia-2024');
-  return { success: true, message: 'Biglietto verificato con successo!', ticket: { ...ticket, isCheckedIn: true }, order, orderTickets, stats };
+  return { success: true, message: 'Biglietto verificato con successo!', ticket: { ...ticket, isCheckedIn: true }, order, orderTickets: orderTickets as Ticket[], stats };
 }
 
 export async function getTicketingStats(eventId: string) {
