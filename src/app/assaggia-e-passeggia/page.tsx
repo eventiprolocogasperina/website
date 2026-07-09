@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Wine, MapPin, Music, Utensils, ArrowRight, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Ticket as TicketIcon, Wine, ChefHat, MapPin, Map, CalendarDays, Clock, Info, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import FormattedText from '@/components/ui/FormattedText';
 import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';
 
 export const metadata: Metadata = {
@@ -103,13 +104,9 @@ export default async function AssaggiaPasseggiaPage() {
       <section style={{ padding: '6rem 2rem', background: '#ffffff' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', gap: '4rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 400px' }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', color: '#283983', marginBottom: '1.5rem' }}>{data.story.title}</h2>
-            <p style={{ color: '#555', fontSize: '1.1rem', lineHeight: 1.8, marginBottom: '1.5rem', whiteSpace: 'pre-wrap' }}>
-              {data.story.paragraph1}
-            </p>
-            <p style={{ color: '#555', fontSize: '1.1rem', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-              {data.story.paragraph2}
-            </p>
+            <FormattedText as="h2" style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', color: '#283983', marginBottom: '1.5rem' }} text={data.story.title} />
+            <FormattedText as="p" style={{ color: '#555', fontSize: '1.1rem', lineHeight: 1.8, marginBottom: '1.5rem', whiteSpace: 'pre-wrap' }} text={data.story.paragraph1} />
+            <FormattedText as="p" style={{ color: '#555', fontSize: '1.1rem', lineHeight: 1.8, whiteSpace: 'pre-wrap' }} text={data.story.paragraph2} />
           </div>
           <div style={{ flex: '1 1 400px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div style={{ background: '#F9F3E4', height: '240px', borderRadius: '1rem', border: '1px solid #E8C042', overflow: 'hidden', position: 'relative' }}>
@@ -126,8 +123,8 @@ export default async function AssaggiaPasseggiaPage() {
       <section style={{ padding: '6rem 2rem', background: '#F9F3E4' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <span style={{ color: '#E8C042', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }}>{data.menu.subtitle}</span>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', color: '#283983', marginTop: '0.5rem' }}>{data.menu.title}</h2>
+            <FormattedText as="span" style={{ color: '#E8C042', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }} text={data.menu.subtitle} />
+            <FormattedText as="h2" style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', color: '#283983', marginTop: '0.5rem' }} text={data.menu.title} />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -145,10 +142,11 @@ export default async function AssaggiaPasseggiaPage() {
                   {item.id}
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.5rem', color: '#283983', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>{item.title}</h3>
-                  <p 
+                  <FormattedText as="h3" style={{ fontSize: '1.5rem', color: '#283983', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }} text={item.title} />
+                  <FormattedText 
+                    as="p"
                     style={{ color: '#555', marginBottom: '1rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }} 
-                    dangerouslySetInnerHTML={{ __html: item.description ? item.description.replace(/\*(.*?)\*/g, '<i>$1</i>') : '' }} 
+                    text={item.description}
                   />
                   {item.allergens && (
                     <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -173,14 +171,14 @@ export default async function AssaggiaPasseggiaPage() {
               <Info color="#E8C042" /> Informazioni Utili
             </h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#555', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <li style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}><CheckCircle2 size={20} color="#283983" style={{ flexShrink: 0, marginTop: '2px' }} /> <strong>Ritiro Kit:</strong> {data.logistics.ticketInfo}</li>
-              <li style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}><CheckCircle2 size={20} color="#283983" style={{ flexShrink: 0, marginTop: '2px' }} /> <strong>Parcheggi:</strong> {data.logistics.parkingInfo}</li>
-              <li style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}><CheckCircle2 size={20} color="#283983" style={{ flexShrink: 0, marginTop: '2px' }} /> <strong>Intolleranze:</strong> {data.logistics.disclaimer}</li>
+              <li style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}><CheckCircle2 size={20} color="#283983" style={{ flexShrink: 0, marginTop: '2px' }} /> <FormattedText text={`**Ritiro Kit:** ${data.logistics.ticketInfo}`} /></li>
+              <li style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}><CheckCircle2 size={20} color="#283983" style={{ flexShrink: 0, marginTop: '2px' }} /> <FormattedText text={`**Parcheggi:** ${data.logistics.parkingInfo}`} /></li>
+              <li style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}><CheckCircle2 size={20} color="#283983" style={{ flexShrink: 0, marginTop: '2px' }} /> <FormattedText text={`**Intolleranze:** ${data.logistics.disclaimer}`} /></li>
             </ul>
           </div>
           <div style={{ background: '#283983', padding: '2.5rem', borderRadius: '1rem', color: 'white', textAlign: 'center' }}>
-             <h3 style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', marginBottom: '1rem' }}>{data.presale.title}</h3>
-             <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '2rem', whiteSpace: 'pre-wrap' }}>{data.presale.subtitle}</p>
+             <FormattedText as="h3" style={{ fontSize: '1.8rem', fontFamily: 'var(--font-display)', marginBottom: '1rem' }} text={data.presale.title} />
+             <FormattedText as="p" style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '2rem', whiteSpace: 'pre-wrap' }} text={data.presale.subtitle} />
              <div style={{ fontSize: '3.5rem', fontWeight: 700, fontFamily: 'var(--font-display)', color: '#E8C042', marginBottom: '2rem' }}>
                {data.presale.priceInfo} <span style={{ fontSize: '1rem', color: 'white', fontWeight: 400 }}>/ persona</span>
              </div>

@@ -3,6 +3,7 @@ import { getNewsBySlug } from '@/lib/data/news';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
+import FormattedText from '@/components/ui/FormattedText';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -73,9 +74,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
             )}
           </div>
 
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 500, color: 'var(--color-heading)', lineHeight: 1.2, marginBottom: '0' }}>
-            {news.title}
-          </h1>
+          <FormattedText as="h1" style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 500, color: 'var(--color-heading)', lineHeight: 1.2, marginBottom: '0' }} text={news.title} />
         </div>
       </div>
 
@@ -89,7 +88,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
           {/* Content */}
           <div style={{ fontSize: '1.05rem', lineHeight: 1.8, color: 'var(--neutral-300)' }}>
             {news.content.split('\n').filter(Boolean).map((para, i) => (
-              <p key={i} style={{ marginBottom: '1.5rem' }}>{para.trim()}</p>
+              <FormattedText key={i} as="p" style={{ marginBottom: '1.5rem' }} text={para.trim()} />
             ))}
           </div>
 

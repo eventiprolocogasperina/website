@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
 import BookingForm from '@/components/events/BookingForm';
 import type { Event, EventLink } from '@/lib/data/events';
+import FormattedText from '@/components/ui/FormattedText';
 
 // ─── YouTube helpers ──────────────────────────────────────────────────────────
 function extractYoutubeId(url: string): string | null {
@@ -174,7 +175,7 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
               transition={{ delay: 0.2, duration: 0.6 }}
               style={{ fontWeight: 400, color: '#ffffff', marginBottom: '0.4rem', lineHeight: 1.15 }}
             >
-              {event.title}
+              <FormattedText text={event.title} />
             </motion.h1>
           )}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
@@ -237,7 +238,7 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
               {/* Description */}
               <h2 style={{ fontSize: '1.5rem', fontWeight: 500, marginBottom: '1rem' }}>Descrizione</h2>
               {event.fullDescription.split('\n').filter(Boolean).map((para, i) => (
-                <p key={i} style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.9rem', fontSize: '0.95rem' }}>{para.trim()}</p>
+                <FormattedText key={i} as="p" style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.9rem', fontSize: '0.95rem' }} text={para.trim()} />
               ))}
 
               {/* ── PDF Attachments ── */}
@@ -438,10 +439,12 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                   transition={{ delay: i * 0.1 }}
                   style={{ marginTop: '2.5rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)' }}
                 >
-                  {sec.title && <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '1.25rem' }}>{sec.title}</h3>}
+                  {sec.title && (
+                    <FormattedText as="h3" style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '1.25rem' }} text={sec.title} />
+                  )}
                   {sec.type === 'text' && sec.content && (
                     sec.content.split('\n').filter(Boolean).map((line, j) => (
-                      <p key={j} style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.8rem', fontSize: '0.95rem' }}>{line.trim()}</p>
+                      <FormattedText key={j} as="p" style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.8rem', fontSize: '0.95rem' }} text={line.trim()} />
                     ))
                   )}
                   {sec.type === 'image' && sec.src && (

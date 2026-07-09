@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, Clock, Users } from 'lucide-react';
 import { getAllEvents, isEventPast, type Event } from '@/lib/data/events';
+import FormattedText from '@/components/ui/FormattedText';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -85,8 +86,10 @@ export default async function EventiPage() {
             )}
           </div>
           <div style={{ padding: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '0.6rem' }}>{event.title}</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', lineHeight: 1.6, marginBottom: '0.9rem' }}>{event.description}</p>
+            <FormattedText as="h3" style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '0.6rem' }} text={event.title} />
+            <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', lineHeight: 1.6, marginBottom: '0.9rem' }}>
+              {event.description.replace(/\*\*?/g, '')}
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {([
                 { icon: Calendar, text: displayFull || event.dateLabel || '' },

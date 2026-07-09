@@ -2,6 +2,7 @@ import { getAllNews } from '@/lib/data/news';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Calendar } from 'lucide-react';
+import FormattedText from '@/components/ui/FormattedText';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -61,11 +62,9 @@ export default async function NotiziePage() {
                         <Calendar size={14} />
                         {new Date(n.publishedAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </div>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '1rem', lineHeight: 1.4 }}>
-                        {n.title}
-                      </h3>
+                      <FormattedText as="h3" style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '1rem', lineHeight: 1.4 }} text={n.title} />
                       <p style={{ fontSize: '0.9rem', color: 'var(--neutral-400)', lineHeight: 1.6, marginBottom: '1.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {n.content.substring(0, 150)}...
+                        {n.content.replace(/\*\*?/g, '').substring(0, 150)}...
                       </p>
                       
                       <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--gold-400)', fontSize: '0.85rem', fontWeight: 500 }}>

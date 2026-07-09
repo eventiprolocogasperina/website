@@ -232,7 +232,7 @@ export default function AssaggiaAdminPage() {
                     }}/>
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Descrizione Piatto (Supporta più righe. Usa *asterischi* per il corsivo)</label>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Descrizione Piatto (Usa **grassetto** e *corsivo*)</label>
                     <textarea className="input" rows={3} value={tappa.description} onChange={e => {
                       const nt = [...data.tappe]; nt[idx].description = e.target.value; setData({...data, tappe: nt});
                     }}/>
