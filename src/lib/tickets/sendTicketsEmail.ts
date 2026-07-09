@@ -2,21 +2,15 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { Resend } from 'resend';
 import type { OrderWithTickets } from '@/lib/data/tickets';
 import { TicketPdfDocument, generateQrDataUri } from './TicketPdfDocument';
+import { MenuPdfDocument } from './MenuPdfDocument';
+import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';
 import { createElement } from 'react';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 import { Document, Page, Text, View } from '@react-pdf/renderer';
 
-const BlankMenuDocument = () => {
-  return createElement(Document, null,
-    createElement(Page, { size: "A4" },
-      createElement(View, { style: { flex: 1, justifyContent: 'center', alignItems: 'center' } },
-        createElement(Text, null, "Menu in arrivo...")
-      )
-    )
-  );
-};
+
 
 export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   // 1. Generate QR code data URIs for each ticket
@@ -30,9 +24,12 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
     createElement(TicketPdfDocument, { order, qrDataUris }) as any
   );
   
-  // Render blank menu PDF
+  // Fetch Assaggia content for the menu
+  const content = await getPageContent<AssaggiaEPasseggiaContent>('assaggia', DEFAULT_ASSAGGIA_CONTENT);
+
+  // Render menu PDF
   const menuPdfBuffer = await renderToBuffer(
-    createElement(BlankMenuDocument) as any
+    createElement(MenuPdfDocument, { tappe: content.tappe || [] }) as any
   );
 
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
