@@ -5,7 +5,7 @@ import { Plus, Minus, CreditCard, Loader2 } from 'lucide-react';
 
 // Hardcoded for now. In a real app, this might come from the database or event config.
 const TICKET_TYPES = [
-  { id: 'full', name: 'Ticket Intero', price: 15, desc: 'Include:\n- il percorso degustazione di piatti della tradizione\n- Vino (1 bicchiere) o Acqua (0,5 L)' },
+  { id: 'full', name: 'Ticket Intero', price: 17, desc: 'Include:\n- il percorso degustazione di piatti della tradizione\n- Vino (1 bicchiere) o Acqua (0,5 L)' },
   { id: 'extra', name: 'Extra wine', price: 5, desc: 'Vino illimitato!' },
 ];
 

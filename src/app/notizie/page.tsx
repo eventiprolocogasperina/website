@@ -19,7 +19,7 @@ export default async function NotiziePage() {
       <div className="section" style={{ paddingBottom: '2rem' }}>
         <div className="section-inner">
           <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 3rem' }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', fontWeight: 500, color: 'var(--white)', marginBottom: '1rem', lineHeight: 1.1 }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '1rem', lineHeight: 1.1 }}>
               Notizie & Avvisi
             </h1>
             <p style={{ fontSize: '1.1rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>
@@ -61,7 +61,7 @@ export default async function NotiziePage() {
                         <Calendar size={14} />
                         {new Date(n.publishedAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </div>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--white)', marginBottom: '1rem', lineHeight: 1.4 }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 500, color: 'var(--color-heading)', marginBottom: '1rem', lineHeight: 1.4 }}>
                         {n.title}
                       </h3>
                       <p style={{ fontSize: '0.9rem', color: 'var(--neutral-400)', lineHeight: 1.6, marginBottom: '1.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>

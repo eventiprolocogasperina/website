@@ -80,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-500)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
               Area riservata
             </div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 400, color: 'var(--white)', marginBottom: '0.35rem' }}>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 400, color: 'var(--color-heading)', marginBottom: '0.35rem' }}>
               Admin Panel
             </h1>
             <p style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
@@ -110,7 +110,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     background: 'var(--neutral-800)',
                     border: `1px solid ${error ? 'rgba(239,68,68,0.6)' : 'var(--neutral-600)'}`,
                     borderRadius: 'var(--radius-md)',
-                    color: 'var(--white)',
+                    color: 'var(--color-text)',
                     fontSize: '0.9rem',
                     fontFamily: 'var(--font-body)',
                     outline: 'none',

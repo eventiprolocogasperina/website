@@ -87,7 +87,7 @@ export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
   presale: {
     title: 'Prevendita Aperta',
     subtitle: 'Acquista ora il tuo ticket in prevendita. I posti sono limitati per garantire la migliore esperienza.',
-    priceInfo: '15€',
+    priceInfo: '17€',
     ctaText: "Procedi all'Acquisto",
     ctaLink: '/assaggia-e-passeggia/ticket',
   }

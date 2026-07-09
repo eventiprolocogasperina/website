@@ -73,7 +73,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
             )}
           </div>
 
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 500, color: 'var(--white)', lineHeight: 1.2, marginBottom: '0' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 500, color: 'var(--color-heading)', lineHeight: 1.2, marginBottom: '0' }}>
             {news.title}
           </h1>
         </div>
