@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Save, Plus, Trash2, GripVertical, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type { AssaggiaEPasseggiaContent } from '@/lib/data/pages';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function AssaggiaAdminPage() {
   const [data, setData] = useState<AssaggiaEPasseggiaContent | null>(null);
@@ -76,10 +77,11 @@ export default function AssaggiaAdminPage() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link href="/admin" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text)', textDecoration: 'none', fontSize: '0.9rem', opacity: 0.8 }}>
           <ArrowLeft size={16} /> Torna alla Dashboard
         </Link>
+        <ThemeToggle />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
@@ -230,7 +232,7 @@ export default function AssaggiaAdminPage() {
                     }}/>
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Descrizione Piatto (Supporta più righe)</label>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Descrizione Piatto (Supporta più righe. Usa *asterischi* per il corsivo)</label>
                     <textarea className="input" rows={3} value={tappa.description} onChange={e => {
                       const nt = [...data.tappe]; nt[idx].description = e.target.value; setData({...data, tappe: nt});
                     }}/>

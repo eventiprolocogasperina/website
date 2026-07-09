@@ -146,7 +146,10 @@ export default async function AssaggiaPasseggiaPage() {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1.5rem', color: '#283983', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>{item.title}</h3>
-                  <p style={{ color: '#555', marginBottom: '1rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{item.description}</p>
+                  <p 
+                    style={{ color: '#555', marginBottom: '1rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }} 
+                    dangerouslySetInnerHTML={{ __html: item.description ? item.description.replace(/\*(.*?)\*/g, '<i>$1</i>') : '' }} 
+                  />
                   {item.allergens && (
                     <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <AlertCircle size={14} /> <strong>Allergeni:</strong> {item.allergens}

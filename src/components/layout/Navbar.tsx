@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -21,20 +23,9 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dark, setDark] = useState(true);
+  const { theme, toggleTheme } = useTheme();
+  const dark = theme === 'dark';
   const pathname = usePathname();
-
-  // Dark mode is now the default (:root CSS). Only apply light if user explicitly chose it.
-  useEffect(() => {
-    const stored = localStorage.getItem('theme');
-    if (stored === 'light') {
-      setDark(false);
-      document.documentElement.setAttribute('data-theme', 'light');
-    } else {
-      setDark(true);
-      document.documentElement.removeAttribute('data-theme');
-    }
-  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -44,29 +35,17 @@ export default function Navbar() {
 
   if (pathname?.startsWith('/admin') || pathname?.startsWith('/assaggia-e-passeggia')) return null;
 
-  const toggleTheme = () => {
-    const next = !dark;
-    setDark(next);
-    if (next) {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-
   // Not scrolled: subtle dark gradient → white text always readable (Netflix/Airbnb pattern).
   // Scrolled: solid colored bg → theme text.
   const navTextColor = !scrolled
     ? 'rgba(255,255,255,0.92)'
-    : dark ? 'rgba(255,255,255,0.85)' : 'rgba(20,15,10,0.88)';
+    : 'var(--color-heading)';
 
   const navBg = scrolled
-    ? dark ? 'rgba(10,12,18,0.94)' : 'rgba(247,244,238,0.96)'
+    ? 'var(--color-surface)'
     : 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.0) 100%)';
 
-  const navBrand = !scrolled ? '#ffffff' : dark ? '#ffffff' : '#1a1410';
+  const navBrand = !scrolled ? '#ffffff' : 'var(--color-heading)';
 
   return (
     <>
@@ -82,7 +61,7 @@ export default function Navbar() {
           backdropFilter: scrolled ? 'blur(20px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
           borderBottom: scrolled
-            ? dark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.08)'
+            ? '1px solid var(--color-border)'
             : '1px solid transparent',
           padding: scrolled ? '0.6rem 2rem' : '1.2rem 2rem',
         }}
@@ -125,8 +104,8 @@ export default function Navbar() {
             <button
               onClick={toggleTheme}
               id="theme-toggle"
-              aria-label={dark ? 'Passa alla modalità chiara' : 'Passa alla modalità scura'}
-              title={dark ? 'Modalità chiara' : 'Modalità scura'}
+              aria-label={theme === 'dark' ? 'Passa alla modalità chiara' : 'Passa alla modalità scura'}
+              title={theme === 'dark' ? 'Modalità chiara' : 'Modalità scura'}
               style={{
                 width: 36,
                 height: 36,
@@ -134,15 +113,15 @@ export default function Navbar() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 'var(--radius-full)',
-                border: dark ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.12)',
-                background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+                border: theme === 'dark' ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.12)',
+                background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
                 cursor: 'pointer',
-                color: dark ? 'var(--gold-400)' : 'var(--blue-700)',
+                color: theme === 'dark' ? 'var(--gold-400)' : 'var(--blue-700)',
                 transition: 'all 0.25s ease',
                 flexShrink: 0,
               }}
             >
-              {dark ? <Sun size={15} /> : <Moon size={15} />}
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
 
             <Link
@@ -154,6 +133,8 @@ export default function Navbar() {
               Iscriviti
             </Link>
 
+            <ThemeToggle className="ml-2 !bg-transparent !border-transparent scale-90" />
+            
             {/* Hamburger */}
             <button
               onClick={() => setMenuOpen(m => !m)}

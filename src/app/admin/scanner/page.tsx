@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { QrCode, CheckCircle2, XCircle, AlertTriangle, User, Ticket, Clock } from 'lucide-react';
 import type { Ticket as TicketType } from '@/lib/data/tickets';
 import Link from 'next/link';
+import ThemeToggle from '@/components/ThemeToggle';
 
 type ScanStatus = 'idle' | 'scanning' | 'success' | 'error' | 'already_used' | 'order_found';
 
@@ -137,7 +138,10 @@ export default function ScannerPage() {
           </div>
         )}
 
-        <Link href="/admin" style={{ fontSize: '0.85rem', color: 'var(--blue-500)', textDecoration: 'none' }}>Torna ad Admin</Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeToggle />
+          <Link href="/admin" style={{ fontSize: '0.85rem', color: 'var(--blue-500)', textDecoration: 'none' }}>Torna ad Admin</Link>
+        </div>
       </header>
 
       {/* Main Content */}

@@ -21,6 +21,8 @@ import NewsForm from '@/components/admin/NewsForm';
 import { FileText, ShoppingCart, Tag } from 'lucide-react';
 import OrderManager from '@/components/admin/OrderManager';
 import DiscountManager from '@/components/admin/DiscountManager';
+import { useTheme } from '@/components/ThemeProvider';
+import { Moon, Sun } from 'lucide-react';
 
 type AdminSection = 'dashboard' | 'eventi' | 'notizie' | 'prenotazioni' | 'soci' | 'media' | 'ordini' | 'sconti' | 'analytics';
 
@@ -54,6 +56,9 @@ export default function AdminPage() {
   const [editingMember, setEditingMember] = useState<Member | null | 'new'>(null);
   const [editingPhoto, setEditingPhoto] = useState<GalleryItem | null | 'new'>(null);
   const [editingNews, setEditingNews] = useState<NewsArticle | null | 'new'>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const fetchEvents = () => {
     fetch('/api/events')
@@ -278,13 +283,77 @@ export default function AdminPage() {
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>Pro Loco Gasperina APS · Area Amministrativa</p>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--neutral-400)' }}>
-              <Bell size={16} />
-            </button>
-            <button style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--neutral-400)' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', position: 'relative' }}>
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={() => { setShowNotifications(!showNotifications); setShowSettings(false); }}
+                style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: showNotifications ? 'var(--blue-400)' : 'var(--neutral-400)', transition: 'all 0.2s' }}>
+                <Bell size={16} />
+              </button>
+              <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, background: 'var(--red-500)', border: '2px solid var(--background)', borderRadius: '50%' }} />
+            </div>
+
+            {showNotifications && (
+              <div style={{ position: 'absolute', top: '100%', right: '3rem', marginTop: '0.5rem', width: '320px', background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', zIndex: 100, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                <h4 style={{ color: 'var(--color-heading)', fontSize: '0.95rem', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Notifiche</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--blue-400)', cursor: 'pointer' }}>Segna lette</span>
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div style={{ display: 'flex', gap: '0.85rem' }}>
+                    <div style={{ width: 8, height: 8, background: 'var(--blue-500)', borderRadius: '50%', marginTop: 6, flexShrink: 0 }} />
+                    <div>
+                      <p style={{ color: 'var(--neutral-200)', fontSize: '0.85rem', marginBottom: '0.2rem' }}>Sistema aggiornato 🚀</p>
+                      <p style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', lineHeight: 1.4 }}>La piattaforma A&P è pronta per l'edizione 2026. Configura i tuoi eventi.</p>
+                      <p style={{ color: 'var(--neutral-500)', fontSize: '0.65rem', marginTop: '0.4rem' }}>Poco fa</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.85rem' }}>
+                    <div style={{ width: 8, height: 8, background: 'var(--neutral-600)', borderRadius: '50%', marginTop: 6, flexShrink: 0 }} />
+                    <div>
+                      <p style={{ color: 'var(--neutral-200)', fontSize: '0.85rem', marginBottom: '0.2rem' }}>Nuova prenotazione #A782...</p>
+                      <p style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', lineHeight: 1.4 }}>Niccolò Vono ha appena acquistato 2 biglietti per A&P.</p>
+                      <p style={{ color: 'var(--neutral-500)', fontSize: '0.65rem', marginTop: '0.4rem' }}>1 ora fa</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button 
+              onClick={() => { setShowSettings(!showSettings); setShowNotifications(false); }}
+              style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: showSettings ? 'var(--blue-400)' : 'var(--neutral-400)', transition: 'all 0.2s' }}>
               <Settings size={16} />
             </button>
+
+            {showSettings && (
+              <div style={{ position: 'absolute', top: '100%', right: '1rem', marginTop: '0.5rem', width: '220px', background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)', borderRadius: 'var(--radius-lg)', padding: '0.5rem', zIndex: 100, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--neutral-800)', marginBottom: '0.5rem' }}>
+                  <p style={{ color: 'var(--color-heading)', fontSize: '0.85rem', fontWeight: 600 }}>Admin Pro Loco</p>
+                  <p style={{ color: 'var(--neutral-400)', fontSize: '0.75rem' }}>admin@prolocogasperina.it</p>
+                </div>
+                
+                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--neutral-300)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  👤 Profilo
+                </button>
+                <button 
+                  onClick={toggleTheme}
+                  style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--neutral-300)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />} 
+                  Tema: {theme === 'dark' ? 'Chiaro' : 'Scuro'}
+                </button>
+                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--neutral-300)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  ⚙️ Preferenze Evento
+                </button>
+                <div style={{ height: 1, background: 'var(--neutral-800)', margin: '0.5rem 0' }} />
+                <button 
+                  onClick={() => { sessionStorage.removeItem('admin_auth'); window.location.reload(); }}
+                  style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--red-400)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  Log out
+                </button>
+              </div>
+            )}
+
             <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-heading)' }}>
               A
             </div>
