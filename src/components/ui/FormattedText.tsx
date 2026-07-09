@@ -2,7 +2,7 @@ import React from 'react';
 
 interface FormattedTextProps {
   text: string;
-  as?: keyof JSX.IntrinsicElements;
+  as?: React.ElementType;
   className?: string;
   style?: React.CSSProperties;
 }
