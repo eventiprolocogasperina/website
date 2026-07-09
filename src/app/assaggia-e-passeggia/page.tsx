@@ -141,7 +141,7 @@ export default async function AssaggiaPasseggiaPage() {
                 }}>
                   {item.id}
                 </div>
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <FormattedText as="h3" style={{ fontSize: '1.5rem', color: '#283983', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }} text={item.title} />
                   <FormattedText 
                     as="p"
@@ -149,12 +149,14 @@ export default async function AssaggiaPasseggiaPage() {
                     text={item.description}
                   />
                   {item.allergens && (
-                    <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <AlertCircle size={14} /> <strong>Allergeni:</strong> {item.allergens}
+                    <div style={{ marginBottom: '1rem', fontSize: '0.85rem', color: '#d97706', display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
+                      <AlertCircle size={14} style={{ flexShrink: 0, marginTop: '2px' }} /> 
+                      <span><strong>Allergeni:</strong> {item.allergens}</span>
                     </div>
                   )}
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#F9F3E4', padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.9rem', color: '#7a6040' }}>
-                    <Wine size={16} /> <strong>In abbinamento:</strong> {item.wineName}
+                  <div style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.5rem', background: '#F9F3E4', padding: '0.75rem 1rem', borderRadius: '1rem', fontSize: '0.9rem', color: '#7a6040', maxWidth: '100%' }}>
+                    <Wine size={16} style={{ flexShrink: 0, marginTop: '2px' }} /> 
+                    <span style={{ wordBreak: 'break-word' }}><strong>In abbinamento:</strong> {item.wineName}</span>
                   </div>
                 </div>
               </div>
