@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import AdminSidebar from '@/components/admin/AdminSidebar';
 
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'gasperina2026';
 const SESSION_KEY = 'admin_auth';
@@ -22,8 +23,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    // Small delay for UX
     setTimeout(() => {
       if (password === ADMIN_PASSWORD) {
         sessionStorage.setItem(SESSION_KEY, 'true');
@@ -36,7 +35,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }, 400);
   };
 
-  // Loading state — check sessionStorage
   if (authenticated === null) return null;
 
   if (!authenticated) {
@@ -49,7 +47,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         background: 'var(--neutral-950)',
         padding: '1.5rem',
       }}>
-        {/* Background pattern */}
         <div style={{
           position: 'fixed', inset: 0,
           backgroundImage: 'radial-gradient(ellipse at 30% 20%, rgba(27,75,170,0.08) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(232,169,26,0.05) 0%, transparent 50%)',
@@ -66,7 +63,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           padding: '2.5rem 2rem',
           boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
         }}>
-          {/* Logo area */}
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
@@ -162,8 +158,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div style={{ paddingTop: 0 }}>
-      {children}
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--neutral-950)' }}>
+      <AdminSidebar />
+      <main style={{ marginLeft: '240px', flex: 1, padding: '2rem', minHeight: '100vh' }}>
+        {children}
+      </main>
     </div>
   );
 }

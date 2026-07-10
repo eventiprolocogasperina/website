@@ -22,7 +22,7 @@ export default function Hero() {
       id="hero"
       style={{
         position: 'relative',
-        minHeight: '100vh',
+        minHeight: '100svh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

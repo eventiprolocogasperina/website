@@ -151,6 +151,50 @@ export async function GET() {
     
     log.push('discounts table: ok');
 
+    // 9. Sponsors table
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS sponsors (
+          id            VARCHAR(255) PRIMARY KEY,
+          name          VARCHAR(255) NOT NULL,
+          logo_url      TEXT         NOT NULL,
+          website_url   TEXT,
+          tier          VARCHAR(50)  NOT NULL DEFAULT 'bronze',
+          active        BOOLEAN      DEFAULT TRUE,
+          sort_order    INTEGER      DEFAULT 0,
+          "createdAt"   TIMESTAMPTZ  DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      log.push('sponsors table: ok');
+    } catch (e: any) {
+      log.push('sponsors table note: ' + e.message);
+    }
+
+    // 10. Site settings table (key/value pairs)
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS site_settings (
+          key           VARCHAR(255) PRIMARY KEY,
+          value         TEXT         NOT NULL,
+          "updatedAt"   TIMESTAMPTZ  DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      // Seed default settings if empty
+      await sql`
+        INSERT INTO site_settings (key, value)
+        VALUES
+          ('ticket_sales_enabled', 'true'),
+          ('event_date', '2026-08-10'),
+          ('contact_email', 'prolocogasperina@gmail.com'),
+          ('social_instagram', 'https://www.instagram.com/prolocogasperina'),
+          ('social_facebook', 'https://www.facebook.com/prolocogasperina')
+        ON CONFLICT (key) DO NOTHING;
+      `;
+      log.push('site_settings table: ok');
+    } catch (e: any) {
+      log.push('site_settings table note: ' + e.message);
+    }
+
     return NextResponse.json({ ok: true, log });
   } catch (error: any) {
     console.error('/api/setup error:', error);

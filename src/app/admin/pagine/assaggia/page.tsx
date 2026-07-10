@@ -136,6 +136,11 @@ export default function AssaggiaAdminPage() {
               <input type="text" className="input" value={data.hero.bgImageUrl} onChange={e => setData({...data, hero: {...data.hero, bgImageUrl: e.target.value}})} />
             </div>
             <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text)' }}>URL Video Sfondo YouTube (Opzionale)</label>
+              <input type="text" className="input" placeholder="Es. https://www.youtube.com/watch?v=..." value={data.hero.heroVideoUrl || ''} onChange={e => setData({...data, hero: {...data.hero, heroVideoUrl: e.target.value}})} />
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginTop: '0.25rem' }}>Se inserito, sostituirà l'immagine di sfondo con un video in autoplay muto.</p>
+            </div>
+            <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text)' }}>URL Logo Evento (Opzionale)</label>
               <input type="text" className="input" value={data.hero.logoUrl} onChange={e => setData({...data, hero: {...data.hero, logoUrl: e.target.value}})} />
             </div>
@@ -203,6 +208,10 @@ export default function AssaggiaAdminPage() {
               <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Titolo Principale (es. Il Menù Degustazione)</label>
               <input type="text" className="input" value={data.menu.title} onChange={e => setData({...data, menu: {...data.menu, title: e.target.value}})} />
             </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>URL PDF Menu (es. /menu.pdf o https://...)</label>
+              <input type="text" className="input" placeholder="Lascia vuoto per non allegare il menu" value={data.menu.pdfUrl || ''} onChange={e => setData({...data, menu: {...data.menu, pdfUrl: e.target.value}})} />
+            </div>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -265,6 +274,26 @@ export default function AssaggiaAdminPage() {
                       <option value="var(--red-500)">Rosso / Vino</option>
                       <option value="var(--green-500)">Verde</option>
                     </select>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Curiosità (Opzionale)</label>
+                    <textarea className="input" rows={2} value={tappa.curiosities || ''} onChange={e => {
+                      const nt = [...data.tappe]; nt[idx].curiosities = e.target.value; setData({...data, tappe: nt});
+                    }}/>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Informazioni Extra (Opzionale)</label>
+                    <textarea className="input" rows={2} value={tappa.extraInfo || ''} onChange={e => {
+                      const nt = [...data.tappe]; nt[idx].extraInfo = e.target.value; setData({...data, tappe: nt});
+                    }}/>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>URL Foto (separate da virgola, Opzionale)</label>
+                    <input type="text" className="input" value={(tappa.photos || []).join(', ')} onChange={e => {
+                      const nt = [...data.tappe]; 
+                      nt[idx].photos = e.target.value.split(',').map(s => s.trim()).filter(s => s); 
+                      setData({...data, tappe: nt});
+                    }}/>
                   </div>
                 </div>
               </div>
@@ -336,6 +365,55 @@ export default function AssaggiaAdminPage() {
                 <input type="text" className="input" value={data.presale.ctaLink} onChange={e => setData({...data, presale: {...data.presale, ctaLink: e.target.value}})} />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* FAQs */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-heading)' }}>
+              Domande Frequenti (FAQ)
+            </h2>
+            <button onClick={() => {
+              const newFaqs = [...(data.faqs || []), { question: 'Nuova domanda', answer: '' }];
+              setData({ ...data, faqs: newFaqs });
+            }} className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+              <Plus size={16} /> Aggiungi FAQ
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {(data.faqs || []).map((faq, idx) => (
+              <div key={idx} style={{ padding: '1.25rem', background: 'var(--neutral-800)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-heading)' }}>
+                    <h3 style={{ fontWeight: 600 }}>FAQ {idx + 1}</h3>
+                  </div>
+                  <button onClick={() => {
+                    const newFaqs = [...(data.faqs || [])];
+                    newFaqs.splice(idx, 1);
+                    setData({ ...data, faqs: newFaqs });
+                  }} style={{ color: 'var(--red-500)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Domanda</label>
+                    <input type="text" className="input" value={faq.question} onChange={e => {
+                      const nf = [...(data.faqs || [])]; nf[idx].question = e.target.value; setData({...data, faqs: nf});
+                    }}/>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Risposta (puoi usare HTML/Markdown base)</label>
+                    <textarea className="input" rows={2} value={faq.answer} onChange={e => {
+                      const nf = [...(data.faqs || [])]; nf[idx].answer = e.target.value; setData({...data, faqs: nf});
+                    }}/>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

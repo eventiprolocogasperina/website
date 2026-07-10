@@ -8,6 +8,7 @@ import {
   ExternalLink, MapPin, Phone, Mail, AtSign, Share2,
   Ticket, AlertCircle, Eye, Image as ImageIcon,
 } from 'lucide-react';
+import ImageUpload from '@/components/admin/ImageUpload';
 
 // ─── Image compression ────────────────────────────────────────────────────────
 const compressImage = (file: File, type: string = 'image/jpeg'): Promise<string> => {
@@ -227,31 +228,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
     setFormData(prev => ({ ...prev, slug, id: prev.id || Date.now().toString() }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setError("L'immagine è troppo grande. Massimo 5MB."); return; }
-    try {
-      setLoading(true);
-      const base64 = await compressImage(file);
-      setFormData(prev => ({ ...prev, image: base64 }));
-      setError('');
-    } catch { setError("Errore durante il caricamento dell'immagine."); }
-    finally { setLoading(false); }
-  };
-
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { setError("Logo troppo grande. Massimo 2MB."); return; }
-    try {
-      setLoading(true);
-      const base64 = await compressImage(file, 'image/png');
-      setLogoSrc(base64);
-      setError('');
-    } catch { setError("Errore durante il caricamento del logo."); }
-    finally { setLoading(false); }
-  };
+  // Image and Logo uploads are now handled by ImageUpload component
 
   const carouselInputRef = useRef<HTMLInputElement>(null);
 
@@ -422,34 +399,14 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               </div>
 
               {/* Image upload */}
-              <div>
-                <label className="label">Immagine di Copertina *</label>
-                <div style={{
-                  border: '2px dashed var(--neutral-800)', borderRadius: 'var(--radius-lg)',
-                  padding: '1rem', display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', gap: '0.75rem', background: 'var(--neutral-950)',
-                  minHeight: '168px', justifyContent: 'center',
-                }}>
-                  {formData.image ? (
-                    <img
-                      src={formData.image}
-                      alt="Preview"
-                      style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-md)' }}
-                    />
-                  ) : (
-                    <UploadCloud size={36} style={{ color: 'var(--neutral-700)' }} />
-                  )}
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
-                    padding: '0.45rem 1rem', background: 'var(--neutral-800)',
-                    border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)',
-                    fontSize: '0.78rem', color: 'var(--neutral-200)', transition: 'all 0.2s',
-                  }}>
-                    <UploadCloud size={13} />
-                    {formData.image ? 'Cambia Immagine' : 'Carica Immagine'}
-                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-                  </label>
-                </div>
+              <div style={{ minWidth: '0' }}>
+                <ImageUpload
+                  label="Immagine di Copertina *"
+                  value={formData.image}
+                  onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                  folder="pro-loco-gasperina/eventi"
+                  previewHeight={140}
+                />
               </div>
             </div>
 
@@ -883,23 +840,14 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                     Nascondi "Ingresso Libero"
                   </label>
                 </div>
-                <div style={{ paddingLeft: '1rem', borderLeft: '1px solid var(--neutral-800)' }}>
-                  <label className="label" style={{ marginBottom: '0.4rem' }}>Logo Evento (PNG)</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    {logoSrc ? (
-                      <div style={{ position: 'relative', width: 60, height: 40, background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neutral-700)' }}>
-                        <img src={logoSrc} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        <button type="button" onClick={() => setLogoSrc('')} style={{ position: 'absolute', top: -8, right: -8, background: '#f87171', border: 'none', color: 'white', borderRadius: '50%', width: 20, height: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--neutral-800)', padding: '0.4rem 0.75rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--neutral-300)' }}>
-                        <UploadCloud size={14} /> Carica
-                        <input type="file" accept="image/png,image/svg+xml" onChange={handleLogoUpload} style={{ display: 'none' }} />
-                      </label>
-                    )}
-                  </div>
+                <div style={{ paddingLeft: '1rem', borderLeft: '1px solid var(--neutral-800)', minWidth: '150px' }}>
+                  <ImageUpload
+                    label="Logo Evento (PNG)"
+                    value={logoSrc}
+                    onChange={(url) => setLogoSrc(url)}
+                    folder="pro-loco-gasperina/eventi-loghi"
+                    previewHeight={40}
+                  />
                 </div>
               </div>
 

@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         console.error('Email send failed (non-fatal):', emailErr);
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
       return NextResponse.redirect(`${baseUrl}/assaggia-e-passeggia/success?order=${orderId}`);
     } catch (error) {
       console.error('Failed to process successful payment:', error);
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     }
   } else {
     // Payment failed or cancelled
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
     return NextResponse.redirect(`${baseUrl}/assaggia-e-passeggia/ticket?error=payment_failed`);
   }
 }

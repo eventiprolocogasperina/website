@@ -2,8 +2,9 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { Resend } from 'resend';
 import type { OrderWithTickets } from '@/lib/data/tickets';
 import { TicketPdfDocument, generateQrDataUri } from './TicketPdfDocument';
-import { MenuPdfDocument } from './MenuPdfDocument';
 import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';
+import fs from 'fs';
+import path from 'path';
 import { createElement } from 'react';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -25,12 +26,22 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   );
   
   // Fetch Assaggia content for the menu
-  const content = await getPageContent<AssaggiaEPasseggiaContent>('assaggia', DEFAULT_ASSAGGIA_CONTENT);
+  const content = await getPageContent<AssaggiaEPasseggiaContent>('assaggia-e-passeggia', DEFAULT_ASSAGGIA_CONTENT);
 
-  // Render menu PDF
-  const menuPdfBuffer = await renderToBuffer(
-    createElement(MenuPdfDocument, { tappe: content.tappe || [] }) as any
-  );
+  let menuPdfBuffer: Buffer | null = null;
+  if (content.menu?.pdfUrl) {
+    try {
+      if (content.menu.pdfUrl.startsWith('http')) {
+        const response = await fetch(content.menu.pdfUrl);
+        menuPdfBuffer = Buffer.from(await response.arrayBuffer());
+      } else {
+        const filePath = path.join(process.cwd(), 'public', content.menu.pdfUrl.replace(/^\//, ''));
+        menuPdfBuffer = fs.readFileSync(filePath);
+      }
+    } catch (err) {
+      console.error('Failed to load menu PDF:', err);
+    }
+  }
 
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
   const ticketCount = order.tickets.length;
@@ -51,16 +62,16 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
     to: order.buyerEmail,
     replyTo: 'info@prolocogasperina.it',
     subject: `🎟 Ricevuta di prenotazione - Assaggia & Passeggia - Ord. #${orderRef}`,
-    html: buildEmailHtml(order, orderRef, ticketCount, ticketsListHtml),
+    html: buildEmailHtml(order, orderRef, ticketCount, ticketsListHtml, !!menuPdfBuffer),
     attachments: [
       {
         filename: `biglietti-assaggia-passeggia-${orderRef}.pdf`,
         content: pdfBuffer,
       },
-      {
+      ...(menuPdfBuffer ? [{
         filename: `menu-assaggia-passeggia.pdf`,
         content: menuPdfBuffer,
-      }
+      }] : [])
     ],
   });
 
@@ -73,7 +84,7 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   console.log(`✅ Ticket email sent to ${order.buyerEmail} for order ${orderRef}`);
 }
 
-function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number, ticketsListHtml: string): string {
+function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number, ticketsListHtml: string, hasMenu: boolean): string {
   return `<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -103,7 +114,7 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
             <td style="background:#ffffff;padding:40px;">
               <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Ciao ${order.buyerName}!</p>
               <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
-                La tua prenotazione è andata a buon fine. Trovi in allegato il PDF della tua <strong>ricevuta di prenotazione</strong>, valido per ritirare i tuoi biglietti fisici. Troverai anche un PDF aggiuntivo con il <strong>Menù della serata</strong>.
+                La tua prenotazione è andata a buon fine. Trovi in allegato il PDF della tua <strong>ricevuta di prenotazione</strong>, valido per ritirare i tuoi biglietti fisici.${hasMenu ? ' Troverai anche un PDF aggiuntivo con il <strong>Menù della serata</strong>.' : ''}
               </p>
 
               <!-- Order Summary -->
@@ -134,7 +145,7 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
                 <p style="margin:0 0 10px;font-size:15px;font-weight:700;color:#d97706;">⚠️ Informazione Importante</p>
                 <p style="margin:0 0 12px;font-size:14px;color:#92400e;line-height:1.5;">
                   Il documento in allegato <strong>vale come ricevuta di prenotazione</strong>. 
-                  Dovrai obbligatoriamente presentarlo al botteghino il giorno dell'evento per <strong>ritirare il tuo biglietto e calice fisici</strong>.
+                  Dovrai obbligatoriamente presentarlo al botteghino il giorno dell'evento per <strong>ritirare i tuoi biglietti fisici</strong>.
                 </p>
                 <ul style="margin:0;padding-left:20px;font-size:13px;color:#92400e;line-height:1.8;">
                   <li>Apri il PDF allegato a questa email e tienilo a portata di mano</li>
@@ -146,7 +157,7 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
               
               <!-- CTA Button -->
               <div style="text-align:center;margin-bottom:28px;">
-                <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/assaggia-e-passeggia/success?order=${order.id}" style="display:inline-block;background:#283983;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:999px;">
+                <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/assaggia-e-passeggia/success?order=${order.id}" style="display:inline-block;background:#283983;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:999px;">
                   Visualizza Ordine Online
                 </a>
               </div>

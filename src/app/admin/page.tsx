@@ -1,42 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
-  LayoutDashboard, Calendar, Users, ImageIcon,
-  BarChart2, LogOut, Settings, Bell,
-  TrendingUp, UserPlus, CalendarCheck, Eye, Loader2,
-  Ticket, QrCode
+  Calendar, Users, ImageIcon, FileText,
+  ShoppingCart, Tag, CalendarCheck, BarChart2,
+  Ticket, QrCode, TrendingUp, Globe, Wrench, Loader2, ArrowRight
 } from 'lucide-react';
+import AdminHeader from '@/components/admin/AdminHeader';
 import type { Event } from '@/lib/data/events';
 import type { Member } from '@/lib/data/members';
-import type { GalleryItem } from '@/lib/data/gallery';
-import type { NewsArticle } from '@/lib/data/news';
-import EventForm from '@/components/admin/EventForm';
-import MemberForm from '@/components/admin/MemberForm';
-import GalleryForm from '@/components/admin/GalleryForm';
-import BookingManager from '@/components/admin/BookingManager';
-import NewsForm from '@/components/admin/NewsForm';
-import { FileText, ShoppingCart, Tag } from 'lucide-react';
-import OrderManager from '@/components/admin/OrderManager';
-import DiscountManager from '@/components/admin/DiscountManager';
-import { useTheme } from '@/components/ThemeProvider';
-import { Moon, Sun } from 'lucide-react';
-
-type AdminSection = 'dashboard' | 'eventi' | 'notizie' | 'prenotazioni' | 'soci' | 'media' | 'ordini' | 'sconti' | 'analytics';
-
-const navItems: { id: AdminSection; icon: any; label: string }[] = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { id: 'eventi', icon: Calendar, label: 'Eventi' },
-  { id: 'notizie', icon: FileText, label: 'Notizie' },
-  { id: 'prenotazioni', icon: CalendarCheck, label: 'Prenotazioni' },
-  { id: 'ordini', icon: ShoppingCart, label: 'Ordini A&P' },
-  { id: 'sconti', icon: Tag, label: 'Sconti A&P' },
-  { id: 'soci', icon: Users, label: 'Soci' },
-  { id: 'media', icon: ImageIcon, label: 'Media' },
-  { id: 'analytics', icon: BarChart2, label: 'Analytics' },
-];
 
 const statusColors: Record<string, string> = {
   attivo: '#4ade80',
@@ -44,762 +17,164 @@ const statusColors: Record<string, string> = {
   scaduto: '#f87171',
 };
 
-export default function AdminPage() {
-  const [section, setSection] = useState<AdminSection>('dashboard');
+const quickLinks = [
+  { href: '/admin/eventi', label: 'Gestisci eventi', icon: Calendar, desc: 'Crea e modifica gli eventi' },
+  { href: '/admin/notizie', label: 'Notizie', icon: FileText, desc: 'Pubblica aggiornamenti' },
+  { href: '/admin/media', label: 'Galleria', icon: ImageIcon, desc: 'Foto e immagini' },
+  { href: '/admin/soci', label: 'Soci', icon: Users, desc: 'Gestione iscritti' },
+  { href: '/admin/ordini', label: 'Ordini A&P', icon: ShoppingCart, desc: 'Biglietti venduti' },
+  { href: '/admin/sconti', label: 'Sconti', icon: Tag, desc: 'Codici promozionali' },
+  { href: '/admin/prenotazioni', label: 'Prenotazioni', icon: CalendarCheck, desc: 'Prenotazioni eventi' },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart2, desc: 'Statistiche e dati' },
+  { href: '/admin/pagine/assaggia', label: 'CMS: A&P', icon: Globe, desc: 'Contenuto pagina evento' },
+  { href: '/admin/pagine/sponsor', label: 'Sponsor', icon: Globe, desc: 'Sponsor e partner' },
+  { href: '/admin/impostazioni', label: 'Impostazioni', icon: Wrench, desc: 'Configurazioni globali' },
+];
+
+export default function AdminDashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [gallery, setGallery] = useState<GalleryItem[]>([]);
-  const [news, setNews] = useState<NewsArticle[]>([]);
   const [ticketStats, setTicketStats] = useState({ totalTickets: 0, totalRevenue: 0, checkedIn: 0 });
   const [loading, setLoading] = useState(true);
-  const [editingEvent, setEditingEvent] = useState<Event | null | 'new'>(null);
-  const [editingMember, setEditingMember] = useState<Member | null | 'new'>(null);
-  const [editingPhoto, setEditingPhoto] = useState<GalleryItem | null | 'new'>(null);
-  const [editingNews, setEditingNews] = useState<NewsArticle | null | 'new'>(null);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const { theme, toggleTheme } = useTheme();
-
-  const fetchEvents = () => {
-    fetch('/api/events')
-      .then(res => res.json())
-      .then(data => {
-        setEvents(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  };
-
-  const fetchMembers = () => {
-    fetch('/api/members')
-      .then(res => res.json())
-      .then(data => { setMembers(data); })
-      .catch(err => { console.error(err); });
-  };
-
-  const fetchGallery = () => {
-    fetch('/api/gallery')
-      .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setGallery(data); })
-      .catch(err => { console.error(err); });
-  };
-
-  const fetchNews = () => {
-    fetch('/api/news')
-      .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setNews(data); })
-      .catch(err => { console.error(err); });
-  };
-
-  const fetchTicketStats = () => {
-    fetch('/api/tickets/stats?eventId=assaggia-passeggia')
-      .then(res => res.json())
-      .then(data => { if (data.success) setTicketStats(data.stats); })
-      .catch(err => { console.error(err); });
-  };
 
   useEffect(() => {
     // Run setup silently to ensure tables exist
     fetch('/api/setup').catch(() => {});
-    
-    fetchEvents();
-    fetchMembers();
-    fetchGallery();
-    fetchNews();
-    fetchTicketStats();
+
+    Promise.all([
+      fetch('/api/events').then(r => r.json()),
+      fetch('/api/members').then(r => r.json()),
+      fetch('/api/tickets/stats?eventId=assaggia-passeggia').then(r => r.json()),
+    ]).then(([evs, mems, stats]) => {
+      setEvents(Array.isArray(evs) ? evs : []);
+      setMembers(Array.isArray(mems) ? mems : []);
+      if (stats.success) setTicketStats(stats.stats);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []);
 
-  const handleSaveEvent = () => {
-    setEditingEvent(null);
-    fetchEvents(); // Refresh data
-  };
-
-  const handleSaveMember = () => {
-    setEditingMember(null);
-    fetchMembers(); // Refresh data
-  };
-
-  const handleDeleteEvent = async (id: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questo evento?')) return;
-    try {
-      await fetch(`/api/events/${id}`, { method: 'DELETE' });
-      setEditingEvent(null);
-      fetchEvents();
-    } catch (err) {
-      console.error(err);
-      alert('Errore durante l\'eliminazione');
-    }
-  };
-
-  const handleDeleteMember = async (id: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questo socio?')) return;
-    try {
-      await fetch(`/api/members/${id}`, { method: 'DELETE' });
-      setEditingMember(null);
-      fetchMembers();
-    } catch (err) {
-      console.error(err);
-      alert('Errore durante l\'eliminazione');
-    }
-  };
-
-  const handleSavePhoto = () => {
-    setEditingPhoto(null);
-    fetchGallery();
-  };
-
-  const handleDeletePhoto = async (id: string) => {
-    if (!confirm('Eliminare questa foto dalla galleria?')) return;
-    try {
-      await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
-      setEditingPhoto(null);
-      fetchGallery();
-    } catch (err) {
-      console.error(err);
-      alert('Errore durante l\'eliminazione');
-    }
-  };
-
-  const handleSaveNews = () => {
-    setEditingNews(null);
-    fetchNews();
-  };
-
-  const handleDeleteNews = async (id: string) => {
-    if (!confirm('Eliminare questa notizia?')) return;
-    try {
-      await fetch(`/api/news/${id}`, { method: 'DELETE' });
-      setEditingNews(null);
-      fetchNews();
-    } catch (err) {
-      console.error(err);
-      alert('Errore durante l\'eliminazione');
-    }
-  };
+  const kpis = [
+    { icon: Users, label: 'Soci Totali', value: members.length, delta: `${members.filter(m => m.stato === 'attivo').length} attivi`, color: 'var(--blue-700)' },
+    { icon: Ticket, label: 'Biglietti A&P', value: ticketStats.totalTickets, delta: `Incasso: €${ticketStats.totalRevenue}`, color: '#eab308' },
+    { icon: QrCode, label: 'Check-in A&P', value: ticketStats.checkedIn, delta: `${ticketStats.totalTickets > 0 ? Math.round((ticketStats.checkedIn / ticketStats.totalTickets) * 100) : 0}% completati`, color: '#4ade80' },
+    { icon: TrendingUp, label: 'Eventi Totali', value: events.length, delta: `${events.filter(e => new Date(e.date) >= new Date()).length} in programma`, color: 'var(--gold-500)' },
+  ];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--neutral-950)', paddingTop: '0' }}>
+    <div>
+      <AdminHeader title="Dashboard" subtitle="Benvenuto nel pannello di controllo" />
 
-      {/* Sidebar */}
-      <aside style={{
-        width: '240px',
-        flexShrink: 0,
-        background: 'var(--neutral-900)',
-        borderRight: '1px solid var(--neutral-800)',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        zIndex: 50,
-      }}>
-        {/* Logo */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Image src="/img/Logo_color_sm.png" alt="Logo" width={36} height={36} style={{ objectFit: 'contain' }} />
-          <div style={{ lineHeight: 1.1 }}>
-            <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.55rem', color: 'var(--gold-500)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pro Loco</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: 'var(--color-heading)', fontWeight: 500 }}>Gasperina</div>
-          </div>
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
+          <Loader2 className="animate-spin" size={32} />
         </div>
-
-        {/* Label */}
-        <div style={{ padding: '1rem 1.5rem 0.5rem', fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--neutral-600)', fontFamily: 'var(--font-body)' }}>
-          Area Admin
-        </div>
-
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: '0 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          {navItems.map(item => {
-            const Icon = item.icon;
-            const active = section === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setSection(item.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.75rem',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.88rem',
-                  fontWeight: active ? 600 : 400,
-                  color: active ? 'var(--color-heading)' : 'var(--neutral-400)',
-                  background: active ? 'rgba(27,75,170,0.2)' : 'transparent',
-                  transition: 'all 0.2s',
-                  textAlign: 'left',
-                  width: '100%',
-                  borderLeft: active ? '2px solid var(--blue-700)' : '2px solid transparent',
-                }}
-              >
-                <Icon size={16} style={{ color: active ? 'var(--blue-500)' : 'var(--neutral-500)' }} />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Bottom actions */}
-        <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid var(--neutral-800)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-          <Link href="/admin/scanner" target="_blank" style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)',
-            color: 'var(--neutral-400)', fontSize: '0.85rem', fontFamily: 'var(--font-body)',
-          }}>
-            <QrCode size={15} /> Scanner Biglietti
-          </Link>
-          <Link href="/" style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)',
-            color: 'var(--neutral-400)', fontSize: '0.85rem', fontFamily: 'var(--font-body)',
-          }}>
-            <Eye size={15} /> Visualizza sito
-          </Link>
-          <button onClick={() => { sessionStorage.removeItem('admin_auth'); window.location.reload(); }} style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)',
-            border: 'none', cursor: 'pointer', background: 'transparent',
-            color: 'var(--neutral-400)', fontSize: '0.85rem', fontFamily: 'var(--font-body)',
-            width: '100%', textAlign: 'left',
-          }}>
-            <LogOut size={15} /> Esci
-          </button>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main style={{ marginLeft: '240px', flex: 1, padding: '2rem', minHeight: '100vh' }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 400, color: 'var(--color-heading)' }}>
-              {navItems.find(n => n.id === section)?.label}
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>Pro Loco Gasperina APS · Area Amministrativa</p>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', position: 'relative' }}>
-            <div style={{ position: 'relative' }}>
-              <button 
-                onClick={() => { setShowNotifications(!showNotifications); setShowSettings(false); }}
-                style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: showNotifications ? 'var(--blue-400)' : 'var(--neutral-400)', transition: 'all 0.2s' }}>
-                <Bell size={16} />
-              </button>
-              <div style={{ position: 'absolute', top: 0, right: 0, width: 10, height: 10, background: 'var(--red-500)', border: '2px solid var(--background)', borderRadius: '50%' }} />
-            </div>
-
-            {showNotifications && (
-              <div style={{ position: 'absolute', top: '100%', right: '3rem', marginTop: '0.5rem', width: '320px', background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', zIndex: 100, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
-                <h4 style={{ color: 'var(--color-heading)', fontSize: '0.95rem', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Notifiche</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--blue-400)', cursor: 'pointer' }}>Segna lette</span>
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  <div style={{ display: 'flex', gap: '0.85rem' }}>
-                    <div style={{ width: 8, height: 8, background: 'var(--blue-500)', borderRadius: '50%', marginTop: 6, flexShrink: 0 }} />
-                    <div>
-                      <p style={{ color: 'var(--neutral-200)', fontSize: '0.85rem', marginBottom: '0.2rem' }}>Sistema aggiornato 🚀</p>
-                      <p style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', lineHeight: 1.4 }}>La piattaforma A&P è pronta per l'edizione 2026. Configura i tuoi eventi.</p>
-                      <p style={{ color: 'var(--neutral-500)', fontSize: '0.65rem', marginTop: '0.4rem' }}>Poco fa</p>
+      ) : (
+        <>
+          {/* KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            {kpis.map(kpi => {
+              const Icon = kpi.icon;
+              return (
+                <div key={kpi.label} className="card" style={{ padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.82rem', color: 'var(--neutral-400)' }}>{kpi.label}</div>
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: `${kpi.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={15} style={{ color: kpi.color }} />
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.85rem' }}>
-                    <div style={{ width: 8, height: 8, background: 'var(--neutral-600)', borderRadius: '50%', marginTop: 6, flexShrink: 0 }} />
-                    <div>
-                      <p style={{ color: 'var(--neutral-200)', fontSize: '0.85rem', marginBottom: '0.2rem' }}>Nuova prenotazione #A782...</p>
-                      <p style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', lineHeight: 1.4 }}>Niccolò Vono ha appena acquistato 2 biglietti per A&P.</p>
-                      <p style={{ color: 'var(--neutral-500)', fontSize: '0.65rem', marginTop: '0.4rem' }}>1 ora fa</p>
-                    </div>
-                  </div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 500, color: 'var(--color-heading)', lineHeight: 1 }}>{kpi.value}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginTop: '0.4rem' }}>{kpi.delta}</div>
                 </div>
-              </div>
-            )}
-
-            <button 
-              onClick={() => { setShowSettings(!showSettings); setShowNotifications(false); }}
-              style={{ background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-full)', width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: showSettings ? 'var(--blue-400)' : 'var(--neutral-400)', transition: 'all 0.2s' }}>
-              <Settings size={16} />
-            </button>
-
-            {showSettings && (
-              <div style={{ position: 'absolute', top: '100%', right: '1rem', marginTop: '0.5rem', width: '220px', background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)', borderRadius: 'var(--radius-lg)', padding: '0.5rem', zIndex: 100, boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
-                <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--neutral-800)', marginBottom: '0.5rem' }}>
-                  <p style={{ color: 'var(--color-heading)', fontSize: '0.85rem', fontWeight: 600 }}>Admin Pro Loco</p>
-                  <p style={{ color: 'var(--neutral-400)', fontSize: '0.75rem' }}>admin@prolocogasperina.it</p>
-                </div>
-                
-                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--neutral-300)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                  👤 Profilo
-                </button>
-                <button 
-                  onClick={toggleTheme}
-                  style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--neutral-300)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                  {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />} 
-                  Tema: {theme === 'dark' ? 'Chiaro' : 'Scuro'}
-                </button>
-                <button style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--neutral-300)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                  ⚙️ Preferenze Evento
-                </button>
-                <div style={{ height: 1, background: 'var(--neutral-800)', margin: '0.5rem 0' }} />
-                <button 
-                  onClick={() => { sessionStorage.removeItem('admin_auth'); window.location.reload(); }}
-                  style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--red-400)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--neutral-800)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                  Log out
-                </button>
-              </div>
-            )}
-
-            <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'var(--blue-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-body)', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-heading)' }}>
-              A
-            </div>
+              );
+            })}
           </div>
-        </div>
 
-        {/* ── DASHBOARD ── */}
-        {section === 'dashboard' && (
-          <div>
-            {loading ? (
-               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
-                 <Loader2 className="animate-spin" size={32} />
-               </div>
-            ) : (
-              <>
-            {/* KPI cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-              {[
-                { icon: Users, label: 'Soci Totali', value: members.length, delta: 'Attivi', color: 'var(--blue-700)' },
-                { icon: Ticket, label: 'Biglietti Venduti (A&P)', value: ticketStats.totalTickets, delta: `Incasso: €${ticketStats.totalRevenue}`, color: '#eab308' },
-                { icon: QrCode, label: 'Check-in (A&P)', value: ticketStats.checkedIn, delta: `${ticketStats.totalTickets > 0 ? Math.round((ticketStats.checkedIn / ticketStats.totalTickets) * 100) : 0}% completati`, color: '#4ade80' },
-              ].map(kpi => {
-                const Icon = kpi.icon;
+          {/* Quick Links Grid */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '0.85rem', color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1rem', fontFamily: 'var(--font-body)' }}>
+              Accesso Rapido
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              {quickLinks.map(link => {
+                const Icon = link.icon;
                 return (
-                  <div key={kpi.label} className="card" style={{ padding: '1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                      <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.82rem', color: 'var(--neutral-400)' }}>{kpi.label}</div>
-                      <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: `${kpi.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon size={15} style={{ color: kpi.color }} />
-                      </div>
-                    </div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 500, color: 'var(--color-heading)', lineHeight: 1 }}>{kpi.value}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginTop: '0.4rem' }}>{kpi.delta}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-              
-              <div className="card" style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Pagine Speciali</h4>
-                <div style={{ padding: '1rem', background: 'var(--neutral-800)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '0.9rem', color: 'var(--color-heading)', fontWeight: 500 }}>Assaggia & Passeggia</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Gestisci le tappe, il menù e i testi</div>
-                  </div>
-                  <Link href="/admin/pagine/assaggia" className="btn btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Gestisci</Link>
-                </div>
-              </div>
-
-              <div className="card" style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Prossimi eventi</h4>
-                {events.slice(0, 4).map(ev => (
-                  <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
-                    <div>
-                      <div style={{ fontSize: '0.875rem', color: 'var(--color-heading)', fontWeight: 500 }}>{ev.title}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{new Date(ev.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · {ev.location}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      {ev.bookable ? (
-                        <>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{ev.registeredCount}/{ev.maxParticipants}</div>
-                          <div style={{ height: '3px', width: '60px', background: 'var(--neutral-700)', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${Math.round(ev.registeredCount/ev.maxParticipants*100)}%`, background: 'var(--blue-700)' }} />
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--neutral-500)', fontStyle: 'italic' }}>No prenot.</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="card" style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Soci recenti</h4>
-                {members.slice(0, 5).map(m => (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
-                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(27,75,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 600, color: 'var(--blue-500)' }}>
-                        {m.nome[0]}{m.cognome[0]}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--color-heading)', fontWeight: 500 }}>{m.nome} {m.cognome}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', textTransform: 'capitalize' }}>{m.tipo}</div>
-                      </div>
-                    </div>
-                    <div style={{
-                      width: 8, height: 8, borderRadius: '50%',
-                      background: statusColors[m.stato],
-                      boxShadow: `0 0 8px ${statusColors[m.stato]}66`,
-                    }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-            </>
-            )}
-          </div>
-        )}
-
-        {/* ── EVENTI ── */}
-        {section === 'eventi' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{events.length} eventi totali</p>
-              <button 
-                onClick={() => setEditingEvent('new')}
-                className="btn btn-primary" 
-                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
-              >
-                + Nuovo evento
-              </button>
-            </div>
-            {loading ? (
-               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
-                 <Loader2 className="animate-spin" size={32} />
-               </div>
-            ) : (
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Titolo</th>
-                    <th>Data</th>
-                    <th>Categoria</th>
-                    <th>Iscritti</th>
-                    <th>Gratuito</th>
-                    <th>Azioni</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {events.map(ev => (
-                    <tr key={ev.id}>
-                      <td style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{ev.title}</td>
-                      <td>{new Date(ev.date).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                      <td><span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>{ev.category}</span></td>
-                      <td>{ev.bookable ? `${ev.registeredCount} / ${ev.maxParticipants}` : <span style={{ color: 'var(--neutral-600)', fontStyle: 'italic' }}>—</span>}</td>
-                      <td><span style={{ color: ev.isFree ? '#4ade80' : 'var(--gold-400)', fontSize: '0.82rem' }}>{ev.isFree ? 'Sì' : `€${ev.price}`}</span></td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Link href={`/eventi/${ev.slug}`} target="_blank" style={{ fontSize: '0.78rem', color: 'var(--blue-500)', textDecoration: 'underline' }}>Vedi</Link>
-                          <button onClick={() => setEditingEvent(ev)} style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }}>Modifica</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            )}
-          </div>
-        )}
-
-        {/* ── NOTIZIE ── */}
-        {section === 'notizie' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{news.length} notizie totali</p>
-              <button 
-                onClick={() => setEditingNews('new')}
-                className="btn btn-primary" 
-                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
-              >
-                + Nuova notizia
-              </button>
-            </div>
-            {loading ? (
-               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
-                 <Loader2 className="animate-spin" size={32} />
-               </div>
-            ) : (
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Titolo</th>
-                    <th>Data Pubblicazione</th>
-                    <th>In Evidenza</th>
-                    <th>Azioni</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {news.map(n => (
-                    <tr key={n.id}>
-                      <td style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{n.title}</td>
-                      <td>{new Date(n.publishedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                      <td><span style={{ color: n.featured ? '#4ade80' : 'var(--neutral-400)', fontSize: '0.82rem' }}>{n.featured ? 'Sì' : 'No'}</span></td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Link href={`/notizie/${n.slug}`} target="_blank" style={{ fontSize: '0.78rem', color: 'var(--blue-500)', textDecoration: 'underline' }}>Vedi</Link>
-                          <button onClick={() => setEditingNews(n)} style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }}>Modifica</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {news.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', color: 'var(--neutral-500)', padding: '2rem' }}>Nessuna notizia presente.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            )}
-          </div>
-        )}
-
-        {/* ── PRENOTAZIONI ── */}
-        {section === 'prenotazioni' && (
-          <BookingManager />
-        )}
-
-        {/* ── ORDINI A&P ── */}
-        {section === 'ordini' && (
-          <OrderManager />
-        )}
-
-        {/* ── SCONTI A&P ── */}
-        {section === 'sconti' && (
-          <DiscountManager />
-        )}
-
-        {/* ── SOCI ── */}
-        {section === 'soci' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{members.length} soci registrati</p>
-              <button 
-                onClick={() => setEditingMember('new')}
-                className="btn btn-primary" 
-                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
-              >
-                + Aggiungi socio
-              </button>
-            </div>
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Socio</th>
-                    <th>Email</th>
-                    <th>Tipo</th>
-                    <th>Iscrizione</th>
-                    <th>Stato</th>
-                    <th>Azioni</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.map(m => (
-                    <tr key={m.id}>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                          <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(27,75,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 600, color: 'var(--blue-500)', flexShrink: 0 }}>
-                            {m.nome[0]}{m.cognome[0]}
-                          </div>
-                          <span style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{m.nome} {m.cognome}</span>
-                        </div>
-                      </td>
-                      <td style={{ color: 'var(--neutral-400)' }}>{m.email}</td>
-                      <td><span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>{m.tipo}</span></td>
-                      <td>{new Date(m.dataIscrizione).toLocaleDateString('it-IT')}</td>
-                      <td>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', color: statusColors[m.stato] }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColors[m.stato] }} />
-                          {m.stato.charAt(0).toUpperCase() + m.stato.slice(1)}
-                        </span>
-                      </td>
-                      <td>
-                        <button 
-                          onClick={() => setEditingMember(m)}
-                          style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }}
-                        >
-                          Modifica
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-
-        {/* ── ANALYTICS ── */}
-        {section === 'analytics' && (
-          <div>
-            {loading ? (
-               <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem', color: 'var(--neutral-500)' }}>
-                 <Loader2 className="animate-spin" size={32} />
-               </div>
-            ) : (
-              <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-              {[
-                { label: 'Tasso di riempimento eventi', value: `${Math.round(events.reduce((a,e) => a + e.registeredCount/e.maxParticipants, 0) / events.length * 100)}%`, icon: TrendingUp, color: 'var(--blue-700)' },
-                { label: 'Soci attivi', value: members.filter(m => m.stato === 'attivo').length, icon: Users, color: 'var(--gold-500)' },
-                { label: 'Prenotazioni totali', value: events.reduce((a, e) => a + e.registeredCount, 0), icon: CalendarCheck, color: '#4ade80' },
-              ].map(kpi => {
-                const Icon = kpi.icon;
-                return (
-                  <div key={kpi.label} className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                    <Icon size={24} style={{ color: kpi.color, marginBottom: '0.75rem' }} />
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'var(--color-heading)' }}>{kpi.value}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', marginTop: '0.3rem' }}>{kpi.label}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Events breakdown */}
-            <div className="card" style={{ padding: '1.5rem' }}>
-              <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1.25rem' }}>Partecipazione per evento</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {events.map(ev => {
-                  const pct = Math.round(ev.registeredCount / ev.maxParticipants * 100);
-                  return (
-                    <div key={ev.id}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                        <span style={{ color: 'var(--neutral-200)', fontWeight: 500 }}>{ev.title}</span>
-                        <span style={{ color: pct > 80 ? 'var(--gold-400)' : 'var(--neutral-400)' }}>{pct}%</span>
-                      </div>
-                      <div style={{ height: '8px', background: 'var(--neutral-700)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${pct}%`,
-                          background: pct > 80
-                            ? 'linear-gradient(90deg, var(--gold-500), var(--gold-400))'
-                            : 'linear-gradient(90deg, var(--blue-700), var(--blue-500))',
-                          borderRadius: '4px',
-                          transition: 'width 0.8s ease',
-                        }} />
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', marginTop: '0.2rem' }}>
-                        {ev.registeredCount} / {ev.maxParticipants} partecipanti
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            </>
-            )}
-          </div>
-        )}
-
-        {/* ── MEDIA ── */}
-        {section === 'media' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>{gallery.length} foto in galleria</p>
-              <button
-                onClick={() => setEditingPhoto('new')}
-                className="btn btn-primary"
-                style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem' }}
-              >
-                + Aggiungi foto
-              </button>
-            </div>
-
-            {gallery.length === 0 ? (
-              <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--neutral-600)' }}>
-                <ImageIcon size={32} style={{ margin: '0 auto 1rem', opacity: 0.4 }} />
-                <p style={{ fontSize: '0.9rem' }}>Nessuna foto ancora. Aggiungine una!</p>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
-                {gallery.map(item => (
-                  <div
-                    key={item.id}
-                    className="card"
-                    style={{ overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.18s, box-shadow 0.18s' }}
-                    onClick={() => setEditingPhoto(item)}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.4)'; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.85rem',
+                      padding: '1rem 1.1rem',
+                      background: 'var(--neutral-900)',
+                      border: '1px solid var(--neutral-800)',
+                      borderRadius: 'var(--radius-lg)',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--blue-700)'; (e.currentTarget as HTMLElement).style.background = 'rgba(27,75,170,0.08)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--neutral-800)'; (e.currentTarget as HTMLElement).style.background = 'var(--neutral-900)'; }}
                   >
-                    <div style={{ position: 'relative', aspectRatio: '16/10', overflow: 'hidden' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.src} alt={item.alt} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <Icon size={16} style={{ color: 'var(--blue-500)', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{link.label}</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', marginTop: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{link.desc}</div>
                     </div>
-                    <div style={{ padding: '0.75rem 0.9rem' }}>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>{item.category}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--neutral-200)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.alt}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                    <ArrowRight size={13} style={{ color: 'var(--neutral-600)', flexShrink: 0 }} />
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        )}
-      </main>
 
-      {/* Event Form Modal */}
-      {editingEvent && (
-        <EventForm 
-          initialData={editingEvent === 'new' ? undefined : editingEvent}
-          onClose={() => setEditingEvent(null)}
-          onSave={handleSaveEvent}
-          onDelete={handleDeleteEvent}
-        />
-      )}
+          {/* Recent Activity */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            <div className="card" style={{ padding: '1.25rem' }}>
+              <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Prossimi eventi</h4>
+              {events.slice(0, 5).map(ev => (
+                <div key={ev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--color-heading)', fontWeight: 500 }}>{ev.title}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{new Date(ev.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · {ev.location}</div>
+                  </div>
+                  <Link href="/admin/eventi" style={{ fontSize: '0.72rem', color: 'var(--blue-400)', textDecoration: 'none' }}>Gestisci</Link>
+                </div>
+              ))}
+              {events.length === 0 && <p style={{ fontSize: '0.85rem', color: 'var(--neutral-600)', textAlign: 'center', padding: '1rem 0' }}>Nessun evento.</p>}
+            </div>
 
-      {/* Member Form Modal */}
-      {editingMember && (
-        <MemberForm 
-          initialData={editingMember === 'new' ? undefined : editingMember}
-          onClose={() => setEditingMember(null)}
-          onSave={handleSaveMember}
-          onDelete={handleDeleteMember}
-        />
-      )}
+            <div className="card" style={{ padding: '1.25rem' }}>
+              <h4 style={{ fontFamily: 'var(--font-body)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-heading)', marginBottom: '1rem' }}>Soci recenti</h4>
+              {members.slice(0, 5).map(m => (
+                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(27,75,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 600, color: 'var(--blue-500)' }}>
+                      {m.nome[0]}{m.cognome[0]}
+                    </div>
+                    <span style={{ fontSize: '0.875rem', color: 'var(--color-heading)', fontWeight: 500 }}>{m.nome} {m.cognome}</span>
+                  </div>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColors[m.stato], boxShadow: `0 0 8px ${statusColors[m.stato]}66` }} />
+                </div>
+              ))}
+              {members.length === 0 && <p style={{ fontSize: '0.85rem', color: 'var(--neutral-600)', textAlign: 'center', padding: '1rem 0' }}>Nessun socio.</p>}
+            </div>
+          </div>
 
-      {/* Gallery Form Modal */}
-      {editingPhoto && (
-        <GalleryForm
-          initialData={editingPhoto === 'new' ? undefined : editingPhoto}
-          onClose={() => setEditingPhoto(null)}
-          onSave={handleSavePhoto}
-          onDelete={handleDeletePhoto}
-        />
-      )}
-
-      {/* News Form Modal */}
-      {editingNews && (
-        <NewsForm 
-          initialData={editingNews === 'new' ? undefined : editingNews} 
-          onClose={() => setEditingNews(null)} 
-          onSave={() => {
-            setEditingNews(null);
-            fetchNews();
-          }}
-          onDelete={async (id) => {
-            if (!confirm('Eliminare questa notizia?')) return;
-            try {
-              const res = await fetch(`/api/news/${id}`, { method: 'DELETE' });
-              if (res.ok) {
-                setEditingNews(null);
-                fetchNews();
-              }
-            } catch (error) {
-              console.error(error);
-            }
-          }}
-        />
+          {/* Scanner CTA */}
+          <div style={{ marginTop: '1.5rem', padding: '1.25rem 1.5rem', background: 'rgba(27,75,170,0.12)', border: '1px solid rgba(27,75,170,0.3)', borderRadius: 'var(--radius-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <QrCode size={22} style={{ color: 'var(--blue-400)' }} />
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--color-heading)', fontSize: '0.9rem' }}>Scanner biglietti A&P</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Apri lo scanner per validare i biglietti all&apos;ingresso</div>
+              </div>
+            </div>
+            <Link href="/admin/scanner" target="_blank" className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.6rem 1.2rem' }}>
+              Apri Scanner
+            </Link>
+          </div>
+        </>
       )}
     </div>
   );

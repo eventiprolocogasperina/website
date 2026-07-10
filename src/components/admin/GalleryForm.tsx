@@ -4,29 +4,7 @@ import { useState } from 'react';
 import { Loader2, X, Trash2, Save, UploadCloud, Image as ImageIcon } from 'lucide-react';
 import type { GalleryItem } from '@/lib/data/gallery';
 
-// ─── image compressor (re-used from EventForm pattern) ───────────────────────
-const compressImage = (file: File, maxW = 1920, maxH = 1200): Promise<{ dataUrl: string; width: number; height: number }> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (e) => {
-      const img = new window.Image();
-      img.src = e.target?.result as string;
-      img.onload = () => {
-        let w = img.width;
-        let h = img.height;
-        const ratio = w / h;
-        if (w > maxW) { w = maxW; h = Math.round(w / ratio); }
-        if (h > maxH) { h = maxH; w = Math.round(h * ratio); }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.85), width: w, height: h });
-      };
-      img.onerror = reject;
-    };
-    reader.onerror = reject;
-  });
+import ImageUpload from '@/components/admin/ImageUpload';
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface GalleryFormProps {
@@ -62,19 +40,7 @@ export default function GalleryForm({ initialData, onClose, onSave, onDelete }: 
     setForm(prev => ({ ...prev, [k]: v }));
 
   // ── image upload ───────────────────────────────────────────────────────────
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) { setError('Massimo 8 MB per immagine.'); return; }
-    try {
-      setLoading(true);
-      const { dataUrl, width, height } = await compressImage(file);
-      setForm(prev => ({ ...prev, src: dataUrl, width, height }));
-      setError('');
-    } catch { setError("Errore durante il caricamento dell'immagine."); }
-    finally { setLoading(false); }
-  };
-
+  // Handled by ImageUpload component
   // ── submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,54 +137,20 @@ export default function GalleryForm({ initialData, onClose, onSave, onDelete }: 
                 )}
               </div>
             ) : (
-              <div>
-                <label className="label">Immagine *</label>
-                <label style={{
-                  display: 'block', position: 'relative', cursor: 'pointer',
-                  borderRadius: 'var(--radius-md)', overflow: 'hidden',
-                  border: '2px dashed var(--neutral-700)',
-                  background: 'var(--neutral-950)',
-                  aspectRatio: '16 / 9',
-                }}>
-                  {form.src ? (
-                    // preview
-                    <img
-                      src={form.src}
-                      alt="Preview"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                  ) : (
-                    // placeholder
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: 'var(--neutral-600)' }}>
-                      <UploadCloud size={32} />
-                      <span style={{ fontSize: '0.85rem', fontFamily: 'var(--font-body)' }}>Clicca per caricare</span>
-                    </div>
-                  )}
-                  {/* Overlay on hover when image already loaded */}
-                  {form.src && (
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      background: 'rgba(0,0,0,0.5)', opacity: 0, transition: 'opacity 0.2s',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                      color: 'var(--white)', fontSize: '0.85rem', fontFamily: 'var(--font-body)',
-                    }}
-                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
-                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '0'}
-                    >
-                      <UploadCloud size={18} /> Cambia foto
-                    </div>
-                  )}
-                  <input
-                    type="file" accept="image/*"
-                    onChange={handleFile}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-                {form.src && (
-                  <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', marginTop: '0.35rem' }}>
-                    {form.width} × {form.height} px · clicca per sostituire
-                  </p>
-                )}
+              <div style={{ minWidth: '0' }}>
+                <ImageUpload
+                  label="Immagine *"
+                  value={form.src}
+                  onChange={(url) => {
+                    set('src', url);
+                    // Cloudinary URLs typically don't expose width/height easily without API
+                    // We'll set a default high resolution if not known
+                    set('width', 1920);
+                    set('height', 1080);
+                  }}
+                  folder="pro-loco-gasperina/galleria"
+                  previewHeight={200}
+                />
               </div>
             )}
 

@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     // codTrans: alphanumeric only, max 30 chars. We generate it exactly like this in /api/orders
     const codTrans = order.id;
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
     const url = `${baseUrl}/api/nexi/callback`;
     const url_back = `${baseUrl}/assaggia-e-passeggia/ticket`;
 

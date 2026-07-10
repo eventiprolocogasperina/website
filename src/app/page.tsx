@@ -2,6 +2,7 @@ import Hero from '@/components/home/Hero';
 import UpcomingEvents from '@/components/home/UpcomingEvents';
 import CommunityImpact from '@/components/home/CommunityImpact';
 import DiscoverTeaser from '@/components/home/DiscoverTeaser';
+import AssaggiaTeaser from '@/components/home/AssaggiaTeaser';
 import { getUpcomingEvents } from '@/lib/data/events';
 import type { Metadata } from 'next';
 
@@ -19,6 +20,7 @@ export default async function HomePage() {
     <>
       <Hero />
       <UpcomingEvents events={events} />
+      <AssaggiaTeaser />
       <DiscoverTeaser />
       <CommunityImpact />
     </>

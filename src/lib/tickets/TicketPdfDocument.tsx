@@ -329,8 +329,8 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
           <View style={styles.infoBox} wrap={false}>
             <Text style={styles.infoText}>
               ⚠ ATTENZIONE: Questo documento non è il biglietto finale. 
-              Presentalo al botteghino il giorno dell'evento (mostrando il QR code dal telefono o stampato) 
-              per ritirare i tuoi biglietti fisici e il tuo calice. La ricevuta è strettamente personale e non cedibile.
+              Presenta questo documento al botteghino il giorno dell&apos;evento
+              per ritirare i tuoi biglietti fisici. La ricevuta è strettamente personale e non cedibile.
             </Text>
           </View>
         </View>

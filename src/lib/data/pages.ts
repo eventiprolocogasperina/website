@@ -9,6 +9,7 @@ export interface AssaggiaEPasseggiaContent {
     logoUrl: string;
     ctaText: string;
     ctaLink: string;
+    heroVideoUrl?: string; // Nuova prop per il video background (YouTube)
   };
   story: {
     title: string;
@@ -20,6 +21,7 @@ export interface AssaggiaEPasseggiaContent {
   menu: {
     subtitle: string;
     title: string;
+    pdfUrl?: string; // Uploaded PDF file for the menu
   };
   tappe: Array<{
     id: string; // "1", "2", ecc
@@ -30,6 +32,9 @@ export interface AssaggiaEPasseggiaContent {
     location: string;
     themeColor: string; // es: "var(--blue-500)"
     allergens?: string; // Nuova prop per gli allergeni
+    curiosities?: string;
+    extraInfo?: string;
+    photos?: string[]; // Array of photo URLs
   }>;
   presale: {
     title: string;
@@ -43,16 +48,21 @@ export interface AssaggiaEPasseggiaContent {
     parkingInfo: string;
     disclaimer: string;
   };
+  faqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
 }
 
 // Default content used if nothing is found in the DB
 export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
   hero: {
-    badge: '10 Agosto 2026 • Gasperina (CZ)',
+    badge: '10 Agosto 2026 • Piazza Enrico Fermi, Gasperina',
     title: 'Assaggia & Passeggia',
-    subtitle: 'Un percorso enogastronomico indimenticabile tra i vicoli storici del borgo. Otto tappe di puro gusto, cantine selezionate e musica popolare.',
+    subtitle: 'Un itinerario enogastronomico scenografico ed esperienziale tra i vicoli di Gasperina. Quattro tappe di puro gusto e vino locale alla scoperta delle nostre radici.',
     bgImageUrl: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=2940&auto=format&fit=crop', // Soft wine/vineyard background placeholder
-    logoUrl: '/img/LOGO_ap_ga.png',
+    logoUrl: '/img/LogoAP_GA_nero.png',
+    heroVideoUrl: '', // Default vuoto
     ctaText: 'Acquista il tuo Biglietto',
     ctaLink: '/assaggia-e-passeggia/ticket',
   },
@@ -90,7 +100,17 @@ export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
     priceInfo: '17€',
     ctaText: "Procedi all'Acquisto",
     ctaLink: '/assaggia-e-passeggia/ticket',
-  }
+  },
+  faqs: [
+    {
+      question: "I bambini pagano?",
+      answer: "L'ingresso è gratuito per i bambini sotto i 6 anni. Non c'è un menù bimbi dedicato."
+    },
+    {
+      question: "Posso pagare in loco?",
+      answer: "Consigliamo l'acquisto in prevendita online o presso i nostri point autorizzati per garantirti il posto, i posti sono limitati."
+    }
+  ]
 };
 
 function getDb() {

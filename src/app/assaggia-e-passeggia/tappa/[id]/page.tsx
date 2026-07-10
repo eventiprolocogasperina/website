@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Wine, Utensils, MapPin, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Wine, Utensils, MapPin, ArrowRight, ArrowLeft, AlertCircle, Info, Lightbulb, Camera } from 'lucide-react';
 import type { Metadata } from 'next';
+import FormattedText from '@/components/ui/FormattedText';
 
 import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';
 
@@ -55,7 +56,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
             </div>
             <div>
               <h3 style={{ fontSize: '1.2rem', color: '#1a1a1a', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Il Piatto</h3>
-              <p style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '0.5rem' }}>{tappa.description}</p>
+              <FormattedText as="p" style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: '0.5rem' }} text={tappa.description} />
               {tappa.allergens && (
                 <div style={{ fontSize: '0.85rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem' }}>
                   <AlertCircle size={14} /> <strong>Allergeni:</strong> {tappa.allergens}
@@ -77,6 +78,62 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         </div>
+
+        {/* Informazioni Extra e Curiosità */}
+        {(tappa.curiosities || tappa.extraInfo) && (
+          <div style={{ background: 'white', borderRadius: '1.5rem', padding: '2rem', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
+            {tappa.curiosities && (
+              <div style={{ marginBottom: tappa.extraInfo ? '2rem' : '0' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  <div style={{ background: '#e0f2fe', padding: '1rem', borderRadius: '1rem', color: '#0369a1' }}>
+                    <Lightbulb size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', color: '#1a1a1a', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Lo Sapevi Che?</h3>
+                    <FormattedText as="p" style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap' }} text={tappa.curiosities} />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {tappa.curiosities && tappa.extraInfo && (
+              <div style={{ height: '1px', background: '#eaeaea', margin: '2rem 0' }} />
+            )}
+
+            {tappa.extraInfo && (
+              <div>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '1rem', color: '#4b5563' }}>
+                    <Info size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', color: '#1a1a1a', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Informazioni</h3>
+                    <FormattedText as="p" style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap' }} text={tappa.extraInfo} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Galleria Fotografica */}
+        {tappa.photos && tappa.photos.length > 0 && (
+          <div style={{ background: 'white', borderRadius: '1.5rem', padding: '2rem', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
+             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#fce7f3', padding: '1rem', borderRadius: '1rem', color: '#db2777' }}>
+                  <Camera size={24} />
+                </div>
+                <h3 style={{ fontSize: '1.2rem', color: '#1a1a1a', fontFamily: 'var(--font-display)' }}>Galleria Tappa</h3>
+             </div>
+             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+               {tappa.photos.map((photo, i) => (
+                 <div key={i} style={{ borderRadius: '1rem', overflow: 'hidden', aspectRatio: '1', position: 'relative', background: '#f3f4f6' }}>
+                   <img src={photo} alt={`Foto ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                 </div>
+               ))}
+             </div>
+          </div>
+        )}
 
         {/* Navigazione */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>

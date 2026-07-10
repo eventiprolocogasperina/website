@@ -13,6 +13,7 @@ const navLinks = [
   { href: '/scopri-gasperina', label: 'Scopri Gasperina' },
   { href: '/notizie', label: 'Notizie' },
   { href: '/eventi', label: 'Eventi' },
+  { href: '/assaggia-e-passeggia', label: 'Assaggia & Passeggia' },
   { href: '/media', label: 'Galleria' },
   { href: '/associazione', label: 'Chi Siamo' },
   { href: '/sponsor', label: 'Sponsor' },
@@ -133,8 +134,6 @@ export default function Navbar() {
               Iscriviti
             </Link>
 
-            <ThemeToggle className="ml-2 !bg-transparent !border-transparent scale-90" />
-            
             {/* Hamburger */}
             <button
               onClick={() => setMenuOpen(m => !m)}
@@ -197,15 +196,6 @@ export default function Navbar() {
         </div>
       )}
 
-      <style jsx global>{`
-        @media (max-width: 900px) {
-          .desktop-nav { display: none !important; }
-          .hamburger { display: flex !important; }
-        }
-        @media (min-width: 901px) {
-          #nav-cta { display: inline-flex !important; }
-        }
-      `}</style>
     </>
   );
 }

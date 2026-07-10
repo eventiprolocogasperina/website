@@ -463,3 +463,12 @@ a { color: inherit; text-decoration: none; }
 
 /* ─── Lightbox override ──────────────────────────────────────── */
 .yarl__container { background: rgba(10,12,18,0.96) !important; }
+
+/* Mobile Navbar Fix */
+@media (max-width: 900px) {
+  .desktop-nav { display: none !important; }
+  .hamburger { display: flex !important; }
+}
+@media (min-width: 901px) {
+  #nav-cta { display: inline-flex !important; }
+}

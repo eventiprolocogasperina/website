@@ -4,34 +4,7 @@ import { useState } from 'react';
 import type { NewsArticle } from '@/lib/data/news';
 import { Loader2, X, UploadCloud, Save } from 'lucide-react';
 
-const compressImage = (file: File, type: string = 'image/jpeg'): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new window.Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 800;
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-        } else {
-          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL(type, 0.8));
-      };
-      img.onerror = (e) => reject(e);
-    };
-    reader.onerror = (e) => reject(e);
-  });
-};
+import ImageUpload from '@/components/admin/ImageUpload';
 
 interface NewsFormProps {
   initialData?: NewsArticle;
@@ -70,18 +43,7 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
     setFormData(prev => ({ ...prev, slug }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setError("L'immagine è troppo grande. Massimo 5MB."); return; }
-    try {
-      setLoading(true);
-      const base64 = await compressImage(file);
-      setFormData(prev => ({ ...prev, coverImage: base64 }));
-      setError('');
-    } catch { setError("Errore durante il caricamento dell'immagine."); }
-    finally { setLoading(false); }
-  };
+  // handleImageUpload is now handled by ImageUpload component
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,25 +119,14 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
                 </div>
               </div>
 
-              <div>
-                <label className="label">Immagine di Copertina</label>
-                <div style={{
-                  border: '2px dashed var(--neutral-800)', borderRadius: 'var(--radius-lg)',
-                  padding: '1rem', display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', gap: '0.75rem', background: 'var(--neutral-950)',
-                  minHeight: '168px', justifyContent: 'center',
-                }}>
-                  {formData.coverImage ? (
-                    <img src={formData.coverImage} alt="Preview" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
-                  ) : (
-                    <UploadCloud size={36} style={{ color: 'var(--neutral-700)' }} />
-                  )}
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.45rem 1rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', fontSize: '0.78rem', color: 'var(--neutral-200)' }}>
-                    <UploadCloud size={13} />
-                    {formData.coverImage ? 'Cambia Immagine' : 'Carica Immagine'}
-                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-                  </label>
-                </div>
+              <div style={{ minWidth: '0' }}>
+                <ImageUpload
+                  label="Immagine di Copertina"
+                  value={formData.coverImage}
+                  onChange={(url) => setFormData(prev => ({ ...prev, coverImage: url }))}
+                  folder="pro-loco-gasperina/notizie"
+                  previewHeight={140}
+                />
               </div>
             </div>
 
