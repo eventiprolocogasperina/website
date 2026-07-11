@@ -91,7 +91,7 @@ export default async function AssaggiaPasseggiaPage() {
           <div style={{
             width: '100%',
             maxWidth: '1200px',
-            height: '500px',
+            aspectRatio: '16/9',
             margin: '4rem auto 0',
             borderRadius: '2rem',
             overflow: 'hidden',

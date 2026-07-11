@@ -39,13 +39,9 @@ export default function HeroVideo({ videoId, bgImageUrl }: HeroVideoProps) {
     <>
       <div style={{
         position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '100vw',
-        height: '56.25vw', /* 16:9 ratio */
-        minHeight: '600px', /* slightly larger than container to ensure coverage */
-        minWidth: 'calc(600px * 1.777)',
+        inset: 0,
+        width: '100%',
+        height: '100%',
         pointerEvents: 'none', /* IMPORTANT: Prevents user from pausing the video by clicking */
       }}>
         {isMounted && (
