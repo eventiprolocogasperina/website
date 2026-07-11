@@ -19,8 +19,8 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
-      <UpcomingEvents events={events} />
       <AssaggiaTeaser />
+      <UpcomingEvents events={events} />
       <DiscoverTeaser />
       <CommunityImpact />
     </>
