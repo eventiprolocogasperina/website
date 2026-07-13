@@ -96,7 +96,7 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
           <!-- Header -->
           <tr>
             <td style="background:#ffffff;padding:40px 40px;text-align:center;border-bottom:3px solid #E8C042;">
-              <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/img/LOGO_ap_ga.png" width="220" alt="Assaggia & Passeggia" style="display:block;margin:0 auto 10px auto;" />
+              <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/img/LogoAP_GA_nero.png" width="220" alt="Assaggia & Passeggia" style="display:block;margin:0 auto 10px auto;" />
               <div style="color:#283983;font-size:16px;margin-top:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Gasperina, Calabria</div>
             </td>
           </tr>
