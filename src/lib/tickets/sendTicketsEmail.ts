@@ -29,18 +29,11 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   const content = await getPageContent<AssaggiaEPasseggiaContent>('assaggia-e-passeggia', DEFAULT_ASSAGGIA_CONTENT);
 
   let menuPdfBuffer: Buffer | null = null;
-  if (content.menu?.pdfUrl) {
-    try {
-      if (content.menu.pdfUrl.startsWith('http')) {
-        const response = await fetch(content.menu.pdfUrl);
-        menuPdfBuffer = Buffer.from(await response.arrayBuffer());
-      } else {
-        const filePath = path.join(process.cwd(), 'public', content.menu.pdfUrl.replace(/^\//, ''));
-        menuPdfBuffer = fs.readFileSync(filePath);
-      }
-    } catch (err) {
-      console.error('Failed to load menu PDF:', err);
-    }
+  try {
+    const filePath = path.join(process.cwd(), 'public', 'A_and_P_menu_mail.pdf');
+    menuPdfBuffer = fs.readFileSync(filePath);
+  } catch (err) {
+    console.error('Failed to load menu PDF:', err);
   }
 
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
