@@ -102,10 +102,9 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
 
           <!-- Header -->
           <tr>
-            <td style="background:#283983;padding:40px 40px;text-align:center;">
-              <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/img/logo_white_fg.png" width="120" alt="Pro Loco Gasperina" style="display:block;margin:0 auto 20px auto;" />
-              <h1 style="color:#ffffff;margin:0;font-size:32px;font-weight:700;letter-spacing:-0.5px;">Assaggia &amp; Passeggia</h1>
-              <div style="color:#E8C042;font-size:16px;margin-top:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Gasperina, Calabria</div>
+            <td style="background:#ffffff;padding:40px 40px;text-align:center;border-bottom:3px solid #E8C042;">
+              <img src="${process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it'}/img/LOGO_ap_ga.png" width="220" alt="Assaggia & Passeggia" style="display:block;margin:0 auto 10px auto;" />
+              <div style="color:#283983;font-size:16px;margin-top:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Gasperina, Calabria</div>
             </td>
           </tr>
 
@@ -113,9 +112,9 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
           <tr>
             <td style="background:#ffffff;padding:40px;">
               <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Ciao ${order.buyerName}!</p>
-              <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
-                La tua prenotazione è andata a buon fine. Trovi in allegato il PDF della tua <strong>ricevuta di prenotazione</strong>, valido per ritirare i tuoi biglietti fisici.${hasMenu ? ' Troverai anche un PDF aggiuntivo con il <strong>Menù della serata</strong>.' : ''}
-              </p>
+              <div style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
+                La tua prenotazione è confermata! ${hasMenu ? 'Trovi in allegato <strong>due documenti in PDF</strong>:<br/><br/>🍷 <strong>Il Menù della serata</strong> con tutte le tappe del percorso.<br/>🎟 <strong>La tua ricevuta di prenotazione</strong>, valida per ritirare i biglietti fisici.' : 'Trovi in allegato il PDF della tua <strong>ricevuta di prenotazione</strong>, valido per ritirare i tuoi biglietti fisici.'}
+              </div>
 
               <!-- Order Summary -->
               <div style="background:#F9F3E4;border-radius:12px;padding:24px;margin-bottom:28px;border:1px solid #e8d9b8;">
