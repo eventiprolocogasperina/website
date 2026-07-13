@@ -193,7 +193,11 @@ export async function getDiscountByCode(code: string): Promise<Discount | null> 
       AND (expiry_date IS NULL OR expiry_date > CURRENT_TIMESTAMP)
   `;
   if (discounts.length === 0) return null;
-  return discounts[0] as Discount;
+  const d = discounts[0];
+  return {
+    ...d,
+    value: typeof d.value === 'string' ? parseFloat(d.value) : d.value
+  } as Discount;
 }
 
 export async function incrementDiscountUses(id: string) {

@@ -10,7 +10,11 @@ export async function GET() {
   try {
     const sql = getDb();
     const discounts = await sql`SELECT * FROM discounts ORDER BY created_at DESC`;
-    return NextResponse.json(discounts);
+    const formatted = discounts.map(d => ({
+      ...d,
+      value: typeof d.value === 'string' ? parseFloat(d.value) : d.value
+    }));
+    return NextResponse.json(formatted);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
