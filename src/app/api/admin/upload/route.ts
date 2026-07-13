@@ -31,8 +31,7 @@ export async function POST(request: Request) {
       cloudinary.uploader.upload_stream(
         {
           folder,
-          resource_type: 'image',
-          transformation: [{ quality: 'auto', fetch_format: 'auto' }],
+          resource_type: 'auto',
         },
         (error, result) => {
           if (error || !result) return reject(error);
