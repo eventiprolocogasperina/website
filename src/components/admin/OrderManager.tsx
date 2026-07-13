@@ -183,6 +183,14 @@ export default function OrderManager() {
   // Calculate totals
   const paidOrders = filteredOrders.filter(o => o.status === 'PAID');
   const totalTickets = paidOrders.reduce((acc, o) => acc + o.tickets.length, 0);
+  
+  const ticketTypesCount = paidOrders.reduce((acc, o) => {
+    o.tickets.forEach(t => {
+      acc[t.type] = (acc[t.type] || 0) + 1;
+    });
+    return acc;
+  }, {} as Record<string, number>);
+
   const totalRevenue = paidOrders.reduce((acc, o) => acc + o.totalAmount, 0);
   const freeOrdersCount = paidOrders.filter(o => o.totalAmount === 0).length;
 
@@ -194,6 +202,16 @@ export default function OrderManager() {
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Biglietti Venduti</div>
           <div style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--white)', lineHeight: 1 }}>{totalTickets}</div>
+          {Object.keys(ticketTypesCount).length > 0 && (
+            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--neutral-700)', fontSize: '0.85rem', color: 'var(--neutral-300)' }}>
+              {Object.entries(ticketTypesCount).map(([type, count]) => (
+                <div key={type} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span>{type}:</span>
+                  <span style={{ fontWeight: 600 }}>{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Incasso Totale</div>
