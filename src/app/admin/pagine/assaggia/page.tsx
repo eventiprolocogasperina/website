@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, GripVertical, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Save, Plus, Trash2, GripVertical, AlertCircle, CheckCircle2, ArrowLeft, Upload } from 'lucide-react';
 import Link from 'next/link';
 import type { AssaggiaEPasseggiaContent } from '@/lib/data/pages';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -11,6 +11,7 @@ export default function AssaggiaAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   useEffect(() => {
     fetch('/api/admin/pages?slug=assaggia-e-passeggia')
@@ -45,6 +46,36 @@ export default function AssaggiaAdminPage() {
       setStatus({ type: 'error', message: e.message });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setUploadingPdf(true);
+    setStatus(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'pro-loco-gasperina/menu');
+      
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const json = await res.json();
+      if (json.success) {
+        if (data) {
+          setData({ ...data, menu: { ...data.menu, pdfUrl: json.url } });
+        }
+        setStatus({ type: 'success', message: 'PDF caricato con successo! Ricordati di cliccare Salva Modifiche.' });
+      } else {
+        throw new Error(json.error || 'Errore durante il caricamento');
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', message: err.message });
+    } finally {
+      setUploadingPdf(false);
     }
   };
 
@@ -209,8 +240,14 @@ export default function AssaggiaAdminPage() {
               <input type="text" className="input" value={data.menu.title} onChange={e => setData({...data, menu: {...data.menu, title: e.target.value}})} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>URL PDF Menu (es. /menu.pdf o https://...)</label>
-              <input type="text" className="input" placeholder="Lascia vuoto per non allegare il menu" value={data.menu.pdfUrl || ''} onChange={e => setData({...data, menu: {...data.menu, pdfUrl: e.target.value}})} />
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>PDF Menu (Allegato Email)</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input type="text" className="input" style={{ flex: 1 }} placeholder="Nessun file caricato (Incolla un URL o carica un file)" value={data.menu.pdfUrl || ''} onChange={e => setData({...data, menu: {...data.menu, pdfUrl: e.target.value}})} />
+                <label className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: uploadingPdf ? 'not-allowed' : 'pointer' }}>
+                  <Upload size={16} /> {uploadingPdf ? 'Caricamento...' : 'Carica File PDF'}
+                  <input type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handlePdfUpload} disabled={uploadingPdf} />
+                </label>
+              </div>
             </div>
           </div>
           
