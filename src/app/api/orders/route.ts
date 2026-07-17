@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createOrderWithTickets, markOrderPaid, getOrder } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
+import { sendTelegramNotification } from '@/lib/telegram';
 
 export async function POST(request: Request) {
   try {
@@ -38,12 +39,36 @@ export async function POST(request: Request) {
       status: isFree ? 'PAID' : 'PENDING'
     }, ticketsToCreate);
 
+    const ticketsSummary = cart.map((item: any) => `${item.quantity}x ${item.type}`).join(', ');
+
     if (isFree) {
+      await sendTelegramNotification(
+        `🎉 <b>Nuovo Ordine (OMAGGIO)</b>\n\n` +
+        `👤 <b>Nome:</b> ${buyerName}\n` +
+        `📧 <b>Email:</b> ${buyerEmail}\n` +
+        `📞 <b>Tel:</b> ${buyerPhone}\n` +
+        `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
+        `💰 <b>Totale:</b> €0.00\n` +
+        `✅ <b>Stato:</b> PAGATO (Omaggio)\n` +
+        `🆔 <b>Ordine:</b> #${orderId.substring(0, 8).toUpperCase()}`
+      );
+      
       await markOrderPaid(orderId);
       const order = await getOrder(orderId);
       if (order) {
         await sendTicketsEmail(order);
       }
+    } else {
+      await sendTelegramNotification(
+        `⏳ <b>Ordine Creato (In attesa di pagamento)</b>\n\n` +
+        `👤 <b>Nome:</b> ${buyerName}\n` +
+        `📧 <b>Email:</b> ${buyerEmail}\n` +
+        `📞 <b>Tel:</b> ${buyerPhone}\n` +
+        `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
+        `💰 <b>Totale:</b> €${totalAmount.toFixed(2)}\n` +
+        `🔄 <b>Stato:</b> PENDING\n` +
+        `🆔 <b>Ordine:</b> #${orderId.substring(0, 8).toUpperCase()}`
+      );
     }
 
     return NextResponse.json({ success: true, orderId, status: isFree ? 'PAID' : 'PENDING' });

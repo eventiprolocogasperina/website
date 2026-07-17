@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { markOrderPaidByCodTrans, getOrder } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
+import { sendTelegramNotification } from '@/lib/telegram';
 
 const NEXI_MAC_KEY = process.env.NEXI_MAC_KEY || 'YOUR_SECRET_MAC_KEY';
 
@@ -41,9 +42,27 @@ export async function GET(request: Request) {
       // Fetch full order with tickets and send PDF email (non-blocking on failure)
       try {
         const order = await getOrder(orderId);
-        if (order) await sendTicketsEmail(order);
+        if (order) {
+          await sendTicketsEmail(order);
+          
+          const ticketsSummary = order.tickets.reduce((acc, t) => {
+            acc[t.type] = (acc[t.type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          const ticketsList = Object.entries(ticketsSummary).map(([type, count]) => `${count}x ${type}`).join(', ');
+
+          await sendTelegramNotification(
+            `✅ <b>Ordine PAGATO (Nexi)</b>\n\n` +
+            `👤 <b>Nome:</b> ${order.buyerName}\n` +
+            `📧 <b>Email:</b> ${order.buyerEmail}\n` +
+            `📞 <b>Tel:</b> ${order.buyerPhone || 'N/D'}\n` +
+            `🎟 <b>Biglietti:</b> ${ticketsList}\n` +
+            `💰 <b>Totale:</b> €${order.totalAmount.toFixed(2)}\n` +
+            `💳 <b>Transazione:</b> ${codTrans}`
+          );
+        }
       } catch (emailErr) {
-        console.error('Email send failed (non-fatal):', emailErr);
+        console.error('Email or Telegram notification failed (non-fatal):', emailErr);
       }
 
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
@@ -54,6 +73,19 @@ export async function GET(request: Request) {
     }
   } else {
     // Payment failed or cancelled
+    try {
+      const order = await getOrder(codTrans);
+      if (order) {
+        await sendTelegramNotification(
+          `❌ <b>Pagamento FALLITO o ANNULLATO</b>\n\n` +
+          `👤 <b>Nome:</b> ${order.buyerName}\n` +
+          `💰 <b>Totale:</b> €${order.totalAmount.toFixed(2)}\n` +
+          `💳 <b>Transazione:</b> ${codTrans}`
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
     return NextResponse.redirect(`${baseUrl}/assaggia-e-passeggia/ticket?error=payment_failed`);
   }
