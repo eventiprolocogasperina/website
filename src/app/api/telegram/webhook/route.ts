@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAdvancedTicketingStats } from '@/lib/data/tickets';
+import { getAdvancedTicketingStats, getLatestOrdersTelegram } from '@/lib/data/tickets';
 import { sendTelegramNotification } from '@/lib/telegram';
 
 export async function POST(request: Request) {
@@ -19,8 +19,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true }); // Restituisce OK a Telegram per evitare retry
       }
 
-      // Comandi consentiti
-      if (text.startsWith('/stats') || text.startsWith('/ordini')) {
+      // Comando /stats
+      if (text.startsWith('/stats')) {
         const stats = await getAdvancedTicketingStats('assaggia-passeggia');
         
         const typeBreakdown = stats.ticketTypes
@@ -35,6 +35,33 @@ export async function POST(request: Request) {
                       `<i>Aggiornato in tempo reale.</i>`;
 
         await sendTelegramNotification(reply);
+      }
+      
+      // Comando /ordini
+      if (text.startsWith('/ordini')) {
+        const orders = await getLatestOrdersTelegram('assaggia-passeggia', 15);
+        
+        if (orders.length === 0) {
+          await sendTelegramNotification(`ℹ️ Nessun ordine pagato trovato.`);
+        } else {
+          let reply = `📦 <b>ULTIMI 15 ORDINI PAGATI</b> 📦\n\n`;
+          
+          orders.forEach((o, i) => {
+            const ticketSummary = o.tickets.reduce((acc, t) => {
+              acc[t.type] = (acc[t.type] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            const ticketStr = Object.entries(ticketSummary).map(([type, count]) => `${count}x ${type}`).join(', ');
+            
+            const date = new Date(o.createdAt).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+            
+            reply += `<b>${i+1}. ${o.buyerName}</b>\n`;
+            reply += `📅 ${date} - €${o.totalAmount.toFixed(2)}\n`;
+            reply += `🎟 ${ticketStr}\n\n`;
+          });
+
+          await sendTelegramNotification(reply);
+        }
       }
     }
 

@@ -223,6 +223,38 @@ export async function getAdvancedTicketingStats(eventId: string) {
   };
 }
 
+export async function getLatestOrdersTelegram(eventId: string, limit: number = 15) {
+  const sql = getDb();
+  
+  const ordersRes = await sql`
+    SELECT o.* 
+    FROM orders o
+    WHERE o.id IN (
+      SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
+    ) AND o.status = 'PAID'
+    ORDER BY o."createdAt" DESC
+    LIMIT ${limit}
+  `;
+
+  if (ordersRes.length === 0) return [];
+
+  const orderIds = ordersRes.map(o => o.id);
+  const ticketsRes = await sql`
+    SELECT "orderId", type, price 
+    FROM tickets 
+    WHERE "orderId" = ANY(${orderIds})
+  `;
+
+  return ordersRes.map(order => {
+    const orderTickets = ticketsRes.filter(t => t.orderId === order.id);
+    return {
+      ...order,
+      totalAmount: Number(order.totalAmount),
+      tickets: orderTickets
+    };
+  });
+}
+
 export interface Discount {
   id: string;
   code: string;
