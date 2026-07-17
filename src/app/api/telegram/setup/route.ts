@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
 
-  if (!botToken || !baseUrl) {
-    return NextResponse.json({ error: 'Configurazione mancante (TELEGRAM_BOT_TOKEN o NEXT_PUBLIC_BASE_URL)' }, { status: 400 });
+  if (!botToken) {
+    return NextResponse.json({ error: 'Errore: TELEGRAM_BOT_TOKEN non è stato inserito nelle Environment Variables di Vercel.' }, { status: 400 });
   }
 
   const webhookUrl = `${baseUrl}/api/telegram/webhook`;
