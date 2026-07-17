@@ -47,7 +47,7 @@ export async function POST(request: Request) {
           let reply = `📦 <b>ULTIMI 15 ORDINI PAGATI</b> 📦\n\n`;
           
           orders.forEach((o, i) => {
-            const ticketSummary = o.tickets.reduce((acc, t) => {
+            const ticketSummary = o.tickets.reduce((acc: Record<string, number>, t: any) => {
               acc[t.type] = (acc[t.type] || 0) + 1;
               return acc;
             }, {} as Record<string, number>);
