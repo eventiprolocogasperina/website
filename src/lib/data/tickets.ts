@@ -223,7 +223,7 @@ export async function getAdvancedTicketingStats(eventId: string) {
   };
 }
 
-export async function getLatestOrdersTelegram(eventId: string, limit: number = 15) {
+export async function getLatestOrdersTelegram(eventId: string, limit: number = 15): Promise<any[]> {
   const sql = getDb();
   
   const ordersRes = await sql`
