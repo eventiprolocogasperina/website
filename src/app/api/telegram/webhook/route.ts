@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
       // Comandi consentiti
       if (text.startsWith('/stats') || text.startsWith('/ordini')) {
-        const stats = await getAdvancedTicketingStats('assaggia-e-passeggia');
+        const stats = await getAdvancedTicketingStats('assaggia-passeggia');
         
         const typeBreakdown = stats.ticketTypes
           .map(t => `▪️ <b>${t.type}:</b> ${t.count}`)
