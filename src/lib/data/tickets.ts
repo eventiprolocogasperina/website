@@ -172,6 +172,57 @@ export async function getTicketingStats(eventId: string) {
   };
 }
 
+export async function getAdvancedTicketingStats(eventId: string) {
+  const sql = getDb();
+  
+  // Totali Generali
+  const totalsRes = await sql`
+    SELECT 
+      COUNT(t.id) as total_tickets, 
+      COALESCE(SUM(o."totalAmount"), 0) as total_revenue,
+      COUNT(DISTINCT CASE WHEN o."totalAmount" = 0 THEN o.id END) as free_orders
+    FROM orders o
+    LEFT JOIN tickets t ON t."orderId" = o.id
+    WHERE t."eventId" = ${eventId} AND o.status = 'PAID'
+  `;
+
+  // Suddivisione per Tipologia Biglietto
+  const typeRes = await sql`
+    SELECT t.type, COUNT(t.id) as count
+    FROM tickets t
+    JOIN orders o ON t."orderId" = o.id
+    WHERE t."eventId" = ${eventId} AND o.status = 'PAID'
+    GROUP BY t.type
+    ORDER BY count DESC
+  `;
+  
+  // Wait! Note that SUM(o.totalAmount) on a JOIN multiplies the amount by the number of tickets!
+  // It's better to calculate revenue from the orders table directly.
+  
+  const revenueRes = await sql`
+    SELECT COALESCE(SUM("totalAmount"), 0) as total_revenue
+    FROM orders
+    WHERE id IN (
+      SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
+    ) AND status = 'PAID'
+  `;
+  
+  const freeOrdersRes = await sql`
+    SELECT COUNT(id) as free_orders
+    FROM orders
+    WHERE id IN (
+      SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
+    ) AND status = 'PAID' AND "totalAmount" = 0
+  `;
+
+  return {
+    totalTickets: parseInt(totalsRes[0].total_tickets),
+    totalRevenue: parseFloat(revenueRes[0].total_revenue),
+    freeOrders: parseInt(freeOrdersRes[0].free_orders),
+    ticketTypes: typeRes.map(row => ({ type: row.type, count: parseInt(row.count) }))
+  };
+}
+
 export interface Discount {
   id: string;
   code: string;
