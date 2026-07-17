@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
+  
+  // Use the actual host the user used to access this setup route to avoid 307 redirects
+  const protocol = request.headers.get('x-forwarded-proto') || 'https';
+  const host = request.headers.get('host') || 'prolocogasperina.it';
+  const baseUrl = `${protocol}://${host}`;
 
   if (!botToken) {
     return NextResponse.json({ error: 'Errore: TELEGRAM_BOT_TOKEN non è stato inserito nelle Environment Variables di Vercel.' }, { status: 400 });
