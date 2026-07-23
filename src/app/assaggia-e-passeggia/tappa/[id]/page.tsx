@@ -80,7 +80,10 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
             {tappa.introText && (
               <div style={{ paddingBottom: '1.5rem', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                 <ReactMarkdown components={{
-                  p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.7, fontSize: '1.15rem', whiteSpace: 'pre-wrap', margin: 0, fontStyle: 'italic' }} {...props} />,
+                  p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.7, fontSize: '1.15rem', whiteSpace: 'pre-wrap', margin: '0 0 1rem 0', fontStyle: 'italic' }} {...props} />,
+                  ul: ({node, ...props}) => <ul style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'disc', color: '#444', lineHeight: 1.7, fontSize: '1.15rem', fontStyle: 'italic' }} {...props} />,
+                  ol: ({node, ...props}) => <ol style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'decimal', color: '#444', lineHeight: 1.7, fontSize: '1.15rem', fontStyle: 'italic' }} {...props} />,
+                  li: ({node, ...props}) => <li style={{ marginBottom: '0.5rem' }} {...props} />,
                   strong: ({node, ...props}) => <strong style={{ fontWeight: 700, color: '#1a1a1a' }} {...props} />,
                   em: ({node, ...props}) => <em style={{ color: tappa.themeColor }} {...props} />,
                 }}>
@@ -103,6 +106,9 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
               </h2>
               <ReactMarkdown components={{
                 p: ({node, ...props}) => <p style={{ color: '#555', lineHeight: 1.7, fontSize: '1.1rem', whiteSpace: 'pre-wrap', margin: '0 0 1rem 0' }} {...props} />,
+                ul: ({node, ...props}) => <ul style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'disc', color: '#555', lineHeight: 1.7, fontSize: '1.1rem' }} {...props} />,
+                ol: ({node, ...props}) => <ol style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'decimal', color: '#555', lineHeight: 1.7, fontSize: '1.1rem' }} {...props} />,
+                li: ({node, ...props}) => <li style={{ marginBottom: '0.5rem' }} {...props} />,
                 strong: ({node, ...props}) => <strong style={{ fontWeight: 700, color: '#1a1a1a' }} {...props} />,
                 em: ({node, ...props}) => <em style={{ fontStyle: 'italic', color: tappa.themeColor }} {...props} />,
               }}>
@@ -174,7 +180,12 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
                           Ingredienti
                         </h4>
                         <div className="prose prose-sm max-w-none">
-                          <ReactMarkdown components={{ p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }} {...props} /> }}>
+                          <ReactMarkdown components={{ 
+                            p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }} {...props} />,
+                            ul: ({node, ...props}) => <ul style={{ margin: '0.5rem 0 0.5rem 1.5rem', listStyleType: 'disc', color: '#444', lineHeight: 1.6 }} {...props} />,
+                            ol: ({node, ...props}) => <ol style={{ margin: '0.5rem 0 0.5rem 1.5rem', listStyleType: 'decimal', color: '#444', lineHeight: 1.6 }} {...props} />,
+                            li: ({node, ...props}) => <li style={{ marginBottom: '0.25rem' }} {...props} />,
+                          }}>
                             {recipe.ingredients}
                           </ReactMarkdown>
                         </div>
@@ -187,7 +198,12 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
                           Procedimento
                         </h4>
                         <div className="prose prose-sm max-w-none">
-                          <ReactMarkdown components={{ p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: '1rem' }} {...props} /> }}>
+                          <ReactMarkdown components={{ 
+                            p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: '1rem' }} {...props} />,
+                            ul: ({node, ...props}) => <ul style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'disc', color: '#444', lineHeight: 1.7 }} {...props} />,
+                            ol: ({node, ...props}) => <ol style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'decimal', color: '#444', lineHeight: 1.7 }} {...props} />,
+                            li: ({node, ...props}) => <li style={{ marginBottom: '0.5rem' }} {...props} />,
+                          }}>
                             {recipe.instructions}
                           </ReactMarkdown>
                         </div>
@@ -220,7 +236,12 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.2rem', color: '#1a1a1a', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Lo Sapevi Che?</h3>
-                    <ReactMarkdown components={{ p: ({node, ...props}) => <p style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap' }} {...props} /> }}>
+                    <ReactMarkdown components={{ 
+                      p: ({node, ...props}) => <p style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: '0 0 1rem 0' }} {...props} />,
+                      ul: ({node, ...props}) => <ul style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'disc', color: '#555', lineHeight: 1.6 }} {...props} />,
+                      ol: ({node, ...props}) => <ol style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'decimal', color: '#555', lineHeight: 1.6 }} {...props} />,
+                      li: ({node, ...props}) => <li style={{ marginBottom: '0.5rem' }} {...props} />
+                    }}>
                       {tappa.curiosities}
                     </ReactMarkdown>
                   </div>
@@ -240,7 +261,12 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
                   </div>
                   <div>
                     <h3 style={{ fontSize: '1.2rem', color: '#1a1a1a', marginBottom: '0.5rem', fontFamily: 'var(--font-display)' }}>Informazioni</h3>
-                    <ReactMarkdown components={{ p: ({node, ...props}) => <p style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap' }} {...props} /> }}>
+                    <ReactMarkdown components={{ 
+                      p: ({node, ...props}) => <p style={{ color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: '0 0 1rem 0' }} {...props} />,
+                      ul: ({node, ...props}) => <ul style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'disc', color: '#555', lineHeight: 1.6 }} {...props} />,
+                      ol: ({node, ...props}) => <ol style={{ margin: '0.5rem 0 1rem 1.5rem', listStyleType: 'decimal', color: '#555', lineHeight: 1.6 }} {...props} />,
+                      li: ({node, ...props}) => <li style={{ marginBottom: '0.5rem' }} {...props} />
+                    }}>
                       {tappa.extraInfo}
                     </ReactMarkdown>
                   </div>
