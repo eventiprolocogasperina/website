@@ -1,5 +1,16 @@
 import { neon } from '@neondatabase/serverless';
 
+export interface TappaRecipe {
+  id: string;
+  title: string;
+  description?: string;
+  ingredients: string; // Markdown supported
+  instructions: string; // Markdown supported
+  prepTime?: string;
+  difficulty?: string;
+  photoUrl?: string;
+}
+
 export interface AssaggiaEPasseggiaContent {
   hero: {
     badge: string;
@@ -27,6 +38,7 @@ export interface AssaggiaEPasseggiaContent {
     id: string; // "1", "2", ecc
     title: string;
     description: string;
+    recipes?: TappaRecipe[];
     tappaMenu?: {
       dishName: string;
       description: string;

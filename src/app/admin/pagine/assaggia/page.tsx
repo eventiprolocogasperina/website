@@ -108,6 +108,36 @@ export default function AssaggiaAdminPage() {
     }
   };
 
+  const handleRecipePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, tappaIdx: number, recipeIdx: number) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setStatus(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'pro-loco-gasperina/recipes');
+      
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const json = await res.json();
+      if (json.success) {
+        if (data) {
+          const nt = [...data.tappe];
+          if (!nt[tappaIdx].recipes) nt[tappaIdx].recipes = [];
+          nt[tappaIdx].recipes[recipeIdx].photoUrl = json.url;
+          setData({ ...data, tappe: nt });
+        }
+        setStatus({ type: 'success', message: 'Foto ricetta caricata con successo!' });
+      } else {
+        throw new Error(json.error || 'Errore durante il caricamento');
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', message: err.message });
+    }
+  };
+
   const addTappa = () => {
     if (!data) return;
     const newId = String((data.tappe.length > 0 ? Math.max(...data.tappe.map(t => parseInt(t.id) || 0)) : 0) + 1);
@@ -419,6 +449,118 @@ export default function AssaggiaAdminPage() {
                         <span style={{ fontSize: '0.65rem', marginTop: '0.2rem' }}>Carica Foto</span>
                         <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handlePhotoUpload(e, idx)} />
                       </label>
+                    </div>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1', marginTop: '1rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--color-heading)', margin: 0 }}>Ricette della Tappa</h4>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const nt = [...data.tappe];
+                          if (!nt[idx].recipes) nt[idx].recipes = [];
+                          nt[idx].recipes.push({
+                            id: Date.now().toString(),
+                            title: '',
+                            ingredients: '',
+                            instructions: ''
+                          });
+                          setData({ ...data, tappe: nt });
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', padding: '0.4rem 0.75rem', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}
+                      >
+                        <Plus size={14} /> Aggiungi Ricetta
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {(tappa.recipes || []).map((recipe, rIdx) => (
+                        <div key={recipe.id} style={{ padding: '1rem', background: 'rgba(0,0,0,0.02)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', position: 'relative' }}>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const nt = [...data.tappe];
+                              nt[idx].recipes = nt[idx].recipes?.filter((_, i) => i !== rIdx);
+                              setData({ ...data, tappe: nt });
+                            }}
+                            style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Titolo Ricetta</label>
+                              <input type="text" className="input" value={recipe.title} onChange={e => {
+                                const nt = [...data.tappe]; nt[idx].recipes![rIdx].title = e.target.value; setData({...data, tappe: nt});
+                              }}/>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Descrizione / Curiosità (Opzionale)</label>
+                              <textarea className="input" rows={2} value={recipe.description || ''} onChange={e => {
+                                const nt = [...data.tappe]; nt[idx].recipes![rIdx].description = e.target.value; setData({...data, tappe: nt});
+                              }}/>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                              <div>
+                                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Ingredienti (Supporta Markdown)</label>
+                                <textarea className="input" rows={4} value={recipe.ingredients} onChange={e => {
+                                  const nt = [...data.tappe]; nt[idx].recipes![rIdx].ingredients = e.target.value; setData({...data, tappe: nt});
+                                }}/>
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Procedimento (Supporta Markdown)</label>
+                                <textarea className="input" rows={4} value={recipe.instructions} onChange={e => {
+                                  const nt = [...data.tappe]; nt[idx].recipes![rIdx].instructions = e.target.value; setData({...data, tappe: nt});
+                                }}/>
+                              </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                              <div>
+                                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Tempo di Prep. (es. 30 min)</label>
+                                <input type="text" className="input" value={recipe.prepTime || ''} onChange={e => {
+                                  const nt = [...data.tappe]; nt[idx].recipes![rIdx].prepTime = e.target.value; setData({...data, tappe: nt});
+                                }}/>
+                              </div>
+                              <div>
+                                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Difficoltà (es. Facile, Media)</label>
+                                <input type="text" className="input" value={recipe.difficulty || ''} onChange={e => {
+                                  const nt = [...data.tappe]; nt[idx].recipes![rIdx].difficulty = e.target.value; setData({...data, tappe: nt});
+                                }}/>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Foto della Ricetta</label>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                {recipe.photoUrl && (
+                                  <div style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                    <img src={recipe.photoUrl} alt="Ricetta" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <button onClick={() => {
+                                      const nt = [...data.tappe];
+                                      nt[idx].recipes![rIdx].photoUrl = undefined;
+                                      setData({ ...data, tappe: nt });
+                                    }} style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(239,68,68,0.9)', color: 'white', border: 'none', borderRadius: '0 0 0 0.5rem', cursor: 'pointer', padding: '0.2rem' }}>
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                )}
+                                <label style={{ width: '80px', height: '80px', border: '2px dashed var(--color-border)', borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text)', opacity: 0.7 }}>
+                                  <Upload size={20} />
+                                  <span style={{ fontSize: '0.65rem', marginTop: '0.2rem', textAlign: 'center' }}>Carica/Cambia</span>
+                                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleRecipePhotoUpload(e, idx, rIdx)} />
+                                </label>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      ))}
+                      {(!tappa.recipes || tappa.recipes.length === 0) && (
+                        <div style={{ fontSize: '0.85rem', color: '#888', fontStyle: 'italic', padding: '1rem', textAlign: 'center', background: 'rgba(0,0,0,0.02)', borderRadius: '0.5rem', border: '1px dashed var(--color-border)' }}>
+                          Nessuna ricetta inserita per questa tappa.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Wine, Utensils, MapPin, ArrowRight, ArrowLeft, AlertCircle, Info, Lightbulb, Camera } from 'lucide-react';
+import { Wine, Utensils, MapPin, ArrowRight, ArrowLeft, AlertCircle, Info, Lightbulb, Camera, ChefHat, Clock, Gauge } from 'lucide-react';
 import type { Metadata } from 'next';
 import ReactMarkdown from 'react-markdown';
 import TappaMapClient from '@/components/TappaMapClient';
@@ -132,6 +132,73 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
 
           </div>
         </div>
+
+        {/* Recipes Section */}
+        {tappa.recipes && tappa.recipes.length > 0 && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.75rem', fontFamily: 'var(--font-display)', color: '#1a1a1a', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <ChefHat size={28} color={tappa.themeColor} /> Le Ricette
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              {tappa.recipes.map((recipe, idx) => (
+                <div key={recipe.id} style={{ background: 'white', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                  {recipe.photoUrl && (
+                    <div style={{ width: '100%', height: '250px', position: 'relative' }}>
+                      <img src={recipe.photoUrl} alt={recipe.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                  <div style={{ padding: '2rem' }}>
+                    <h3 style={{ fontSize: '1.5rem', fontFamily: 'var(--font-display)', color: '#1a1a1a', marginBottom: '0.5rem' }}>{recipe.title}</h3>
+                    {recipe.description && (
+                      <p style={{ color: '#666', fontSize: '1rem', fontStyle: 'italic', marginBottom: '1.5rem' }}>{recipe.description}</p>
+                    )}
+                    
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                      {recipe.prepTime && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(0,0,0,0.03)', padding: '0.4rem 0.8rem', borderRadius: '2rem', fontSize: '0.85rem', color: '#555', fontWeight: 500 }}>
+                          <Clock size={16} /> {recipe.prepTime}
+                        </div>
+                      )}
+                      {recipe.difficulty && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(0,0,0,0.03)', padding: '0.4rem 0.8rem', borderRadius: '2rem', fontSize: '0.85rem', color: '#555', fontWeight: 500 }}>
+                          <Gauge size={16} /> {recipe.difficulty}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '2rem' }}>
+                      {/* Ingredienti */}
+                      <div style={{ background: '#fafafa', padding: '1.5rem', borderRadius: '1rem', border: '1px solid #eaeaea' }}>
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1a1a1a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: tappa.themeColor, display: 'inline-block' }}></span>
+                          Ingredienti
+                        </h4>
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown components={{ p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap', margin: 0 }} {...props} /> }}>
+                            {recipe.ingredients}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+
+                      {/* Procedimento */}
+                      <div>
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1a1a1a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: tappa.themeColor, display: 'inline-block' }}></span>
+                          Procedimento
+                        </h4>
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown components={{ p: ({node, ...props}) => <p style={{ color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap', marginBottom: '1rem' }} {...props} /> }}>
+                            {recipe.instructions}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Map Card */}
         <TappaMapClient
