@@ -79,6 +79,35 @@ export default function AssaggiaAdminPage() {
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, tappaIdx: number) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setStatus(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'pro-loco-gasperina/tappe');
+      
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const json = await res.json();
+      if (json.success) {
+        if (data) {
+          const nt = [...data.tappe];
+          nt[tappaIdx].photos = [...(nt[tappaIdx].photos || []), json.url];
+          setData({ ...data, tappe: nt });
+        }
+        setStatus({ type: 'success', message: 'Foto caricata con successo!' });
+      } else {
+        throw new Error(json.error || 'Errore durante il caricamento');
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', message: err.message });
+    }
+  };
+
   const addTappa = () => {
     if (!data) return;
     const newId = String((data.tappe.length > 0 ? Math.max(...data.tappe.map(t => parseInt(t.id) || 0)) : 0) + 1);
@@ -273,8 +302,47 @@ export default function AssaggiaAdminPage() {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Luogo / Via</label>
-                    <input type="text" className="input" value={tappa.location} onChange={e => {
-                      const nt = [...data.tappe]; nt[idx].location = e.target.value; setData({...data, tappe: nt});
+                    <input type="text" className="input" value={typeof tappa.location === 'string' ? tappa.location : (tappa.location?.name || '')} onChange={e => {
+                      const nt = [...data.tappe]; 
+                      if (typeof nt[idx].location === 'object' && nt[idx].location !== null) {
+                        nt[idx].location = { ...(nt[idx].location as any), name: e.target.value };
+                      } else {
+                        nt[idx].location = e.target.value; 
+                      }
+                      setData({...data, tappe: nt});
+                    }}/>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Latitudine Mappa (Es. 38.7423)</label>
+                    <input type="number" step="any" className="input" value={typeof tappa.location === 'object' ? (tappa.location?.lat || '') : ''} onChange={e => {
+                      const nt = [...data.tappe]; 
+                      const oldName = typeof nt[idx].location === 'string' ? nt[idx].location : (nt[idx].location as any)?.name || '';
+                      const oldLng = typeof nt[idx].location === 'object' ? (nt[idx].location as any)?.lng || 0 : 0;
+                      const oldMapLabel = typeof nt[idx].location === 'object' ? (nt[idx].location as any)?.mapLabel || '' : '';
+                      nt[idx].location = { name: oldName, lat: parseFloat(e.target.value) || 0, lng: oldLng, mapLabel: oldMapLabel };
+                      setData({...data, tappe: nt});
+                    }}/>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Longitudine Mappa (Es. 16.4952)</label>
+                    <input type="number" step="any" className="input" value={typeof tappa.location === 'object' ? (tappa.location?.lng || '') : ''} onChange={e => {
+                      const nt = [...data.tappe]; 
+                      const oldName = typeof nt[idx].location === 'string' ? nt[idx].location : (nt[idx].location as any)?.name || '';
+                      const oldLat = typeof nt[idx].location === 'object' ? (nt[idx].location as any)?.lat || 0 : 0;
+                      const oldMapLabel = typeof nt[idx].location === 'object' ? (nt[idx].location as any)?.mapLabel || '' : '';
+                      nt[idx].location = { name: oldName, lat: oldLat, lng: parseFloat(e.target.value) || 0, mapLabel: oldMapLabel };
+                      setData({...data, tappe: nt});
+                    }}/>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Etichetta Segnaposto (es. Virgileḍu)</label>
+                    <input type="text" className="input" value={typeof tappa.location === 'object' ? (tappa.location?.mapLabel || '') : ''} onChange={e => {
+                      const nt = [...data.tappe]; 
+                      const oldName = typeof nt[idx].location === 'string' ? nt[idx].location : (nt[idx].location as any)?.name || '';
+                      const oldLat = typeof nt[idx].location === 'object' ? (nt[idx].location as any)?.lat || 0 : 0;
+                      const oldLng = typeof nt[idx].location === 'object' ? (nt[idx].location as any)?.lng || 0 : 0;
+                      nt[idx].location = { name: oldName, lat: oldLat, lng: oldLng, mapLabel: e.target.value };
+                      setData({...data, tappe: nt});
                     }}/>
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
@@ -287,6 +355,12 @@ export default function AssaggiaAdminPage() {
                     <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Allergeni (es: Glutine, Lattosio)</label>
                     <input type="text" className="input" value={tappa.allergens || ''} onChange={e => {
                       const nt = [...data.tappe]; nt[idx].allergens = e.target.value; setData({...data, tappe: nt});
+                    }}/>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Testo Introduttivo (Opzionale)</label>
+                    <textarea className="input" rows={2} value={tappa.introText || ''} onChange={e => {
+                      const nt = [...data.tappe]; nt[idx].introText = e.target.value; setData({...data, tappe: nt});
                     }}/>
                   </div>
                   <div>
@@ -325,12 +399,27 @@ export default function AssaggiaAdminPage() {
                     }}/>
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>URL Foto (separate da virgola, Opzionale)</label>
-                    <input type="text" className="input" value={(tappa.photos || []).join(', ')} onChange={e => {
-                      const nt = [...data.tappe]; 
-                      nt[idx].photos = e.target.value.split(',').map(s => s.trim()).filter(s => s); 
-                      setData({...data, tappe: nt});
-                    }}/>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Foto della Tappa</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      {(tappa.photos || []).map((photoUrl, pIdx) => (
+                        <div key={pIdx} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                          <img src={photoUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button onClick={() => {
+                            const nt = [...data.tappe];
+                            nt[idx].photos = (nt[idx].photos || []).filter((_, i) => i !== pIdx);
+                            setData({ ...data, tappe: nt });
+                          }} style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(239,68,68,0.9)', color: 'white', border: 'none', borderRadius: '0 0 0 0.5rem', cursor: 'pointer', padding: '0.2rem' }}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      
+                      <label style={{ width: '80px', height: '80px', border: '2px dashed var(--color-border)', borderRadius: '0.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text)', opacity: 0.7 }}>
+                        <Upload size={20} />
+                        <span style={{ fontSize: '0.65rem', marginTop: '0.2rem' }}>Carica Foto</span>
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handlePhotoUpload(e, idx)} />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>

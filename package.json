@@ -25,6 +25,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.75.0",
     "react-leaflet": "^5.0.0",
+    "react-markdown": "^10.1.0",
     "resend": "^6.12.3",
     "yet-another-react-lightbox": "^3.32.0",
     "zod": "^4.4.3"

@@ -27,11 +27,23 @@ export interface AssaggiaEPasseggiaContent {
     id: string; // "1", "2", ecc
     title: string;
     description: string;
+    tappaMenu?: {
+      dishName: string;
+      description: string;
+      ingredients?: string;
+    };
     wineName: string;
     wineryName: string;
-    location: string;
+    location: string | {
+      name: string;
+      lat: number;
+      lng: number;
+      mapLabel?: string;
+      googleMapsUrl?: string;
+    };
     themeColor: string; // es: "var(--blue-500)"
     allergens?: string; // Nuova prop per gli allergeni
+    introText?: string; // Testo introduttivo della tappa
     curiosities?: string;
     extraInfo?: string;
     photos?: string[]; // Array of photo URLs
