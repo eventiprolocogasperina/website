@@ -205,7 +205,7 @@ export default async function AssaggiaPasseggiaPage() {
                   <FormattedText as="h3" style={{ fontSize: '1.6rem', color: '#1a1a1a', marginBottom: '0.75rem', fontFamily: 'var(--font-display)', lineHeight: 1.2 }} text={item.title} />
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666', fontSize: '0.9rem', marginBottom: '1rem', fontWeight: 500 }}>
-                     <MapPin size={16} /> {item.location}
+                     <MapPin size={16} /> {typeof item.location === 'string' ? item.location : (item.location?.name || 'Gasperina')}
                   </div>
 
                   <FormattedText 

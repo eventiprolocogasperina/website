@@ -110,7 +110,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
               </ReactMarkdown>
               
               {tappa.allergens && (
-                <div style={{ fontSize: '0.85rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1rem', background: 'rgba(217, 119, 6, 0.1)', padding: '0.5rem 1rem', borderRadius: '0.5rem', display: 'inline-flex' }}>
+                <div style={{ fontSize: '0.85rem', color: '#d97706', alignItems: 'center', gap: '0.4rem', marginTop: '1rem', background: 'rgba(217, 119, 6, 0.1)', padding: '0.5rem 1rem', borderRadius: '0.5rem', display: 'inline-flex' }}>
                   <AlertCircle size={14} /> <strong>Allergeni:</strong> {tappa.allergens}
                 </div>
               )}
