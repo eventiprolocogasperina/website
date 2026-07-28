@@ -15,6 +15,7 @@ export default function TicketPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
   
   const [discountCode, setDiscountCode] = useState('');
   const [discount, setDiscount] = useState<any>(null);
@@ -24,8 +25,25 @@ export default function TicketPage() {
   const updateCart = (id: string, delta: number) => {
     setCart(prev => {
       const current = prev[id] || 0;
-      const next = Math.max(0, current + delta);
-      return { ...prev, [id]: next };
+      let next = Math.max(0, current + delta);
+
+      const fullCount = prev['full'] || 0;
+
+      // Enforce extra <= full
+      if (id === 'extra') {
+        if (next > fullCount) next = fullCount;
+      }
+
+      const newCart = { ...prev, [id]: next };
+
+      if (id === 'full') {
+        const extraCount = newCart['extra'] || 0;
+        if (extraCount > next) {
+          newCart['extra'] = next;
+        }
+      }
+
+      return newCart;
     });
   };
 
@@ -69,18 +87,7 @@ export default function TicketPage() {
     }
   };
 
-  const handleCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (totalItems === 0) {
-      setError('Seleziona almeno un biglietto.');
-      return;
-    }
-    
-    if (!acceptedTerms) {
-      setError('Devi accettare le condizioni sulle intolleranze alimentari.');
-      return;
-    }
-    
+  const processCheckout = async () => {
     setLoading(true);
     setError('');
 
@@ -120,6 +127,29 @@ export default function TicketPage() {
     }
   };
 
+  const handleCheckout = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (totalItems === 0) {
+      setError('Seleziona almeno un biglietto.');
+      return;
+    }
+    
+    if (!acceptedTerms) {
+      setError('Devi accettare le condizioni sulle intolleranze alimentari.');
+      return;
+    }
+
+    const fullCount = cart['full'] || 0;
+    const extraCount = cart['extra'] || 0;
+
+    if (fullCount > extraCount && !showUpsellModal) {
+      setShowUpsellModal(true);
+      return;
+    }
+    
+    await processCheckout();
+  };
+
   return (
     <div style={{ maxWidth: '800px', margin: '4rem auto', padding: '0 1rem' }}>
       <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', marginBottom: '0.5rem', color: '#1a1a1a' }}>
@@ -149,7 +179,7 @@ export default function TicketPage() {
                     <Minus size={24} style={{ pointerEvents: 'none' }} />
                   </button>
                   <span style={{ width: '40px', textAlign: 'center', fontWeight: 700, color: '#1a1a1a', fontSize: '1.25rem' }}>{cart[ticket.id] || 0}</span>
-                  <button type="button" onClick={(e) => { e.preventDefault(); updateCart(ticket.id, 1); }} style={{ width: 48, height: 48, borderRadius: '50%', background: '#1a1a1a', color: 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                  <button type="button" onClick={(e) => { e.preventDefault(); updateCart(ticket.id, 1); }} disabled={ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)} style={{ width: 48, height: 48, borderRadius: '50%', background: (ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)) ? '#f5f5f5' : '#1a1a1a', color: (ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)) ? '#aaa' : 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)) ? 'not-allowed' : 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
                     <Plus size={24} style={{ pointerEvents: 'none' }} />
                   </button>
                 </div>
@@ -239,6 +269,40 @@ export default function TicketPage() {
           </div>
         )}
       </form>
+
+      {showUpsellModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
+          <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', maxWidth: '450px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: '#ef4444' }}>
+              <Plus size={32} />
+            </div>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.75rem', color: '#1a1a1a', fontFamily: 'var(--font-display)' }}>
+              Non dimenticare l'Extra Wine!
+            </h3>
+            <p style={{ color: '#555', fontSize: '1rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+              Hai acquistato {cart['full'] || 0} ticket inter{((cart['full'] || 0) > 1) ? 'i' : 'o'}, ma {(cart['full'] || 0) - (cart['extra'] || 0) === 1 ? 'manca 1' : `mancano ${(cart['full'] || 0) - (cart['extra'] || 0)}`} Extra Wine all'appello. <br /><br />
+              Con soli <strong>5€</strong> potrai degustare <strong>vino illimitato</strong> durante tutto il percorso. Vuoi aggiungerlo ora?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <button onClick={() => {
+                const missing = (cart['full'] || 0) - (cart['extra'] || 0);
+                updateCart('extra', missing);
+                setShowUpsellModal(false);
+              }} style={{ background: '#283983', color: 'white', padding: '1rem', borderRadius: '0.5rem', border: 'none', fontWeight: 600, fontSize: '1.05rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <Plus size={18} />
+                Sì, aggiungi {((cart['full'] || 0) - (cart['extra'] || 0)) === 1 ? 'l\'Extra Wine' : 'gli Extra Wine'}
+              </button>
+              <button onClick={() => {
+                setShowUpsellModal(false);
+                processCheckout();
+              }} style={{ background: 'transparent', color: '#666', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #eaeaea', fontWeight: 600, fontSize: '1rem', cursor: 'pointer' }}>
+                No grazie, procedi senza
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
