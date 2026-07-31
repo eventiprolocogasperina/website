@@ -33,7 +33,7 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   if (content.menu?.pdfUrl) {
     try {
       // Fetch the PDF from the URL stored in the CMS
-      const response = await fetch(content.menu.pdfUrl);
+      const response = await fetch(content.menu.pdfUrl, { cache: 'no-store' });
       if (response.ok) {
         const arrayBuffer = await response.arrayBuffer();
         menuPdfBuffer = Buffer.from(arrayBuffer);

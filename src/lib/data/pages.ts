@@ -141,7 +141,7 @@ function getDb() {
   if (!process.env.POSTGRES_URL) {
     throw new Error('Missing POSTGRES_URL');
   }
-  return neon(process.env.POSTGRES_URL);
+  return neon(process.env.POSTGRES_URL, { fetchOptions: { cache: 'no-store' } });
 }
 
 export async function getPageContent<T>(slug: string, defaultData: T): Promise<T> {
