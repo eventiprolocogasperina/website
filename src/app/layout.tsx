@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Script from "next/script";
+import WhatsAppWidget from "@/components/ui/WhatsAppWidget";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://prolocogasperina.it'),
@@ -59,6 +60,7 @@ export default function RootLayout({
           <Navbar />
           <main>{children}</main>
           <Footer />
+          <WhatsAppWidget />
         </ThemeProvider>
       </body>
     </html>

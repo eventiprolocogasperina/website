@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from 'react';
 import BookingForm from '@/components/events/BookingForm';
 import type { Event, EventLink } from '@/lib/data/events';
 import FormattedText from '@/components/ui/FormattedText';
+import ShareButtons from '@/components/ui/ShareButtons';
 
 // ─── YouTube helpers ──────────────────────────────────────────────────────────
 function extractYoutubeId(url: string): string | null {
@@ -243,6 +244,8 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
               {event.fullDescription.split('\n').filter(Boolean).map((para, i) => (
                 <FormattedText key={i} as="p" style={{ color: 'var(--neutral-300)', lineHeight: 1.8, marginBottom: '0.9rem', fontSize: '0.95rem' }} text={para.trim()} />
               ))}
+
+              <ShareButtons title={event.title} text={tagline} />
 
               {/* ── PDF Attachments ── */}
               {attachments.length > 0 && (

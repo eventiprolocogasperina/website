@@ -30,9 +30,11 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
 
   let menuPdfBuffer: Buffer | null = null;
   
+  // BYPASS: commented out to avoid issues with Cloudinary corrupted files
+  // We use the local fallback file guaranteed to be correct.
+  /*
   if (content.menu?.pdfUrl) {
     try {
-      // Fetch the PDF from the URL stored in the CMS
       const response = await fetch(content.menu.pdfUrl, { cache: 'no-store' });
       if (response.ok) {
         const arrayBuffer = await response.arrayBuffer();
@@ -44,6 +46,7 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
       console.error('Error fetching menu PDF from CMS URL:', err);
     }
   }
+  */
 
   // Fallback to local file if fetch failed or url is empty
   if (!menuPdfBuffer) {

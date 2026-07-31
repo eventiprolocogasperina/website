@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
 import FormattedText from '@/components/ui/FormattedText';
+import ShareButtons from '@/components/ui/ShareButtons';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -91,6 +92,8 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
               <FormattedText key={i} as="p" style={{ marginBottom: '1.5rem' }} text={para.trim()} />
             ))}
           </div>
+          
+          <ShareButtons title={news.title} />
 
           {/* Share / Footer */}
           <div style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
