@@ -9,13 +9,13 @@ const CONTACTS = [
     id: 'tickets',
     name: 'Assistenza Biglietti',
     role: 'Per info su ordini e ticket',
-    number: '393331234567', // TODO: User will provide real number
+    number: '393888693529', // TODO: User will provide real number
   },
   {
     id: 'info',
     name: 'Info Generali',
     role: 'Per domande sulle attività',
-    number: '393331234568', // TODO: User will provide real number
+    number: '393279783232', // TODO: User will provide real number
   }
 ];
 
