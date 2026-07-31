@@ -30,12 +30,17 @@ export async function POST(request: Request) {
 
     // Upload to Cloudinary via stream
     const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+      const options: any = {
+        folder,
+        resource_type: isPdf ? 'raw' : 'auto',
+      };
+      
+      if (isPdf) {
+        options.public_id = file.name;
+      }
+
       cloudinary.uploader.upload_stream(
-        {
-          folder,
-          resource_type: isPdf ? 'raw' : 'auto',
-          public_id: isPdf ? file.name : undefined,
-        },
+        options,
         (error, result) => {
           if (error || !result) return reject(error);
           resolve(result as { secure_url: string; public_id: string });
