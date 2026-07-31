@@ -10,7 +10,7 @@ function getDb() {
 export async function GET() {
   try {
     const sql = getDb();
-    const orders = await sql`SELECT * FROM orders ORDER BY "createdAt" DESC`;
+    const orders = await sql`SELECT * FROM orders WHERE "deletedAt" IS NULL ORDER BY "createdAt" DESC`;
     const tickets = await sql`SELECT * FROM tickets`;
 
     const ordersWithTickets = orders.map(order => ({
@@ -88,11 +88,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
     
-    // Delete tickets first due to foreign key constraints (if any)
-    await sql`DELETE FROM tickets WHERE "orderId" = ${orderId}`;
-    
-    // Delete order
-    await sql`DELETE FROM orders WHERE id = ${orderId}`;
+    // Soft delete order
+    await sql`UPDATE orders SET "deletedAt" = CURRENT_TIMESTAMP WHERE id = ${orderId}`;
 
     return NextResponse.json({ success: true });
   } catch (e: any) {

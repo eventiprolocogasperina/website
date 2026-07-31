@@ -12,6 +12,8 @@ export default function OrderManager() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
+  const [testingOrder, setTestingOrder] = useState(false);
   
   const [showManualOrderModal, setShowManualOrderModal] = useState(false);
   const [manualOrderForm, setManualOrderForm] = useState({
@@ -30,7 +32,8 @@ export default function OrderManager() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/orders');
+      const endpoint = viewMode === 'archived' ? '/api/admin/orders/archived' : '/api/admin/orders';
+      const res = await fetch(endpoint);
       const data = await res.json();
       setOrders(data);
     } catch (err) {
@@ -42,7 +45,7 @@ export default function OrderManager() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [viewMode]);
 
   const handleMarkPaid = async (orderId: string) => {
     if (!confirm('Vuoi segnare questo ordine come pagato? Verrà inviata una email con i biglietti.')) return;
@@ -84,7 +87,7 @@ export default function OrderManager() {
         return;
       }
     } else {
-      if (!confirm('Sei sicuro di voler eliminare questo ordine?')) {
+      if (!confirm('Sei sicuro di voler eliminare questo ordine? Verrà spostato nel Cestino.')) {
         return;
       }
     }
@@ -98,6 +101,39 @@ export default function OrderManager() {
     } catch (err) {
       console.error(err);
       alert('Errore durante l\'eliminazione');
+    }
+  };
+
+  const handleRestoreOrder = async (orderId: string) => {
+    try {
+      const res = await fetch('/api/admin/orders/archived', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, action: 'RESTORE' })
+      });
+      if (!res.ok) throw new Error('Errore ripristino');
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante il ripristino');
+    }
+  };
+
+  const handleCreateTestOrder = async () => {
+    if (!confirm('Vuoi creare un Ordine di Test? Invierà un\'email a vono.niccolo@gmail.com e genererà un ordine di prova.')) return;
+    setTestingOrder(true);
+    try {
+      const res = await fetch('/api/admin/orders/test', {
+        method: 'POST'
+      });
+      if (!res.ok) throw new Error('Errore creazione ordine di test');
+      alert('Ordine di test creato e inviato con successo!');
+      if (viewMode === 'active') fetchOrders();
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante la creazione');
+    } finally {
+      setTestingOrder(false);
     }
   };
 
@@ -248,9 +284,26 @@ export default function OrderManager() {
           </select>
         </div>
         
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button 
+            className={`btn ${viewMode === 'active' ? 'btn-primary' : 'btn-outline'}`}
+            style={{ fontSize: '0.85rem' }} 
+            onClick={() => setViewMode('active')}
+          >
+            Ordini Attivi
+          </button>
+          <button 
+            className={`btn ${viewMode === 'archived' ? 'btn-primary' : 'btn-outline'}`}
+            style={{ fontSize: '0.85rem' }} 
+            onClick={() => setViewMode('archived')}
+          >
+            <Trash2 size={16} /> Cestino
+          </button>
           <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => setShowManualOrderModal(true)}>
             <Plus size={16} /> Ordine Manuale
+          </button>
+          <button className="btn btn-outline" style={{ fontSize: '0.85rem', color: 'var(--blue-400)', borderColor: 'var(--blue-400)' }} onClick={handleCreateTestOrder} disabled={testingOrder}>
+            {testingOrder ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />} Test Order
           </button>
           <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={exportCSV}>
             <Download size={16} /> Esporta CSV
@@ -357,16 +410,28 @@ export default function OrderManager() {
                           </button>
                         </>
                       )}
-                      <button onClick={() => handleEditClick(o)} style={{ color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }} title="Modifica Ordine">
-                        <Edit size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteOrder(o.id, o.status)} 
-                        style={{ color: 'var(--red-400)', background: 'none', border: 'none', cursor: 'pointer' }} 
-                        title="Elimina Ordine"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {viewMode === 'archived' ? (
+                        <button 
+                          onClick={() => handleRestoreOrder(o.id)} 
+                          style={{ color: 'var(--green-400)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', fontWeight: 600 }} 
+                          title="Ripristina Ordine"
+                        >
+                          Ripristina
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={() => handleEditClick(o)} style={{ color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }} title="Modifica Ordine">
+                            <Edit size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteOrder(o.id, o.status)} 
+                            style={{ color: 'var(--red-400)', background: 'none', border: 'none', cursor: 'pointer' }} 
+                            title="Elimina Ordine"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -66,7 +66,7 @@ export async function createOrderWithTickets(order: Omit<Order, 'createdAt'>, ti
 export async function getOrder(id: string): Promise<OrderWithTickets | null> {
   const sql = getDb();
   
-  const orders = await sql`SELECT * FROM orders WHERE id = ${id}`;
+  const orders = await sql`SELECT * FROM orders WHERE id = ${id} AND "deletedAt" IS NULL`;
   if (orders.length === 0) return null;
 
   const tickets = await sql`SELECT * FROM tickets WHERE "orderId" = ${id}`;
@@ -155,14 +155,14 @@ export async function getTicketingStats(eventId: string) {
     SELECT COUNT(*) as count, SUM(price) as revenue 
     FROM tickets t
     JOIN orders o ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID'
+    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND o."deletedAt" IS NULL
   `;
   
   const checkedInRes = await sql`
     SELECT COUNT(*) as count 
     FROM tickets t
     JOIN orders o ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND t."isCheckedIn" = true
+    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND t."isCheckedIn" = true AND o."deletedAt" IS NULL
   `;
 
   return {
@@ -183,7 +183,7 @@ export async function getAdvancedTicketingStats(eventId: string) {
       COUNT(DISTINCT CASE WHEN o."totalAmount" = 0 THEN o.id END) as free_orders
     FROM orders o
     LEFT JOIN tickets t ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID'
+    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND o."deletedAt" IS NULL
   `;
 
   // Suddivisione per Tipologia Biglietto
@@ -191,7 +191,7 @@ export async function getAdvancedTicketingStats(eventId: string) {
     SELECT t.type, COUNT(t.id) as count
     FROM tickets t
     JOIN orders o ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID'
+    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND o."deletedAt" IS NULL
     GROUP BY t.type
     ORDER BY count DESC
   `;
@@ -204,7 +204,7 @@ export async function getAdvancedTicketingStats(eventId: string) {
     FROM orders
     WHERE id IN (
       SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
-    ) AND status = 'PAID'
+    ) AND status = 'PAID' AND "deletedAt" IS NULL
   `;
   
   const freeOrdersRes = await sql`
@@ -212,7 +212,7 @@ export async function getAdvancedTicketingStats(eventId: string) {
     FROM orders
     WHERE id IN (
       SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
-    ) AND status = 'PAID' AND "totalAmount" = 0
+    ) AND status = 'PAID' AND "totalAmount" = 0 AND "deletedAt" IS NULL
   `;
 
   return {
@@ -231,7 +231,7 @@ export async function getLatestOrdersTelegram(eventId: string, limit: number = 1
     FROM orders o
     WHERE o.id IN (
       SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
-    ) AND o.status = 'PAID'
+    ) AND o.status = 'PAID' AND o."deletedAt" IS NULL
     ORDER BY o."createdAt" DESC
     LIMIT ${limit}
   `;
