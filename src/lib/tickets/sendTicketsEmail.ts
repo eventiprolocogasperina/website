@@ -29,11 +29,30 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   const content = await getPageContent<AssaggiaEPasseggiaContent>('assaggia-e-passeggia', DEFAULT_ASSAGGIA_CONTENT);
 
   let menuPdfBuffer: Buffer | null = null;
-  try {
-    const filePath = path.join(process.cwd(), 'public', 'A_and_P_menu_mail.pdf');
-    menuPdfBuffer = fs.readFileSync(filePath);
-  } catch (err) {
-    console.error('Failed to load menu PDF:', err);
+  
+  if (content.menu?.pdfUrl) {
+    try {
+      // Fetch the PDF from the URL stored in the CMS
+      const response = await fetch(content.menu.pdfUrl);
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        menuPdfBuffer = Buffer.from(arrayBuffer);
+      } else {
+        console.error('Failed to fetch menu PDF from CMS URL:', content.menu.pdfUrl, response.statusText);
+      }
+    } catch (err) {
+      console.error('Error fetching menu PDF from CMS URL:', err);
+    }
+  }
+
+  // Fallback to local file if fetch failed or url is empty
+  if (!menuPdfBuffer) {
+    try {
+      const filePath = path.join(process.cwd(), 'public', 'A_and_P_menu_mail.pdf');
+      menuPdfBuffer = fs.readFileSync(filePath);
+    } catch (err) {
+      console.error('Failed to load local menu PDF:', err);
+    }
   }
 
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
