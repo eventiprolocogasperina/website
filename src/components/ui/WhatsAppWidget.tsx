@@ -1,29 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, ChevronRight } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 
-const CONTACTS = [
-  {
-    id: 'tickets',
-    name: 'Assistenza Biglietti',
-    role: 'Per info su ordini e ticket',
-    number: '393888693529', // TODO: User will provide real number
-  },
-  {
-    id: 'info',
-    name: 'Info Generali',
-    role: 'Per domande sulle attività',
-    number: '393279783232', // TODO: User will provide real number
-  }
-];
+interface SupportTopic {
+  id: string;
+  label: string;
+  phone: string;
+}
 
 export default function WhatsAppWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [topics, setTopics] = useState<SupportTopic[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Form State
+  const [name, setName] = useState('');
+  const [selectedTopicId, setSelectedTopicId] = useState('');
 
-  const openWhatsApp = (number: string) => {
-    window.open(`https://wa.me/${number}`, '_blank');
+  // Fetch topics and listen for custom event
+  useEffect(() => {
+    // Listen for custom event to open widget from elsewhere (e.g. BookingForm)
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-whatsapp', handleOpen);
+
+    return () => window.removeEventListener('open-whatsapp', handleOpen);
+  }, []);
+
+  // Fetch topics when widget opens for the first time
+  useEffect(() => {
+    if (isOpen && topics.length === 0) {
+      setLoading(true);
+      fetch('/api/support-topics')
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && d.data) {
+            setTopics(d.data);
+            if (d.data.length > 0) {
+              setSelectedTopicId(d.data[0].id);
+            }
+          }
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen, topics.length]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const topic = topics.find(t => t.id === selectedTopicId);
+    if (!topic || !topic.phone) return;
+
+    const message = `Ciao, sono ${name.trim()}. Vorrei ricevere assistenza in merito a: ${topic.label}.`;
+    window.open(`https://wa.me/${topic.phone}?text=${encodeURIComponent(message)}`, '_blank');
     setIsOpen(false);
   };
 
@@ -49,16 +80,16 @@ export default function WhatsAppWidget() {
               background: 'var(--neutral-900)',
               border: '1px solid var(--neutral-800)',
               borderRadius: '16px',
-              padding: '1rem',
+              padding: '1.25rem',
               marginBottom: '1rem',
-              width: '280px',
+              width: '300px',
               boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-heading)', margin: 0 }}>Chatta con noi</h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', margin: '0.2rem 0 0 0' }}>Scegli a chi scrivere su WhatsApp</p>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--color-heading)', margin: 0 }}>Assistenza</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', margin: '0.2rem 0 0 0' }}>Di cosa hai bisogno?</p>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
@@ -71,35 +102,49 @@ export default function WhatsAppWidget() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {CONTACTS.map((contact) => (
-                <button
-                  key={contact.id}
-                  onClick={() => openWhatsApp(contact.number)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    width: '100%', padding: '0.75rem', borderRadius: '12px',
-                    background: 'var(--neutral-950)', border: '1px solid var(--neutral-800)',
-                    cursor: 'pointer', transition: 'all 0.2s ease',
-                    textAlign: 'left'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#25D366';
-                    e.currentTarget.style.background = 'rgba(37, 211, 102, 0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--neutral-800)';
-                    e.currentTarget.style.background = 'var(--neutral-950)';
-                  }}
+            {loading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                <Loader2 size={24} className="animate-spin" style={{ color: 'var(--neutral-500)' }} />
+              </div>
+            ) : topics.length === 0 ? (
+              <div style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', textAlign: 'center', padding: '1rem 0' }}>
+                Assistenza al momento non disponibile.
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--neutral-300)', marginBottom: '0.3rem', fontWeight: 500 }}>Il tuo nome</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Es. Mario"
+                    style={{ width: '100%', padding: '0.65rem', background: 'var(--neutral-950)', border: '1px solid var(--neutral-800)', borderRadius: 'var(--radius-sm)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--neutral-300)', marginBottom: '0.3rem', fontWeight: 500 }}>Argomento</label>
+                  <select 
+                    value={selectedTopicId}
+                    onChange={(e) => setSelectedTopicId(e.target.value)}
+                    style={{ width: '100%', padding: '0.65rem', background: 'var(--neutral-950)', border: '1px solid var(--neutral-800)', borderRadius: 'var(--radius-sm)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', cursor: 'pointer' }}
+                  >
+                    {topics.map(topic => (
+                      <option key={topic.id} value={topic.id}>{topic.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <button 
+                  type="submit"
+                  disabled={!name.trim()}
+                  className="btn btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', background: '#25D366', color: 'white', marginTop: '0.5rem' }}
                 >
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--color-heading)' }}>{contact.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.1rem' }}>{contact.role}</div>
-                  </div>
-                  <ChevronRight size={16} style={{ color: '#25D366' }} />
+                  <Send size={15} /> Inizia Chat
                 </button>
-              ))}
-            </div>
+              </form>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

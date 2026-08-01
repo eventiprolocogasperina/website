@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Save, Check, X, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, Save, Check, X, ToggleLeft, ToggleRight, Plus, Trash2, MessageCircle } from 'lucide-react';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 interface Settings {
@@ -10,7 +10,14 @@ interface Settings {
   contact_email: string;
   social_instagram: string;
   social_facebook: string;
-  [key: string]: string;
+  whatsapp_topics?: string;
+  [key: string]: string | undefined;
+}
+
+interface SupportTopic {
+  id: string;
+  label: string;
+  phone: string;
 }
 
 export default function AdminImpostazioniPage() {
@@ -19,10 +26,30 @@ export default function AdminImpostazioniPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
+  const [topics, setTopics] = useState<SupportTopic[]>([]);
+
   useEffect(() => {
     fetch('/api/admin/settings')
       .then(r => r.json())
-      .then(d => { if (d.success) setSettings(d.data); })
+      .then(d => { 
+        if (d.success) {
+          setSettings(d.data);
+          if (d.data.whatsapp_topics) {
+            try {
+              setTopics(JSON.parse(d.data.whatsapp_topics));
+            } catch (e) {
+              console.error('Error parsing whatsapp_topics', e);
+            }
+          } else {
+            // Default topics if not found
+            setTopics([
+              { id: 'tickets', label: 'Problemi con i biglietti di A&P', phone: '393888693529' },
+              { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393279783232' },
+              { id: 'pagamenti', label: 'Pagamenti', phone: '393888693529' },
+            ]);
+          }
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -31,10 +58,15 @@ export default function AdminImpostazioniPage() {
     setSaving(true);
     setStatus(null);
     try {
+      const payload = {
+        ...settings,
+        whatsapp_topics: JSON.stringify(topics),
+      };
+
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
@@ -141,6 +173,73 @@ export default function AdminImpostazioniPage() {
                   style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Argomenti Assistenza WhatsApp */}
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MessageCircle size={18} style={{ color: '#25D366' }} /> Argomenti Assistenza WhatsApp
+              </h3>
+              <button 
+                onClick={() => setTopics([...topics, { id: Date.now().toString(), label: '', phone: '' }])}
+                className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+              >
+                <Plus size={14} /> Aggiungi
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {topics.map((topic, idx) => (
+                <div key={topic.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', background: 'var(--neutral-900)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-800)' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--neutral-400)', marginBottom: '0.2rem' }}>Testo Argomento</label>
+                      <input
+                        type="text"
+                        value={topic.label}
+                        onChange={(e) => {
+                          const newTopics = [...topics];
+                          newTopics[idx].label = e.target.value;
+                          setTopics(newTopics);
+                        }}
+                        placeholder="Es. Problemi con l'acquisto"
+                        style={{ width: '100%', padding: '0.6rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-sm)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--neutral-400)', marginBottom: '0.2rem' }}>Numero WhatsApp (Prefisso senza +)</label>
+                      <input
+                        type="text"
+                        value={topic.phone}
+                        onChange={(e) => {
+                          const newTopics = [...topics];
+                          newTopics[idx].phone = e.target.value;
+                          setTopics(newTopics);
+                        }}
+                        placeholder="Es. 393888693529"
+                        style={{ width: '100%', padding: '0.6rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-sm)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const newTopics = topics.filter((_, i) => i !== idx);
+                      setTopics(newTopics);
+                    }}
+                    style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: 'var(--radius-sm)', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Rimuovi"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+              {topics.length === 0 && (
+                <div style={{ color: 'var(--neutral-500)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
+                  Nessun argomento impostato. Gli utenti non potranno usare l'assistenza WhatsApp.
+                </div>
+              )}
             </div>
           </div>
 

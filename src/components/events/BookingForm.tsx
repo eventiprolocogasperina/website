@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Send, CheckCircle, Download, Loader2 } from 'lucide-react';
+import { Send, CheckCircle, Download, Loader2, MessageCircle } from 'lucide-react';
 
 interface BookingFormProps {
   eventId: string;
@@ -155,6 +155,35 @@ info@prolocogasperina.it`;
         {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
         {loading ? 'Elaborazione...' : 'Prenota ora'}
       </button>
+
+      <div style={{
+        marginTop: '1.5rem',
+        padding: '1rem',
+        borderRadius: 'var(--radius-md)',
+        background: 'rgba(37, 211, 102, 0.05)',
+        border: '1px solid rgba(37, 211, 102, 0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '1rem'
+      }}>
+        <div>
+          <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-heading)', margin: 0 }}>Hai difficoltà con l'acquisto?</h4>
+          <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', margin: '0.2rem 0 0 0' }}>Siamo qui per aiutarti.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event('open-whatsapp'))}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.4rem',
+            padding: '0.4rem 0.8rem', borderRadius: 'var(--radius-full)',
+            background: '#25D366', color: 'white', border: 'none',
+            fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer'
+          }}
+        >
+          <MessageCircle size={14} /> Contattaci
+        </button>
+      </div>
     </form>
   );
 }
