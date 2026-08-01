@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 
@@ -11,6 +12,7 @@ interface SupportTopic {
 }
 
 export default function WhatsAppWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [topics, setTopics] = useState<SupportTopic[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,13 +31,16 @@ export default function WhatsAppWidget() {
     return () => window.removeEventListener('open-whatsapp', handleOpen);
   }, []);
 
-  // Show tooltip after a few seconds
+  // Show tooltip after a few seconds ONLY on booking/A&P related pages
   useEffect(() => {
+    const isBookingFlow = pathname?.includes('/assaggia-e-passeggia') || pathname?.includes('/ticket') || pathname?.includes('/eventi');
+    if (!isBookingFlow) return;
+
     const timer = setTimeout(() => {
       setShowTooltip(true);
     }, 4000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [pathname]);
 
   // Hide tooltip when opened
   useEffect(() => {
