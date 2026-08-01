@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Share2, MessageCircle, Link2, Check } from 'lucide-react';
+import { MessageCircle, Link2, Check } from 'lucide-react';
 
 const FacebookIcon = ({ size = 24, color = 'currentColor', ...props }) => (
   <svg
@@ -28,26 +28,10 @@ interface ShareButtonsProps {
 export default function ShareButtons({ title, text }: ShareButtonsProps) {
   const [url, setUrl] = useState('');
   const [copied, setCopied] = useState(false);
-  const [canNativeShare, setCanNativeShare] = useState(false);
 
   useEffect(() => {
     setUrl(window.location.href);
-    if (typeof navigator !== 'undefined' && 'share' in navigator) {
-      setCanNativeShare(true);
-    }
   }, []);
-
-  const handleNativeShare = async () => {
-    try {
-      await navigator.share({
-        title,
-        text: text || title,
-        url,
-      });
-    } catch (err) {
-      console.log('Error sharing:', err);
-    }
-  };
 
   const handleCopyLink = async () => {
     try {
@@ -73,48 +57,31 @@ export default function ShareButtons({ title, text }: ShareButtonsProps) {
         Condividi:
       </span>
 
-      {canNativeShare ? (
-        <button
-          onClick={handleNativeShare}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--neutral-700)', background: 'var(--neutral-800)',
-            color: 'var(--color-text)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
-            transition: 'all 0.2s'
-          }}
-        >
-          <Share2 size={16} /> Condividi
-        </button>
-      ) : (
-        <>
-          <button
-            onClick={shareOnFacebook}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
-              padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)',
-              border: 'none', background: '#1877F2', color: 'white',
-              cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
-              transition: 'all 0.2s'
-            }}
-          >
-            <FacebookIcon size={16} /> Facebook
-          </button>
-          
-          <button
-            onClick={shareOnWhatsApp}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
-              padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)',
-              border: 'none', background: '#25D366', color: 'white',
-              cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
-              transition: 'all 0.2s'
-            }}
-          >
-            <MessageCircle size={16} /> WhatsApp
-          </button>
-        </>
-      )}
+      <button
+        onClick={shareOnFacebook}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '0.4rem',
+          padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)',
+          border: 'none', background: '#1877F2', color: 'white',
+          cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
+          transition: 'all 0.2s'
+        }}
+      >
+        <FacebookIcon size={16} /> Facebook
+      </button>
+      
+      <button
+        onClick={shareOnWhatsApp}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '0.4rem',
+          padding: '0.5rem 1rem', borderRadius: 'var(--radius-full)',
+          border: 'none', background: '#25D366', color: 'white',
+          cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
+          transition: 'all 0.2s'
+        }}
+      >
+        <MessageCircle size={16} /> WhatsApp
+      </button>
 
       <button
         onClick={handleCopyLink}
