@@ -14,6 +14,7 @@ export default function WhatsAppWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [topics, setTopics] = useState<SupportTopic[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   
   // Form State
   const [name, setName] = useState('');
@@ -27,6 +28,19 @@ export default function WhatsAppWidget() {
 
     return () => window.removeEventListener('open-whatsapp', handleOpen);
   }, []);
+
+  // Show tooltip after a few seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowTooltip(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Hide tooltip when opened
+  useEffect(() => {
+    if (isOpen) setShowTooltip(false);
+  }, [isOpen]);
 
   // Fetch topics when widget opens for the first time
   useEffect(() => {
@@ -149,27 +163,80 @@ export default function WhatsAppWidget() {
         )}
       </AnimatePresence>
 
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          background: '#25D366',
-          color: 'white',
-          border: 'none',
-          borderRadius: '50%',
-          width: '60px',
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          boxShadow: '0 4px 14px rgba(37,211,102,0.4)',
-          transition: 'transform 0.2s',
-          transform: isOpen ? 'scale(0.9)' : 'scale(1)',
-        }}
-        aria-label="Apri chat WhatsApp"
-      >
-        {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
-      </button>
+      <div style={{ position: 'relative' }}>
+        <AnimatePresence>
+          {showTooltip && !isOpen && (
+            <motion.div
+              initial={{ opacity: 0, x: 20, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 10, scale: 0.9 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+              style={{
+                position: 'absolute',
+                right: '75px', // slightly offset from the button
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'var(--neutral-900)',
+                color: 'var(--color-text)',
+                padding: '0.6rem 1rem',
+                borderRadius: '12px',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                border: '1px solid var(--neutral-800)',
+                pointerEvents: 'none',
+              }}
+            >
+              Hai bisogno di assistenza? 👋
+              <div style={{
+                position: 'absolute',
+                right: '-6px',
+                top: '50%',
+                marginTop: '-6px',
+                width: 0,
+                height: 0,
+                borderTop: '6px solid transparent',
+                borderBottom: '6px solid transparent',
+                borderLeft: '6px solid var(--neutral-800)',
+              }} />
+              <div style={{
+                position: 'absolute',
+                right: '-5px',
+                top: '50%',
+                marginTop: '-5px',
+                width: 0,
+                height: 0,
+                borderTop: '5px solid transparent',
+                borderBottom: '5px solid transparent',
+                borderLeft: '5px solid var(--neutral-900)',
+              }} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            background: '#25D366',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '60px',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(37,211,102,0.4)',
+            transition: 'transform 0.2s',
+            transform: isOpen ? 'scale(0.9)' : 'scale(1)',
+          }}
+          aria-label="Apri chat WhatsApp"
+        >
+          {isOpen ? <X size={28} /> : <MessageCircle size={28} />}
+        </button>
+      </div>
     </div>
   );
 }
