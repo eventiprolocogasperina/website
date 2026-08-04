@@ -197,6 +197,8 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendingImage, setPendingImage] = useState(false);
+  const [pendingLogo, setPendingLogo] = useState(false);
 
   // ── Attachment helpers ────────────────────────────────────────────────────
   const addAttachment = () => setAttachments(p => [...p, { label: '', url: '' }]);
@@ -264,6 +266,10 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (pendingImage || pendingLogo) {
+      setError("Attenzione: un'immagine è in sospeso. Conferma il ritaglio cliccando su 'Taglia & Carica' o annulla prima di salvare.");
+      return;
+    }
     setLoading(true);
     setError('');
     setJsonError('');
@@ -370,7 +376,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
             {/* ════════════════════════════════════════════════════
                 BLOCCO 1 — Identità evento
             ════════════════════════════════════════════════════ */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div className="admin-grid-2" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label className="label">Titolo dell'evento *</label>
@@ -404,6 +410,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                   label="Immagine di Copertina *"
                   value={formData.image}
                   onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                  onPendingChange={setPendingImage}
                   folder="pro-loco-gasperina/eventi"
                   previewHeight={140}
                 />
@@ -421,9 +428,9 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               <p style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--neutral-600)', fontFamily: 'var(--font-body)', marginBottom: '1rem' }}>
                 Logistica
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div className="admin-grid-2">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.9rem' }}>
+                  <div className="admin-grid-2" style={{ gap: '0.9rem' }}>
                     <div>
                       <label className="label">Data *</label>
                       <input type="date" required className="input" value={formData.date} onChange={handleChange('date')} />
@@ -444,7 +451,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                     <input className="input" value={formData.dateLabel ?? ''} onChange={handleChange('dateLabel')} placeholder="Es. 1–3 agosto 2026" />
                     <p style={{ fontSize: '0.65rem', color: 'var(--neutral-600)', marginTop: '0.35rem' }}>Sovrascrive la data precisa nelle card</p>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.9rem' }}>
+                  <div className="admin-grid-2" style={{ gap: '0.9rem' }}>
                     <div>
                       <label className="label">Prezzo (€)</label>
                       <input type="number" required className="input" value={formData.price} onChange={handleChange('price')} min={0} step={0.5} />
@@ -778,10 +785,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
               border: '1px solid var(--neutral-800)', marginBottom: '0.5rem', overflow: 'hidden',
             }}>
               {/* Compact row: accent color + tagline + hideCapacity */}
-              <div style={{
-                display: 'grid', gridTemplateColumns: '140px 1fr auto auto',
-                gap: '1rem', alignItems: 'center', padding: '1rem 1.25rem',
-              }}>
+              <div className="admin-grid-auto" style={{ padding: '1rem 1.25rem' }}>
                 <div>
                   <label className="label" style={{ marginBottom: '0.4rem' }}>Colore accento</label>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -845,6 +849,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
                     label="Logo Evento (PNG)"
                     value={logoSrc}
                     onChange={(url) => setLogoSrc(url)}
+                    onPendingChange={setPendingLogo}
                     folder="pro-loco-gasperina/eventi-loghi"
                     previewHeight={40}
                   />
@@ -964,7 +969,7 @@ export default function EventForm({ initialData, onClose, onSave, onDelete }: Ev
             <button
               type="submit"
               form="event-form"
-              disabled={loading}
+              disabled={loading || pendingImage || pendingLogo}
               className="btn btn-primary"
               style={{ padding: '0.6rem 1.5rem', fontSize: '0.85rem', minWidth: '140px' }}
             >

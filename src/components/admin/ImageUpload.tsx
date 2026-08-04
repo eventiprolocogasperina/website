@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, Loader2, ImageIcon, Crop as CropIcon, Check } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropImage';
@@ -15,6 +15,8 @@ interface ImageUploadProps {
   label?: string;
   /** Max preview height in px */
   previewHeight?: number;
+  /** Called when there is an un-uploaded image pending crop/upload */
+  onPendingChange?: (isPending: boolean) => void;
 }
 
 export default function ImageUpload({
@@ -23,6 +25,7 @@ export default function ImageUpload({
   folder = 'pro-loco-gasperina',
   label = 'Immagine',
   previewHeight = 200,
+  onPendingChange,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +34,12 @@ export default function ImageUpload({
 
   // Cropper State
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+
+  // Notify parent of pending state
+  useEffect(() => {
+    onPendingChange?.(!!imageSrc);
+  }, [imageSrc, onPendingChange]);
+
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);

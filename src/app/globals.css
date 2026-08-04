@@ -472,3 +472,26 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 901px) {
   #nav-cta { display: inline-flex !important; }
 }
+
+/* ─── Admin Responsive Grids ─────────────────────────────────── */
+.admin-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.admin-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+}
+.admin-grid-auto {
+  display: grid;
+  grid-template-columns: 140px 1fr auto auto;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .admin-grid-2, .admin-grid-3, .admin-grid-auto {
+    grid-template-columns: 1fr;
+  }
+}

@@ -30,6 +30,7 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendingImage, setPendingImage] = useState(false);
 
   const handleChange = (field: keyof NewsArticle) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -47,6 +48,10 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (pendingImage) {
+      setError("Attenzione: un'immagine è in sospeso. Conferma il ritaglio cliccando su 'Taglia & Carica' o annulla prima di salvare.");
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -103,7 +108,7 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
         {/* ── Body ── */}
         <div style={{ overflowY: 'auto', padding: '1.5rem' }}>
           <form id="news-form" onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div className="admin-grid-2" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
                   <label className="label">Titolo *</label>
@@ -124,6 +129,7 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
                   label="Immagine di Copertina"
                   value={formData.coverImage}
                   onChange={(url) => setFormData(prev => ({ ...prev, coverImage: url }))}
+                  onPendingChange={setPendingImage}
                   folder="pro-loco-gasperina/notizie"
                   previewHeight={140}
                 />
@@ -155,7 +161,7 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
           ) : <div />}
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button type="button" onClick={onClose} className="btn btn-outline">Annulla</button>
-            <button type="submit" form="news-form" disabled={loading} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button type="submit" form="news-form" disabled={loading || pendingImage} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
               Salva
             </button>
