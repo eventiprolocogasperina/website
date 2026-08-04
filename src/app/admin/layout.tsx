@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { Lock, Eye, EyeOff, Shield, Menu } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'gasperina2026';
@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(SESSION_KEY);
@@ -158,9 +159,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--neutral-950)' }}>
-      <AdminSidebar />
-      <main style={{ marginLeft: '240px', flex: 1, padding: '2rem', minHeight: '100vh' }}>
+    <div className="admin-layout">
+      {/* Mobile Top Bar */}
+      <div className="admin-topbar">
+        <button 
+          onClick={() => setIsMobileMenuOpen(true)}
+          style={{ background: 'transparent', border: 'none', color: 'var(--color-heading)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+        >
+          <Menu size={24} />
+          <span style={{ fontSize: '1rem', fontWeight: 500, fontFamily: 'var(--font-display)' }}>Admin Panel</span>
+        </button>
+      </div>
+
+      <AdminSidebar 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+      />
+      
+      <main 
+        className="admin-main"
+        onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)} // Close if user clicks main area while open
+      >
         {children}
       </main>
     </div>

@@ -146,7 +146,7 @@ export default function DiscountManager() {
           <Loader2 className="animate-spin" size={32} style={{ color: 'var(--blue-500)' }} />
         </div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
+        <div className="card" style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>

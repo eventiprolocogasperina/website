@@ -1,10 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { NewsArticle } from '@/lib/data/news';
-import { Loader2, X, UploadCloud, Save } from 'lucide-react';
+import { Loader2, X, UploadCloud, Save, ImageIcon } from 'lucide-react';
 
 import ImageUpload from '@/components/admin/ImageUpload';
+
+// ─── Image compression ────────────────────────────────────────────────────────
+const compressImage = (file: File, type: string = 'image/jpeg'): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL(type, 0.8));
+      };
+      img.onerror = (e) => reject(e);
+    };
+    reader.onerror = (e) => reject(e);
+  });
+};
 
 interface NewsFormProps {
   initialData?: NewsArticle;
@@ -31,6 +61,9 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pendingImage, setPendingImage] = useState(false);
+  
+  const [carouselPhotos, setCarouselPhotos] = useState<{src: string; alt?: string}[]>(initialData?.config?.carouselPhotos ?? []);
+  const carouselInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (field: keyof NewsArticle) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -44,7 +77,33 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
     setFormData(prev => ({ ...prev, slug }));
   };
 
-  // handleImageUpload is now handled by ImageUpload component
+  const handleCarouselUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+    const skipped = files.filter(f => f.size > MAX_BYTES);
+    const valid   = files.filter(f => f.size <= MAX_BYTES);
+    if (skipped.length) {
+      setError(`${skipped.length} foto ignorat${skipped.length > 1 ? 'e' : 'a'} (oltre 10 MB).`);
+    }
+    if (!valid.length) return;
+    try {
+      setLoading(true);
+      const newPhotos: { src: string; alt: string }[] = [];
+      for (const file of valid) {
+        const base64 = await compressImage(file);
+        newPhotos.push({ src: base64, alt: '' });
+      }
+      setCarouselPhotos(p => [...p, ...newPhotos]);
+      if (!skipped.length) setError('');
+    } catch { setError('Errore durante il caricamento delle foto.'); }
+    finally { setLoading(false); }
+  };
+
+  const removeCarouselPhoto = (idx: number) => {
+    setCarouselPhotos(p => p.filter((_, i) => i !== idx));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +117,16 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
     try {
       const url = isEdit ? `/api/news/${formData.id}` : '/api/news';
       const method = isEdit ? 'PUT' : 'POST';
+      const payload = {
+        ...formData,
+        publishedAt: new Date(formData.publishedAt).toISOString(), // ensure valid timestamp
+        config: carouselPhotos.length ? { ...formData.config, carouselPhotos } : formData.config,
+      };
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          publishedAt: new Date(formData.publishedAt).toISOString(), // ensure valid timestamp
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -141,6 +203,48 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
                 <input type="checkbox" checked={formData.featured} onChange={handleChange('featured')} style={{ width: 16, height: 16 }} />
                 Metti in evidenza
               </label>
+            </div>
+
+            {/* ════════════════════════════════════════════════════
+                BLOCCO — Foto Carosello (Galleria Notizia)
+            ════════════════════════════════════════════════════ */}
+            <div style={{
+              background: 'var(--neutral-950)', borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--neutral-800)', padding: '1.25rem',
+              marginBottom: '1.5rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: 'rgba(192,132,252,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ImageIcon size={15} style={{ color: '#c084fc' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--neutral-200)', fontFamily: 'var(--font-body)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Foto Galleria</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--neutral-600)' }}>{carouselPhotos.length} {carouselPhotos.length === 1 ? 'elemento' : 'elementi'}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                {carouselPhotos.map((photo, i) => (
+                  <div key={i} style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '1' }}>
+                    <img src={photo.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button
+                      type="button"
+                      onClick={() => removeCarouselPhoto(i)}
+                      style={{ position: 'absolute', top: '0.25rem', right: '0.25rem', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                
+                {/* Upload button for multiple images */}
+                <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', border: '2px dashed var(--neutral-700)', borderRadius: 'var(--radius-md)', cursor: 'pointer', aspectRatio: '1' }}>
+                  <UploadCloud size={24} style={{ color: 'var(--neutral-500)', marginBottom: '0.5rem' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Aggiungi Foto</span>
+                  <input ref={carouselInputRef} type="file" multiple accept="image/*" onChange={handleCarouselUpload} style={{ display: 'none' }} />
+                </label>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', margin: 0 }}>Queste foto appariranno in una galleria alla fine della notizia.</p>
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>

@@ -6,10 +6,15 @@ import Image from 'next/image';
 import {
   LayoutDashboard, Calendar, Users, ImageIcon,
   BarChart2, LogOut, Eye, FileText, ShoppingCart,
-  Tag, CalendarCheck, QrCode, Wrench, Settings, Globe
+  Tag, CalendarCheck, QrCode, Wrench, Settings, Globe, X
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
+
+interface AdminSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
 
 const navGroups = [
   {
@@ -52,7 +57,7 @@ const navGroups = [
   }
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
@@ -62,27 +67,35 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside style={{
-      width: '240px',
-      flexShrink: 0,
-      background: 'var(--neutral-900)',
-      borderRight: '1px solid var(--neutral-800)',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      bottom: 0,
-      zIndex: 50,
-      overflowY: 'auto',
-    }}>
+    <>
+      <div 
+        className={`admin-sidebar-mobile-overlay ${isOpen ? 'open' : ''}`}
+        onClick={onClose}
+      />
+      <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       {/* Logo */}
-      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-        <Image src="/img/Logo_color_sm.png" alt="Logo" width={36} height={36} style={{ objectFit: 'contain' }} />
-        <div style={{ lineHeight: 1.1 }}>
-          <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.55rem', color: 'var(--gold-500)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pro Loco</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: 'var(--color-heading)', fontWeight: 500 }}>Gasperina</div>
+      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Image src="/img/Logo_color_sm.png" alt="Logo" width={36} height={36} style={{ objectFit: 'contain' }} />
+          <div style={{ lineHeight: 1.1 }}>
+            <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.55rem', color: 'var(--gold-500)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Pro Loco</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: 'var(--color-heading)', fontWeight: 500 }}>Gasperina</div>
+          </div>
         </div>
+        {/* Mobile close button */}
+        <button 
+          onClick={onClose}
+          style={{
+            display: 'flex',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--neutral-400)',
+            cursor: 'pointer'
+          }}
+          className="md:hidden" /* Or just hide it via CSS, but let's use a simple inline style approach if standard CSS isn't present, actually we will rely on CSS */
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Nav */}
@@ -179,5 +192,6 @@ export default function AdminSidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

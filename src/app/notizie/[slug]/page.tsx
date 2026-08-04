@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
 import FormattedText from '@/components/ui/FormattedText';
 import ShareButtons from '@/components/ui/ShareButtons';
+import PhotoGallery from '@/components/ui/PhotoGallery';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -94,6 +95,11 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
           </div>
           
           <ShareButtons title={news.title} />
+
+          {/* Gallery */}
+          {news.config?.carouselPhotos && news.config.carouselPhotos.length > 0 && (
+            <PhotoGallery photos={news.config.carouselPhotos} />
+          )}
 
           {/* Share / Footer */}
           <div style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
