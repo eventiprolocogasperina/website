@@ -356,7 +356,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
              
              {tappa.photos.length === 1 && (
                <div style={{ borderRadius: '2rem', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.1)' }}>
-                 <img src={tappa.photos[0]} alt="Foto" style={{ width: '100%', height: 'auto', display: 'block', transition: 'transform 0.5s ease', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} />
+                 <img src={tappa.photos[0]} alt="Foto" className="gallery-img" style={{ width: '100%', height: 'auto', display: 'block' }} />
                </div>
              )}
              
@@ -364,7 +364,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                  {tappa.photos.map((photo, i) => (
                    <div key={i} style={{ borderRadius: '2rem', overflow: 'hidden', aspectRatio: '4/5', boxShadow: '0 15px 30px rgba(0,0,0,0.08)' }}>
-                     <img src={photo} alt={`Foto ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} />
+                     <img src={photo} alt={`Foto ${i}`} className="gallery-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                    </div>
                  ))}
                </div>
@@ -373,13 +373,13 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
              {tappa.photos.length >= 3 && (
                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '1rem', height: '500px' }}>
                  <div style={{ gridColumn: '1 / 2', gridRow: '1 / 3', borderRadius: '2rem', overflow: 'hidden', boxShadow: '0 15px 30px rgba(0,0,0,0.08)' }}>
-                   <img src={tappa.photos[0]} alt="Foto 1" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} />
+                   <img src={tappa.photos[0]} alt="Foto 1" className="gallery-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                  </div>
                  <div style={{ gridColumn: '2 / 3', gridRow: '1 / 2', borderRadius: '2rem', overflow: 'hidden', boxShadow: '0 15px 30px rgba(0,0,0,0.08)' }}>
-                   <img src={tappa.photos[1]} alt="Foto 2" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} />
+                   <img src={tappa.photos[1]} alt="Foto 2" className="gallery-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                  </div>
                  <div style={{ gridColumn: '2 / 3', gridRow: '2 / 3', borderRadius: '2rem', overflow: 'hidden', boxShadow: '0 15px 30px rgba(0,0,0,0.08)' }}>
-                   <img src={tappa.photos[2]} alt="Foto 3" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease', cursor: 'pointer' }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} />
+                   <img src={tappa.photos[2]} alt="Foto 3" className="gallery-img" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                  </div>
                </div>
              )}
@@ -400,41 +400,32 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
         {/* Navigazione */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexDirection: 'row', alignItems: 'center' }}>
           {prevTappa ? (
-            <Link href={`/assaggia-e-passeggia/tappa/${prevTappa.id}`} style={{
+            <Link href={`/assaggia-e-passeggia/tappa/${prevTappa.id}`} className="nav-link prev-link" style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem',
               background: 'white', color: '#283983', textDecoration: 'none', borderRadius: '1.5rem',
               fontWeight: 700, fontSize: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', flex: 1, justifyContent: 'center',
-              border: '1px solid rgba(0,0,0,0.03)', transition: 'all 0.2s ease', WebkitTapHighlightColor: 'transparent'
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(0,0,0,0.08)' }}
-            onMouseOut={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.05)' }}
-            >
+              border: '1px solid rgba(0,0,0,0.03)', WebkitTapHighlightColor: 'transparent'
+            }}>
               <ArrowLeft size={20} /> Precedente
             </Link>
           ) : <div style={{ flex: 1 }} />}
           
           {nextTappa ? (
-            <Link href={`/assaggia-e-passeggia/tappa/${nextTappa.id}`} style={{
+            <Link href={`/assaggia-e-passeggia/tappa/${nextTappa.id}`} className="nav-link next-link" style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem',
               background: '#283983', color: 'white', textDecoration: 'none', borderRadius: '1.5rem',
               fontWeight: 700, fontSize: '1rem', boxShadow: '0 15px 35px rgba(40,57,131,0.25)', flex: 1, justifyContent: 'center',
-              transition: 'all 0.2s ease', WebkitTapHighlightColor: 'transparent'
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 20px 45px rgba(40,57,131,0.35)' }}
-            onMouseOut={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(40,57,131,0.25)' }}
-            >
+              WebkitTapHighlightColor: 'transparent'
+            }}>
               Prossima Tappa <ArrowRight size={20} />
             </Link>
           ) : (
-            <Link href="/assaggia-e-passeggia" style={{
+            <Link href="/assaggia-e-passeggia" className="nav-link home-link" style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem',
               background: '#E8C042', color: '#283983', textDecoration: 'none', borderRadius: '1.5rem',
               fontWeight: 800, fontSize: '1rem', boxShadow: '0 15px 35px rgba(232,192,66,0.3)', flex: 1, justifyContent: 'center',
-              transition: 'all 0.2s ease', WebkitTapHighlightColor: 'transparent'
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 20px 45px rgba(232,192,66,0.4)' }}
-            onMouseOut={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 15px 35px rgba(232,192,66,0.3)' }}
-            >
+              WebkitTapHighlightColor: 'transparent'
+            }}>
               Torna alla Home
             </Link>
           )}
@@ -446,6 +437,28 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
           0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
           40% { transform: translateY(-15px) translateX(-50%); }
           60% { transform: translateY(-7px) translateX(-50%); }
+        }
+        .gallery-img {
+          transition: transform 0.5s ease;
+          cursor: pointer;
+        }
+        .gallery-img:hover {
+          transform: scale(1.05);
+        }
+        .nav-link {
+          transition: all 0.2s ease !important;
+        }
+        .nav-link:hover {
+          transform: translateY(-2px);
+        }
+        .prev-link:hover {
+          box-shadow: 0 15px 35px rgba(0,0,0,0.08) !important;
+        }
+        .next-link:hover {
+          box-shadow: 0 20px 45px rgba(40,57,131,0.35) !important;
+        }
+        .home-link:hover {
+          box-shadow: 0 20px 45px rgba(232,192,66,0.4) !important;
         }
       `}} />
     </div>
