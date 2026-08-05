@@ -59,6 +59,7 @@ export interface AssaggiaEPasseggiaContent {
     curiosities?: string;
     extraInfo?: string;
     photos?: string[]; // Array of photo URLs
+    hasTasting?: boolean; // Flag to indicate if the tappa includes a food/wine tasting
   }>;
   presale: {
     title: string;

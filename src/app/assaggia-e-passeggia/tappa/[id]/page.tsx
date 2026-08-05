@@ -46,6 +46,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
     : `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
   const heroImage = tappa.photos && tappa.photos.length > 0 ? tappa.photos[0] : null;
+  const hasTasting = tappa.hasTasting !== false;
 
   return (
     <div style={{ background: '#Fdfcf8', minHeight: '100vh', paddingBottom: '4rem', fontFamily: 'var(--font-body)' }}>
@@ -161,16 +162,18 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
               </div>
             )}
 
-            {/* Dish Section */}
+            {/* Main Content Section */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <h4 style={{ textTransform: 'uppercase', letterSpacing: '3px', fontSize: '0.85rem', color: tappa.themeColor, marginBottom: '1rem', fontWeight: 800 }}>In Degustazione</h4>
+              {hasTasting && (
+                <h4 style={{ textTransform: 'uppercase', letterSpacing: '3px', fontSize: '0.85rem', color: tappa.themeColor, marginBottom: '1rem', fontWeight: 800 }}>In Degustazione</h4>
+              )}
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2.8rem', color: '#1a1a1a', lineHeight: 1.1, marginBottom: '1.5rem' }}>
                 <ReactMarkdown components={{
                   p: ({node, ...props}) => <span {...props} />,
                   strong: ({node, ...props}) => <strong style={{ fontWeight: 800 }} {...props} />,
                   em: ({node, ...props}) => <em style={{ fontStyle: 'italic', color: tappa.themeColor, fontWeight: 400 }} {...props} />,
                 }}>
-                  {dishName}
+                  {hasTasting ? dishName : tappa.title}
                 </ReactMarkdown>
               </h2>
               <div style={{ maxWidth: '600px' }}>
@@ -186,28 +189,32 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
                 </ReactMarkdown>
               </div>
               
-              {tappa.allergens && (
+              {hasTasting && tappa.allergens && (
                 <div style={{ fontSize: '0.9rem', color: '#b45309', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem', background: '#fef3c7', padding: '0.75rem 1.5rem', borderRadius: '1rem', display: 'inline-flex', fontWeight: 500, boxShadow: '0 4px 12px rgba(180, 83, 9, 0.1)' }}>
                   <AlertCircle size={18} /> <strong>Allergeni:</strong> {tappa.allergens}
                 </div>
               )}
             </div>
 
-            <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent)', margin: '0.5rem 0' }} />
+            {hasTasting && (
+              <>
+                <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(0,0,0,0.1), transparent)', margin: '0.5rem 0' }} />
 
-            {/* Wine Section */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', textAlign: 'left', background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid rgba(0,0,0,0.03)' }}>
-              <div style={{ background: `linear-gradient(135deg, ${tappa.themeColor}, #111)`, padding: '1.25rem', borderRadius: '1rem', color: 'white', boxShadow: `0 15px 30px -10px ${tappa.themeColor}` }}>
-                <Wine size={36} strokeWidth={1.5} />
-              </div>
-              <div>
-                 <h4 style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.75rem', color: '#888', marginBottom: '0.2rem', fontWeight: 800 }}>In Abbinamento</h4>
-                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', color: '#1a1a1a', lineHeight: 1.2, fontWeight: 700 }}>{tappa.wineName}</h3>
-                 <p style={{ color: '#666', fontSize: '1.05rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                   Cantina <strong style={{ color: tappa.themeColor }}>{tappa.wineryName}</strong>
-                 </p>
-              </div>
-            </div>
+                {/* Wine Section */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', textAlign: 'left', background: 'rgba(0,0,0,0.02)', padding: '1.5rem', borderRadius: '1.5rem', border: '1px solid rgba(0,0,0,0.03)' }}>
+                  <div style={{ background: `linear-gradient(135deg, ${tappa.themeColor}, #111)`, padding: '1.25rem', borderRadius: '1rem', color: 'white', boxShadow: `0 15px 30px -10px ${tappa.themeColor}` }}>
+                    <Wine size={36} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                     <h4 style={{ textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.75rem', color: '#888', marginBottom: '0.2rem', fontWeight: 800 }}>In Abbinamento</h4>
+                     <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', color: '#1a1a1a', lineHeight: 1.2, fontWeight: 700 }}>{tappa.wineName}</h3>
+                     <p style={{ color: '#666', fontSize: '1.05rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                       Cantina <strong style={{ color: tappa.themeColor }}>{tappa.wineryName}</strong>
+                     </p>
+                  </div>
+                </div>
+              </>
+            )}
 
           </div>
         </div>

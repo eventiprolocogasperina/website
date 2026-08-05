@@ -148,7 +148,7 @@ export default function AssaggiaAdminPage() {
       ...data,
       tappe: [
         ...data.tappe,
-        { id: newId, title: 'Nuova Tappa', description: '', wineName: '', wineryName: '', location: '', themeColor: 'var(--blue-500)', allergens: '' }
+        { id: newId, title: 'Nuova Tappa', description: '', wineName: '', wineryName: '', location: '', themeColor: 'var(--blue-500)', allergens: '', hasTasting: true }
       ]
     });
   };
@@ -320,6 +320,18 @@ export default function AssaggiaAdminPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-heading)' }}>
                     <GripVertical size={18} style={{ opacity: 0.5 }} />
                     <h3 style={{ fontWeight: 600 }}>Tappa {idx + 1}</h3>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: '1rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={tappa.hasTasting !== false} 
+                        onChange={e => {
+                          const nt = [...data.tappe]; 
+                          nt[idx].hasTasting = e.target.checked; 
+                          setData({...data, tappe: nt});
+                        }} 
+                      />
+                      <span>Comprende Degustazione</span>
+                    </label>
                   </div>
                   <button onClick={() => removeTappa(idx)} style={{ color: 'var(--red-500)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem' }}>
                     <Trash2 size={18} />
@@ -396,18 +408,22 @@ export default function AssaggiaAdminPage() {
                       const nt = [...data.tappe]; nt[idx].introText = e.target.value; setData({...data, tappe: nt});
                     }}/>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Nome Vino</label>
-                    <input type="text" className="input" value={tappa.wineName} onChange={e => {
-                      const nt = [...data.tappe]; nt[idx].wineName = e.target.value; setData({...data, tappe: nt});
-                    }}/>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Cantina</label>
-                    <input type="text" className="input" value={tappa.wineryName} onChange={e => {
-                      const nt = [...data.tappe]; nt[idx].wineryName = e.target.value; setData({...data, tappe: nt});
-                    }}/>
-                  </div>
+                  {tappa.hasTasting !== false && (
+                    <>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Nome Vino</label>
+                        <input type="text" className="input" value={tappa.wineName} onChange={e => {
+                          const nt = [...data.tappe]; nt[idx].wineName = e.target.value; setData({...data, tappe: nt});
+                        }}/>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Cantina</label>
+                        <input type="text" className="input" value={tappa.wineryName} onChange={e => {
+                          const nt = [...data.tappe]; nt[idx].wineryName = e.target.value; setData({...data, tappe: nt});
+                        }}/>
+                      </div>
+                    </>
+                  )}
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>Colore Tema UI</label>
                     <select className="input" value={tappa.themeColor} onChange={e => {
