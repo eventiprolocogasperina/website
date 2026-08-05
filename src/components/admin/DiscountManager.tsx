@@ -11,6 +11,7 @@ interface Discount {
   type: 'FIXED' | 'PERCENTAGE';
   value: number;
   max_uses: number;
+  max_tickets: number;
   current_uses: number;
   expiry_date?: string;
   active: boolean;
@@ -30,6 +31,7 @@ export default function DiscountManager() {
     type: 'PERCENTAGE',
     value: 0,
     max_uses: 0,
+    max_tickets: 0,
     expiry_date: '',
     active: true,
     applies_to: 'ALL' as 'ALL' | 'FULL_TICKET'
@@ -63,6 +65,7 @@ export default function DiscountManager() {
         type: discount.type,
         value: discount.value,
         max_uses: discount.max_uses,
+        max_tickets: discount.max_tickets || 0,
         expiry_date: discount.expiry_date ? new Date(discount.expiry_date).toISOString().slice(0, 16) : '',
         active: discount.active,
         applies_to: discount.applies_to || 'ALL'
@@ -74,6 +77,7 @@ export default function DiscountManager() {
         type: 'PERCENTAGE',
         value: 0,
         max_uses: 0,
+        max_tickets: 0,
         expiry_date: '',
         active: true,
         applies_to: 'ALL'
@@ -250,9 +254,14 @@ export default function DiscountManager() {
                   <input required type="number" min="0" className="input" value={form.max_uses} onChange={e => setForm({...form, max_uses: parseInt(e.target.value) || 0})} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label className="label">Scadenza (opzionale)</label>
-                  <input type="datetime-local" className="input" value={form.expiry_date} onChange={e => setForm({...form, expiry_date: e.target.value})} />
+                  <label className="label">Biglietti per Ordine (0 = illimitati)</label>
+                  <input required type="number" min="0" className="input" value={form.max_tickets} onChange={e => setForm({...form, max_tickets: parseInt(e.target.value) || 0})} />
                 </div>
+              </div>
+
+              <div>
+                <label className="label">Scadenza (opzionale)</label>
+                <input type="datetime-local" className="input" value={form.expiry_date} onChange={e => setForm({...form, expiry_date: e.target.value})} />
               </div>
 
               <div>

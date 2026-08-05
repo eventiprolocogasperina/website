@@ -52,10 +52,27 @@ export default function TicketPage() {
   
   let discountAmount = 0;
   if (discount) {
-    let targetBasePrice = basePrice;
+    let targetBasePrice = 0;
+    
     if (discount.applies_to === 'FULL_TICKET') {
       const fullTicketObj = TICKET_TYPES.find(t => t.id === 'full');
-      targetBasePrice = fullTicketObj ? (fullTicketObj.price * (cart['full'] || 0)) : 0;
+      const qty = discount.max_tickets > 0 
+        ? Math.min(cart['full'] || 0, discount.max_tickets) 
+        : (cart['full'] || 0);
+      targetBasePrice = fullTicketObj ? (fullTicketObj.price * qty) : 0;
+    } else {
+      // For 'ALL', we sum up prices for up to max_tickets items, sorting by highest price first
+      let items: number[] = [];
+      for (const [id, qty] of Object.entries(cart)) {
+         const t = TICKET_TYPES.find(x => x.id === id);
+         for(let i = 0; i < qty; i++) {
+            items.push(t ? t.price : 0);
+         }
+      }
+      items.sort((a,b) => b - a); // highest price first
+      
+      const limit = discount.max_tickets > 0 ? discount.max_tickets : items.length;
+      targetBasePrice = items.slice(0, limit).reduce((a,b) => a + b, 0);
     }
 
     if (discount.type === 'FIXED') {

@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    const { code, type, value, max_uses, expiry_date, active, applies_to } = data;
+    const { code, type, value, max_uses, max_tickets, expiry_date, active, applies_to } = data;
 
     if (!code || !type || value === undefined) {
       return NextResponse.json({ error: 'Dati incompleti' }, { status: 400 });
@@ -34,8 +34,8 @@ export async function POST(req: Request) {
     const id = require('crypto').randomUUID();
 
     await sql`
-      INSERT INTO discounts (id, code, type, value, max_uses, current_uses, expiry_date, active, applies_to)
-      VALUES (${id}, ${code.toUpperCase()}, ${type}, ${value}, ${max_uses || 0}, 0, ${expiry_date || null}, ${active ?? true}, ${applies_to || 'ALL'})
+      INSERT INTO discounts (id, code, type, value, max_uses, max_tickets, current_uses, expiry_date, active, applies_to)
+      VALUES (${id}, ${code.toUpperCase()}, ${type}, ${value}, ${max_uses || 0}, ${max_tickets || 0}, 0, ${expiry_date || null}, ${active ?? true}, ${applies_to || 'ALL'})
     `;
 
     return NextResponse.json({ success: true, id });

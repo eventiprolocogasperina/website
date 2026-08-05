@@ -8,7 +8,7 @@ function getDb() {
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const data = await req.json();
-    const { code, type, value, max_uses, expiry_date, active } = data;
+    const { code, type, value, max_uses, max_tickets, expiry_date, active } = data;
 
     if (!code || !type || value === undefined) {
       return NextResponse.json({ error: 'Dati incompleti' }, { status: 400 });
@@ -23,6 +23,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         type = ${type}, 
         value = ${value}, 
         max_uses = ${max_uses || 0}, 
+        max_tickets = ${max_tickets || 0},
         expiry_date = ${expiry_date || null}, 
         active = ${active ?? true}
       WHERE id = ${(await params).id}
