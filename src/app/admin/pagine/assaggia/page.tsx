@@ -56,7 +56,8 @@ export default function AssaggiaAdminPage() {
     setStatus(null);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      const safeName = file.name.replace(/[^\w.-]/g, '_') || 'menu.pdf';
+      formData.append('file', file, safeName);
       formData.append('folder', 'pro-loco-gasperina/menu');
       
       const res = await fetch('/api/admin/upload', {
@@ -85,7 +86,8 @@ export default function AssaggiaAdminPage() {
     setStatus(null);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      const safeName = file.name.replace(/[^\w.-]/g, '_') || 'photo.jpg';
+      formData.append('file', file, safeName);
       formData.append('folder', 'pro-loco-gasperina/tappe');
       
       const res = await fetch('/api/admin/upload', {
@@ -114,7 +116,8 @@ export default function AssaggiaAdminPage() {
     setStatus(null);
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      const safeName = file.name.replace(/[^\w.-]/g, '_') || 'recipe.jpg';
+      formData.append('file', file, safeName);
       formData.append('folder', 'pro-loco-gasperina/recipes');
       
       const res = await fetch('/api/admin/upload', {
