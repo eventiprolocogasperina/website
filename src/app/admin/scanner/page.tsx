@@ -46,7 +46,22 @@ export default function ScannerPage() {
 
   useEffect(() => {
     fetchStats();
+    
+    // Load recent scans from localStorage
+    try {
+      const saved = localStorage.getItem('recentScans');
+      if (saved) {
+        setRecentScans(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Failed to parse recent scans', e);
+    }
   }, []);
+
+  // Save recent scans to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('recentScans', JSON.stringify(recentScans));
+  }, [recentScans]);
 
   // Keep focus on the hidden input so barcode scanners work automatically
   useEffect(() => {
@@ -233,7 +248,7 @@ export default function ScannerPage() {
                 )}
                 {scanResult.orderTickets && scanResult.orderTickets.length > 0 && (
                   <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', marginTop: '1rem' }}>
-                    <div style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Tutto l'ordine ({scanResult.orderTickets.length} elementi)</div>
+                    <div style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Tutti i biglietti dell'ordine ({scanResult.orderTickets.length})</div>
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                       {scanResult.orderTickets.map(t => (
                         <li key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', fontSize: '0.9rem', marginBottom: '0.5rem', background: t.id === scanResult.ticket?.id ? 'rgba(255,255,255,0.1)' : 'transparent', padding: '0.5rem', borderRadius: '0.25rem' }}>
@@ -241,19 +256,9 @@ export default function ScannerPage() {
                             <Ticket size={14} style={{ color: 'var(--neutral-400)' }} />
                             {t.type} {t.id === scanResult.ticket?.id && '(Questo)'}
                           </span>
-                          {scanResult.status === 'order_found' ? (
-                            <button
-                              onClick={() => { handleScan(t.id); }}
-                              style={{ padding: '0.25rem 0.75rem', borderRadius: '0.25rem', background: t.isCheckedIn ? 'transparent' : 'var(--blue-500)', border: t.isCheckedIn ? '1px solid var(--red-500)' : 'none', color: t.isCheckedIn ? 'var(--red-500)' : 'white', fontSize: '0.75rem', cursor: t.isCheckedIn ? 'default' : 'pointer' }}
-                              disabled={t.isCheckedIn}
-                            >
-                              {t.isCheckedIn ? 'Già Usato' : 'Verifica e Usa'}
-                            </button>
-                          ) : (
-                            <span style={{ color: t.isCheckedIn ? '#f87171' : '#4ade80' }}>
-                              {t.isCheckedIn ? 'Usato' : 'Da usare'}
-                            </span>
-                          )}
+                          <span style={{ color: t.isCheckedIn ? '#4ade80' : '#f87171' }}>
+                             {t.isCheckedIn ? 'Validato' : 'Non Validato'}
+                          </span>
                         </li>
                       ))}
                     </ul>
