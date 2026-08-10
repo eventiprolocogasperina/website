@@ -6,6 +6,7 @@ import { Plus, Minus, CreditCard, Loader2 } from 'lucide-react';
 // Hardcoded for now. In a real app, this might come from the database or event config.
 const TICKET_TYPES = [
   { id: 'full', name: 'Ticket Intero', price: 17, desc: 'Include:\n- il percorso degustazione di piatti della tradizione\n- Vino (1 bicchiere) o Acqua (0,5 L)' },
+  { id: 'fuorimenu', name: 'Fuori Menu', price: 5, desc: 'Include:\n- Ingresso\n- Zzippula\n- Vino (1 bicchiere) o Acqua (0,5L)' },
   { id: 'extra', name: 'Extra wine', price: 5, desc: 'Vino illimitato!' },
 ];
 
@@ -37,19 +38,20 @@ export default function TicketPage() {
       const current = prev[id] || 0;
       let next = Math.max(0, current + delta);
 
-      const fullCount = prev['full'] || 0;
+      const totalEntryCount = (prev['full'] || 0) + (prev['fuorimenu'] || 0);
 
-      // Enforce extra <= full
+      // Enforce extra <= full + fuorimenu
       if (id === 'extra') {
-        if (next > fullCount) next = fullCount;
+        if (next > totalEntryCount) next = totalEntryCount;
       }
 
       const newCart = { ...prev, [id]: next };
 
-      if (id === 'full') {
+      if (id === 'full' || id === 'fuorimenu') {
+        const newTotalEntry = (newCart['full'] || 0) + (newCart['fuorimenu'] || 0);
         const extraCount = newCart['extra'] || 0;
-        if (extraCount > next) {
-          newCart['extra'] = next;
+        if (extraCount > newTotalEntry) {
+          newCart['extra'] = newTotalEntry;
         }
       }
 
@@ -166,10 +168,10 @@ export default function TicketPage() {
       return;
     }
 
-    const fullCount = cart['full'] || 0;
+    const totalEntryCount = (cart['full'] || 0) + (cart['fuorimenu'] || 0);
     const extraCount = cart['extra'] || 0;
 
-    if (fullCount > extraCount && !showUpsellModal) {
+    if (totalEntryCount > extraCount && !showUpsellModal) {
       setShowUpsellModal(true);
       return;
     }
@@ -206,7 +208,7 @@ export default function TicketPage() {
                     <Minus size={24} style={{ pointerEvents: 'none' }} />
                   </button>
                   <span style={{ width: '40px', textAlign: 'center', fontWeight: 700, color: '#1a1a1a', fontSize: '1.25rem' }}>{cart[ticket.id] || 0}</span>
-                  <button type="button" onClick={(e) => { e.preventDefault(); updateCart(ticket.id, 1); }} disabled={ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)} style={{ width: 48, height: 48, borderRadius: '50%', background: (ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)) ? '#f5f5f5' : '#1a1a1a', color: (ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)) ? '#aaa' : 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (ticket.id === 'extra' && (cart['extra'] || 0) >= (cart['full'] || 0)) ? 'not-allowed' : 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
+                  <button type="button" onClick={(e) => { e.preventDefault(); updateCart(ticket.id, 1); }} disabled={ticket.id === 'extra' && (cart['extra'] || 0) >= ((cart['full'] || 0) + (cart['fuorimenu'] || 0))} style={{ width: 48, height: 48, borderRadius: '50%', background: (ticket.id === 'extra' && (cart['extra'] || 0) >= ((cart['full'] || 0) + (cart['fuorimenu'] || 0))) ? '#f5f5f5' : '#1a1a1a', color: (ticket.id === 'extra' && (cart['extra'] || 0) >= ((cart['full'] || 0) + (cart['fuorimenu'] || 0))) ? '#aaa' : 'white', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: (ticket.id === 'extra' && (cart['extra'] || 0) >= ((cart['full'] || 0) + (cart['fuorimenu'] || 0))) ? 'not-allowed' : 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
                     <Plus size={24} style={{ pointerEvents: 'none' }} />
                   </button>
                 </div>
@@ -307,17 +309,17 @@ export default function TicketPage() {
               Non dimenticare l'Extra Wine!
             </h3>
             <p style={{ color: '#555', fontSize: '1rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-              Hai acquistato {cart['full'] || 0} ticket inter{((cart['full'] || 0) > 1) ? 'i' : 'o'}, ma {(cart['full'] || 0) - (cart['extra'] || 0) === 1 ? 'manca 1' : `mancano ${(cart['full'] || 0) - (cart['extra'] || 0)}`} Extra Wine all'appello. <br /><br />
+              Hai acquistato {(cart['full'] || 0) + (cart['fuorimenu'] || 0)} ticket di ingresso, ma {((cart['full'] || 0) + (cart['fuorimenu'] || 0)) - (cart['extra'] || 0) === 1 ? 'manca 1' : `mancano ${((cart['full'] || 0) + (cart['fuorimenu'] || 0)) - (cart['extra'] || 0)}`} Extra Wine all'appello. <br /><br />
               Con soli <strong>5€</strong> potrai degustare <strong>vino illimitato</strong> durante tutto il percorso. Vuoi aggiungerlo ora?
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <button onClick={() => {
-                const missing = (cart['full'] || 0) - (cart['extra'] || 0);
+                const missing = ((cart['full'] || 0) + (cart['fuorimenu'] || 0)) - (cart['extra'] || 0);
                 updateCart('extra', missing);
                 setShowUpsellModal(false);
               }} style={{ background: '#283983', color: 'white', padding: '1rem', borderRadius: '0.5rem', border: 'none', fontWeight: 600, fontSize: '1.05rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <Plus size={18} />
-                Sì, aggiungi {((cart['full'] || 0) - (cart['extra'] || 0)) === 1 ? 'l\'Extra Wine' : 'gli Extra Wine'}
+                Sì, aggiungi {(((cart['full'] || 0) + (cart['fuorimenu'] || 0)) - (cart['extra'] || 0)) === 1 ? 'l\'Extra Wine' : 'gli Extra Wine'}
               </button>
               <button onClick={() => {
                 setShowUpsellModal(false);
