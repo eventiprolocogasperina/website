@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Minus, CreditCard, Loader2 } from 'lucide-react';
 
 // Hardcoded for now. In a real app, this might come from the database or event config.
@@ -21,6 +21,16 @@ export default function TicketPage() {
   const [discount, setDiscount] = useState<any>(null);
   const [discountError, setDiscountError] = useState('');
   const [applyingDiscount, setApplyingDiscount] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('error') === 'payment_failed') {
+        setError('Il pagamento è stato rifiutato dalla tua banca o annullato. Nessun importo ti è stato addebitato. Per favore riprova o usa una carta diversa.');
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   const updateCart = (id: string, delta: number) => {
     setCart(prev => {
