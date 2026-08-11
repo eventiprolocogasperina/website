@@ -12,8 +12,10 @@ export default function OrderManager() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterEvent, setFilterEvent] = useState('all');
   const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
   const [testingOrder, setTestingOrder] = useState(false);
+  const [sendingEmails, setSendingEmails] = useState(false);
   
   const [showManualOrderModal, setShowManualOrderModal] = useState(false);
   const [manualOrderForm, setManualOrderForm] = useState({
@@ -213,8 +215,14 @@ export default function OrderManager() {
       o.buyerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
       o.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || o.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const orderEventId = o.tickets && o.tickets.length > 0 ? o.tickets[0].eventId : null;
+    const matchesEvent = filterEvent === 'all' || orderEventId === filterEvent;
+    
+    return matchesSearch && matchesStatus && matchesEvent;
   });
+
+  // Extract unique events from active orders to create tabs
+  const uniqueEvents = Array.from(new Set(orders.map(o => o.tickets?.[0]?.eventId).filter(Boolean))) as string[];
 
   // Calculate totals
   const paidOrders = filteredOrders.filter(o => o.status === 'PAID');
@@ -233,6 +241,89 @@ export default function OrderManager() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
+      {/* EVENT TABS */}
+      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem', borderBottom: '1px solid var(--neutral-800)' }}>
+        <button
+          onClick={() => setFilterEvent('all')}
+          style={{
+            padding: '0.5rem 1rem',
+            borderRadius: '999px',
+            border: 'none',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            background: filterEvent === 'all' ? 'var(--blue-600)' : 'var(--neutral-800)',
+            color: filterEvent === 'all' ? 'white' : 'var(--neutral-300)',
+          }}
+        >
+          Tutti gli Eventi
+        </button>
+        {uniqueEvents.map(eventId => (
+          <button
+            key={eventId}
+            onClick={() => setFilterEvent(eventId)}
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '999px',
+              border: 'none',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: filterEvent === eventId ? 'var(--blue-600)' : 'var(--neutral-800)',
+              color: filterEvent === eventId ? 'white' : 'var(--neutral-300)',
+              textTransform: 'capitalize'
+            }}
+          >
+            {eventId.replace(/-/g, ' ')}
+          </button>
+        ))}
+      </div>
+      
+      {/* MASS EMAIL ACTION */}
+      {filterEvent !== 'all' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.5rem' }}>
+          <button
+            onClick={async () => {
+              if (!confirm(`Vuoi inviare l'email di ringraziamento a tutti gli acquirenti dell'evento ${filterEvent}? (Verrà inviata solo a chi non l'ha ancora ricevuta).`)) return;
+              setSendingEmails(true);
+              try {
+                const res = await fetch('/api/admin/orders/thankyou', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ eventId: filterEvent })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  alert(data.message);
+                  fetchOrders(); // refresh data
+                } else {
+                  alert('Errore: ' + data.error);
+                }
+              } catch (e) {
+                alert('Errore di rete durante l\'invio');
+              } finally {
+                setSendingEmails(false);
+              }
+            }}
+            disabled={sendingEmails}
+            className="btn btn-outline"
+            style={{ fontSize: '0.8rem', padding: '0.4rem 1rem', borderColor: 'var(--blue-500)', color: 'var(--blue-400)' }}
+          >
+            {sendingEmails ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '0.5rem', display: 'inline-block' }} /> : null}
+            {sendingEmails ? 'Invio in corso...' : 'Invia Email Ringraziamento'}
+          </button>
+          
+          <a
+            href="/admin/email-preview"
+            target="_blank"
+            className="btn btn-outline"
+            style={{ fontSize: '0.8rem', padding: '0.4rem 1rem', marginLeft: '0.5rem', borderColor: 'var(--neutral-600)', color: 'var(--neutral-400)' }}
+          >
+            Anteprima Email
+          </a>
+        </div>
+      )}
+
       {/* STATS HEADER */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>

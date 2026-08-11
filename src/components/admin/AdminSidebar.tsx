@@ -6,7 +6,10 @@ import Image from 'next/image';
 import {
   LayoutDashboard, Calendar, Users, ImageIcon,
   BarChart2, LogOut, Eye, FileText, ShoppingCart,
-  Tag, CalendarCheck, QrCode, Wrench, Settings, Globe, X
+  Tag, CalendarCheck, QrCode, Wrench, Settings, Globe, X, MessageSquare,
+  BarChart,
+  Megaphone,
+  Star
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
@@ -30,6 +33,7 @@ const navGroups = [
       { href: '/admin/notizie', label: 'Notizie', icon: FileText },
       { href: '/admin/media', label: 'Galleria', icon: ImageIcon },
       { href: '/admin/soci', label: 'Soci', icon: Users },
+      { href: '/admin/recensioni', label: 'Recensioni', icon: Star },
     ]
   },
   {

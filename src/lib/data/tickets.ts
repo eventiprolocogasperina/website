@@ -12,6 +12,7 @@ export interface Order {
   createdAt: string;
   paidAt?: string;
   notes?: string;
+  thankYouEmailSent?: boolean;
 }
 
 export interface Ticket {
@@ -46,8 +47,8 @@ export async function createOrderWithTickets(order: Omit<Order, 'createdAt'>, ti
 
   // Create order
   await sql`
-    INSERT INTO orders (id, "buyerName", "buyerEmail", "buyerPhone", "totalAmount", status, "nexiMac", "discountId", "createdAt", notes)
-    VALUES (${orderId}, ${order.buyerName}, ${order.buyerEmail}, ${order.buyerPhone || null}, ${order.totalAmount}, ${order.status}, ${order.nexiMac || null}, ${order.discountId || null}, ${createdAt}, ${order.notes || null})
+    INSERT INTO orders (id, "buyerName", "buyerEmail", "buyerPhone", "totalAmount", status, "nexiMac", "discountId", "createdAt", notes, "thankYouEmailSent")
+    VALUES (${orderId}, ${order.buyerName}, ${order.buyerEmail}, ${order.buyerPhone || null}, ${order.totalAmount}, ${order.status}, ${order.nexiMac || null}, ${order.discountId || null}, ${createdAt}, ${order.notes || null}, false)
   `;
 
   // Insert tickets
@@ -74,6 +75,7 @@ export async function getOrder(id: string): Promise<OrderWithTickets | null> {
   return {
     ...orders[0] as Order,
     totalAmount: Number(orders[0].totalAmount),
+    thankYouEmailSent: !!orders[0].thankYouEmailSent,
     tickets: tickets.map(t => ({
       ...t,
       price: Number(t.price)
@@ -128,7 +130,7 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: b
         return { 
           success: false, 
           message: 'Tutti i biglietti di questo ordine sono già stati utilizzati.', 
-          order, 
+          order: { ...order, thankYouEmailSent: !!order.thankYouEmailSent }, 
           orderTickets: orderTickets as Ticket[], 
           stats 
         };
@@ -141,7 +143,7 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: b
       return { 
         success: true, 
         message: `Intero ordine verificato! ${updatedOrderTickets.length} biglietti validati.`, 
-        order, 
+        order: { ...order, thankYouEmailSent: !!order.thankYouEmailSent }, 
         orderTickets: updatedOrderTickets as Ticket[], 
         stats 
       };
@@ -159,7 +161,7 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: b
 
   if (allCheckedIn) {
     const stats = await getTicketingStats('assaggia-e-passeggia-2024');
-    return { success: false, message: `L'intero ordine è già stato utilizzato.`, ticket, order, orderTickets: orderTickets as Ticket[], stats };
+    return { success: false, message: `L'intero ordine è già stato utilizzato.`, ticket, order: order ? { ...order, thankYouEmailSent: !!order.thankYouEmailSent } : undefined, orderTickets: orderTickets as Ticket[], stats };
   }
 
   await sql`UPDATE tickets SET "isCheckedIn" = true, "checkInTime" = CURRENT_TIMESTAMP WHERE "orderId" = ${ticket.orderId}`;
@@ -170,7 +172,7 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: b
     success: true, 
     message: `Intero ordine verificato! ${updatedOrderTickets.length} biglietti validati con successo.`, 
     ticket: { ...ticket, isCheckedIn: true }, 
-    order, 
+    order: order ? { ...order, thankYouEmailSent: !!order.thankYouEmailSent } : undefined, 
     orderTickets: updatedOrderTickets as Ticket[], 
     stats 
   };
@@ -278,6 +280,7 @@ export async function getLatestOrdersTelegram(eventId: string, limit: number = 1
     return {
       ...order,
       totalAmount: Number(order.totalAmount),
+      thankYouEmailSent: !!order.thankYouEmailSent,
       tickets: orderTickets
     };
   });

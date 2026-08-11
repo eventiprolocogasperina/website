@@ -13,7 +13,7 @@ const navLinks = [
   { href: '/scopri-gasperina', label: 'Scopri Gasperina' },
   { href: '/notizie', label: 'Notizie' },
   { href: '/eventi', label: 'Eventi' },
-  { href: '/assaggia-e-passeggia', label: 'Assaggia & Passeggia' },
+  // { href: '/assaggia-e-passeggia', label: 'Assaggia & Passeggia' },
   { href: '/media', label: 'Galleria' },
   { href: '/associazione', label: 'Chi Siamo' },
   { href: '/sponsor', label: 'Sponsor' },

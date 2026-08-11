@@ -49,7 +49,7 @@ export default function AssaggiaTeaser() {
           </div>
 
           <Link href="/assaggia-e-passeggia" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#283983', color: 'white', padding: '1rem 2rem', borderRadius: '999px', fontWeight: 600, textDecoration: 'none', transition: 'transform 0.2s, boxShadow 0.2s', boxShadow: '0 4px 15px rgba(40,57,131,0.2)' }}>
-            Scopri di più e acquista i biglietti <ArrowRight size={18} />
+            Rivivi le emozioni dell'evento <ArrowRight size={18} />
           </Link>
         </motion.div>
       </div>

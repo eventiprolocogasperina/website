@@ -43,7 +43,7 @@ export default function AdminImpostazioniPage() {
           } else {
             // Default topics if not found
             setTopics([
-              { id: 'tickets', label: 'Problemi con i biglietti di A&P', phone: '393888693529' },
+              { id: 'tickets', label: 'Richiesta Informazioni Eventi', phone: '393888693529' },
               { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393279783232' },
               { id: 'pagamenti', label: 'Pagamenti', phone: '393888693529' },
             ]);

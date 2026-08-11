@@ -1,334 +1,279 @@
-import Link from 'next/link';
-import type { Metadata } from 'next';
-import { Ticket as TicketIcon, Wine, ChefHat, MapPin, Map, CalendarDays, Clock, Info, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
-import Image from 'next/image';
-import FormattedText from '@/components/ui/FormattedText';
-import SponsorsMarquee from '@/components/ui/SponsorsMarquee';
-import HeroVideo from '@/components/ui/HeroVideo';
-import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Assaggia & Passeggia - Pro Loco Gasperina',
-  description: 'Un viaggio enogastronomico tra le vie del borgo di Gasperina. Scopri i sapori autentici della nostra terra.',
-};
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Star, X, Loader2 } from 'lucide-react';
 
-export const revalidate = 0; // Ensures the page fetches fresh data from CMS
+export default function AssaggiaGraziePage() {
+  const [images, setImages] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewName, setReviewName] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-// Helper for extracting YouTube ID
-function getYoutubeId(url: string) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
-}
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) return;
+    
+    setIsSubmitting(true);
+    setReviewStatus('idle');
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: 'assaggia-passeggia',
+          name: reviewName,
+          rating,
+          comment: reviewComment
+        })
+      });
+      if (!res.ok) throw new Error('Errore server');
+      setReviewStatus('success');
+      setTimeout(() => setShowReviewForm(false), 3000);
+    } catch (e) {
+      setReviewStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-export default async function AssaggiaPasseggiaPage() {
-  const data = await getPageContent<AssaggiaEPasseggiaContent>('assaggia-e-passeggia', DEFAULT_ASSAGGIA_CONTENT);
+  useEffect(() => {
+    fetch('/api/gallery')
+      .then(res => res.json())
+      .then((data: any[]) => {
+        // Prefer images tagged with "assaggia"
+        const evImages = data.filter(d => d.category === 'assaggia').map(d => d.src);
+        if (evImages.length > 0) {
+          setImages(evImages);
+        } else {
+          // Fallback to all images (excluding videos)
+          const allImages = data.filter(d => d.category !== 'video').map(d => d.src);
+          if (allImages.length > 0) {
+            setImages(allImages);
+          } else {
+            // Ultimate fallback hardcoded images just in case
+            setImages([
+              "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=2940&auto=format&fit=crop",
+              "https://images.unsplash.com/photo-1555507036-ab1f40ce88cb?q=80&w=2940&auto=format&fit=crop"
+            ]);
+          }
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [images.length]);
 
   return (
-    <div style={{ background: '#F9F3E4', minHeight: '100vh', color: '#1a1a1a' }}>
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#0a0a0a' }}>
       
-      {/* Otter-Style Hero Section */}
-      <section style={{ 
-        padding: '8rem 2rem 4rem', 
+      {/* Background Slideshow */}
+      <AnimatePresence mode="sync">
+        {images.length > 0 && (
+          <motion.img
+            key={currentIndex}
+            src={images[currentIndex]}
+            alt="Assaggia & Passeggia"
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.5, ease: 'easeInOut' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 0
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Opacized black overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.65)',
+        zIndex: 1,
+      }} />
+
+      {/* Centered Big Text */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 2,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        textAlign: 'center',
-        position: 'relative'
+        pointerEvents: 'none',
+        padding: '2rem',
+        textAlign: 'center'
       }}>
-        {/* Soft floating shapes in background could go here */}
+        <motion.h1 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.3 }}
+          style={{ 
+            fontFamily: 'var(--font-display)', 
+            fontSize: 'clamp(4rem, 15vw, 10rem)', 
+            fontWeight: 700, 
+            color: 'var(--gold-400)',
+            letterSpacing: '0.02em',
+            margin: 0,
+            textShadow: '0 10px 30px rgba(0,0,0,0.8)'
+          }}
+        >
+          Grazie!
+        </motion.h1>
         
-        <div style={{ maxWidth: '900px', width: '100%', position: 'relative', zIndex: 10 }}>
-          {data.hero.badge && (
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 1.2rem', 
-              background: '#283983', 
-              color: 'white',
-              borderRadius: '999px',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              marginBottom: '2rem',
-              boxShadow: '0 4px 15px rgba(40,57,131,0.15)'
-            }}>
-              <CalendarDays size={16} color="#E8C042" /> {data.hero.badge}
-            </div>
-          )}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 1.0 }}
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'clamp(1rem, 3vw, 1.5rem)',
+            color: 'rgba(255,255,255,0.9)',
+            marginTop: '1rem',
+            maxWidth: '700px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+            lineHeight: 1.5
+          }}
+        >
+          L'edizione di Assaggia & Passeggia è stata un successo.<br/>
+          Ci vediamo il prossimo anno per brindare ancora insieme.
+        </motion.p>
 
-          <div style={{ marginBottom: '2rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <img src="/img/LogoAP_GA_nero.png" alt="Logo Assaggia & Passeggia" style={{ width: '100%', height: 'auto', maxWidth: '500px', objectFit: 'contain' }} />
-          </div>
+        <motion.div
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           transition={{ duration: 1, delay: 1.5 }}
+           style={{ marginTop: '3.5rem', pointerEvents: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}
+        >
+          <a href="/" className="btn btn-outline" style={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', padding: '0.8rem 2rem' }}>
+            Torna alla Home
+          </a>
+          <button 
+            onClick={() => setShowReviewForm(true)} 
+            className="btn btn-primary" 
+            style={{ padding: '0.8rem 2rem' }}
+          >
+            Lascia una Recensione
+          </button>
+        </motion.div>
+      </div>
 
+      {/* Review Modal */}
+      <AnimatePresence>
+        {showReviewForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'absolute', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              style={{ background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)', borderRadius: '1rem', padding: '2rem', width: '100%', maxWidth: '450px', position: 'relative' }}
+            >
+              <button 
+                onClick={() => setShowReviewForm(false)}
+                style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}
+              >
+                <X size={24} />
+              </button>
 
-          <p style={{ 
-            fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', 
-            color: '#555', 
-            lineHeight: 1.6, 
-            maxWidth: '650px', 
-            margin: '0 auto 3rem',
-            fontWeight: 500
-          }}>
-            {data.hero.subtitle}
-          </p>
-
-          <Link href={data.hero.ctaLink} style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-            background: '#E8C042', color: '#283983', padding: '1.2rem 2.5rem', borderRadius: '999px',
-            textDecoration: 'none', fontSize: '1.1rem', fontWeight: 800,
-            boxShadow: '0 8px 25px rgba(232, 192, 66, 0.4)', transition: 'transform 0.2s',
-          }}>
-            {data.hero.ctaText} <ArrowRight size={20} />
-          </Link>
-        </div>
-
-        {/* Large Rounded Image (Otter style hero image or Video) */}
-        {(data.hero.heroVideoUrl || data.hero.bgImageUrl) && (
-          <div style={{
-            width: '100%',
-            maxWidth: '1200px',
-            aspectRatio: '16/9',
-            margin: '4rem auto 0',
-            borderRadius: '2rem',
-            overflow: 'hidden',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-            position: 'relative',
-            background: 'black',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <HeroVideo 
-              videoId={data.hero.heroVideoUrl ? getYoutubeId(data.hero.heroVideoUrl) : null} 
-              bgImageUrl={data.hero.bgImageUrl} 
-            />
-          </div>
-        )}
-      </section>
-
-      {/* Sponsors Marquee */}
-      <section style={{ padding: '0 0 4rem 0' }}>
-         <SponsorsMarquee />
-      </section>
-
-      {/* Bento Grid Concept */}
-      <section style={{ padding: '4rem 2rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-          {/* Main Story Card */}
-          <div style={{ 
-            background: '#ffffff', 
-            borderRadius: '2rem', 
-            padding: '3rem', 
-            gridColumn: '1 / -1',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center'
-          }}>
-            <FormattedText as="h2" style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', color: '#283983', marginBottom: '1.5rem', lineHeight: 1.1 }} text={data.story.title} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-              <FormattedText as="p" style={{ color: '#555', fontSize: '1.15rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }} text={data.story.paragraph1} />
-              <FormattedText as="p" style={{ color: '#555', fontSize: '1.15rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }} text={data.story.paragraph2} />
-            </div>
-          </div>
-
-          {/* Image Cards (Bento style) */}
-          {data.story.image1Url && (
-            <div style={{ 
-              background: '#E8C042', 
-              borderRadius: '2rem', 
-              height: '350px', 
-              overflow: 'hidden',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
-              position: 'relative'
-            }}>
-               <img src={data.story.image1Url} alt="Story 1" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          )}
-          {data.story.image2Url && (
-            <div style={{ 
-              background: '#283983', 
-              borderRadius: '2rem', 
-              height: '350px', 
-              overflow: 'hidden',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
-              position: 'relative'
-            }}>
-               <img src={data.story.image2Url} alt="Story 2" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }} />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Le Tappe (Bento Style Grid) */}
-      <section style={{ padding: '4rem 2rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '4rem', maxWidth: '600px', margin: '0 auto 4rem' }}>
-            <FormattedText as="span" style={{ display: 'inline-block', background: '#e0e7ff', color: '#283983', padding: '0.5rem 1rem', borderRadius: '999px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.85rem', marginBottom: '1rem' }} text={data.menu.subtitle} />
-            <FormattedText as="h2" style={{ fontFamily: 'var(--font-display)', fontSize: '3.5rem', color: '#1a1a1a', lineHeight: 1.1 }} text={data.menu.title} />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-            {data.tappe.map((item, index) => (
-              <div key={index} style={{ 
-                background: 'white', 
-                padding: '2rem', 
-                borderRadius: '2rem', 
-                boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
-                display: 'flex', 
-                flexDirection: 'column',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{ 
-                  background: item.themeColor || '#283983', 
-                  color: 'white', 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '12px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  fontFamily: 'var(--font-display)', 
-                  fontSize: '1.25rem',
-                  fontWeight: 800,
-                  marginBottom: '1.5rem'
-                }}>
-                  {item.id}
+              {reviewStatus === 'success' ? (
+                <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                  <Star size={48} style={{ color: 'var(--gold-500)', margin: '0 auto 1rem', fill: 'var(--gold-500)' }} />
+                  <h3 style={{ fontSize: '1.5rem', color: 'white', marginBottom: '0.5rem' }}>Grazie!</h3>
+                  <p style={{ color: 'var(--neutral-400)' }}>Il tuo feedback è preziosissimo per noi.</p>
                 </div>
-                
-                <div style={{ flex: 1 }}>
-                  <FormattedText as="h3" style={{ fontSize: '1.6rem', color: '#1a1a1a', marginBottom: '0.75rem', fontFamily: 'var(--font-display)', lineHeight: 1.2 }} text={item.title} />
+              ) : (
+                <form onSubmit={handleSubmitReview} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.5rem', color: 'white', margin: 0 }}>La tua esperienza</h3>
+                  <p style={{ color: 'var(--neutral-400)', fontSize: '0.9rem', margin: 0 }}>Raccontaci come è andata ad Assaggia & Passeggia.</p>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666', fontSize: '0.9rem', marginBottom: '1rem', fontWeight: 500 }}>
-                     <MapPin size={16} /> {typeof item.location === 'string' ? item.location : (item.location?.name || 'Gasperina')}
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', margin: '1rem 0' }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', transition: 'transform 0.1s' }}
+                      >
+                        <Star 
+                          size={36} 
+                          style={{ 
+                            color: (hoverRating || rating) >= star ? 'var(--gold-400)' : 'var(--neutral-700)',
+                            fill: (hoverRating || rating) >= star ? 'var(--gold-400)' : 'none'
+                          }} 
+                        />
+                      </button>
+                    ))}
                   </div>
 
-                  <FormattedText 
-                    as="p"
-                    style={{ color: '#555', marginBottom: '1.5rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontSize: '1.05rem' }} 
-                    text={item.description}
-                  />
-                  
-                  {item.allergens && (
-                    <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#d97706', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#fef3c7', padding: '0.5rem 0.75rem', borderRadius: '0.75rem' }}>
-                      <AlertCircle size={16} style={{ flexShrink: 0 }} /> 
-                      <span><strong>Allergeni:</strong> {item.allergens}</span>
-                    </div>
+                  <div>
+                    <label className="label" style={{ color: 'var(--neutral-300)' }}>Nome (Opzionale)</label>
+                    <input 
+                      type="text" 
+                      className="input" 
+                      placeholder="Il tuo nome" 
+                      value={reviewName}
+                      onChange={e => setReviewName(e.target.value)}
+                      style={{ background: 'var(--neutral-950)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label" style={{ color: 'var(--neutral-300)' }}>Cosa ti è piaciuto di più?</label>
+                    <textarea 
+                      className="input" 
+                      rows={4} 
+                      placeholder="Scrivi qui..."
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      style={{ background: 'var(--neutral-950)' }}
+                    />
+                  </div>
+
+                  {reviewStatus === 'error' && (
+                    <div style={{ color: '#f87171', fontSize: '0.9rem' }}>C'è stato un problema. Riprova.</div>
                   )}
-                </div>
 
-                <div style={{ marginTop: 'auto', paddingTop: '1.5rem', borderTop: '1px solid #f3f4f6' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                    <div style={{ background: '#fce7f3', color: '#db2777', padding: '0.5rem', borderRadius: '0.75rem' }}>
-                      <Wine size={20} />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: '0.8rem', color: '#666', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 700, marginBottom: '0.2rem' }}>In degustazione</p>
-                      <p style={{ color: '#1a1a1a', fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>{item.wineName}</p>
-                      <p style={{ color: '#555', fontSize: '0.9rem', marginTop: '0.2rem' }}>{item.wineryName}</p>
-                    </div>
-                  </div>
-                </div>
+                  <button 
+                    type="submit" 
+                    disabled={rating === 0 || isSubmitting}
+                    className="btn btn-primary"
+                    style={{ justifyContent: 'center', marginTop: '1rem' }}
+                  >
+                    {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Invia Recensione'}
+                  </button>
+                </form>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Info Pratiche e CTA (Super Card Bento) */}
-      <section style={{ padding: '4rem 2rem 6rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
-          
-          <div style={{ background: 'white', padding: '3rem', borderRadius: '2rem', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}>
-            <h3 style={{ fontSize: '2rem', fontFamily: 'var(--font-display)', color: '#283983', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Info color="#E8C042" size={32} /> Info Pratiche
-            </h3>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, color: '#555', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <li style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                <div style={{ background: '#f3f4f6', padding: '0.75rem', borderRadius: '1rem', color: '#4b5563' }}><TicketIcon size={24} /></div>
-                <div>
-                   <h4 style={{ color: '#1a1a1a', fontWeight: 700, marginBottom: '0.25rem' }}>Ritiro Kit</h4>
-                   <FormattedText style={{ lineHeight: 1.6 }} text={data.logistics.ticketInfo} />
-                </div>
-              </li>
-              <li style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                <div style={{ background: '#f3f4f6', padding: '0.75rem', borderRadius: '1rem', color: '#4b5563' }}><Map size={24} /></div>
-                <div>
-                   <h4 style={{ color: '#1a1a1a', fontWeight: 700, marginBottom: '0.25rem' }}>Parcheggi</h4>
-                   <FormattedText style={{ lineHeight: 1.6 }} text={data.logistics.parkingInfo} />
-                </div>
-              </li>
-              <li style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                <div style={{ background: '#fef3c7', padding: '0.75rem', borderRadius: '1rem', color: '#d97706' }}><AlertCircle size={24} /></div>
-                <div>
-                   <h4 style={{ color: '#1a1a1a', fontWeight: 700, marginBottom: '0.25rem' }}>Intolleranze</h4>
-                   <FormattedText style={{ lineHeight: 1.6 }} text={data.logistics.disclaimer} />
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          <div style={{ 
-            background: '#283983', 
-            padding: '3rem', 
-            borderRadius: '2rem', 
-            color: 'white', 
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            textAlign: 'center',
-            boxShadow: '0 20px 40px rgba(40,57,131,0.2)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-             {/* Decorative blob */}
-             <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '300px', height: '300px', background: 'rgba(232, 192, 66, 0.1)', borderRadius: '50%', filter: 'blur(40px)' }} />
-             
-             <FormattedText as="h3" style={{ fontSize: '2.5rem', fontFamily: 'var(--font-display)', marginBottom: '1rem', position: 'relative', zIndex: 2 }} text={data.presale.title} />
-             <FormattedText as="p" style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1.15rem', marginBottom: '2.5rem', whiteSpace: 'pre-wrap', maxWidth: '400px', position: 'relative', zIndex: 2 }} text={data.presale.subtitle} />
-             
-             <div style={{ fontSize: '4.5rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: '#E8C042', marginBottom: '2.5rem', lineHeight: 1, position: 'relative', zIndex: 2 }}>
-               {data.presale.priceInfo} <span style={{ fontSize: '1.25rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500, fontFamily: 'var(--font-body)' }}>/ pers.</span>
-             </div>
-             
-             <Link href={data.presale.ctaLink} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-                background: 'white', color: '#283983', padding: '1.25rem 3rem', borderRadius: '999px',
-                textDecoration: 'none', fontWeight: 800, fontSize: '1.2rem', transition: 'transform 0.2s',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.1)', position: 'relative', zIndex: 2
-              }}>
-                {data.presale.ctaText}
-              </Link>
-          </div>
-          
-        </div>
-      </section>
-
-      {/* FAQs */}
-      {data.faqs && data.faqs.length > 0 && (
-        <section style={{ padding: '0 2rem 4rem' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '2.5rem', fontFamily: 'var(--font-display)', color: '#283983', marginBottom: '2.5rem', textAlign: 'center' }}>
-              Domande Frequenti
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {data.faqs.map((faq, index) => (
-                <div key={index} style={{ background: 'white', padding: '2rem', borderRadius: '1.5rem', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-                  <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1a1a1a', marginBottom: '0.75rem' }}>{faq.question}</h4>
-                  <FormattedText as="div" style={{ color: '#555', lineHeight: 1.6 }} text={faq.answer} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
     </div>
   );
