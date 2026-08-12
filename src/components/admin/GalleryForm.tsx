@@ -14,7 +14,7 @@ interface GalleryFormProps {
   onDelete?: (id: string) => void;
 }
 
-const CATEGORIES: GalleryItem['category'][] = ['eventi', 'territorio', 'cultura', 'comunità', 'video', 'assaggia'];
+const CATEGORIES: GalleryItem['category'][] = ['eventi', 'territorio', 'cultura', 'comunità', 'video', 'assaggia', 'assaggia26'];
 
 function extractYoutubeId(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);

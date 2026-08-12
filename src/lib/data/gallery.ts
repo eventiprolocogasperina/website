@@ -4,7 +4,7 @@ export interface GalleryItem {
   id: string;
   src: string;
   alt: string;
-  category: 'eventi' | 'territorio' | 'cultura' | 'comunità' | 'video' | 'assaggia';
+  category: 'eventi' | 'territorio' | 'cultura' | 'comunità' | 'video' | 'assaggia' | 'assaggia26';
   width: number;
   height: number;
 }

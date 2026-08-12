@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, X, Loader2 } from 'lucide-react';
+import { Star, X, Loader2, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 
 export default function AssaggiaGraziePage() {
   const [images, setImages] = useState<string[]>([]);
+  const [galleryPhotos, setGalleryPhotos] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [rating, setRating] = useState(0);
@@ -44,25 +47,30 @@ export default function AssaggiaGraziePage() {
   };
 
   useEffect(() => {
+    // Carica immagini dalla API
     fetch('/api/gallery')
       .then(res => res.json())
       .then((data: any[]) => {
-        // Prefer images tagged with "assaggia"
+        // Galleria 'assaggia26' dal DB
+        const a26Photos = data.filter(d => d.category === 'assaggia26');
+        if (a26Photos.length > 0) {
+          setGalleryPhotos(a26Photos);
+        } else {
+          // Fallback al JSON se non ancora nel DB
+          import('@/lib/data/assaggia-2026-gallery.json')
+            .then(module => setGalleryPhotos(module.default || []))
+            .catch(() => console.log('Galleria JSON non trovata.'));
+        }
+
+        // Slideshow hero (eventi generici assaggia)
         const evImages = data.filter(d => d.category === 'assaggia').map(d => d.src);
         if (evImages.length > 0) {
           setImages(evImages);
         } else {
-          // Fallback to all images (excluding videos)
           const allImages = data.filter(d => d.category !== 'video').map(d => d.src);
-          if (allImages.length > 0) {
-            setImages(allImages);
-          } else {
-            // Ultimate fallback hardcoded images just in case
-            setImages([
-              "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=2940&auto=format&fit=crop",
-              "https://images.unsplash.com/photo-1555507036-ab1f40ce88cb?q=80&w=2940&auto=format&fit=crop"
-            ]);
-          }
+          setImages(allImages.length > 0 ? allImages : [
+            "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=2940&auto=format&fit=crop"
+          ]);
         }
       })
       .catch(console.error);
@@ -76,106 +84,268 @@ export default function AssaggiaGraziePage() {
     return () => clearInterval(interval);
   }, [images.length]);
 
+  // Handle Lightbox keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (lightboxIndex === null) return;
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowLeft') setLightboxIndex(prev => prev !== null ? (prev > 0 ? prev - 1 : galleryPhotos.length - 1) : null);
+      if (e.key === 'ArrowRight') setLightboxIndex(prev => prev !== null ? (prev < galleryPhotos.length - 1 ? prev + 1 : 0) : null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, galleryPhotos.length]);
+
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#0a0a0a' }}>
+    <div style={{ background: '#0a0a0a', minHeight: '100vh', color: 'white', position: 'relative' }}>
       
-      {/* Background Slideshow */}
-      <AnimatePresence mode="sync">
-        {images.length > 0 && (
-          <motion.img
-            key={currentIndex}
-            src={images[currentIndex]}
-            alt="Assaggia & Passeggia"
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.5, ease: 'easeInOut' }}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              zIndex: 0
+      {/* Hero Section */}
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        {/* Background Slideshow */}
+        <AnimatePresence mode="sync">
+          {images.length > 0 && (
+            <motion.img
+              key={currentIndex}
+              src={images[currentIndex]}
+              alt="Assaggia & Passeggia"
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.5, ease: 'easeInOut' }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                zIndex: 0
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Opacized black overlay */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          zIndex: 1,
+        }} />
+
+        {/* Centered Big Text */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+          padding: '2rem',
+          textAlign: 'center'
+        }}>
+          <motion.h1 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.3 }}
+            style={{ 
+              fontFamily: 'var(--font-display)', 
+              fontSize: 'clamp(4rem, 15vw, 10rem)', 
+              fontWeight: 700, 
+              color: 'var(--gold-400)',
+              letterSpacing: '0.02em',
+              margin: 0,
+              textShadow: '0 10px 30px rgba(0,0,0,0.8)'
             }}
-          />
+          >
+            Grazie!
+          </motion.h1>
+          
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 1.0 }}
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'clamp(1rem, 3vw, 1.5rem)',
+              color: 'rgba(255,255,255,0.9)',
+              marginTop: '1rem',
+              maxWidth: '700px',
+              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
+              lineHeight: 1.5
+            }}
+          >
+            L'edizione di Assaggia & Passeggia è stata un successo.<br/>
+            Ci vediamo il prossimo anno per brindare ancora insieme.
+          </motion.p>
+
+          <motion.div
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             transition={{ duration: 1, delay: 1.5 }}
+             style={{ marginTop: '3.5rem', pointerEvents: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}
+          >
+            <a 
+              href="/" 
+              className="btn btn-outline" 
+              style={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', padding: '0.8rem 2rem' }}
+            >
+              Torna alla Home
+            </a>
+            <button 
+              onClick={() => {
+                document.getElementById('gallery-section')?.scrollIntoView({ behavior: 'smooth' });
+              }} 
+              className="btn btn-outline" 
+              style={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', padding: '0.8rem 2rem' }}
+            >
+              Guarda le Foto
+            </button>
+            <button 
+              onClick={() => setShowReviewForm(true)} 
+              className="btn btn-primary" 
+              style={{ padding: '0.8rem 2rem' }}
+            >
+              Lascia una Recensione
+            </button>
+          </motion.div>
+
+          <motion.div
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 1, delay: 2, repeat: Infinity, repeatType: 'reverse' }}
+             style={{ position: 'absolute', bottom: '2rem', color: 'rgba(255,255,255,0.6)' }}
+          >
+            <ChevronDown size={40} />
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Gallery Section */}
+      <div id="gallery-section" style={{ padding: '4rem 2rem', maxWidth: '1400px', margin: '0 auto', minHeight: '50vh' }}>
+        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '3rem', color: 'var(--gold-400)', marginBottom: '1rem' }}>
+            I Ricordi
+          </h2>
+          <p style={{ color: 'var(--neutral-400)' }}>Rivivi i momenti più belli della giornata.</p>
+        </div>
+
+        {galleryPhotos.length > 0 ? (
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+            gap: '1.5rem',
+            gridAutoRows: 'minmax(200px, auto)'
+          }}>
+            {galleryPhotos.map((photo, i) => (
+              <motion.div 
+                key={photo.src}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "100px" }}
+                transition={{ duration: 0.5, delay: (i % 10) * 0.05 }}
+                style={{ 
+                  position: 'relative', 
+                  borderRadius: '0.75rem', 
+                  overflow: 'hidden',
+                  background: 'var(--neutral-900)',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                  aspectRatio: photo.width > photo.height ? '4/3' : '3/4',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setLightboxIndex(i)}
+              >
+                <Image 
+                  src={photo.src} 
+                  alt="Foto Assaggia e Passeggia" 
+                  fill 
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  style={{ objectFit: 'cover' }} 
+                  loading={i < 6 ? 'eager' : 'lazy'}
+                />
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '5rem 0', color: 'var(--neutral-500)' }}>
+            <Loader2 className="animate-spin" size={40} style={{ margin: '0 auto 1rem' }} />
+            <p>Elaborazione e caricamento foto in corso...</p>
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxIndex !== null && galleryPhotos[lightboxIndex] && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxIndex(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 200,
+              background: 'rgba(0,0,0,0.95)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            <button 
+              onClick={() => setLightboxIndex(null)}
+              style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '50%', padding: '0.5rem', zIndex: 210, transition: 'background 0.2s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+            >
+              <X size={32} />
+            </button>
+            
+            <button 
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex > 0 ? lightboxIndex - 1 : galleryPhotos.length - 1); }}
+              style={{ position: 'absolute', left: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '50%', padding: '0.75rem', zIndex: 210, transition: 'background 0.2s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+            >
+              <ChevronLeft size={36} />
+            </button>
+
+            <button 
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex < galleryPhotos.length - 1 ? lightboxIndex + 1 : 0); }}
+              style={{ position: 'absolute', right: '1.5rem', background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '50%', padding: '0.75rem', zIndex: 210, transition: 'background 0.2s' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+            >
+              <ChevronRight size={36} />
+            </button>
+
+            <motion.div
+              key={lightboxIndex}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              style={{ position: 'relative', width: '90vw', height: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image 
+                src={galleryPhotos[lightboxIndex].src} 
+                alt="Fullscreen photo" 
+                fill 
+                style={{ objectFit: 'contain' }} 
+                quality={90}
+                priority
+              />
+            </motion.div>
+            
+            <div style={{ position: 'absolute', bottom: '1.5rem', color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-body)', fontSize: '0.9rem' }}>
+              {lightboxIndex + 1} / {galleryPhotos.length}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Opacized black overlay */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.65)',
-        zIndex: 1,
-      }} />
-
-      {/* Centered Big Text */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'none',
-        padding: '2rem',
-        textAlign: 'center'
-      }}>
-        <motion.h1 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.3 }}
-          style={{ 
-            fontFamily: 'var(--font-display)', 
-            fontSize: 'clamp(4rem, 15vw, 10rem)', 
-            fontWeight: 700, 
-            color: 'var(--gold-400)',
-            letterSpacing: '0.02em',
-            margin: 0,
-            textShadow: '0 10px 30px rgba(0,0,0,0.8)'
-          }}
-        >
-          Grazie!
-        </motion.h1>
-        
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1.0 }}
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: 'clamp(1rem, 3vw, 1.5rem)',
-            color: 'rgba(255,255,255,0.9)',
-            marginTop: '1rem',
-            maxWidth: '700px',
-            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-            lineHeight: 1.5
-          }}
-        >
-          L'edizione di Assaggia & Passeggia è stata un successo.<br/>
-          Ci vediamo il prossimo anno per brindare ancora insieme.
-        </motion.p>
-
-        <motion.div
-           initial={{ opacity: 0 }}
-           animate={{ opacity: 1 }}
-           transition={{ duration: 1, delay: 1.5 }}
-           style={{ marginTop: '3.5rem', pointerEvents: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}
-        >
-          <a href="/" className="btn btn-outline" style={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', padding: '0.8rem 2rem' }}>
-            Torna alla Home
-          </a>
-          <button 
-            onClick={() => setShowReviewForm(true)} 
-            className="btn btn-primary" 
-            style={{ padding: '0.8rem 2rem' }}
-          >
-            Lascia una Recensione
-          </button>
-        </motion.div>
-      </div>
 
       {/* Review Modal */}
       <AnimatePresence>
