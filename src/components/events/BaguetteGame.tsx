@@ -20,7 +20,7 @@ export default function BaguetteGame() {
   const [speed, setSpeed] = useState(INITIAL_SPEED);
 
   const generateFood = useCallback((currentSnake: { x: number, y: number }[]) => {
-    let newFood;
+    let newFood: { x: number, y: number };
     while (true) {
       newFood = {
         x: Math.floor(Math.random() * GRID_SIZE),
