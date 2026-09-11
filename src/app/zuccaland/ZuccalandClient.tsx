@@ -17,7 +17,7 @@ const TICKET_TYPES = [
 ];
 
 const EXTRA_TYPES = [
-  { id: 'laboratorio', label: 'Laboratorio You Pick', price: 3, description: 'Scegli la tua zucca, intaglio guidato e la porti via', emoji: '🎨' },
+  { id: 'laboratorio', label: 'Add-on: Laboratorio You Pick', price: 3, description: 'Scegli la tua zucca, intaglio guidato e la porti via', emoji: '🎨' },
 ];
 
 // ─── Falling Pumpkins Easter Egg ──────────────────────────────────────────────
@@ -226,6 +226,9 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
             {[...TICKET_TYPES, ...EXTRA_TYPES].map((ticket, index) => {
               const qty = quantities[ticket.id];
+              const isExtra = EXTRA_TYPES.some(e => e.id === ticket.id);
+              const disabledExtra = isExtra && (quantities.ingresso || 0) === 0;
+
               return (
                 <motion.div
                   key={ticket.id}
@@ -233,7 +236,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={disabledExtra ? {} : { scale: 1.02 }}
                   style={{
                     background: qty > 0 ? '#ffedd5' : 'white',
                     border: `3px solid ${qty > 0 ? '#ea580c' : 'white'}`,
@@ -243,9 +246,13 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                     justifyContent: 'space-between', gap: '1rem',
                     boxShadow: qty > 0 ? '0 10px 25px rgba(234,88,12,0.2)' : '0 10px 25px rgba(0,0,0,0.05)',
                     transition: 'all 0.2s',
-                    cursor: 'pointer',
+                    cursor: disabledExtra ? 'not-allowed' : 'pointer',
+                    opacity: disabledExtra ? 0.6 : 1,
                   }}
-                  onClick={() => qty === 0 && setQty(ticket.id, 1)}
+                  onClick={() => {
+                    if (disabledExtra) return;
+                    if (qty === 0) setQty(ticket.id, 1);
+                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{
@@ -261,9 +268,11 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                     </div>
                     <div>
                       <div style={{ fontWeight: 800, color: '#431407', fontSize: '1.1rem' }}>
-                        {ticket.label} {EXTRA_TYPES.find(e => e.id === ticket.id) && <span style={{ fontSize: '0.8rem', background: '#f97316', color: 'white', padding: '0.1rem 0.5rem', borderRadius: '1rem', marginLeft: '0.5rem' }}>EXTRA</span>}
+                        {ticket.label} {isExtra && <span style={{ fontSize: '0.8rem', background: '#f97316', color: 'white', padding: '0.1rem 0.5rem', borderRadius: '1rem', marginLeft: '0.5rem' }}>EXTRA</span>}
                       </div>
-                      <div style={{ color: '#9a3412', fontSize: '0.85rem', marginTop: '0.1rem', fontWeight: 600 }}>{ticket.description}</div>
+                      <div style={{ color: disabledExtra ? '#c2410c' : '#9a3412', fontSize: '0.85rem', marginTop: '0.1rem', fontWeight: 600 }}>
+                        {disabledExtra ? '⚠️ Richiede almeno un biglietto d\'ingresso' : ticket.description}
+                      </div>
                     </div>
                   </div>
 
@@ -285,13 +294,13 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                       <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#431407', minWidth: '1.5rem', textAlign: 'center' }}>
                         {qty}
                       </span>
-                      <motion.button type="button" onClick={() => setQty(ticket.id, 1)}
-                        whileTap={{ scale: 0.9 }}
+                      <motion.button type="button" onClick={() => setQty(ticket.id, 1)} disabled={disabledExtra}
+                        whileTap={disabledExtra ? {} : { scale: 0.9 }}
                         style={{
                           width: 40, height: 40, borderRadius: '50%',
-                          border: 'none', background: '#ea580c', color: 'white',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          boxShadow: '0 4px 10px rgba(234,88,12,0.4)',
+                          border: 'none', background: disabledExtra ? '#d1d5db' : '#ea580c', color: 'white',
+                          cursor: disabledExtra ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: disabledExtra ? 'none' : '0 4px 10px rgba(234,88,12,0.4)',
                         }}>
                         <Plus size={20} strokeWidth={3} />
                       </motion.button>
