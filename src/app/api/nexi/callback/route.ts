@@ -68,14 +68,15 @@ export async function GET(request: Request) {
           const successPath = isZuccaland
             ? `/zuccaland/success?order=${orderId}`
             : `/assaggia-e-passeggia/success?order=${orderId}`;
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
           return NextResponse.redirect(`${baseUrl}${successPath}`);
         }
       } catch (emailErr) {
         console.error('Email or Telegram notification failed (non-fatal):', emailErr);
       }
 
-      const baseUrl2 = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
-      return NextResponse.redirect(`${baseUrl2}/assaggia-e-passeggia/success?order=${orderId}`);
+      const fallbackBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
+      return NextResponse.redirect(`${fallbackBaseUrl}/assaggia-e-passeggia/success?order=${orderId}`);
     } catch (error) {
       console.error('Failed to process successful payment:', error);
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
