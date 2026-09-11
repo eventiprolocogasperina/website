@@ -13,8 +13,11 @@ import FormattedText from '@/components/ui/FormattedText';
 const EVENT_ID = 'zuccaland-2026';
 
 const TICKET_TYPES = [
-  { id: 'adulto', label: 'Ingresso Adulto', price: 5, description: 'Adulti oltre 12 anni', emoji: '🎃' },
-  { id: 'ridotto', label: 'Ingresso Ridotto', price: 3, description: 'Bambini fino a 12 anni · Over 65', emoji: '🌽' },
+  { id: 'ingresso', label: 'Ingresso nel Campo', price: 5, description: 'Accesso al villaggio magico', emoji: '🎃' },
+];
+
+const EXTRA_TYPES = [
+  { id: 'laboratorio', label: 'Laboratorio You Pick', price: 3, description: 'Scegli la tua zucca, intaglio guidato e la porti via', emoji: '🎨' },
 ];
 
 // ─── Falling Pumpkins Easter Egg ──────────────────────────────────────────────
@@ -69,7 +72,7 @@ function FallingPumpkins() {
 // ─── Ticket Buyer ─────────────────────────────────────────────────────────────
 function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
   const router = useRouter();
-  const [quantities, setQuantities] = useState<Record<string, number>>({ adulto: 0, ridotto: 0 });
+  const [quantities, setQuantities] = useState<Record<string, number>>({ ingresso: 0, laboratorio: 0 });
   const [form, setForm] = useState({ nome: '', cognome: '', email: '', telefono: '' });
   const [discountCode, setDiscountCode] = useState('');
   const [discountData, setDiscountData] = useState<any>(null);
@@ -78,8 +81,8 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const totalTickets = Object.values(quantities).reduce((a, b) => a + b, 0);
-  const subtotal = TICKET_TYPES.reduce((sum, t) => sum + (quantities[t.id] || 0) * t.price, 0);
+  const totalTickets = quantities.ingresso || 0;
+  const subtotal = [...TICKET_TYPES, ...EXTRA_TYPES].reduce((sum, t) => sum + (quantities[t.id] || 0) * t.price, 0);
   const getDiscount = () => {
     if (!discountData) return 0;
     if (discountData.type === 'FIXED') return Math.min(discountData.value, subtotal);
@@ -116,7 +119,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (totalTickets === 0) e.tickets = 'Seleziona almeno un biglietto.';
+    if (totalTickets === 0) e.tickets = 'Seleziona almeno un Ingresso per procedere.';
     if (!form.nome.trim()) e.nome = 'Nome richiesto';
     if (!form.cognome.trim()) e.cognome = 'Cognome richiesto';
     if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) e.email = 'Email non valida';
@@ -130,7 +133,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const cart = TICKET_TYPES.filter(t => quantities[t.id] > 0)
+      const cart = [...TICKET_TYPES, ...EXTRA_TYPES].filter(t => quantities[t.id] > 0)
         .map(t => ({ type: t.label, price: t.price, quantity: quantities[t.id] }));
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -210,7 +213,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
         <form onSubmit={handleSubmit}>
           {/* Ticket Selectors */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-            {TICKET_TYPES.map((ticket, index) => {
+            {[...TICKET_TYPES, ...EXTRA_TYPES].map((ticket, index) => {
               const qty = quantities[ticket.id];
               return (
                 <motion.div
@@ -246,7 +249,9 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                       {ticket.emoji}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 800, color: '#431407', fontSize: '1.1rem' }}>{ticket.label}</div>
+                      <div style={{ fontWeight: 800, color: '#431407', fontSize: '1.1rem' }}>
+                        {ticket.label} {EXTRA_TYPES.find(e => e.id === ticket.id) && <span style={{ fontSize: '0.8rem', background: '#f97316', color: 'white', padding: '0.1rem 0.5rem', borderRadius: '1rem', marginLeft: '0.5rem' }}>EXTRA</span>}
+                      </div>
                       <div style={{ color: '#9a3412', fontSize: '0.85rem', marginTop: '0.1rem', fontWeight: 600 }}>{ticket.description}</div>
                     </div>
                   </div>
