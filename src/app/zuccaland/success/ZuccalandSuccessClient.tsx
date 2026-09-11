@@ -124,7 +124,9 @@ export default function ZuccalandSuccessClient({
                   border: '1px solid #eaddd0',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span style={{ fontSize: '1.25rem' }}>🎃</span>
+                    <span style={{ fontSize: '1.25rem', display: 'flex' }}>
+                      <img src="/img/zuccaland/Pumpink.png" style={{ width: 24, height: 24, objectFit: 'contain' }} alt="Zucca" />
+                    </span>
                     <div>
                       <div style={{ color: '#2d1200', fontWeight: 600, fontSize: '0.9rem' }}>{ticket.type}</div>
                       <div style={{ color: '#a06840', fontSize: '0.75rem' }}>Biglietto {i + 1}</div>

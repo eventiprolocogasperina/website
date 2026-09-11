@@ -13,7 +13,7 @@ import FormattedText from '@/components/ui/FormattedText';
 const EVENT_ID = 'zuccaland-2026';
 
 const TICKET_TYPES = [
-  { id: 'ingresso', label: 'Ingresso nel Campo', price: 5, description: 'Accesso al villaggio magico', emoji: '🎃' },
+  { id: 'ingresso', label: 'Ingresso nel Campo', price: 5, description: 'Ingresso all\'evento Zuccaland', emoji: <img src="/img/zuccaland/Pumpink.png" style={{ width: 36, height: 36, objectFit: 'contain' }} alt="Zucca" /> },
 ];
 
 const EXTRA_TYPES = [
@@ -93,7 +93,18 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
   const total = Math.max(0, subtotal - discount);
 
   const setQty = (id: string, delta: number) =>
-    setQuantities(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + delta) }));
+    setQuantities(prev => {
+      let newQty = Math.max(0, (prev[id] || 0) + delta);
+      if (id === 'laboratorio') {
+        newQty = Math.min(newQty, prev.ingresso || 0);
+      } else if (id === 'ingresso') {
+        const labQty = prev.laboratorio || 0;
+        if (newQty < labQty) {
+          return { ...prev, ingresso: newQty, laboratorio: newQty };
+        }
+      }
+      return { ...prev, [id]: newQty };
+    });
 
   const handleCheckDiscount = async () => {
     if (!discountCode.trim()) return;
