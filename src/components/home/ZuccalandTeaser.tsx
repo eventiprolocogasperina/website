@@ -38,7 +38,7 @@ export default function ZuccalandTeaser() {
             />
           </div>
           <p style={{ fontSize: '1.1rem', color: '#7c2d12', lineHeight: 1.6, marginBottom: '2rem', fontWeight: 500 }}>
-            Il villaggio magico delle zucche di Gasperina. Un'esperienza incantata tra colori autunnali, laboratori per grandi e piccini, e tanto street food da leccarsi i baffi.
+            Il villaggio magico delle zucche di Gasperina. Un'esperienza incantata tra colori autunnali, laboratori per grandi e piccini, e tante degustazioni da leccarsi i baffi.
           </p>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1.5rem', marginBottom: '3rem' }}>

@@ -16,7 +16,7 @@ interface Discount {
   expiry_date?: string;
   active: boolean;
   created_at: string;
-  applies_to: 'ALL' | 'FULL_TICKET';
+  applies_to: 'ALL' | 'FULL_TICKET' | 'ZUCCALAND_ONLY';
 }
 
 export default function DiscountManager() {
@@ -34,7 +34,7 @@ export default function DiscountManager() {
     max_tickets: 0,
     expiry_date: '',
     active: true,
-    applies_to: 'ALL' as 'ALL' | 'FULL_TICKET'
+    applies_to: 'ALL' as 'ALL' | 'FULL_TICKET' | 'ZUCCALAND_ONLY'
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -266,9 +266,10 @@ export default function DiscountManager() {
 
               <div>
                 <label className="label">Applica a</label>
-                <select className="input" value={form.applies_to} onChange={e => setForm({...form, applies_to: e.target.value as 'ALL' | 'FULL_TICKET'})}>
-                  <option value="ALL">Tutto il carrello (Biglietti + Extra)</option>
-                  <option value="FULL_TICKET">Solo Biglietto Intero (17€)</option>
+                <select className="input" value={form.applies_to} onChange={e => setForm({...form, applies_to: e.target.value as 'ALL' | 'FULL_TICKET' | 'ZUCCALAND_ONLY'})}>
+                  <option value="ALL">Tutto il carrello (Globale)</option>
+                  <option value="FULL_TICKET">Solo Biglietto Intero (Assaggia 2026)</option>
+                  <option value="ZUCCALAND_ONLY">Solo Zuccaland 2026</option>
                 </select>
               </div>
               

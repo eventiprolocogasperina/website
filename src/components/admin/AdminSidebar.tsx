@@ -47,9 +47,15 @@ const navGroups = [
   {
     label: 'Pagine e CMS',
     items: [
-      { href: '/admin/pagine/assaggia', label: 'A&P Landing', icon: Globe },
+      { href: '/admin/pagine/zuccaland', label: 'Zuccaland', icon: Globe },
       { href: '/admin/pagine/sponsor', label: 'Sponsor', icon: Globe },
       { href: '/admin/pagine/associazione', label: 'Chi Siamo', icon: Globe },
+    ]
+  },
+  {
+    label: 'Archiviate',
+    items: [
+      { href: '/admin/pagine/archiviate/assaggia-2026', label: 'Assaggia 2026', icon: Globe },
     ]
   },
   {

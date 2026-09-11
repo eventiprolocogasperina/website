@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getPageContent, savePageContent, DEFAULT_ASSAGGIA_CONTENT } from '@/lib/data/pages';
+import { getPageContent, savePageContent, DEFAULT_ASSAGGIA_CONTENT, DEFAULT_ZUCCALAND_CONTENT } from '@/lib/data/pages';
 
 /**
  * GET /api/admin/pages?slug=...
@@ -17,6 +17,8 @@ export async function GET(request: Request) {
   let defaultData: any = {};
   if (slug === 'assaggia-e-passeggia') {
     defaultData = DEFAULT_ASSAGGIA_CONTENT;
+  } else if (slug === 'zuccaland') {
+    defaultData = DEFAULT_ZUCCALAND_CONTENT;
   }
 
   try {

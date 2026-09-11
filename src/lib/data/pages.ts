@@ -79,6 +79,45 @@ export interface AssaggiaEPasseggiaContent {
   }>;
 }
 
+// Zuccaland
+export interface ZuccalandContent {
+  hero: {
+    badge: string;
+    title: string;
+    subtitle: string;
+    description: string;
+  };
+  program: {
+    title: string;
+    content: string; // Markdown supported
+  };
+  tickets: {
+    title: string;
+    disclaimer: string;
+  };
+  faqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
+}
+
+export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
+  hero: {
+    badge: '10-11 Ottobre 2026 • Gasperina',
+    title: 'Zuccaland',
+    subtitle: 'Il villaggio delle zucche di Gasperina',
+    description: 'Un\'esperienza incantata tra colori autunnali, laboratori per grandi e piccini, e tante degustazioni da leccarsi i baffi.',
+  },
+  program: {
+    title: 'Programma dell\'Evento',
+    content: 'Stiamo lavorando agli ultimi dettagli stregati! 🧙‍♀️✨\n\nIl programma completo sarà svelato a breve.',
+  },
+  tickets: {
+    title: 'Riserva il tuo posto!',
+    disclaimer: 'Le degustazioni culinarie agli stand non sono comprese nel prezzo del biglietto di ingresso.',
+  }
+};
+
 // Default content used if nothing is found in the DB
 export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
   hero: {
