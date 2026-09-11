@@ -58,6 +58,7 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
     }
   }
 
+  const isZuccaland = order.tickets.some(t => t.eventId?.includes('zuccaland'));
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
   const ticketCount = order.tickets.length;
   
@@ -71,7 +72,30 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
     .map(([type, count]) => `<li><b>${count}x</b> ${type}</li>`)
     .join('');
 
-  // 3. Send email via Resend
+  if (isZuccaland) {
+    // ─── Zuccaland Email ───────────────────────────────────────────────────────
+    const { error } = await resend.emails.send({
+      from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
+      to: order.buyerEmail,
+      replyTo: 'info@prolocogasperina.it',
+      subject: `🎃 I tuoi biglietti - Zuccaland 2026 · 10-11 Ottobre - Ord. #${orderRef}`,
+      html: buildZuccalandEmailHtml(order, orderRef, ticketCount, ticketsListHtml),
+      attachments: [
+        {
+          filename: `biglietti-zuccaland-${orderRef}.pdf`,
+          content: pdfBuffer,
+        },
+      ],
+    });
+    if (error) {
+      console.error('Failed to send Zuccaland ticket email:', error);
+    } else {
+      console.log(`✅ Zuccaland ticket email sent to ${order.buyerEmail} for order ${orderRef}`);
+    }
+    return;
+  }
+
+  // ─── Assaggia & Passeggia Email ────────────────────────────────────────────
   const { error } = await resend.emails.send({
     from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
     to: order.buyerEmail,
@@ -93,7 +117,6 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   if (error) {
     console.error('Failed to send ticket email:', error);
     // Non facciamo throw error, altrimenti la callback di Nexi fallisce e ritenta all'infinito
-    // throw new Error(`Email send failed: ${error.message}`);
   }
 
   console.log(`✅ Ticket email sent to ${order.buyerEmail} for order ${orderRef}`);
@@ -188,6 +211,103 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
             <td style="background:#1a1a1a;padding:24px 40px;text-align:center;">
               <div style="color:#E8C042;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:8px;">Pro Loco Gasperina</div>
               <div style="color:rgba(255,255,255,0.4);font-size:11px;">Gasperina (CZ) · prolocogasperina.it</div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildZuccalandEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number, ticketsListHtml: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
+  return `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>I tuoi biglietti - Zuccaland 2026</title>
+</head>
+<body style="margin:0;padding:0;background:#1a0d05;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a0d05;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;border:1px solid rgba(249,115,22,0.3);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#0f0a05;padding:40px;text-align:center;border-bottom:3px solid #f97316;">
+              <div style="font-size:3rem;margin-bottom:12px;">🎃</div>
+              <div style="color:#f97316;font-size:22px;font-weight:800;letter-spacing:1px;margin-bottom:4px;">ZUCCALAND 2026</div>
+              <div style="color:rgba(255,255,255,0.5);font-size:14px;font-weight:500;letter-spacing:2px;text-transform:uppercase;">Il villaggio delle zucche di Gasperina</div>
+              <div style="color:rgba(249,115,22,0.7);font-size:13px;margin-top:8px;font-weight:600;">10 e 11 Ottobre 2026 · Gasperina (CZ)</div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background:#1a0d05;padding:40px;">
+              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#ffffff;">Ciao ${order.buyerName}!</p>
+              <div style="margin:0 0 24px;font-size:15px;color:rgba(255,255,255,0.65);line-height:1.6;">
+                La tua prenotazione è confermata! Trovi in allegato il PDF della tua <strong style="color:#f97316;">ricevuta di prenotazione</strong>, valido per ritirare i tuoi biglietti fisici all'ingresso.
+              </div>
+
+              <!-- Order Summary -->
+              <div style="background:rgba(249,115,22,0.08);border-radius:12px;padding:24px;margin-bottom:28px;border:1px solid rgba(249,115,22,0.2);">
+                <div style="font-size:11px;color:rgba(249,115,22,0.7);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;font-weight:600;">Riepilogo Ordine</div>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="font-size:13px;color:rgba(255,255,255,0.5);padding-bottom:8px;">N° Ordine</td>
+                    <td style="text-align:right;font-size:13px;color:#ffffff;font-weight:600;padding-bottom:8px;">#${orderRef}</td>
+                  </tr>
+                  <tr>
+                    <td style="font-size:13px;color:rgba(255,255,255,0.5);padding-bottom:12px;vertical-align:top;">Dettaglio</td>
+                    <td style="text-align:right;font-size:13px;color:#ffffff;font-weight:500;padding-bottom:12px;">
+                      <ul style="margin:0;padding:0;list-style:none;">
+                        ${ticketsListHtml}
+                      </ul>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="border-top:1px dashed rgba(255,255,255,0.15);padding-top:12px;font-size:14px;color:#ffffff;font-weight:700;">Totale pagato</td>
+                    <td style="border-top:1px dashed rgba(255,255,255,0.15);padding-top:12px;text-align:right;font-size:18px;color:#f97316;font-weight:700;">€${order.totalAmount.toFixed(2)}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Instructions -->
+              <div style="background:rgba(249,115,22,0.06);border-radius:12px;padding:20px 24px;border:1px solid rgba(249,115,22,0.15);margin-bottom:28px;">
+                <p style="margin:0 0 10px;font-size:15px;font-weight:700;color:#f97316;">📋 Come ritirare i biglietti</p>
+                <ul style="margin:0;padding-left:20px;font-size:13px;color:rgba(255,255,255,0.6);line-height:1.8;">
+                  <li>Apri il PDF allegato a questa email e tienilo a portata di mano</li>
+                  <li>Presentalo all'ingresso di <strong style="color:#f97316;">Zuccaland</strong> il giorno dell'evento</li>
+                  <li>Puoi mostrarlo direttamente dallo schermo del telefono</li>
+                  <li>La ricevuta è personale e non cedibile</li>
+                </ul>
+              </div>
+              
+              <!-- CTA Button -->
+              <div style="text-align:center;margin-bottom:28px;">
+                <a href="${baseUrl}/zuccaland/success?order=${order.id}" style="display:inline-block;background:linear-gradient(135deg,#f97316,#ea580c);color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:999px;">
+                  Visualizza Ordine Online
+                </a>
+              </div>
+
+              <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.4);line-height:1.6;">
+                Per qualsiasi domanda, rispondi a questa email o contattaci su 
+                <a href="mailto:info@prolocogasperina.it" style="color:#f97316;">info@prolocogasperina.it</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#0a0603;padding:24px 40px;text-align:center;border-top:1px solid rgba(249,115,22,0.15);">
+              <div style="color:#f97316;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:8px;">Pro Loco Gasperina</div>
+              <div style="color:rgba(255,255,255,0.3);font-size:11px;">Gasperina (CZ) · prolocogasperina.it</div>
             </td>
           </tr>
 

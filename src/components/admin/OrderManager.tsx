@@ -205,7 +205,8 @@ export default function OrderManager() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `ordini_assaggia_passeggia_${new Date().toISOString().slice(0,10)}.csv`;
+    const eventLabel = filterEvent === 'all' ? 'tutti_gli_eventi' : filterEvent;
+    link.download = `ordini_${eventLabel}_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
   };
 
@@ -221,8 +222,11 @@ export default function OrderManager() {
     return matchesSearch && matchesStatus && matchesEvent;
   });
 
-  // Extract unique events from active orders to create tabs
-  const uniqueEvents = Array.from(new Set(orders.map(o => o.tickets?.[0]?.eventId).filter(Boolean))) as string[];
+  // Extract unique events from active orders and known events to create tabs
+  const uniqueEvents = Array.from(new Set([
+    'zuccaland-2026',
+    ...orders.map(o => o.tickets?.[0]?.eventId).filter(Boolean)
+  ])) as string[];
 
   // Calculate totals
   const paidOrders = filteredOrders.filter(o => o.status === 'PAID');
@@ -274,7 +278,7 @@ export default function OrderManager() {
               textTransform: 'capitalize'
             }}
           >
-            {eventId.replace(/-/g, ' ')}
+          {eventId.replace(/-/g, ' ').replace('zuccaland 2026', '🎃 Zuccaland 2026').replace('assaggia e passeggia', '🍷 Assaggia & Passeggia')}
           </button>
         ))}
       </div>

@@ -51,8 +51,12 @@ export async function GET(request: Request) {
           }, {} as Record<string, number>);
           const ticketsList = Object.entries(ticketsSummary).map(([type, count]) => `${count}x ${type}`).join(', ');
 
+          const isZuccaland = order.tickets.some(t => t.eventId?.includes('zuccaland'));
+          const eventLabel = isZuccaland ? '🎃 Zuccaland' : '🍷 Assaggia & Passeggia';
+
           await sendTelegramNotification(
             `✅ <b>Ordine PAGATO (Nexi)</b>\n\n` +
+            `🎪 <b>Evento:</b> ${eventLabel}\n` +
             `👤 <b>Nome:</b> ${order.buyerName}\n` +
             `📧 <b>Email:</b> ${order.buyerEmail}\n` +
             `📞 <b>Tel:</b> ${order.buyerPhone || 'N/D'}\n` +
@@ -60,13 +64,18 @@ export async function GET(request: Request) {
             `💰 <b>Totale:</b> €${order.totalAmount.toFixed(2)}\n` +
             `💳 <b>Transazione:</b> ${codTrans}`
           );
+
+          const successPath = isZuccaland
+            ? `/zuccaland/success?order=${orderId}`
+            : `/assaggia-e-passeggia/success?order=${orderId}`;
+          return NextResponse.redirect(`${baseUrl}${successPath}`);
         }
       } catch (emailErr) {
         console.error('Email or Telegram notification failed (non-fatal):', emailErr);
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
-      return NextResponse.redirect(`${baseUrl}/assaggia-e-passeggia/success?order=${orderId}`);
+      const baseUrl2 = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
+      return NextResponse.redirect(`${baseUrl2}/assaggia-e-passeggia/success?order=${orderId}`);
     } catch (error) {
       console.error('Failed to process successful payment:', error);
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
@@ -76,12 +85,20 @@ export async function GET(request: Request) {
     try {
       const order = await getOrder(codTrans);
       if (order) {
+        const isZuccaland = order.tickets.some(t => t.eventId?.includes('zuccaland'));
+        const eventLabel = isZuccaland ? '🎃 Zuccaland' : '🍷 Assaggia & Passeggia';
         await sendTelegramNotification(
           `❌ <b>Pagamento FALLITO o ANNULLATO</b>\n\n` +
+          `🎪 <b>Evento:</b> ${eventLabel}\n` +
           `👤 <b>Nome:</b> ${order.buyerName}\n` +
           `💰 <b>Totale:</b> €${order.totalAmount.toFixed(2)}\n` +
           `💳 <b>Transazione:</b> ${codTrans}`
         );
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
+        const failPath = isZuccaland
+          ? `/zuccaland?error=payment_failed`
+          : `/assaggia-e-passeggia/ticket?error=payment_failed`;
+        return NextResponse.redirect(`${baseUrl}${failPath}`);
       }
     } catch (e) {
       console.error(e);

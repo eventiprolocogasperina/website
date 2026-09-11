@@ -130,7 +130,7 @@ export async function POST(request: Request) {
             <strong>Pro Loco di Gasperina APS</strong><br>
             <span style="font-size: 12px; color: #7a7268;">
               Via Raffaele Milano, SNC — 88060 Gasperina (CZ)<br>
-              Tel. 327 978 3232 · prolocogasperina@gmail.com
+              Tel. 350 575 7501 · prolocogasperina@gmail.com
             </span>
           </p>
         </div>

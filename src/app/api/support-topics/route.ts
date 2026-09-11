@@ -26,7 +26,7 @@ export async function GET() {
     if (topics.length === 0) {
       topics = [
         { id: 'tickets', label: 'Problemi con i biglietti di A&P', phone: '393888693529' },
-        { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393279783232' },
+        { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393505757501' },
         { id: 'pagamenti', label: 'Informazioni sui pagamenti', phone: '393888693529' },
       ];
     }

@@ -126,7 +126,7 @@ export default function Footer() {
               {[
                 { icon: MapPin, text: 'Via Raffaele Milano SNC, Gasperina (CZ)' },
                 { icon: Mail, text: 'prolocogasperina@gmail.com' },
-                { icon: Phone, text: '+39 327 978 3232' },
+                { icon: Phone, text: '+39 350 575 7501' },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
                   <Icon size={15} style={{ color: 'var(--gold-500)', marginTop: '2px', flexShrink: 0 }} />

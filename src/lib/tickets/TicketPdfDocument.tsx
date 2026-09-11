@@ -241,21 +241,32 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
     ? new Date(order.paidAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
 
+  const isZuccaland = order.tickets.some(t => t.eventId?.includes('zuccaland'));
+
+  // Zuccaland overrides for palette
+  const headerBg = isZuccaland ? '#1a0d05' : palette.primary;
+  const accentColor = isZuccaland ? '#f97316' : palette.gold;
+  const stripeColor = isZuccaland ? '#f97316' : palette.primary;
+  const priceColor = isZuccaland ? '#f97316' : palette.primary;
+  const eventTitle = isZuccaland ? 'Zuccaland 2026' : 'Assaggia & Passeggia';
+  const eventSubtitle = isZuccaland ? 'Pro Loco Gasperina · 10-11 Ottobre 2026' : 'Pro Loco Gasperina · Gasperina (CZ)';
+  const eventDate = isZuccaland ? '10-11 Ottobre 2026 - Ingresso dalle ore 09:00' : '10 Agosto 2026 - Ritiro dalle ore 19:00';
+
   return (
     <Document
-      title={`Biglietti Assaggia & Passeggia - Ord. ${orderRef}`}
+      title={`Biglietti ${eventTitle} - Ord. ${orderRef}`}
       author="Pro Loco Gasperina"
     >
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: headerBg, borderBottom: `4 solid ${accentColor}` }]}>
           <View style={styles.headerLeft}>
             {eventLogoBase64 ? (
               <Image src={eventLogoBase64} style={styles.logoImage} />
             ) : (
               <>
-                <Text style={styles.eventTitle}>Assaggia &amp; Passeggia</Text>
-                <Text style={styles.eventSubtitle}>Pro Loco Gasperina · Gasperina (CZ)</Text>
+                <Text style={styles.eventTitle}>{eventTitle}</Text>
+                <Text style={[styles.eventSubtitle, { color: accentColor }]}>{eventSubtitle}</Text>
               </>
             )}
           </View>
@@ -304,15 +315,15 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                 <View style={styles.cutLine} />
               </View>
 
-              <View style={styles.ticketCard}>
-                <View style={styles.ticketStripe} />
+              <View style={[styles.ticketCard, { borderLeft: 'none' }]}>
+                <View style={[styles.ticketStripe, { backgroundColor: stripeColor }]} />
                 <View style={styles.ticketContent}>
                   <View style={styles.ticketLeft}>
                     <Text style={styles.ticketLabel}>Ricevuta {index + 1} di {order.tickets.length}</Text>
                     <Text style={styles.ticketType}>{ticket.type}</Text>
-                    <Text style={{ fontSize: 9, color: palette.primary, marginBottom: 6, fontFamily: 'Helvetica-Bold' }}>Data: 10 Agosto 2026 - Ritiro dalle ore 19:00</Text>
+                    <Text style={{ fontSize: 9, color: priceColor, marginBottom: 6, fontFamily: 'Helvetica-Bold' }}>Data: {eventDate}</Text>
                     <Text style={styles.ticketMeta}>ID: {ticket.id.substring(0, 16).toUpperCase()}</Text>
-                    <Text style={styles.ticketPrice}>€{ticket.price.toFixed(2)}</Text>
+                    <Text style={[styles.ticketPrice, { color: priceColor }]}>€{ticket.price.toFixed(2)}</Text>
                   </View>
                   <View style={styles.qrContainer}>
                     {qrDataUris[ticket.id] && (

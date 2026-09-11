@@ -44,7 +44,7 @@ export default function AdminImpostazioniPage() {
             // Default topics if not found
             setTopics([
               { id: 'tickets', label: 'Richiesta Informazioni Eventi', phone: '393888693529' },
-              { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393279783232' },
+              { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393505757501' },
               { id: 'pagamenti', label: 'Pagamenti', phone: '393888693529' },
             ]);
           }

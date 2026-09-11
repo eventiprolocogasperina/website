@@ -372,7 +372,7 @@ export default function IscrivitiPage() {
 
             <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', textAlign: 'center', lineHeight: 1.5 }}>
               Associazione Pro Loco di Gasperina APS — Sede legale in Gasperina (CZ), via Raffaele Milano, SNC<br />
-              C.F. 99330790793 · Contatti: 3279783232 oppure prolocogasperina@gmail.com
+              C.F. 99330790793 · Contatti: 3505757501 oppure prolocogasperina@gmail.com
             </p>
           </form>
         )}

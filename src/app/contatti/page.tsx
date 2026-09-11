@@ -35,7 +35,7 @@ export default function ContattiPage() {
                 {[
                   { icon: MapPin, title: 'Sede', text: 'Via Raffaele Milano SNC\nGasperina (CZ), Calabria' },
                   { icon: Mail, title: 'Email', text: 'prolocogasperina@gmail.com' },
-                  { icon: Phone, title: 'Telefono', text: '+39 327 978 3232' },
+                  { icon: Phone, title: 'Telefono', text: '+39 350 575 7501' },
                 ].map(({ icon: Icon, title, text }) => (
                   <div key={title} style={{ display: 'flex', gap: '1rem' }}>
                     <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'rgba(27,75,170,0.15)', border: '1px solid rgba(27,75,170,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

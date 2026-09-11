@@ -245,7 +245,7 @@ export function generateSubscriptionPDF(data: SubscriptionData): Buffer {
   y += 4;
   doc.setFontSize(6);
   doc.setTextColor(120, 120, 120);
-  doc.text('Associazione Pro Loco di Gasperina APS — Sede legale in Gasperina (CZ), via Raffaele Milano, SNC - C.F. 99330790793 - Contatti: 3279783232 oppure prolocogasperina@gmail.com', W / 2, y, { align: 'center' });
+  doc.text('Associazione Pro Loco di Gasperina APS — Sede legale in Gasperina (CZ), via Raffaele Milano, SNC - C.F. 99330790793 - Contatti: 3505757501 oppure prolocogasperina@gmail.com', W / 2, y, { align: 'center' });
 
   // Return as Buffer
   const arrayBuffer = doc.output('arraybuffer');

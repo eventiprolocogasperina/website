@@ -251,11 +251,11 @@ export default function SponsorPage() {
               <Mail size={16} /> prolocogasperina@gmail.com
             </a>
             <a
-              href="tel:+393279783232"
+              href="tel:+393505757501"
               className="btn btn-outline"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }}
             >
-              <Phone size={16} /> +39 327 978 3232
+              <Phone size={16} /> +39 350 575 7501
             </a>
           </div>
           <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
