@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, Download, ArrowRight, Loader2, Mail } from 'lucide-react';
+import { CheckCircle2, Download, ArrowRight, Loader2, Mail, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -156,13 +156,43 @@ export default function ZuccalandSuccessClient({
         <div style={{
           background: '#fff8f0', border: '1.5px solid #f5c89a', borderRadius: '1rem',
           padding: '1rem 1.25rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
-          marginBottom: '1.5rem',
+          marginBottom: '1rem',
         }}>
           <Mail size={18} color="#c85a0e" style={{ flexShrink: 0, marginTop: 2 }} />
           <p style={{ color: '#7a4820', fontSize: '0.875rem', margin: 0, lineHeight: 1.6 }}>
             Abbiamo inviato la ricevuta con QR code a <strong style={{ color: '#c85a0e' }}>{buyerEmail}</strong>.
             Presentala all'ingresso di Zuccaland. Controlla anche la cartella spam.
           </p>
+        </div>
+
+        {/* Location & Navigation */}
+        <div style={{
+          background: '#fef3c7', border: '1.5px solid #fcd34d', borderRadius: '1rem',
+          padding: '1.25rem', marginBottom: '1.5rem', textAlign: 'center',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+            <MapPin size={20} color="#b45309" />
+            <span style={{ fontWeight: 700, color: '#92400e', fontSize: '1rem' }}>Come Raggiungere Zuccaland</span>
+          </div>
+          <p style={{ color: '#78350f', fontSize: '0.85rem', margin: '0 0 0.85rem', lineHeight: 1.5 }}>
+            L'evento si terrà a <strong>Gasperina (CZ)</strong>. Apri la posizione esatta con il navigatore:
+          </p>
+          <a
+            href="https://maps.google.com/?q=38.743791,16.481122"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              background: '#ea580c', color: 'white', padding: '0.65rem 1.25rem',
+              borderRadius: '999px', textDecoration: 'none', fontWeight: 700,
+              fontSize: '0.875rem', boxShadow: '0 3px 10px rgba(234,88,12,0.3)',
+            }}
+          >
+            🗺️ Apri su Google Maps
+          </a>
+          <div style={{ marginTop: '0.6rem', fontSize: '0.75rem', color: '#92400e' }}>
+            Coordinate GPS: <code style={{ background: '#fde68a', padding: '2px 6px', borderRadius: '4px' }}>38.743791, 16.481122</code>
+          </div>
         </div>
 
         {/* Actions */}

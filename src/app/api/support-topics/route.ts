@@ -6,14 +6,14 @@ function getDb() {
   return neon(process.env.POSTGRES_URL);
 }
 
-export const revalidate = 60; // Cache for 60 seconds
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     const sql = getDb();
     const rows = await sql`SELECT value FROM site_settings WHERE key = 'whatsapp_topics'`;
     
-    let topics = [];
+    let topics: { id: string; label: string; phone: string }[] = [];
     if (rows.length > 0 && rows[0].value) {
       try {
         topics = JSON.parse(rows[0].value as string);
@@ -22,13 +22,36 @@ export async function GET() {
       }
     }
 
-    // Default fallback if nothing is set in the DB
+    // Ensure phone number is updated to 393505757501 if missing or set to old number
+    let needsDbUpdate = false;
     if (topics.length === 0) {
       topics = [
-        { id: 'tickets', label: 'Problemi con i biglietti di A&P', phone: '393888693529' },
+        { id: 'tickets', label: 'Richiesta Informazioni & Biglietti', phone: '393505757501' },
         { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393505757501' },
-        { id: 'pagamenti', label: 'Informazioni sui pagamenti', phone: '393888693529' },
+        { id: 'pagamenti', label: 'Informazioni sui pagamenti', phone: '393505757501' },
       ];
+      needsDbUpdate = true;
+    } else {
+      topics = topics.map(t => {
+        if (!t.phone || t.phone !== '393505757501') {
+          needsDbUpdate = true;
+          return { ...t, phone: '393505757501' };
+        }
+        return t;
+      });
+    }
+
+    if (needsDbUpdate) {
+      try {
+        await sql`
+          INSERT INTO site_settings (key, value, "updatedAt")
+          VALUES ('whatsapp_topics', ${JSON.stringify(topics)}, CURRENT_TIMESTAMP)
+          ON CONFLICT (key) DO UPDATE
+            SET value = EXCLUDED.value, "updatedAt" = CURRENT_TIMESTAMP
+        `;
+      } catch (err) {
+        console.error('Failed to update whatsapp_topics in DB', err);
+      }
     }
 
     return NextResponse.json({ success: true, data: topics });

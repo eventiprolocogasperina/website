@@ -80,6 +80,37 @@ export interface AssaggiaEPasseggiaContent {
 }
 
 // Zuccaland
+export interface ZuccalandInfoCard {
+  emoji: string;
+  title: string;
+  description: string;
+  color: string;
+  items: string[];
+}
+
+export interface ZuccalandTicketType {
+  id: string;
+  label: string;
+  price: number;
+  description: string;
+  emoji: string;
+  isExtra: boolean;
+}
+
+export interface ZuccalandFreeActivity {
+  id: string;
+  label: string;
+  details: string;
+}
+
+export interface ZuccalandHighlight {
+  icon: string; // 'shopping-bag' | 'music' | 'coffee' | etc.
+  title: string;
+  description: string;
+  bgColor: string;
+  textColor: string;
+}
+
 export interface ZuccalandContent {
   hero: {
     badge: string;
@@ -87,6 +118,16 @@ export interface ZuccalandContent {
     subtitle: string;
     description: string;
   };
+  event: {
+    startDate: string;      // ISO datetime
+    endDate: string;        // ISO datetime
+    salesOpenDate: string;   // ISO datetime — when ticket sales open
+    salesCloseDate: string;  // ISO datetime — when ticket sales close
+  };
+  infoCards: ZuccalandInfoCard[];
+  ticketTypes: ZuccalandTicketType[];
+  freeActivities: ZuccalandFreeActivity[];
+  highlights: ZuccalandHighlight[];
   program: {
     title: string;
     content: string; // Markdown supported
@@ -108,6 +149,62 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
     subtitle: 'Il villaggio delle zucche di Gasperina',
     description: 'Un\'esperienza incantata tra colori autunnali, laboratori per grandi e piccini, e tante degustazioni da leccarsi i baffi.',
   },
+  event: {
+    startDate: '2026-10-10T09:00:00+02:00',
+    endDate: '2026-10-11T23:59:00+02:00',
+    salesOpenDate: '2026-09-01T00:00:00+02:00',
+    salesCloseDate: '2026-10-10T08:00:00+02:00',
+  },
+  infoCards: [
+    {
+      emoji: '🎨',
+      title: 'Laboratori Creativi',
+      description: 'Tutte le attività sono gratuite, incluse nel biglietto e supervisionate. Sceglile nel checkout!',
+      color: '#fef08a',
+      items: [
+        '🎃 Zucca in Vaso · Età 3-7 · Solo Sabato',
+        '🖌️ Zuccart · Età 3-7 · Sempre aperto',
+        '🧟 Facepainting & Thriller Dance · Dai 6 anni',
+      ],
+    },
+    {
+      emoji: '🎯',
+      title: 'Giochi e Attrazioni',
+      description: 'Tanto divertimento per tutta la famiglia con giochi a tema e set fotografici spettacolari.',
+      color: '#fed7aa',
+      items: [
+        '🌾 Labirinto di balle di fieno',
+        '🎳 Gioco dei barattoli & degli anelli',
+        '🎲 Tris di zucca & Zuccapong',
+        '📸 Campo delle zucche & Postazioni photo',
+      ],
+    },
+    {
+      emoji: '🥧',
+      title: 'Food & Beverage',
+      description: 'Gustose prelibatezze e bevande autunnali per deliziare il palato.',
+      color: '#fbcfe8',
+      items: [
+        '🌭 Panino salsiccia, crema di zucca e pancetta',
+        '🍩 Frittelle di zucca calde',
+        '🧁 Merenda bimbi · Muffin, pop corn',
+        '🥧 Torta camilla, Pumpkin Pie, Torta di Mele',
+      ],
+    },
+  ],
+  ticketTypes: [
+    { id: 'ingresso', label: 'Ingresso Ordinario', price: 5, description: 'Ingresso all\'evento Zuccaland', emoji: 'pumpkin', isExtra: false },
+    { id: 'laboratorio', label: 'You Pick Lab', price: 3, description: 'Scegli la tua zucca e intagliala o dipingila come preferisci!', emoji: '🎨', isExtra: true },
+  ],
+  freeActivities: [
+    { id: 'zucca_vaso', label: 'Zucca in Vaso (3-7 anni)', details: 'Sabato 14:30 - 16:30. A cura di Bibl. Comunale "S. Grande". Max 60 posti.' },
+    { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Sempre aperto. A cura della Pro Loco.' },
+    { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'A cura di Vanessa Aiello.' },
+  ],
+  highlights: [
+    { icon: 'shopping-bag', title: 'Merchandising', description: 'Acquista un ricordo esclusivo dell\'evento presso il nostro stand dedicato.', bgColor: '#ea580c', textColor: '#ffffff' },
+    { icon: 'music', title: 'Musica dal Vivo', description: 'Intrattenimento musicale per accompagnare le tue serate al villaggio.', bgColor: '#431407', textColor: '#fdba74' },
+  ],
   program: {
     title: 'Programma dell\'Evento',
     content: 'Stiamo lavorando agli ultimi dettagli stregati! 🧙‍♀️✨\n\nIl programma completo sarà svelato a breve.',
@@ -115,7 +212,7 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
   tickets: {
     title: 'Riserva il tuo posto!',
     disclaimer: 'Le degustazioni culinarie agli stand non sono comprese nel prezzo del biglietto di ingresso.',
-  }
+  },
 };
 
 // Default content used if nothing is found in the DB

@@ -43,9 +43,9 @@ export default function AdminImpostazioniPage() {
           } else {
             // Default topics if not found
             setTopics([
-              { id: 'tickets', label: 'Richiesta Informazioni Eventi', phone: '393888693529' },
+              { id: 'tickets', label: 'Richiesta Informazioni Eventi', phone: '393505757501' },
               { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393505757501' },
-              { id: 'pagamenti', label: 'Pagamenti', phone: '393888693529' },
+              { id: 'pagamenti', label: 'Pagamenti', phone: '393505757501' },
             ]);
           }
         }
@@ -218,7 +218,7 @@ export default function AdminImpostazioniPage() {
                           newTopics[idx].phone = e.target.value;
                           setTopics(newTopics);
                         }}
-                        placeholder="Es. 393888693529"
+                        placeholder="Es. 393505757501"
                         style={{ width: '100%', padding: '0.6rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-sm)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none' }}
                       />
                     </div>

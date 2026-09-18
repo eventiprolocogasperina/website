@@ -6,7 +6,7 @@ import OrderManager from '@/components/admin/OrderManager';
 export default function AdminOrdiniPage() {
   return (
     <div>
-      <AdminHeader title="Ordini A&P" subtitle="Gestione ordini per Assaggia & Passeggia" />
+      <AdminHeader title="Ordini" subtitle="Panoramica vendite, analisi statistiche e gestione ordini per tutti gli eventi" />
       <OrderManager />
     </div>
   );

@@ -11,16 +11,22 @@ interface SupportTopic {
   phone: string;
 }
 
+const DEFAULT_TOPICS: SupportTopic[] = [
+  { id: 'tickets', label: 'Richiesta Informazioni & Biglietti', phone: '393505757501' },
+  { id: 'iscrizione', label: 'Iscrizione alla Pro Loco', phone: '393505757501' },
+  { id: 'pagamenti', label: 'Informazioni sui pagamenti', phone: '393505757501' },
+];
+
 export default function WhatsAppWidget() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [topics, setTopics] = useState<SupportTopic[]>([]);
+  const [topics, setTopics] = useState<SupportTopic[]>(DEFAULT_TOPICS);
   const [loading, setLoading] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   
   // Form State
   const [name, setName] = useState('');
-  const [selectedTopicId, setSelectedTopicId] = useState('');
+  const [selectedTopicId, setSelectedTopicId] = useState('tickets');
 
   // Fetch topics and listen for custom event
   useEffect(() => {
@@ -47,23 +53,26 @@ export default function WhatsAppWidget() {
     if (isOpen) setShowTooltip(false);
   }, [isOpen]);
 
-  // Fetch topics when widget opens for the first time
+  // Fetch topics when widget opens
   useEffect(() => {
-    if (isOpen && topics.length === 0) {
-      setLoading(true);
+    if (isOpen) {
       fetch('/api/support-topics')
         .then(r => r.json())
         .then(d => {
-          if (d.success && d.data) {
-            setTopics(d.data);
-            if (d.data.length > 0) {
-              setSelectedTopicId(d.data[0].id);
+          if (d.success && Array.isArray(d.data) && d.data.length > 0) {
+            const sanitized = d.data.map((t: SupportTopic) => ({
+              ...t,
+              phone: t.phone ? t.phone.replace(/[^0-9]/g, '') : '393505757501'
+            }));
+            setTopics(sanitized);
+            if (!selectedTopicId || !sanitized.some((t: SupportTopic) => t.id === selectedTopicId)) {
+              setSelectedTopicId(sanitized[0].id);
             }
           }
         })
-        .finally(() => setLoading(false));
+        .catch(err => console.error('Error fetching support topics:', err));
     }
-  }, [isOpen, topics.length]);
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

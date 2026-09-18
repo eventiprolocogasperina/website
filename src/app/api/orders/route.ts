@@ -6,7 +6,7 @@ import { sendTelegramNotification } from '@/lib/telegram';
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { eventId, buyerName, buyerEmail, buyerPhone, totalAmount, discountId, cart } = data;
+    const { eventId, buyerName, buyerEmail, buyerPhone, totalAmount, discountId, cart, notes } = data;
 
     if (!buyerName || !buyerEmail || !buyerPhone || totalAmount === undefined || !cart || cart.length === 0) {
       return NextResponse.json({ error: 'Dati incompleti' }, { status: 400 });
@@ -36,10 +36,12 @@ export async function POST(request: Request) {
       buyerPhone,
       totalAmount,
       discountId,
+      notes: notes || null,
       status: isFree ? 'PAID' : 'PENDING'
     }, ticketsToCreate);
 
     const ticketsSummary = cart.map((item: any) => `${item.quantity}x ${item.type}`).join(', ');
+    const notesSummary = notes ? `\n📝 <b>Note / Attività:</b> ${notes}` : '';
 
     if (isFree) {
       await sendTelegramNotification(
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
         `📧 <b>Email:</b> ${buyerEmail}\n` +
         `📞 <b>Tel:</b> ${buyerPhone}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
+        notesSummary + '\n' +
         `💰 <b>Totale:</b> €0.00\n` +
         `✅ <b>Stato:</b> PAGATO (Omaggio)\n` +
         `🆔 <b>Ordine:</b> #${orderId.substring(0, 8).toUpperCase()}`
@@ -65,6 +68,7 @@ export async function POST(request: Request) {
         `📧 <b>Email:</b> ${buyerEmail}\n` +
         `📞 <b>Tel:</b> ${buyerPhone}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
+        notesSummary + '\n' +
         `💰 <b>Totale:</b> €${totalAmount.toFixed(2)}\n` +
         `🔄 <b>Stato:</b> PENDING\n` +
         `🆔 <b>Ordine:</b> #${orderId.substring(0, 8).toUpperCase()}`

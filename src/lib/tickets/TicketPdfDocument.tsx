@@ -235,6 +235,28 @@ interface TicketPdfProps {
   proLocoLogoBase64?: string;
 }
 
+function parseOrderNotes(notes?: string | null) {
+  if (!notes) return { activities: [], numChildren: 0, target: '', raw: '' };
+  
+  let numChildren = 0;
+  let target = '';
+  let activities: string[] = [];
+
+  const kidsMatch = notes.match(/Bambini:\s*(\d+)\/(\d+)/i);
+  if (kidsMatch) {
+    numChildren = parseInt(kidsMatch[1], 10);
+  }
+
+  const actMatch = notes.match(/Attività\s*(?:\[(.*?)\])?:\s*(.*)/i);
+  if (actMatch) {
+    target = actMatch[1]?.trim() || '';
+    const actsStr = actMatch[2]?.trim() || '';
+    activities = actsStr.split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  return { activities, numChildren, target, raw: notes };
+}
+
 export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoLogoBase64 }: TicketPdfProps) {
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
   const paidDate = order.paidAt
@@ -242,6 +264,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
     : new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const isZuccaland = order.tickets.some(t => t.eventId?.includes('zuccaland'));
+  const parsedNotes = parseOrderNotes(order.notes);
 
   // Zuccaland overrides for palette
   const headerBg = isZuccaland ? '#1a0d05' : palette.primary;
@@ -301,10 +324,35 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
               </View>
               <View style={styles.buyerField}>
                 <Text style={styles.buyerFieldLabel}>N° Biglietti</Text>
-                <Text style={styles.buyerFieldValue}>{order.tickets.length}</Text>
+                <Text style={styles.buyerFieldValue}>
+                  {order.tickets.length} {parsedNotes.numChildren > 0 ? `(di cui ${parsedNotes.numChildren} ${parsedNotes.numChildren === 1 ? 'bambino' : 'bambini'})` : ''}
+                </Text>
               </View>
             </View>
           </View>
+
+          {/* Selected Activities Box */}
+          {parsedNotes.activities.length > 0 && (
+            <View style={[styles.buyerSection, { backgroundColor: isZuccaland ? '#fff9f5' : '#f4f6fa', borderColor: isZuccaland ? '#fed7aa' : '#dbe2ef' }]}>
+              <Text style={[styles.buyerTitle, { color: isZuccaland ? '#ea580c' : palette.primary, marginBottom: 4 }]}>
+                🎨 Attività e Laboratori Riservati
+              </Text>
+              {parsedNotes.target ? (
+                <Text style={{ fontSize: 8, color: isZuccaland ? '#9a3412' : '#4b5563', marginBottom: 6 }}>
+                  Destinatari: {parsedNotes.target}
+                </Text>
+              ) : null}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {parsedNotes.activities.map((act, idx) => (
+                  <View key={idx} style={{ backgroundColor: isZuccaland ? '#ffedd5' : '#e0e7ff', borderRadius: 4, padding: '3 8' }}>
+                    <Text style={{ fontSize: 8, color: isZuccaland ? '#9a3412' : '#1e3a8a', fontFamily: 'Helvetica-Bold' }}>
+                      ✓ {act}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Individual tickets */}
           {order.tickets.map((ticket, index) => (
@@ -335,6 +383,13 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
               </View>
             </View>
           ))}
+
+          {/* Location & GPS in PDF */}
+          <View style={[styles.infoBox, { backgroundColor: isZuccaland ? '#fffaf5' : '#f0f4fc', borderColor: isZuccaland ? '#fed7aa' : '#dbe2ef', marginTop: 4 }]} wrap={false}>
+            <Text style={[styles.infoText, { color: isZuccaland ? '#9a3412' : '#1e3a8a' }]}>
+              📍 Luogo dell&apos;evento: Gasperina (CZ) · Coordinate GPS per navigatore: 38.743791, 16.481122
+            </Text>
+          </View>
 
           {/* Info box */}
           <View style={styles.infoBox} wrap={false}>

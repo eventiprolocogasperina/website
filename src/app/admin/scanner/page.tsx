@@ -237,13 +237,29 @@ export default function ScannerPage() {
                 )}
                 {scanResult.order && (
                   <div style={{ borderTop: scanResult.ticket ? '1px solid rgba(255,255,255,0.1)' : 'none', paddingTop: scanResult.ticket ? '1rem' : 0, marginTop: scanResult.ticket ? '1rem' : 0 }}>
-                    <div style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Dettagli Ordine</div>
-                    <div style={{ color: 'white', fontSize: '1rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Dettagli Ordine</span>
+                      <span style={{ background: 'rgba(255,255,255,0.15)', color: 'white', fontSize: '0.78rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', fontFamily: 'monospace' }}>
+                        #{scanResult.order.id ? scanResult.order.id.replace(/-/g, '').substring(0, 8).toUpperCase() : ''}
+                      </span>
+                    </div>
+                    <div style={{ color: 'white', fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <User size={16} /> {scanResult.order.buyerName}
                     </div>
-                    <div style={{ color: 'var(--neutral-400)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.35rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>
+                      {scanResult.order.buyerEmail && <span>📧 {scanResult.order.buyerEmail}</span>}
+                      {scanResult.order.buyerPhone && <span>📱 {scanResult.order.buyerPhone}</span>}
+                    </div>
+                    <div style={{ color: 'var(--neutral-400)', fontSize: '0.9rem', marginTop: '0.4rem' }}>
                       Stato Pagamento: <strong style={{ color: scanResult.order.status === 'PAID' ? '#4ade80' : '#f87171' }}>{scanResult.order.status}</strong>
                     </div>
+
+                    {scanResult.order.notes && (
+                      <div style={{ marginTop: '0.75rem', padding: '0.65rem 0.85rem', background: 'rgba(234, 88, 12, 0.2)', border: '1px solid rgba(254, 215, 170, 0.4)', borderRadius: '0.6rem', fontSize: '0.88rem', color: '#fef08a' }}>
+                        <span style={{ fontWeight: 800, display: 'block', marginBottom: '0.2rem', color: '#fed7aa' }}>🎨 Note & Attività Riservate:</span>
+                        {scanResult.order.notes}
+                      </div>
+                    )}
                   </div>
                 )}
                 {scanResult.orderTickets && scanResult.orderTickets.length > 0 && (
