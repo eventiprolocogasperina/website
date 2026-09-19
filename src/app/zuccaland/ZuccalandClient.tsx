@@ -456,6 +456,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
       background: 'linear-gradient(180deg, #ffedd5 0%, #fff7ed 100%)',
       position: 'relative',
       zIndex: 2,
+      scrollMarginTop: '8rem',
     }}>
       {/* Decorative Blur Blobs */}
       <div style={{
@@ -1918,6 +1919,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
 
   const [phase, setPhase] = useState<EventPhase>('on-sale');
   const [mounted, setMounted] = useState(false);
+  const [activeSection, setActiveSection] = useState<'hero' | 'attivita' | 'programma' | 'info' | 'acquista'>('hero');
 
   useEffect(() => {
     setMounted(true);
@@ -1925,6 +1927,34 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
     const interval = setInterval(() => setPhase(getEventPhase(content.event)), 30000);
     return () => clearInterval(interval);
   }, [content.event]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sectionIds = ['acquista', 'programma', 'info', 'attivita'];
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 260 && rect.bottom >= 120) {
+            setActiveSection(id as any);
+            return;
+          }
+        }
+      }
+      setActiveSection('hero');
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const { scrollYProgress } = useScroll();
   const yBg = useTransform(scrollYProgress, [0, 1], [0, 300]);
@@ -1940,50 +1970,163 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       {/* Easter Egg */}
       <FallingPumpkins />
 
-      {/* ── Sticky Navbar Fun ── */}
-      <motion.div 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', damping: 15 }}
-        style={{
-        position: 'sticky', top: '5rem', zIndex: 50,
-        margin: '0 auto', maxWidth: '800px', width: 'calc(100% - 1.25rem)',
-        background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderRadius: '999px', padding: '0.5rem 0.85rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.06)',
-        border: '2px solid white'
-      }}>
-        <Link href="/" style={{ textDecoration: 'none' }}>
-          <span style={{ color: '#ea580c', fontSize: '0.85rem', fontWeight: 800, paddingLeft: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+      {/* ── Redesigned Useful Sticky Navigation Bar ── */}
+      <motion.nav 
+        aria-label="Navigazione rapida Zuccaland"
+        initial={{ y: -60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', damping: 20, stiffness: 120 }}
+        className="zucca-sticky-nav"
+      >
+        {/* Left: Home link & compact brand identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
+          <Link 
+            href="/" 
+            style={{ 
+              textDecoration: 'none', 
+              color: '#ea580c', 
+              fontSize: '0.8rem', 
+              fontWeight: 750, 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.25rem',
+              padding: '0.35rem 0.6rem',
+              borderRadius: '999px',
+              background: 'rgba(234, 88, 12, 0.08)',
+              transition: 'background 0.2s',
+              whiteSpace: 'nowrap'
+            }}
+            title="Torna al portale della Pro Loco"
+          >
             ← <span style={{ display: 'none' }} className="sm:inline">Pro Loco</span>
-          </span>
-        </Link>
-        <Image src="/img/zuccaland/Logotype.png" alt="Zuccaland" width={76} height={28} unoptimized style={{ objectFit: 'contain' }} />
-        {showTickets && (
-          <a href="#acquista"
-            onClick={e => { e.preventDefault(); document.getElementById('acquista')?.scrollIntoView({ behavior: 'smooth' }); }}
-            style={{
-              background: '#ea580c', color: 'white', padding: '0.5rem 1.1rem',
-              borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '0.82rem',
-              boxShadow: '0 4px 12px rgba(234,88,12,0.3)',
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              cursor: 'pointer',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.35rem', 
+              padding: '0.2rem 0.35rem',
+              fontFamily: 'inherit',
+              textAlign: 'left'
+            }}
+            title="Torna all'inizio della pagina"
+          >
+            <span style={{ fontSize: '1rem', lineHeight: 1 }}>🎃</span>
+            <span style={{ 
+              fontFamily: 'var(--font-display)', 
+              fontWeight: 800, 
+              fontSize: '0.92rem', 
+              color: '#431407',
+              letterSpacing: '-0.02em',
+              whiteSpace: 'nowrap'
             }}>
-            Acquista
-          </a>
-        )}
-        {!showTickets && (
-          <span style={{
-            background: phase === 'live' ? '#22c55e' : phase === 'concluded' ? '#7c3aed' : '#fbbf24',
-            color: phase === 'pre-sale' ? '#92400e' : 'white',
-            padding: '0.5rem 1rem',
-            borderRadius: '999px', fontWeight: 800, fontSize: '0.78rem',
-            textTransform: 'uppercase', letterSpacing: '0.05em',
-          }}>
-            {phase === 'live' ? '🔴 Live' : phase === 'concluded' ? 'Concluso' : 'Prossimamente'}
+              Zuccaland
+            </span>
+          </button>
+
+          {/* Quick Date pill */}
+          <span 
+            className="hidden sm:inline-flex"
+            style={{
+              background: 'rgba(234, 88, 12, 0.1)',
+              color: '#c2410c',
+              fontSize: '0.72rem',
+              fontWeight: 750,
+              padding: '0.2rem 0.55rem',
+              borderRadius: '999px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            10-11 Ott
           </span>
-        )}
-      </motion.div>
+        </div>
+
+        {/* Center: Real Useful Navigation Anchors */}
+        <div className="zucca-nav-links">
+          <button 
+            type="button"
+            onClick={() => scrollToSection('attivita')} 
+            className={`zucca-nav-link ${activeSection === 'attivita' ? 'active' : ''}`}
+          >
+            Attività
+          </button>
+          <button 
+            type="button"
+            onClick={() => scrollToSection('programma')} 
+            className={`zucca-nav-link ${activeSection === 'programma' ? 'active' : ''}`}
+          >
+            Programma
+          </button>
+          <button 
+            type="button"
+            onClick={() => scrollToSection('info')} 
+            className={`zucca-nav-link ${activeSection === 'info' ? 'active' : ''}`}
+          >
+            Info & Servizi
+          </button>
+        </div>
+
+        {/* Right: Primary Call to Action */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+          {showTickets && (
+            <a 
+              href="#acquista"
+              onClick={e => { e.preventDefault(); scrollToSection('acquista'); }}
+              style={{
+                background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
+                color: 'white',
+                padding: '0.42rem clamp(0.75rem, 2vw, 1.05rem)',
+                borderRadius: '999px',
+                textDecoration: 'none',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 4px 14px rgba(234,88,12,0.3)',
+                whiteSpace: 'nowrap',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+            >
+              <Ticket size={15} />
+              <span>Biglietti</span>
+              <span className="hidden md:inline" style={{ fontSize: '0.74rem', opacity: 0.9, fontWeight: 600 }}>da €5</span>
+            </a>
+          )}
+
+          {!showTickets && (
+            <button
+              type="button"
+              onClick={() => scrollToSection('acquista')}
+              style={{
+                background: phase === 'live' ? '#22c55e' : phase === 'concluded' ? '#7c3aed' : '#ea580c',
+                color: 'white',
+                padding: '0.42rem 0.85rem',
+                borderRadius: '999px',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {phase === 'live' ? '🔴 Live' : phase === 'concluded' ? 'Concluso' : 'Info Vendite'}
+            </button>
+          )}
+        </div>
+      </motion.nav>
 
       {/* Phase Banner */}
       {mounted && <PhaseBanner phase={phase} />}
@@ -1991,9 +2134,9 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       {/* ── Hero ── */}
       <section style={{
         position: 'relative',
-        minHeight: '85vh',
+        minHeight: '80vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 'clamp(5.5rem, 12vh, 8rem) 1rem 3.5rem',
+        padding: 'clamp(2rem, 5vh, 3.5rem) 1rem 3.5rem',
         textAlign: 'center',
         zIndex: 2,
       }}>
@@ -2147,7 +2290,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       </section>
 
       {/* ── Info Cards Section (CMS-driven, interactive chips) ── */}
-      <section style={{ padding: 'clamp(2.5rem, 6vh, 4rem) 1rem', position: 'relative', zIndex: 2 }}>
+      <section id="attivita" style={{ padding: 'clamp(2.5rem, 6vh, 4rem) 1rem', position: 'relative', zIndex: 2, scrollMarginTop: '8rem' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.25rem' }}>
           {content.infoCards.map((item, i) => (
             <motion.div
@@ -2247,7 +2390,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       </section>
       
       {/* ── Highlights (Merch & Music — discrete contextual perks) ── */}
-      <section style={{ padding: '0 1rem 2.5rem', position: 'relative', zIndex: 2 }}>
+      <section id="info" style={{ padding: '0 1rem 2.5rem', position: 'relative', zIndex: 2, scrollMarginTop: '8rem' }}>
          <div style={{ maxWidth: '780px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
             {content.highlights.map((hl, i) => (
               <motion.div
@@ -2342,7 +2485,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       )}
 
       {/* ── Programma Section ── */}
-      <section style={{ padding: '2rem 1rem 3.5rem', background: 'transparent', position: 'relative', zIndex: 2 }}>
+      <section id="programma" style={{ padding: '2rem 1rem 3.5rem', background: 'transparent', position: 'relative', zIndex: 2, scrollMarginTop: '8rem' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', color: '#ea580c', marginBottom: '1.5rem', lineHeight: 1.2 }}>
             {content.program.title}
