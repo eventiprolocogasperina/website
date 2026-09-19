@@ -253,24 +253,222 @@ export async function getAdvancedTicketingStats(eventId: string) {
   };
 }
 
-export async function getLatestOrdersTelegram(eventId: string, limit: number = 15): Promise<any[]> {
-  const sql = getDb();
+export function parseOrderNotes(notes?: string | null) {
+  if (!notes) {
+    return { 
+      children: null as number | null, 
+      totalRegistered: null as number | null, 
+      activities: [] as string[], 
+      target: null as string | null, 
+      eventDate: null as string | null,
+      dayKey: 'unspecified' as '10' | '11' | 'unspecified',
+      rawNotes: '' 
+    };
+  }
+
+  let children: number | null = null;
+  let totalRegistered: number | null = null;
+  const childMatch = notes.match(/Bambini:\s*(\d+)(?:\/(\d+))?/i);
+  if (childMatch) {
+    children = parseInt(childMatch[1], 10);
+    if (childMatch[2]) totalRegistered = parseInt(childMatch[2], 10);
+  }
+
+  let target: string | null = null;
+  const targetMatch = notes.match(/Attività\s*(?:scelte)?\s*\[([^\]]+)\]/i) || notes.match(/Attività\s*(?:scelte)?\s*\(([^)]+)\)/i);
+  if (targetMatch) {
+    target = targetMatch[1];
+  }
+
+  let activities: string[] = [];
+  const actMatch = notes.match(/Attività\s*(?:scelte)?(?:\s*\[[^\]]+\]|\s*\([^)]+\))?:\s*([^|]+)/i);
+  if (actMatch) {
+    activities = actMatch[1]
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+  }
+
+  let eventDate: string | null = null;
+  let dayKey: '10' | '11' | 'unspecified' = 'unspecified';
+  const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
+  if (dateMatch) {
+    eventDate = dateMatch[1].trim();
+  }
   
-  const ordersRes = await sql`
+  if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
+    dayKey = '10';
+    if (!eventDate) eventDate = 'Sabato 10 Ottobre 2026';
+  } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
+    dayKey = '11';
+    if (!eventDate) eventDate = 'Domenica 11 Ottobre 2026';
+  }
+
+  return { children, totalRegistered, activities, target, eventDate, dayKey, rawNotes: notes };
+}
+
+export interface ZuccalandDayStats {
+  title: string;
+  orders: number;
+  revenue: number;
+  tickets: number;
+  kids: number;
+  adults: number;
+  ticketTypes: Record<string, number>;
+  activityStats: Record<string, number>;
+}
+
+export interface ZuccalandStatsResult {
+  totalTickets: number;
+  totalRevenue: number;
+  paidOrdersCount: number;
+  freeOrders: number;
+  kidsCount: number;
+  adultsCount: number;
+  totalAttendees: number;
+  ticketTypes: Record<string, number>;
+  activityStats: Record<string, number>;
+  perDay: {
+    '10': ZuccalandDayStats;
+    '11': ZuccalandDayStats;
+    'unspecified': ZuccalandDayStats;
+  };
+}
+
+export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
+  const sql = getDb();
+
+  const perDay: ZuccalandStatsResult['perDay'] = {
+    '10': { title: 'Sabato 10 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '11': { title: 'Domenica 11 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    'unspecified': { title: 'Altre date / Non specificata', orders: 0, revenue: 0, tickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} }
+  };
+
+  const orders = await sql`
     SELECT o.* 
     FROM orders o
-    WHERE o.id IN (
-      SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
-    ) AND o.status = 'PAID' AND o."deletedAt" IS NULL
+    WHERE o.status = 'PAID' 
+      AND o."deletedAt" IS NULL
+      AND (
+        o.id IN (SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" ILIKE '%zuccaland%')
+        OR o.notes ILIKE '%zuccaland%'
+      )
     ORDER BY o."createdAt" DESC
-    LIMIT ${limit}
   `;
+
+  if (orders.length === 0) {
+    return {
+      totalTickets: 0,
+      totalRevenue: 0,
+      paidOrdersCount: 0,
+      freeOrders: 0,
+      kidsCount: 0,
+      adultsCount: 0,
+      totalAttendees: 0,
+      ticketTypes: {},
+      activityStats: {},
+      perDay
+    };
+  }
+
+  const orderIds = orders.map(o => o.id);
+  const tickets = await sql`
+    SELECT "orderId", type, price, "eventId" 
+    FROM tickets 
+    WHERE "orderId" = ANY(${orderIds})
+  `;
+
+  let totalRevenue = 0;
+  let freeOrders = 0;
+  let totalKids = 0;
+  let totalAdults = 0;
+  const ticketTypes: Record<string, number> = {};
+  const activityStats: Record<string, number> = {};
+
+  for (const o of orders) {
+    const rev = parseFloat(o.totalAmount || 0);
+    totalRevenue += rev;
+    if (rev === 0) freeOrders++;
+
+    const oTickets = tickets.filter(t => t.orderId === o.id);
+    oTickets.forEach(t => {
+      ticketTypes[t.type] = (ticketTypes[t.type] || 0) + 1;
+    });
+
+    const parsed = parseOrderNotes(o.notes);
+    const baseTickets = oTickets.filter(t => !t.type.toLowerCase().includes('lab') && !t.type.toLowerCase().includes('extra')).length || oTickets.length;
+    const kids = parsed.children ?? 0;
+    const totalAttendees = parsed.totalRegistered ?? baseTickets;
+    const adults = Math.max(0, totalAttendees - kids);
+
+    totalKids += kids;
+    totalAdults += adults;
+
+    if (parsed.activities.length > 0) {
+      const attendees = (parsed.target?.toLowerCase().includes('bambini') && kids > 0) ? kids : (totalAttendees || 1);
+      parsed.activities.forEach(act => {
+        activityStats[act] = (activityStats[act] || 0) + attendees;
+      });
+    }
+
+    // Allocate to day
+    const day = perDay[parsed.dayKey];
+    day.orders++;
+    day.revenue += rev;
+    day.tickets += oTickets.length;
+    day.kids += kids;
+    day.adults += adults;
+    oTickets.forEach(t => {
+      day.ticketTypes[t.type] = (day.ticketTypes[t.type] || 0) + 1;
+    });
+    if (parsed.activities.length > 0) {
+      const attendees = (parsed.target?.toLowerCase().includes('bambini') && kids > 0) ? kids : (totalAttendees || 1);
+      parsed.activities.forEach(act => {
+        day.activityStats[act] = (day.activityStats[act] || 0) + attendees;
+      });
+    }
+  }
+
+  return {
+    totalTickets: tickets.length,
+    totalRevenue,
+    paidOrdersCount: orders.length,
+    freeOrders,
+    kidsCount: totalKids,
+    adultsCount: totalAdults,
+    totalAttendees: totalKids + totalAdults,
+    ticketTypes,
+    activityStats,
+    perDay
+  };
+}
+
+export async function getLatestOrdersTelegram(eventId?: string, limit: number = 15): Promise<any[]> {
+  const sql = getDb();
+  
+  const ordersRes = eventId
+    ? await sql`
+        SELECT o.* 
+        FROM orders o
+        WHERE o.id IN (
+          SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
+        ) AND o.status = 'PAID' AND o."deletedAt" IS NULL
+        ORDER BY o."createdAt" DESC
+        LIMIT ${limit}
+      `
+    : await sql`
+        SELECT o.* 
+        FROM orders o
+        WHERE o.status = 'PAID' AND o."deletedAt" IS NULL
+        ORDER BY o."createdAt" DESC
+        LIMIT ${limit}
+      `;
 
   if (ordersRes.length === 0) return [];
 
   const orderIds = ordersRes.map(o => o.id);
   const ticketsRes = await sql`
-    SELECT "orderId", type, price 
+    SELECT "orderId", type, price, "eventId" 
     FROM tickets 
     WHERE "orderId" = ANY(${orderIds})
   `;

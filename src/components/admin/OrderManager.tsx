@@ -7,55 +7,10 @@ import {
   TrendingUp, Users, Calendar, Ticket as TicketIcon, BarChart3,
   Sparkles, Wine, ArrowUpRight
 } from 'lucide-react';
-import type { OrderWithTickets } from '@/lib/data/tickets';
+import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseOrderNotes(notes?: string) {
-  if (!notes) return { 
-    children: null as number | null, 
-    totalRegistered: null as number | null, 
-    activities: [] as string[], 
-    target: null as string | null, 
-    eventDate: null as string | null,
-    rawNotes: '' 
-  };
-
-  let children: number | null = null;
-  let totalRegistered: number | null = null;
-  const childMatch = notes.match(/Bambini:\s*(\d+)(?:\/(\d+))?/i);
-  if (childMatch) {
-    children = parseInt(childMatch[1], 10);
-    if (childMatch[2]) totalRegistered = parseInt(childMatch[2], 10);
-  }
-
-  let target: string | null = null;
-  const targetMatch = notes.match(/Attività\s*(?:scelte)?\s*\[([^\]]+)\]/i) || notes.match(/Attività\s*(?:scelte)?\s*\(([^)]+)\)/i);
-  if (targetMatch) {
-    target = targetMatch[1];
-  }
-
-  let activities: string[] = [];
-  const actMatch = notes.match(/Attività\s*(?:scelte)?(?:\s*\[[^\]]+\]|\s*\([^)]+\))?:\s*([^|]+)/i);
-  if (actMatch) {
-    activities = actMatch[1]
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-  }
-
-  let eventDate: string | null = null;
-  const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
-  if (dateMatch) {
-    eventDate = dateMatch[1].trim();
-  } else if (notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
-    eventDate = 'Sabato 10 Ottobre 2026';
-  } else if (notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
-    eventDate = 'Domenica 11 Ottobre 2026';
-  }
-
-  return { children, totalRegistered, activities, target, eventDate, rawNotes: notes };
-}
 
 function getOrderEventId(order: OrderWithTickets): 'zuccaland-2026' | 'assaggia-passeggia' {
   if (order.tickets && order.tickets.some(t => t.eventId?.includes('zuccaland'))) {
