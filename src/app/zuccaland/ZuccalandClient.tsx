@@ -142,23 +142,24 @@ function CountdownDisplay({ targetDate, label }: { targetDate: string; label: st
         background: 'rgba(255,255,255,0.15)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderRadius: '2rem',
-        padding: '2rem 2.5rem',
+        borderRadius: '1.5rem',
+        padding: 'clamp(1.25rem, 4vw, 2rem) clamp(0.75rem, 3vw, 2rem)',
         border: '1px solid rgba(255,255,255,0.25)',
         boxShadow: '0 20px 60px rgba(234,88,12,0.15), inset 0 1px 0 rgba(255,255,255,0.3)',
         maxWidth: '560px',
-        margin: '2rem auto 0',
+        width: 'calc(100% - 1rem)',
+        margin: '1.5rem auto 0',
         textAlign: 'center',
       }}
     >
       <p style={{
-        color: '#ea580c', fontWeight: 800, fontSize: '0.85rem',
-        textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '1rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+        color: '#ea580c', fontWeight: 800, fontSize: 'clamp(0.78rem, 2.5vw, 0.85rem)',
+        textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.85rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
       }}>
-        <Clock size={16} /> {label}
+        <Clock size={15} /> {label}
       </p>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(0.35rem, 2vw, 0.85rem)' }}>
         {segments.map((seg, i) => (
           <div key={seg.label} style={{ textAlign: 'center' }}>
             <motion.div
@@ -170,17 +171,17 @@ function CountdownDisplay({ targetDate, label }: { targetDate: string; label: st
                 background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
                 color: 'white',
                 fontWeight: 900,
-                fontSize: 'clamp(1.8rem, 5vw, 2.8rem)',
-                borderRadius: '1rem',
-                padding: '0.75rem 1rem',
-                minWidth: 'clamp(60px, 12vw, 80px)',
+                fontSize: 'clamp(1.35rem, 5.5vw, 2.4rem)',
+                borderRadius: '0.85rem',
+                padding: 'clamp(0.45rem, 1.8vw, 0.75rem) clamp(0.4rem, 1.8vw, 0.85rem)',
+                minWidth: 'clamp(48px, 17vw, 75px)',
                 boxShadow: '0 8px 20px rgba(234,88,12,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
               {mounted ? String(seg.value).padStart(2, '0') : '--'}
             </motion.div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9a3412', marginTop: '0.5rem', display: 'block', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9a3412', marginTop: '0.4rem', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               {seg.label}
             </span>
           </div>
@@ -451,7 +452,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
 
   return (
     <div id="acquista" style={{
-      padding: '5rem 1.5rem 6rem',
+      padding: 'clamp(3rem, 7vh, 5rem) 1rem 6rem',
       background: 'linear-gradient(180deg, #ffedd5 0%, #fff7ed 100%)',
       position: 'relative',
       zIndex: 2,
@@ -473,49 +474,49 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
       <div style={{ maxWidth: '1080px', margin: '0 auto', position: 'relative' }}>
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ type: "spring", bounce: 0.5 }}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
               background: '#ea580c', color: 'white',
-              padding: '0.45rem 1.25rem', borderRadius: '999px',
-              fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase',
-              letterSpacing: '0.1em', marginBottom: '0.85rem',
+              padding: '0.4rem 1.1rem', borderRadius: '999px',
+              fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase',
+              letterSpacing: '0.08em', marginBottom: '0.75rem',
               boxShadow: '0 4px 14px rgba(234,88,12,0.4)',
             }}
           >
-            <Ticket size={16} /> Biglietteria Ufficiale
+            <Ticket size={15} /> Biglietteria Ufficiale
           </motion.div>
           <h2 style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(2rem, 5vw, 2.75rem)',
-            color: '#431407', margin: '0 0 0.5rem', lineHeight: 1.15,
+            fontSize: 'clamp(1.85rem, 5.5vw, 2.75rem)',
+            color: '#431407', margin: '0 0 0.5rem', lineHeight: 1.2,
           }}>
             {content.tickets.title}
           </h2>
           <p style={{
-            color: '#9a3412', fontSize: '0.95rem', lineHeight: 1.5, fontWeight: 500,
-            maxWidth: '520px', margin: '0 auto',
+            color: '#9a3412', fontSize: 'clamp(0.88rem, 2.8vw, 0.95rem)', lineHeight: 1.5, fontWeight: 500,
+            maxWidth: '520px', margin: '0 auto', padding: '0 0.5rem',
           }}>
             Prenota il tuo ingresso e iscriviti ai laboratori in pochi semplici passaggi.
           </p>
 
-          {/* PROGRESS STEPPER BAR */}
+          {/* PROGRESS STEPPER BAR (RESPONSIVE NO-WRAP LABELS) */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-            background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(10px)',
-            padding: '0.35rem 0.5rem', borderRadius: '999px',
+            display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+            background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)',
+            padding: '0.3rem 0.4rem', borderRadius: '999px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.06)', border: '1px solid rgba(254, 215, 170, 0.8)',
-            marginTop: '1.75rem', flexWrap: 'wrap', justifyContent: 'center'
+            marginTop: '1.25rem', maxWidth: '460px', width: '100%', justifyContent: 'center'
           }}>
             {[
-              { num: 1 as const, title: 'Biglietti & Bambini', emoji: '🎟️' },
-              { num: 2 as const, title: 'Laboratori', emoji: '🎨' },
-              { num: 3 as const, title: 'Dati & Checkout', emoji: '🧑' },
+              { num: 1 as const, titleFull: 'Biglietti & Bimbi', titleShort: '1. Ingressi', emoji: '🎟️' },
+              { num: 2 as const, titleFull: 'Laboratori', titleShort: '2. Laboratori', emoji: '🎨' },
+              { num: 3 as const, titleFull: 'Dati & Cassa', titleShort: '3. Cassa', emoji: '🧑' },
             ].map(s => {
               const isActive = step === s.num;
               const isDone = step > s.num && totalBase > 0;
@@ -533,36 +534,33 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   }}
                   disabled={!isClickable}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                    padding: '0.5rem 1rem', borderRadius: '999px',
+                    display: 'flex', alignItems: 'center', gap: '0.35rem',
+                    padding: '0.45rem clamp(0.5rem, 2.5vw, 0.85rem)', borderRadius: '999px',
                     border: 'none',
                     background: isActive ? '#ea580c' : isDone ? '#ffedd5' : 'transparent',
                     color: isActive ? 'white' : isDone ? '#7c2d12' : '#9ca3af',
-                    fontWeight: 700, fontSize: '0.85rem',
+                    fontWeight: 700, fontSize: 'clamp(0.75rem, 2.6vw, 0.85rem)',
                     cursor: isClickable ? 'pointer' : 'not-allowed',
                     boxShadow: isActive ? '0 4px 12px rgba(234,88,12,0.35)' : 'none',
                     transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <span>{s.emoji}</span>
-                  <span>{s.title}</span>
-                  {isDone && <Check size={14} strokeWidth={3} color="#16a34a" />}
+                  <span className="zucca-stepper-btn-full">{s.titleFull}</span>
+                  <span className="zucca-stepper-btn-short">{s.titleShort}</span>
+                  {isDone && <Check size={13} strokeWidth={3} color="#16a34a" />}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* 2-COLUMN LAYOUT ON DESKTOP */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '2rem',
-          alignItems: 'start'
-        }}>
+        {/* 2-COLUMN LAYOUT ON DESKTOP, FULL WIDTH ON MOBILE */}
+        <div className="zucca-checkout-grid">
 
           {/* LEFT COLUMN: FORM STEPS */}
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, width: '100%' }}>
 
             {/* STEP 1: BIGLIETTI & BAMBINI */}
             {step === 1 && (
@@ -577,7 +575,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 <div style={{
                   background: 'white',
                   borderRadius: '1.25rem',
-                  padding: '1.25rem',
+                  padding: '1.15rem',
                   marginBottom: '1.25rem',
                   boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
                   border: '1.5px solid #fed7aa'
@@ -588,27 +586,28 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                       <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#431407' }}>
                         Scegli il giorno di partecipazione
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#9a3412' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#9a3412' }}>
                         Il villaggio è aperto sabato 10 e domenica 11 ottobre
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                     <button
                       type="button"
                       onClick={() => setSelectedDay('10 Ottobre')}
                       style={{
-                        padding: '0.85rem 0.75rem',
+                        padding: '0.75rem 0.4rem',
                         borderRadius: '1rem',
                         border: `2px solid ${selectedDay === '10 Ottobre' ? '#ea580c' : '#fed7aa'}`,
                         background: selectedDay === '10 Ottobre' ? '#fff7ed' : '#fafaf9',
                         color: selectedDay === '10 Ottobre' ? '#ea580c' : '#78350f',
                         fontWeight: 800,
-                        fontSize: '0.88rem',
+                        fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
                         cursor: 'pointer',
                         textAlign: 'center',
                         boxShadow: selectedDay === '10 Ottobre' ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        lineHeight: 1.25,
                       }}
                     >
                       🎃 Sabato 10 Ottobre
@@ -617,17 +616,18 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                       type="button"
                       onClick={() => setSelectedDay('11 Ottobre')}
                       style={{
-                        padding: '0.85rem 0.75rem',
+                        padding: '0.75rem 0.4rem',
                         borderRadius: '1rem',
                         border: `2px solid ${selectedDay === '11 Ottobre' ? '#ea580c' : '#fed7aa'}`,
                         background: selectedDay === '11 Ottobre' ? '#fff7ed' : '#fafaf9',
                         color: selectedDay === '11 Ottobre' ? '#ea580c' : '#78350f',
                         fontWeight: 800,
-                        fontSize: '0.88rem',
+                        fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
                         cursor: 'pointer',
                         textAlign: 'center',
                         boxShadow: selectedDay === '11 Ottobre' ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
-                        transition: 'all 0.2s'
+                        transition: 'all 0.2s',
+                        lineHeight: 1.25,
                       }}
                     >
                       🎃 Domenica 11 Ottobre
@@ -635,8 +635,8 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   </div>
                 </div>
 
-                {/* Tickets list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                {/* Tickets list - MOBILE FIRST STACKED CARDS (NO TEXT SQUEEZING) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.5rem' }}>
                   {ticketTypes.map((ticket, index) => {
                     const qty = quantities[ticket.id] || 0;
                     const disabledExtra = ticket.isExtra && totalBase === 0;
@@ -650,53 +650,81 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                         whileHover={disabledExtra ? {} : { scale: 1.01 }}
                         style={{
                           background: qty > 0 ? '#fff7ed' : 'white',
-                          border: `2px solid ${qty > 0 ? '#ea580c' : 'white'}`,
+                          border: `2px solid ${qty > 0 ? '#ea580c' : '#f3f4f6'}`,
                           borderRadius: '1.25rem',
-                          padding: '1.25rem 1.25rem',
-                          display: 'flex', alignItems: 'center',
-                          justifyContent: 'space-between', gap: '1rem',
+                          padding: '1.1rem 1.15rem',
                           boxShadow: qty > 0 ? '0 8px 25px rgba(234,88,12,0.18)' : '0 4px 15px rgba(0,0,0,0.04)',
                           transition: 'all 0.2s',
                           cursor: disabledExtra ? 'not-allowed' : 'pointer',
                           opacity: disabledExtra ? 0.6 : 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
                         }}
                         onClick={() => {
                           if (disabledExtra) return;
                           if (qty === 0) setQty(ticket.id, 1);
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: 0 }}>
-                          <div style={{
-                            fontSize: '1.8rem',
-                            background: qty > 0 ? '#ea580c' : '#fefce8',
-                            width: 52, height: 52, borderRadius: '0.9rem', flexShrink: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: qty > 0 ? 'none' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
-                            transform: qty > 0 ? 'rotate(-6deg)' : 'none',
-                            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                          }}>
-                            <TicketEmoji emoji={ticket.emoji} />
+                        {/* Top Row: Icon + Title on Left, Price on Right */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                            <div style={{
+                              fontSize: '1.6rem',
+                              background: qty > 0 ? '#ea580c' : '#fefce8',
+                              width: 44, height: 44, borderRadius: '0.85rem', flexShrink: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              boxShadow: qty > 0 ? 'none' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                              transform: qty > 0 ? 'rotate(-6deg)' : 'none',
+                              transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                            }}>
+                              <TicketEmoji emoji={ticket.emoji} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 800, color: '#431407', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', lineHeight: 1.25 }}>
+                                <span>{ticket.label}</span>
+                                {ticket.isExtra && (
+                                  <span style={{ fontSize: '0.68rem', background: '#f97316', color: 'white', padding: '0.1rem 0.45rem', borderRadius: '1rem', fontWeight: 800, letterSpacing: '0.04em' }}>EXTRA</span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 800, color: '#431407', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                              {ticket.label}
-                              {ticket.isExtra && (
-                                <span style={{ fontSize: '0.7rem', background: '#f97316', color: 'white', padding: '0.1rem 0.45rem', borderRadius: '1rem', fontWeight: 800 }}>EXTRA</span>
-                              )}
-                            </div>
-                            <div style={{ color: disabledExtra ? '#c2410c' : '#9a3412', fontSize: '0.82rem', marginTop: '0.15rem', fontWeight: 500, lineHeight: 1.3 }}>
-                              {disabledExtra ? '⚠️ Richiede almeno un biglietto d\'ingresso' : ticket.description}
-                            </div>
+
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <span style={{ color: '#ea580c', fontWeight: 900, fontSize: '1.3rem', lineHeight: 1 }}>€{ticket.price}</span>
+                            <div style={{ color: '#9a3412', fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' }}>contributo</div>
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexShrink: 0 }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <span style={{ color: '#ea580c', fontWeight: 900, fontSize: '1.35rem' }}>€{ticket.price}</span>
-                            <div style={{ color: '#9a3412', fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '-2px' }}>contributo</div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={e => e.stopPropagation()}>
-                            <motion.button type="button" onClick={() => setQty(ticket.id, -1)} disabled={qty === 0}
+                        {/* Middle Row: Description across FULL CARD WIDTH (never squeezed!) */}
+                        <div style={{
+                          color: disabledExtra ? '#c2410c' : '#9a3412',
+                          fontSize: '0.84rem',
+                          fontWeight: 500,
+                          lineHeight: 1.45,
+                          padding: '0 0.1rem'
+                        }}>
+                          {disabledExtra ? '⚠️ Richiede almeno un biglietto d\'ingresso' : ticket.description}
+                        </div>
+
+                        {/* Bottom Row: Quantity Stepper Controls */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          paddingTop: '0.65rem',
+                          borderTop: '1px solid rgba(254, 215, 170, 0.5)',
+                          marginTop: '0.1rem'
+                        }} onClick={e => e.stopPropagation()}>
+                          <span style={{ fontSize: '0.8rem', color: '#9a3412', fontWeight: 700 }}>
+                            {qty > 0 ? `${qty} ${qty === 1 ? 'selezionato' : 'selezionati'}` : 'Seleziona quantità'}
+                          </span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <motion.button
+                              type="button"
+                              onClick={() => setQty(ticket.id, -1)}
+                              disabled={qty === 0}
                               whileTap={{ scale: 0.9 }}
                               style={{
                                 width: 36, height: 36, borderRadius: '50%',
@@ -705,20 +733,32 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                                 color: qty > 0 ? '#7c2d12' : '#9ca3af',
                                 cursor: qty > 0 ? 'pointer' : 'not-allowed',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}>
+                              }}
+                              aria-label={`Riduci quantità ${ticket.label}`}
+                            >
                               <Minus size={18} strokeWidth={3} />
                             </motion.button>
-                            <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#431407', minWidth: '1.3rem', textAlign: 'center' }}>
+
+                            <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#431407', minWidth: '1.6rem', textAlign: 'center' }}>
                               {qty}
                             </span>
-                            <motion.button type="button" onClick={() => setQty(ticket.id, 1)} disabled={disabledExtra}
+
+                            <motion.button
+                              type="button"
+                              onClick={() => setQty(ticket.id, 1)}
+                              disabled={disabledExtra}
                               whileTap={disabledExtra ? {} : { scale: 0.9 }}
                               style={{
                                 width: 36, height: 36, borderRadius: '50%',
-                                border: 'none', background: disabledExtra ? '#d1d5db' : '#ea580c', color: 'white',
-                                cursor: disabledExtra ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                border: 'none',
+                                background: disabledExtra ? '#d1d5db' : '#ea580c',
+                                color: 'white',
+                                cursor: disabledExtra ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 boxShadow: disabledExtra ? 'none' : '0 3px 8px rgba(234,88,12,0.4)',
-                              }}>
+                              }}
+                              aria-label={`Aumenta quantità ${ticket.label}`}
+                            >
                               <Plus size={18} strokeWidth={3} />
                             </motion.button>
                           </div>
@@ -733,7 +773,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                     display: 'flex', gap: '0.6rem', alignItems: 'flex-start'
                   }}>
                     <AlertCircle size={18} color="#ea580c" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <p style={{ color: '#9a3412', fontSize: '0.85rem', lineHeight: 1.4, margin: 0, fontWeight: 500 }}>
+                    <p style={{ color: '#9a3412', fontSize: '0.84rem', lineHeight: 1.45, margin: 0, fontWeight: 500 }}>
                       <strong>Nota:</strong> {content.tickets.disclaimer}
                     </p>
                   </div>
@@ -928,61 +968,61 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   {numChildren > 0 && numChildren < totalBase && (
                     <div style={{
                       background: '#fff7ed',
-                      border: '1px solid #fed7aa',
-                      borderRadius: '1rem',
-                      padding: '0.75rem 1rem',
+                      border: '1.5px solid #fed7aa',
+                      borderRadius: '1.25rem',
+                      padding: '0.85rem 1rem',
                       marginBottom: '1rem',
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '0.5rem',
+                      flexDirection: 'column',
+                      gap: '0.6rem',
                     }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#9a3412' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#9a3412' }}>
                         Destinatari dei laboratori:
                       </span>
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                         <button
                           type="button"
                           onClick={() => setActivityTarget('children')}
                           style={{
-                            padding: '0.35rem 0.75rem',
+                            padding: '0.5rem 0.5rem',
                             borderRadius: '999px',
                             border: 'none',
-                            fontSize: '0.78rem',
+                            fontSize: 'clamp(0.72rem, 2.5vw, 0.8rem)',
                             fontWeight: 700,
                             cursor: 'pointer',
                             background: activityTarget === 'children' ? '#ea580c' : '#ffffff',
                             color: activityTarget === 'children' ? 'white' : '#7c2d12',
                             boxShadow: activityTarget === 'children' ? '0 2px 8px rgba(234,88,12,0.3)' : 'none',
                             transition: 'all 0.15s',
+                            textAlign: 'center',
                           }}
                         >
-                          👶 Solo Bambini ({numChildren})
+                          👶 Solo Bimbi ({numChildren})
                         </button>
                         <button
                           type="button"
                           onClick={() => setActivityTarget('all')}
                           style={{
-                            padding: '0.35rem 0.75rem',
+                            padding: '0.5rem 0.5rem',
                             borderRadius: '999px',
                             border: 'none',
-                            fontSize: '0.78rem',
+                            fontSize: 'clamp(0.72rem, 2.5vw, 0.8rem)',
                             fontWeight: 700,
                             cursor: 'pointer',
                             background: activityTarget === 'all' ? '#ea580c' : '#ffffff',
                             color: activityTarget === 'all' ? 'white' : '#7c2d12',
                             boxShadow: activityTarget === 'all' ? '0 2px 8px rgba(234,88,12,0.3)' : 'none',
                             transition: 'all 0.15s',
+                            textAlign: 'center',
                           }}
                         >
-                          👥 Tutti i biglietti ({totalBase})
+                          👥 Tutti ({totalBase})
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* VISUAL INTERACTIVE ACTIVITY CARDS */}
+                  {/* VISUAL INTERACTIVE ACTIVITY CARDS - STACKED FOR MOBILE */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {freeActivities.map(act => {
                       const isSelected = selectedActivities.includes(act.id);
@@ -998,50 +1038,61 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                           whileTap={{ scale: 0.99 }}
                           onClick={() => toggleActivity(act.id)}
                           style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.85rem',
-                            cursor: 'pointer', padding: '1rem 1.15rem', borderRadius: '1.25rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.65rem',
+                            cursor: 'pointer',
+                            padding: '1rem 1.15rem',
+                            borderRadius: '1.25rem',
                             background: isSelected ? 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)' : '#ffffff',
                             border: `2px solid ${isSelected ? '#ea580c' : '#f3f4f6'}`,
                             transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
                             boxShadow: isSelected ? '0 6px 20px rgba(234,88,12,0.14)' : '0 2px 8px rgba(0,0,0,0.02)',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0 }}>
-                            <div style={{
-                              width: 44, height: 44, borderRadius: '0.85rem', flexShrink: 0,
-                              background: isSelected ? '#ea580c' : '#fff7ed',
-                              color: isSelected ? 'white' : '#ea580c',
-                              fontSize: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transform: isSelected ? 'rotate(-6deg)' : 'none',
-                              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            }}>
-                              {icon}
+                          {/* Top row: Icon + Title on left, Badge & Checkbox on right */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                              <div style={{
+                                width: 38, height: 38, borderRadius: '0.8rem', flexShrink: 0,
+                                background: isSelected ? '#ea580c' : '#fff7ed',
+                                color: isSelected ? 'white' : '#ea580c',
+                                fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transform: isSelected ? 'rotate(-6deg)' : 'none',
+                                transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                              }}>
+                                {icon}
+                              </div>
+                              <div style={{ fontWeight: 800, color: '#431407', fontSize: '0.98rem', lineHeight: 1.25 }}>
+                                {act.label}
+                              </div>
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontWeight: 800, color: '#431407', fontSize: '0.98rem' }}>{act.label}</div>
-                              <div style={{ fontSize: '0.78rem', color: '#9a3412', marginTop: '0.15rem', lineHeight: 1.35 }}>{act.details}</div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                              {isSelected && (
+                                <span style={{
+                                  background: '#ea580c', color: 'white',
+                                  fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.55rem',
+                                  borderRadius: '999px', whiteSpace: 'nowrap'
+                                }}>
+                                  {participantCount} {participantCount === 1 ? 'iscritto' : 'iscritti'}
+                                </span>
+                              )}
+                              <div style={{
+                                width: 24, height: 24, borderRadius: '50%',
+                                border: `2px solid ${isSelected ? '#ea580c' : '#d1d5db'}`,
+                                background: isSelected ? '#ea580c' : 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s', flexShrink: 0,
+                              }}>
+                                {isSelected && <Check size={14} strokeWidth={3} color="white" />}
+                              </div>
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
-                            {isSelected && (
-                              <span style={{
-                                background: '#ea580c', color: 'white',
-                                fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.55rem',
-                                borderRadius: '999px', whiteSpace: 'nowrap'
-                              }}>
-                                {participantCount} {participantCount === 1 ? 'iscritto' : 'iscritti'}
-                              </span>
-                            )}
-                            <div style={{
-                              width: 24, height: 24, borderRadius: '50%',
-                              border: `2px solid ${isSelected ? '#ea580c' : '#d1d5db'}`,
-                              background: isSelected ? '#ea580c' : 'white',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.2s',
-                            }}>
-                              {isSelected && <Check size={14} strokeWidth={3} color="white" />}
-                            </div>
+                          {/* Bottom: Details across FULL WIDTH */}
+                          <div style={{ fontSize: '0.82rem', color: '#9a3412', lineHeight: 1.45, fontWeight: 500, paddingLeft: '0.1rem' }}>
+                            {act.details}
                           </div>
                         </motion.div>
                       );
@@ -1050,15 +1101,15 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 </div>
 
                 {/* NAVIGATION BUTTONS STEP 2 */}
-                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '0.65rem' }}>
                   <button
                     type="button"
                     onClick={() => setStep(1)}
                     style={{
-                      padding: '1rem', background: '#ffedd5', color: '#7c2d12',
+                      padding: '0.9rem', background: '#ffedd5', color: '#7c2d12',
                       border: 'none', borderRadius: '1rem',
-                      fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                      fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
                     }}
                   >
                     <ArrowLeft size={16} /> Biglietti
@@ -1069,14 +1120,14 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     style={{
-                      padding: '1rem', background: '#ea580c', color: 'white',
+                      padding: '0.9rem', background: '#ea580c', color: 'white',
                       border: 'none', borderRadius: '1rem',
-                      fontSize: '1rem', fontWeight: 900, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      fontSize: '0.95rem', fontWeight: 900, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
                       boxShadow: '0 6px 20px rgba(234,88,12,0.35)'
                     }}
                   >
-                    Inserisci i tuoi Dati (3/3) <ArrowRight size={18} strokeWidth={3} />
+                    Vai ai Dati (3/3) <ArrowRight size={18} strokeWidth={3} />
                   </motion.button>
                 </div>
               </motion.div>
@@ -1096,13 +1147,13 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   background: 'rgba(255,255,255,0.85)',
                   backdropFilter: 'blur(10px)',
                   border: '2px solid white',
-                  borderRadius: '1.5rem', padding: '1.5rem', marginBottom: '1rem',
+                  borderRadius: '1.5rem', padding: 'clamp(1rem, 3.5vw, 1.5rem)', marginBottom: '1rem',
                   boxShadow: '0 8px 25px rgba(0,0,0,0.03)',
                 }}>
                   <h3 style={{ margin: '0 0 1rem', fontSize: '1.15rem', fontWeight: 800, color: '#ea580c', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     🧑 I tuoi Dati di Contatto
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                  <div className="zucca-form-grid">
                     {[
                       { key: 'nome', type: 'text', placeholder: 'Nome', emoji: '🧑', autoComplete: 'given-name' },
                       { key: 'cognome', type: 'text', placeholder: 'Cognome', emoji: '🧑', autoComplete: 'family-name' },
@@ -1123,6 +1174,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                           style={{
                             ...inputStyle,
                             paddingLeft: '2.75rem',
+                            fontSize: '16px', // Prevents iOS Safari zoom-in
                             borderColor: errors[field.key] ? '#ef4444' : 'transparent',
                             boxShadow: errors[field.key] ? '0 0 0 3px rgba(239,68,68,0.2)' : inputStyle.boxShadow,
                           }}
@@ -1139,7 +1191,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 <div style={{
                   background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(254, 215, 170, 0.8)',
-                  borderRadius: '1.25rem', padding: '1rem 1.25rem', marginBottom: '1.5rem',
+                  borderRadius: '1.25rem', padding: '0.9rem 1.15rem', marginBottom: '1.25rem',
                 }}>
                   {!showPromo && !discountData ? (
                     <button
@@ -1164,13 +1216,13 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                             type="text" placeholder="CODICE SCONTO"
                             value={discountCode}
                             onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountData(null); setDiscountError(''); }}
-                            style={{ ...inputStyle, padding: '0.8rem 0.8rem 0.8rem 2.5rem', fontSize: '0.9rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}
+                            style={{ ...inputStyle, padding: '0.8rem 0.8rem 0.8rem 2.5rem', fontSize: '16px', letterSpacing: '0.05em', textTransform: 'uppercase' }}
                           />
                         </div>
                         <button type="button" onClick={handleCheckDiscount}
                           disabled={checkingDiscount || !discountCode.trim()}
                           style={{
-                            padding: '0 1.25rem', borderRadius: '0.85rem', border: 'none',
+                            padding: '0 1.15rem', borderRadius: '0.85rem', border: 'none',
                             background: '#fdba74', color: '#7c2d12', cursor: 'pointer', fontWeight: 800, fontSize: '0.88rem',
                           }}>
                           {checkingDiscount ? <Loader2 size={16} className="animate-spin" /> : 'Verifica'}
@@ -1183,18 +1235,40 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 </div>
 
                 {/* NAVIGATION BUTTONS STEP 3 */}
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <motion.button
+                    type="button"
+                    onClick={() => handleSubmit()}
+                    disabled={submitting}
+                    whileHover={!submitting ? { scale: 1.01 } : {}}
+                    whileTap={!submitting ? { scale: 0.98 } : {}}
+                    style={{
+                      width: '100%', padding: '1.1rem',
+                      background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+                      color: 'white', border: 'none', borderRadius: '1rem',
+                      fontSize: '1.05rem', fontWeight: 900,
+                      cursor: submitting ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
+                      boxShadow: '0 8px 25px rgba(234,88,12,0.3)',
+                      opacity: submitting ? 0.85 : 1,
+                    }}
+                  >
+                    {submitting ? <><Loader2 size={20} className="animate-spin" /> Elaborazione in corso...</>
+                      : total === 0 ? <><CheckCircle size={20} /> Conferma Prenotazione Gratis</>
+                        : <>Procedi al Pagamento (Nexi) <ArrowRight size={20} strokeWidth={3} /></>}
+                  </motion.button>
+
                   <button
                     type="button"
                     onClick={() => setStep(2)}
                     style={{
-                      padding: '0.85rem 1.25rem', background: '#ffedd5', color: '#7c2d12',
+                      padding: '0.8rem 1rem', background: '#ffedd5', color: '#7c2d12',
                       border: 'none', borderRadius: '1rem',
-                      fontWeight: 700, fontSize: '0.92rem', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '0.4rem'
+                      fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
                     }}
                   >
-                    <ArrowLeft size={16} /> Modifica Laboratori
+                    <ArrowLeft size={16} /> Modifica Scelta Laboratori
                   </button>
                 </div>
               </motion.div>
@@ -1208,7 +1282,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
               background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
               color: 'white',
               borderRadius: '1.5rem',
-              padding: '1.75rem',
+              padding: 'clamp(1.25rem, 3.5vw, 1.75rem)',
               boxShadow: '0 15px 40px rgba(234,88,12,0.3)',
               position: 'relative',
               overflow: 'hidden',
@@ -1238,9 +1312,9 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   </div>
                 ) : (
                   ticketTypes.filter(t => (quantities[t.id] || 0) > 0).map(t => (
-                    <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', fontWeight: 600, opacity: 0.95 }}>
-                      <span>{quantities[t.id]}× {t.label}</span>
-                      <span>€{(quantities[t.id] * t.price).toFixed(2)}</span>
+                    <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 600, opacity: 0.95, gap: '0.5rem' }}>
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quantities[t.id]}× {t.label}</span>
+                      <span style={{ flexShrink: 0 }}>€{(quantities[t.id] * t.price).toFixed(2)}</span>
                     </div>
                   ))
                 )}
@@ -1363,42 +1437,49 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
 
       </div>
 
-      {/* MOBILE STICKY BOTTOM CHECKOUT BAR */}
+      {/* MOBILE STICKY BOTTOM CHECKOUT BAR (HIDDEN ON DESKTOP) */}
       {totalBase > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0, left: 0, right: 0,
-          background: 'rgba(255, 255, 255, 0.96)',
-          backdropFilter: 'blur(16px)',
-          borderTop: '1px solid #fed7aa',
-          padding: '0.85rem 1.25rem',
-          zIndex: 90,
-          boxShadow: '0 -4px 25px rgba(0,0,0,0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
-        }}>
-          <div>
-            <div style={{ fontSize: '0.72rem', color: '#9a3412', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div
+          className="zucca-mobile-bottom-bar"
+          style={{
+            position: 'fixed',
+            bottom: 0, left: 0, right: 0,
+            background: 'rgba(255, 255, 255, 0.96)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderTop: '1px solid #fed7aa',
+            padding: '0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom))',
+            zIndex: 90,
+            boxShadow: '0 -4px 25px rgba(0,0,0,0.12)',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '0.7rem', color: '#9a3412', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {totalBase} {totalBase === 1 ? 'biglietto' : 'biglietti'} {numChildren > 0 ? `(${numChildren} bimbi)` : ''}
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#ea580c', lineHeight: 1.1 }}>
+            <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ea580c', lineHeight: 1.1 }}>
               €{total.toFixed(2)}
             </div>
           </div>
 
-          <div>
+          <div style={{ flexShrink: 0 }}>
             {step === 1 ? (
               <button
                 type="button"
                 onClick={() => setStep(2)}
                 style={{
                   background: '#ea580c', color: 'white', border: 'none',
-                  borderRadius: '0.85rem', padding: '0.75rem 1.25rem',
-                  fontSize: '0.92rem', fontWeight: 800, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '0.4rem',
-                  boxShadow: '0 4px 12px rgba(234,88,12,0.3)'
+                  borderRadius: '0.85rem', padding: '0.7rem 1.15rem',
+                  fontSize: '0.88rem', fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.35rem',
+                  boxShadow: '0 4px 12px rgba(234,88,12,0.3)',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                Laboratori (2/3) <ArrowRight size={16} />
+                Laboratori (2/3) <ArrowRight size={15} />
               </button>
             ) : step === 2 ? (
               <button
@@ -1406,13 +1487,14 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 onClick={() => proceedToStep3()}
                 style={{
                   background: '#ea580c', color: 'white', border: 'none',
-                  borderRadius: '0.85rem', padding: '0.75rem 1.25rem',
-                  fontSize: '0.92rem', fontWeight: 800, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '0.4rem',
-                  boxShadow: '0 4px 12px rgba(234,88,12,0.3)'
+                  borderRadius: '0.85rem', padding: '0.7rem 1.15rem',
+                  fontSize: '0.88rem', fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.35rem',
+                  boxShadow: '0 4px 12px rgba(234,88,12,0.3)',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                Dati (3/3) <ArrowRight size={16} />
+                Dati (3/3) <ArrowRight size={15} />
               </button>
             ) : (
               <button
@@ -1421,11 +1503,12 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 disabled={submitting}
                 style={{
                   background: '#ea580c', color: 'white', border: 'none',
-                  borderRadius: '0.85rem', padding: '0.75rem 1.25rem',
-                  fontSize: '0.92rem', fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  borderRadius: '0.85rem', padding: '0.7rem 1.15rem',
+                  fontSize: '0.88rem', fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.35rem',
                   boxShadow: '0 4px 12px rgba(234,88,12,0.3)',
                   opacity: submitting ? 0.8 : 1,
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {submitting ? <Loader2 size={16} className="animate-spin" /> : <><ShieldCheck size={16} /> Paga Nexi</>}
@@ -1446,7 +1529,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '1.25rem',
+              padding: '1rem',
               background: 'rgba(20, 10, 5, 0.7)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
@@ -1463,8 +1546,8 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 width: '100%',
                 maxWidth: '540px',
                 background: 'linear-gradient(135deg, #ffffff 0%, #fffbf5 100%)',
-                borderRadius: '2rem',
-                padding: '2rem',
+                borderRadius: '1.5rem',
+                padding: 'clamp(1.25rem, 4vw, 2rem)',
                 border: '2px solid #fed7aa',
                 boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
                 position: 'relative',
@@ -1863,26 +1946,27 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
         animate={{ y: 0 }}
         transition={{ type: 'spring', damping: 15 }}
         style={{
-        position: 'sticky', top: '6rem', zIndex: 50,
-        margin: '0 auto', maxWidth: '800px', width: 'calc(100% - 2rem)',
-        background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(12px)',
-        borderRadius: '999px', padding: '0.75rem 1rem',
+        position: 'sticky', top: '5rem', zIndex: 50,
+        margin: '0 auto', maxWidth: '800px', width: 'calc(100% - 1.25rem)',
+        background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderRadius: '999px', padding: '0.5rem 0.85rem',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.05)',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.06)',
         border: '2px solid white'
       }}>
         <Link href="/" style={{ textDecoration: 'none' }}>
-          <span style={{ color: '#ea580c', fontSize: '0.9rem', fontWeight: 800, paddingLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ color: '#ea580c', fontSize: '0.85rem', fontWeight: 800, paddingLeft: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             ← <span style={{ display: 'none' }} className="sm:inline">Pro Loco</span>
           </span>
         </Link>
-        <Image src="/img/zuccaland/Logotype.png" alt="" width={80} height={30} unoptimized style={{ objectFit: 'contain' }} />
+        <Image src="/img/zuccaland/Logotype.png" alt="Zuccaland" width={76} height={28} unoptimized style={{ objectFit: 'contain' }} />
         {showTickets && (
           <a href="#acquista"
             onClick={e => { e.preventDefault(); document.getElementById('acquista')?.scrollIntoView({ behavior: 'smooth' }); }}
             style={{
-              background: '#ea580c', color: 'white', padding: '0.6rem 1.25rem',
-              borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem',
+              background: '#ea580c', color: 'white', padding: '0.5rem 1.1rem',
+              borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '0.82rem',
               boxShadow: '0 4px 12px rgba(234,88,12,0.3)',
             }}>
             Acquista
@@ -1892,8 +1976,8 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
           <span style={{
             background: phase === 'live' ? '#22c55e' : phase === 'concluded' ? '#7c3aed' : '#fbbf24',
             color: phase === 'pre-sale' ? '#92400e' : 'white',
-            padding: '0.6rem 1.25rem',
-            borderRadius: '999px', fontWeight: 800, fontSize: '0.8rem',
+            padding: '0.5rem 1rem',
+            borderRadius: '999px', fontWeight: 800, fontSize: '0.78rem',
             textTransform: 'uppercase', letterSpacing: '0.05em',
           }}>
             {phase === 'live' ? '🔴 Live' : phase === 'concluded' ? 'Concluso' : 'Prossimamente'}
@@ -1907,9 +1991,9 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       {/* ── Hero ── */}
       <section style={{
         position: 'relative',
-        minHeight: '90vh',
+        minHeight: '85vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '8rem 2rem 4rem',
+        padding: 'clamp(5.5rem, 12vh, 8rem) 1rem 3.5rem',
         textAlign: 'center',
         zIndex: 2,
       }}>
@@ -1966,12 +2050,13 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
             style={{
-              fontSize: 'clamp(1.15rem, 3.5vw, 1.65rem)',
+              fontSize: 'clamp(1.1rem, 3.5vw, 1.65rem)',
               color: '#7c2d12',
               maxWidth: '700px',
               margin: '0.5rem auto 0',
               fontWeight: 600,
-              lineHeight: 1.5,
+              lineHeight: 1.45,
+              padding: '0 0.5rem',
             }}
           >
             {content.hero.subtitle}
@@ -1983,12 +2068,13 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
               style={{
-                fontSize: 'clamp(0.95rem, 2.5vw, 1.1rem)',
+                fontSize: 'clamp(0.92rem, 2.6vw, 1.1rem)',
                 color: '#9a3412',
                 maxWidth: '600px',
                 margin: '0.75rem auto 0',
-                lineHeight: 1.6,
+                lineHeight: 1.55,
                 fontWeight: 500,
+                padding: '0 0.5rem',
               }}
             >
               {content.hero.description}
@@ -2003,15 +2089,15 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               gap: '1.5rem', flexWrap: 'wrap',
-              marginTop: '1.5rem',
+              marginTop: '1.25rem',
             }}
           >
             <div style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              background: 'rgba(234,88,12,0.08)', padding: '0.5rem 1rem', borderRadius: '999px',
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: 'rgba(234,88,12,0.08)', padding: '0.45rem 0.95rem', borderRadius: '999px',
             }}>
-              <Calendar size={16} color="#ea580c" />
-              <span style={{ color: '#9a3412', fontWeight: 700, fontSize: '0.9rem' }}>
+              <Calendar size={15} color="#ea580c" />
+              <span style={{ color: '#9a3412', fontWeight: 700, fontSize: 'clamp(0.8rem, 2.5vw, 0.9rem)' }}>
                 {content.hero.badge}
               </span>
             </div>
@@ -2023,28 +2109,28 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9, type: 'spring', bounce: 0.4 }}
-              style={{ marginTop: '2.5rem' }}
+              style={{ marginTop: '2rem' }}
             >
               <motion.a
                 href="#acquista"
                 onClick={e => { e.preventDefault(); document.getElementById('acquista')?.scrollIntoView({ behavior: 'smooth' }); }}
-                whileHover={{ scale: 1.05, boxShadow: '0 12px 35px rgba(234,88,12,0.4)' }}
+                whileHover={{ scale: 1.04, boxShadow: '0 12px 35px rgba(234,88,12,0.4)' }}
                 whileTap={{ scale: 0.97 }}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
+                  display: 'inline-flex', alignItems: 'center', gap: '0.65rem',
                   background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
                   color: 'white',
-                  padding: '1.1rem 2.5rem',
+                  padding: '0.95rem clamp(1.25rem, 4vw, 2.25rem)',
                   borderRadius: '999px',
-                  fontWeight: 800, fontSize: '1.1rem',
+                  fontWeight: 800, fontSize: 'clamp(0.95rem, 3vw, 1.08rem)',
                   textDecoration: 'none',
                   boxShadow: '0 8px 25px rgba(234,88,12,0.35)',
                   letterSpacing: '0.02em',
                 }}
               >
-                <Ticket size={20} /> Acquista il tuo Biglietto <ArrowRight size={20} strokeWidth={2.5} />
+                <Ticket size={19} /> Acquista il tuo Biglietto <ArrowRight size={19} strokeWidth={2.5} />
               </motion.a>
-              <p style={{ color: '#9a3412', fontSize: '0.85rem', fontWeight: 600, marginTop: '0.75rem', opacity: 0.85 }}>
+              <p style={{ color: '#9a3412', fontSize: '0.82rem', fontWeight: 600, marginTop: '0.65rem', opacity: 0.85 }}>
                 A partire da €{Math.min(...(content.ticketTypes.filter(t => !t.isExtra).map(t => t.price).length > 0 ? content.ticketTypes.filter(t => !t.isExtra).map(t => t.price) : [5]))} · Pagamento sicuro con Nexi
               </p>
             </motion.div>
@@ -2061,8 +2147,8 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       </section>
 
       {/* ── Info Cards Section (CMS-driven, interactive chips) ── */}
-      <section style={{ padding: '4rem 2rem', position: 'relative', zIndex: 2 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+      <section style={{ padding: 'clamp(2.5rem, 6vh, 4rem) 1rem', position: 'relative', zIndex: 2 }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.25rem' }}>
           {content.infoCards.map((item, i) => (
             <motion.div
               key={i}
@@ -2070,10 +2156,10 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-50px" }}
               transition={{ delay: i * 0.15, type: 'spring', bounce: 0.4 }}
-              whileHover={{ y: -8 }}
+              whileHover={{ y: -6 }}
               style={{
                 background: 'white',
-                borderRadius: '2rem', padding: '2rem',
+                borderRadius: '1.5rem', padding: 'clamp(1.25rem, 3.5vw, 2rem)',
                 boxShadow: '0 20px 50px rgba(0,0,0,0.04)',
                 border: '3px solid white',
                 position: 'relative', overflow: 'hidden',
@@ -2093,14 +2179,14 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               }} />
 
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem', position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '0.75rem', position: 'relative', zIndex: 2 }}>
                 <motion.div
                   whileHover={{ rotate: [0, -10, 10, -5, 0], scale: 1.15 }}
                   transition={{ duration: 0.5 }}
                   style={{
-                    fontSize: '2.5rem',
+                    fontSize: '2.2rem',
                     background: `${item.color}66`,
-                    width: 56, height: 56, borderRadius: '1rem',
+                    width: 52, height: 52, borderRadius: '0.9rem',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}
@@ -2108,18 +2194,18 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
                   {item.emoji}
                 </motion.div>
                 <div>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.35rem', fontWeight: 800, color: '#431407', margin: 0, lineHeight: 1.2 }}>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', fontWeight: 800, color: '#431407', margin: 0, lineHeight: 1.2 }}>
                     {item.title}
                   </h3>
                 </div>
               </div>
               
-              <p style={{ color: '#7c2d12', fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 1rem', fontWeight: 500, position: 'relative', zIndex: 2 }}>
+              <p style={{ color: '#7c2d12', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1rem', fontWeight: 500, position: 'relative', zIndex: 2 }}>
                 {item.description}
               </p>
 
-              {/* Interactive chips instead of bullet list */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', position: 'relative', zIndex: 2, flex: 1, alignContent: 'flex-start' }}>
+              {/* Interactive chips with graceful text wrapping */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', position: 'relative', zIndex: 2, flex: 1, alignContent: 'flex-start' }}>
                 {item.items.map((li, idx) => (
                   <motion.div
                     key={idx}
@@ -2127,19 +2213,20 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.1 + idx * 0.06, type: 'spring', bounce: 0.5 }}
-                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileHover={{ scale: 1.03, y: -2 }}
                     style={{
                       background: `${item.color}40`,
                       border: `1.5px solid ${item.color}80`,
                       borderRadius: '999px',
-                      padding: '0.45rem 0.9rem',
-                      fontSize: '0.82rem',
+                      padding: '0.4rem 0.8rem',
+                      fontSize: '0.8rem',
                       fontWeight: 650,
                       color: '#431407',
                       cursor: 'default',
                       transition: 'background 0.2s, box-shadow 0.2s',
-                      lineHeight: 1.3,
-                      whiteSpace: 'nowrap',
+                      lineHeight: 1.35,
+                      whiteSpace: 'normal',
+                      wordBreak: 'break-word',
                     }}
                     onMouseEnter={(e) => {
                       (e.target as HTMLElement).style.background = `${item.color}70`;
@@ -2160,8 +2247,8 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       </section>
       
       {/* ── Highlights (Merch & Music — discrete contextual perks) ── */}
-      <section style={{ padding: '0 2rem 3rem', position: 'relative', zIndex: 2 }}>
-         <div style={{ maxWidth: '780px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+      <section style={{ padding: '0 1rem 2.5rem', position: 'relative', zIndex: 2 }}>
+         <div style={{ maxWidth: '780px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
             {content.highlights.map((hl, i) => (
               <motion.div
                 key={i}
@@ -2175,10 +2262,10 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
                   backdropFilter: 'blur(8px)',
                   border: '1.5px solid #f1e4d3',
                   borderRadius: '1.25rem',
-                  padding: '1.15rem 1.35rem',
+                  padding: '1.1rem 1.25rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '1rem',
+                  gap: '0.85rem',
                   boxShadow: '0 2px 10px rgba(124, 45, 18, 0.03)',
                   transition: 'border-color 0.2s, box-shadow 0.2s',
                 }}
@@ -2186,9 +2273,9 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
                 <div style={{
                   background: 'rgba(234, 88, 12, 0.08)',
                   color: '#c2410c',
-                  width: '44px',
-                  height: '44px',
-                  minWidth: '44px',
+                  width: '42px',
+                  height: '42px',
+                  minWidth: '42px',
                   borderRadius: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -2198,10 +2285,10 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
                   {getHighlightIcon(hl.icon, 20)}
                 </div>
                 <div>
-                  <h4 style={{ margin: '0 0 0.2rem', fontSize: '0.98rem', fontWeight: 700, color: '#431407', letterSpacing: '-0.01em' }}>
+                  <h4 style={{ margin: '0 0 0.2rem', fontSize: '0.96rem', fontWeight: 700, color: '#431407', letterSpacing: '-0.01em' }}>
                     {hl.title}
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: '#7c2d12', lineHeight: 1.4, opacity: 0.85, fontWeight: 450 }}>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.4, opacity: 0.85, fontWeight: 450 }}>
                     {hl.description}
                   </p>
                 </div>
@@ -2212,7 +2299,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
 
       {/* ── Children Ticket Info Bridge ── */}
       {showTickets && (
-        <section style={{ padding: '0 2rem 3rem', position: 'relative', zIndex: 2 }}>
+        <section style={{ padding: '0 1rem 2.5rem', position: 'relative', zIndex: 2 }}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -2221,17 +2308,17 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               maxWidth: '700px', margin: '0 auto',
               background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
               borderRadius: '1.5rem',
-              padding: '2rem 2.5rem',
-              display: 'flex', alignItems: 'center', gap: '1.5rem',
+              padding: 'clamp(1.25rem, 4vw, 2rem) clamp(1rem, 4vw, 2.5rem)',
+              display: 'flex', alignItems: 'center', gap: '1.25rem',
               boxShadow: '0 15px 40px rgba(234,88,12,0.25)',
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ flex: 1, minWidth: '240px' }}>
-              <h3 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.5rem', fontFamily: 'var(--font-display)' }}>
+            <div style={{ flex: 1, minWidth: 'min(100%, 240px)' }}>
+              <h3 style={{ color: 'white', fontSize: 'clamp(1.15rem, 4vw, 1.3rem)', fontWeight: 800, margin: '0 0 0.5rem', fontFamily: 'var(--font-display)', lineHeight: 1.25 }}>
                 Ogni visitatore ha bisogno del suo biglietto
               </h3>
-              <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5, fontWeight: 500 }}>
+              <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.86rem', margin: 0, lineHeight: 1.5, fontWeight: 500 }}>
                 Adulti e bambini: seleziona il numero totale di ingressi che ti serve. I laboratori gratuiti per i più piccoli potrai sceglierli nel passaggio successivo.
               </p>
             </div>
@@ -2240,8 +2327,8 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               onClick={e => { e.preventDefault(); document.getElementById('acquista')?.scrollIntoView({ behavior: 'smooth' }); }}
               style={{
                 background: 'white', color: '#ea580c',
-                padding: '0.85rem 1.75rem', borderRadius: '999px',
-                fontWeight: 800, fontSize: '0.95rem', textDecoration: 'none',
+                padding: '0.8rem 1.5rem', borderRadius: '999px',
+                fontWeight: 800, fontSize: '0.92rem', textDecoration: 'none',
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                 boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
                 whiteSpace: 'nowrap',
@@ -2255,18 +2342,20 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       )}
 
       {/* ── Programma Section ── */}
-      <section style={{ padding: '2rem 2rem 4rem', background: 'transparent', position: 'relative', zIndex: 2 }}>
+      <section style={{ padding: '2rem 1rem 3.5rem', background: 'transparent', position: 'relative', zIndex: 2 }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', color: '#ea580c', marginBottom: '2rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', color: '#ea580c', marginBottom: '1.5rem', lineHeight: 1.2 }}>
             {content.program.title}
           </h2>
           <div style={{
             background: '#ffedd5',
-            padding: '3rem',
-            borderRadius: '2rem',
+            padding: 'clamp(1.25rem, 4vw, 2.5rem)',
+            borderRadius: '1.5rem',
             border: '2px dashed #fdba74',
-            color: '#9a3412', fontSize: '1.2rem', fontWeight: 500,
-            boxShadow: '0 10px 30px rgba(234,88,12,0.1)'
+            color: '#9a3412', fontSize: 'clamp(0.95rem, 3vw, 1.15rem)', fontWeight: 500,
+            boxShadow: '0 10px 30px rgba(234,88,12,0.1)',
+            textAlign: 'left',
+            lineHeight: 1.6,
           }}>
             <FormattedText text={content.program.content} />
           </div>
