@@ -295,6 +295,15 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
     }
   }, [totalBase, numChildren]);
 
+  // Clean up activities incompatible with the selected day
+  useEffect(() => {
+    if (selectedDay === '10 Ottobre') {
+      setSelectedActivities(prev => prev.filter(id => id !== 'facepainting'));
+    } else if (selectedDay === '11 Ottobre') {
+      setSelectedActivities(prev => prev.filter(id => id !== 'zucca_vaso'));
+    }
+  }, [selectedDay]);
+
   const getDiscount = () => {
     if (!discountData) return 0;
     if (discountData.type === 'FIXED') return Math.min(discountData.value, subtotal);
@@ -325,6 +334,10 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
     });
 
   const toggleActivity = (actId: string) => {
+    // Guard against day restrictions
+    if (selectedDay === '10 Ottobre' && actId === 'facepainting') return;
+    if (selectedDay === '11 Ottobre' && actId === 'zucca_vaso') return;
+
     setSelectedActivities(prev =>
       prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId]
     );
@@ -611,7 +624,10 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                         lineHeight: 1.25,
                       }}
                     >
-                      🎃 Sabato 10 Ottobre
+                      <div>🎃 Sabato 10 Ottobre</div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 650, color: selectedDay === '10 Ottobre' ? '#c2410c' : '#a8a29e', marginTop: '0.25rem' }}>
+                        Zucca in Vaso & Zuccart
+                      </div>
                     </button>
                     <button
                       type="button"
@@ -631,7 +647,10 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                         lineHeight: 1.25,
                       }}
                     >
-                      🎃 Domenica 11 Ottobre
+                      <div>🎃 Domenica 11 Ottobre</div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 650, color: selectedDay === '11 Ottobre' ? '#c2410c' : '#a8a29e', marginTop: '0.25rem' }}>
+                        Thriller Dance & Zuccart
+                      </div>
                     </button>
                   </div>
                 </div>
@@ -1026,75 +1045,147 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   {/* VISUAL INTERACTIVE ACTIVITY CARDS - STACKED FOR MOBILE */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {freeActivities.map(act => {
+                      const isSaturdayOnly = act.id === 'zucca_vaso';
+                      const isSundayOnly = act.id === 'facepainting';
+                      const isDayDisabled = (selectedDay === '10 Ottobre' && isSundayOnly) || (selectedDay === '11 Ottobre' && isSaturdayOnly);
                       const isSelected = selectedActivities.includes(act.id);
                       const icon = getActivityIcon(act);
                       const participantCount = numChildren > 0 && numChildren < totalBase && activityTarget === 'children'
                         ? numChildren
                         : (numChildren > 0 ? (activityTarget === 'children' ? numChildren : totalBase) : totalBase);
 
+                      // Timing schedule badge
+                      let schedulePill = '🕒 Sempre aperto (Sabato & Domenica)';
+                      let schedulePillBg = '#fef3c7';
+                      let schedulePillColor = '#92400e';
+
+                      if (isSaturdayOnly) {
+                        schedulePill = '🕒 Sabato 14:30 - 16:30 (Max 60 posti)';
+                        schedulePillBg = '#ffedd5';
+                        schedulePillColor = '#c2410c';
+                      } else if (isSundayOnly) {
+                        schedulePill = '🕒 Domenica 14:30 - 16:00';
+                        schedulePillBg = '#ffedd5';
+                        schedulePillColor = '#c2410c';
+                      }
+
                       return (
                         <motion.div
                           key={act.id}
-                          whileHover={{ scale: 1.01 }}
-                          whileTap={{ scale: 0.99 }}
-                          onClick={() => toggleActivity(act.id)}
+                          whileHover={!isDayDisabled ? { scale: 1.01 } : {}}
+                          whileTap={!isDayDisabled ? { scale: 0.99 } : {}}
+                          onClick={() => {
+                            if (!isDayDisabled) {
+                              toggleActivity(act.id);
+                            }
+                          }}
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
                             gap: '0.65rem',
-                            cursor: 'pointer',
+                            cursor: isDayDisabled ? 'not-allowed' : 'pointer',
                             padding: '1rem 1.15rem',
                             borderRadius: '1.25rem',
-                            background: isSelected ? 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)' : '#ffffff',
-                            border: `2px solid ${isSelected ? '#ea580c' : '#f3f4f6'}`,
+                            background: isDayDisabled
+                              ? '#fafaf9'
+                              : isSelected
+                              ? 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)'
+                              : '#ffffff',
+                            border: `2px solid ${
+                              isDayDisabled
+                                ? '#e7e5e4'
+                                : isSelected
+                                ? '#ea580c'
+                                : '#f3f4f6'
+                            }`,
+                            opacity: isDayDisabled ? 0.65 : 1,
                             transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            boxShadow: isSelected ? '0 6px 20px rgba(234,88,12,0.14)' : '0 2px 8px rgba(0,0,0,0.02)',
+                            boxShadow: isDayDisabled
+                              ? 'none'
+                              : isSelected
+                              ? '0 6px 20px rgba(234,88,12,0.14)'
+                              : '0 2px 8px rgba(0,0,0,0.02)',
                           }}
                         >
-                          {/* Top row: Icon + Title on left, Badge & Checkbox on right */}
+                          {/* Top row: Icon + Title + Schedule badge on left, Badge & Checkbox / Disabled pill on right */}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
                               <div style={{
                                 width: 38, height: 38, borderRadius: '0.8rem', flexShrink: 0,
-                                background: isSelected ? '#ea580c' : '#fff7ed',
-                                color: isSelected ? 'white' : '#ea580c',
+                                background: isDayDisabled ? '#e7e5e4' : isSelected ? '#ea580c' : '#fff7ed',
+                                color: isDayDisabled ? '#78716c' : isSelected ? 'white' : '#ea580c',
                                 fontSize: '1.3rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transform: isSelected ? 'rotate(-6deg)' : 'none',
+                                transform: isSelected && !isDayDisabled ? 'rotate(-6deg)' : 'none',
                                 transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
                               }}>
                                 {icon}
                               </div>
-                              <div style={{ fontWeight: 800, color: '#431407', fontSize: '0.98rem', lineHeight: 1.25 }}>
-                                {act.label}
+                              <div>
+                                <div style={{ fontWeight: 800, color: isDayDisabled ? '#78716c' : '#431407', fontSize: '0.98rem', lineHeight: 1.25 }}>
+                                  {act.label}
+                                </div>
+                                <div style={{ marginTop: '0.2rem' }}>
+                                  <span style={{
+                                    background: isDayDisabled ? '#f3f4f6' : schedulePillBg,
+                                    color: isDayDisabled ? '#78716c' : schedulePillColor,
+                                    fontSize: '0.72rem',
+                                    fontWeight: 750,
+                                    padding: '0.18rem 0.55rem',
+                                    borderRadius: '999px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                  }}>
+                                    {schedulePill}
+                                  </span>
+                                </div>
                               </div>
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                              {isSelected && (
+                              {isDayDisabled ? (
                                 <span style={{
-                                  background: '#ea580c', color: 'white',
-                                  fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.55rem',
+                                  background: '#fee2e2', color: '#991b1b',
+                                  fontSize: '0.72rem', fontWeight: 800, padding: '0.25rem 0.6rem',
                                   borderRadius: '999px', whiteSpace: 'nowrap'
                                 }}>
-                                  {participantCount} {participantCount === 1 ? 'iscritto' : 'iscritti'}
+                                  {isSaturdayOnly ? 'Solo Sabato' : 'Solo Domenica'}
                                 </span>
+                              ) : (
+                                <>
+                                  {isSelected && (
+                                    <span style={{
+                                      background: '#ea580c', color: 'white',
+                                      fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.55rem',
+                                      borderRadius: '999px', whiteSpace: 'nowrap'
+                                    }}>
+                                      {participantCount} {participantCount === 1 ? 'iscritto' : 'iscritti'}
+                                    </span>
+                                  )}
+                                  <div style={{
+                                    width: 24, height: 24, borderRadius: '50%',
+                                    border: `2px solid ${isSelected ? '#ea580c' : '#d1d5db'}`,
+                                    background: isSelected ? '#ea580c' : 'white',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'all 0.2s', flexShrink: 0,
+                                  }}>
+                                    {isSelected && <Check size={14} strokeWidth={3} color="white" />}
+                                  </div>
+                                </>
                               )}
-                              <div style={{
-                                width: 24, height: 24, borderRadius: '50%',
-                                border: `2px solid ${isSelected ? '#ea580c' : '#d1d5db'}`,
-                                background: isSelected ? '#ea580c' : 'white',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.2s', flexShrink: 0,
-                              }}>
-                                {isSelected && <Check size={14} strokeWidth={3} color="white" />}
-                              </div>
                             </div>
                           </div>
 
-                          {/* Bottom: Details across FULL WIDTH */}
-                          <div style={{ fontSize: '0.82rem', color: '#9a3412', lineHeight: 1.45, fontWeight: 500, paddingLeft: '0.1rem' }}>
-                            {act.details}
-                          </div>
+                          {/* Bottom: Details across FULL WIDTH or Day restriction note */}
+                          {isDayDisabled ? (
+                            <div style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600, background: '#fef2f2', padding: '0.45rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #fecaca' }}>
+                              ⚠️ Questa attività si svolge esclusivamente <strong>{isSaturdayOnly ? 'Sabato 10 Ottobre (14:30 - 16:30)' : 'Domenica 11 Ottobre (14:30 - 16:00)'}</strong>. Per selezionarla, torna allo Step 1 e cambia la data di partecipazione.
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '0.82rem', color: '#9a3412', lineHeight: 1.45, fontWeight: 500, paddingLeft: '0.1rem' }}>
+                              {act.details}
+                            </div>
+                          )}
                         </motion.div>
                       );
                     })}

@@ -162,9 +162,9 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
       description: 'Tutte le attività sono gratuite, incluse nel biglietto e supervisionate. Sceglile nel checkout!',
       color: '#fef08a',
       items: [
-        '🎃 Zucca in Vaso · Età 3-7 · Solo Sabato',
+        '🎃 Zucca in Vaso · Età 3-7 · Solo Sabato 14:30 - 16:30',
         '🖌️ Zuccart · Età 3-7 · Sempre aperto',
-        '🧟 Facepainting & Thriller Dance · Dai 6 anni',
+        '🧟 Facepainting & Thriller Dance · Dai 6 anni · Solo Domenica 14:30 - 16:00',
       ],
     },
     {
@@ -197,9 +197,9 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
     { id: 'laboratorio', label: 'You Pick Lab', price: 3, description: 'Scegli la tua zucca e intagliala o dipingila come preferisci!', emoji: '🎨', isExtra: true },
   ],
   freeActivities: [
-    { id: 'zucca_vaso', label: 'Zucca in Vaso (3-7 anni)', details: 'Sabato 14:30 - 16:30. A cura di Bibl. Comunale "S. Grande". Max 60 posti.' },
-    { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Sempre aperto. A cura della Pro Loco.' },
-    { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'A cura di Vanessa Aiello.' },
+    { id: 'zucca_vaso', label: 'Zucca in Vaso (3-7 anni)', details: 'Solo Sabato 14:30 - 16:30. A cura di Bibl. Comunale "S. Grande". Max 60 posti.' },
+    { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Sempre aperto sia Sabato che Domenica. A cura della Pro Loco.' },
+    { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'Solo Domenica 14:30 - 16:00. A cura di Vanessa Aiello.' },
   ],
   highlights: [
     { icon: 'shopping-bag', title: 'Merchandising', description: 'Acquista un ricordo esclusivo dell\'evento presso il nostro stand dedicato.', bgColor: '#ea580c', textColor: '#ffffff' },
