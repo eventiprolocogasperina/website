@@ -727,6 +727,25 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                           {disabledExtra ? '⚠️ Richiede almeno un biglietto d\'ingresso' : ticket.description}
                         </div>
 
+                        {ticket.isExtra && (
+                          <div style={{ marginTop: '-0.25rem', padding: '0 0.1rem' }}>
+                            <span style={{
+                              background: '#fff7ed',
+                              color: '#c2410c',
+                              border: '1px solid #fed7aa',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '999px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem'
+                            }}>
+                              🎃 1 sola zucca inclusa per biglietto
+                            </span>
+                          </div>
+                        )}
+
                         {/* Bottom Row: Quantity Stepper Controls */}
                         <div style={{
                           display: 'flex',
@@ -1405,10 +1424,18 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 ) : (
                   ticketTypes.filter(t => (quantities[t.id] || 0) > 0).map(t => (
                     <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 600, opacity: 0.95, gap: '0.5rem' }}>
-                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{quantities[t.id]}× {t.label}</span>
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {quantities[t.id]}× {t.label} {t.isExtra ? '(1 zucca/cad.)' : ''}
+                      </span>
                       <span style={{ flexShrink: 0 }}>€{(quantities[t.id] * t.price).toFixed(2)}</span>
                     </div>
                   ))
+                )}
+
+                {hasYouPickLab && (
+                  <div style={{ fontSize: '0.73rem', color: '#ffedd5', background: 'rgba(0,0,0,0.18)', padding: '0.35rem 0.6rem', borderRadius: '0.5rem', marginTop: '0.15rem' }}>
+                    🎃 Ogni You Pick Lab include <strong>1 sola zucca</strong> da intagliare o dipingere.
+                  </div>
                 )}
 
                 {numChildren > 0 && (
@@ -1815,6 +1842,10 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                     <p style={{ margin: 0, fontSize: '0.83rem', color: '#7c2d12', lineHeight: 1.4 }}>
                       Scegli la tua vera zucca direttamente nel campo, intagliala o decorala e <strong>portala a casa</strong>!
                     </p>
+
+                    <div style={{ fontSize: '0.76rem', color: '#c2410c', fontWeight: 700, background: '#fff7ed', padding: '0.35rem 0.65rem', borderRadius: '0.6rem', border: '1px solid #fed7aa' }}>
+                      ⚠️ <strong>Nota:</strong> Ogni acquisto di You Pick Lab dà diritto ad <strong>una sola zucca</strong> da intagliare o dipingere.
+                    </div>
 
                     {!hasYouPickLab ? (
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>

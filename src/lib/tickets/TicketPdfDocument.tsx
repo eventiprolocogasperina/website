@@ -266,6 +266,11 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
   const isZuccaland = order.tickets.some(t => t.eventId?.includes('zuccaland'));
   const parsedNotes = parseOrderNotes(order.notes);
 
+  const admissionTickets = order.tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio'));
+  const extraTickets = order.tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio'));
+  const admissionCount = admissionTickets.length;
+  const youPickCount = extraTickets.length;
+
   // Zuccaland overrides for palette
   const headerBg = isZuccaland ? '#1a0d05' : palette.primary;
   const accentColor = isZuccaland ? '#f97316' : palette.gold;
@@ -323,9 +328,13 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                 <Text style={styles.buyerFieldValue}>{order.buyerEmail}</Text>
               </View>
               <View style={styles.buyerField}>
-                <Text style={styles.buyerFieldLabel}>N° Biglietti</Text>
+                <Text style={styles.buyerFieldLabel}>{isZuccaland ? 'N° Ingressi & Extra' : 'N° Biglietti'}</Text>
                 <Text style={styles.buyerFieldValue}>
-                  {order.tickets.length} {parsedNotes.numChildren > 0 ? `(di cui ${parsedNotes.numChildren} ${parsedNotes.numChildren === 1 ? 'bambino' : 'bambini'})` : ''}
+                  {isZuccaland ? (
+                    `${admissionCount} ${admissionCount === 1 ? 'ingresso' : 'ingressi'}${parsedNotes.numChildren > 0 ? ` (${parsedNotes.numChildren} bimbi)` : ''}${youPickCount > 0 ? ` + ${youPickCount} You Pick` : ''}`
+                  ) : (
+                    `${order.tickets.length} ${parsedNotes.numChildren > 0 ? `(di cui ${parsedNotes.numChildren} ${parsedNotes.numChildren === 1 ? 'bambino' : 'bambini'})` : ''}`
+                  )}
                 </Text>
               </View>
             </View>
@@ -355,34 +364,55 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
           )}
 
           {/* Individual tickets */}
-          {order.tickets.map((ticket, index) => (
-            <View key={ticket.id} wrap={false}>
-              <View style={styles.cutLineContainer}>
-                <View style={styles.cutLine} />
-                <Text style={styles.cutText}>✂ Taglia qui</Text>
-                <View style={styles.cutLine} />
-              </View>
+          {(() => {
+            let admissionIdx = 0;
+            let extraIdx = 0;
+            return order.tickets.map((ticket) => {
+              const isExtra = ticket.type.toLowerCase().includes('you pick') || ticket.type.toLowerCase().includes('laboratorio');
+              if (isExtra) extraIdx++;
+              else admissionIdx++;
 
-              <View style={[styles.ticketCard, { borderLeft: 'none' }]}>
-                <View style={[styles.ticketStripe, { backgroundColor: stripeColor }]} />
-                <View style={styles.ticketContent}>
-                  <View style={styles.ticketLeft}>
-                    <Text style={styles.ticketLabel}>Ricevuta {index + 1} di {order.tickets.length}</Text>
-                    <Text style={styles.ticketType}>{ticket.type}</Text>
-                    <Text style={{ fontSize: 9, color: priceColor, marginBottom: 6, fontFamily: 'Helvetica-Bold' }}>Data: {eventDate}</Text>
-                    <Text style={styles.ticketMeta}>ID: {ticket.id.substring(0, 16).toUpperCase()}</Text>
-                    <Text style={[styles.ticketPrice, { color: priceColor }]}>€{ticket.price.toFixed(2)}</Text>
+              const labelText = isZuccaland
+                ? isExtra
+                  ? `Voucher Attività Extra ${extraIdx} di ${youPickCount}`
+                  : `Ingresso Villaggio ${admissionIdx} di ${admissionCount}`
+                : `Ricevuta ${admissionIdx} di ${order.tickets.length}`;
+
+              return (
+                <View key={ticket.id} wrap={false}>
+                  <View style={styles.cutLineContainer}>
+                    <View style={styles.cutLine} />
+                    <Text style={styles.cutText}>✂ Taglia qui</Text>
+                    <View style={styles.cutLine} />
                   </View>
-                  <View style={styles.qrContainer}>
-                    {qrDataUris[ticket.id] && (
-                      <Image src={qrDataUris[ticket.id]} style={styles.qrImage} />
-                    )}
-                    <Text style={styles.qrId}>Scansiona in cassa</Text>
+
+                  <View style={[styles.ticketCard, { borderLeft: 'none' }]}>
+                    <View style={[styles.ticketStripe, { backgroundColor: isExtra ? '#ea580c' : stripeColor }]} />
+                    <View style={styles.ticketContent}>
+                      <View style={styles.ticketLeft}>
+                        <Text style={styles.ticketLabel}>{labelText}</Text>
+                        <Text style={styles.ticketType}>{ticket.type}</Text>
+                        {isExtra && (
+                          <Text style={{ fontSize: 8.5, color: '#c2410c', marginBottom: 4, fontFamily: 'Helvetica-Bold' }}>
+                            ✓ Include 1 sola zucca da intagliare o dipingere
+                          </Text>
+                        )}
+                        <Text style={{ fontSize: 9, color: priceColor, marginBottom: 6, fontFamily: 'Helvetica-Bold' }}>Data: {eventDate}</Text>
+                        <Text style={styles.ticketMeta}>ID: {ticket.id.substring(0, 16).toUpperCase()}</Text>
+                        <Text style={[styles.ticketPrice, { color: priceColor }]}>€{ticket.price.toFixed(2)}</Text>
+                      </View>
+                      <View style={styles.qrContainer}>
+                        {qrDataUris[ticket.id] && (
+                          <Image src={qrDataUris[ticket.id]} style={styles.qrImage} />
+                        )}
+                        <Text style={styles.qrId}>Scansiona in cassa</Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
-              </View>
-            </View>
-          ))}
+              );
+            });
+          })()}
 
           {/* Location & GPS in PDF */}
           <View style={[styles.infoBox, { backgroundColor: isZuccaland ? '#fffaf5' : '#f0f4fc', borderColor: isZuccaland ? '#fed7aa' : '#dbe2ef', marginTop: 4 }]} wrap={false}>
@@ -392,6 +422,14 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
           </View>
 
           {/* Info box */}
+          {isZuccaland && youPickCount > 0 && (
+            <View style={[styles.infoBox, { backgroundColor: '#fff7ed', borderColor: '#fed7aa', marginTop: 4 }]} wrap={false}>
+              <Text style={[styles.infoText, { color: '#9a3412' }]}>
+                🎃 NOTA YOU PICK LAB: Ogni biglietto You Pick Lab dà diritto ad una sola zucca da scegliere nel campo e intagliare o dipingere nell&apos;area laboratorio.
+              </Text>
+            </View>
+          )}
+
           <View style={styles.infoBox} wrap={false}>
             <Text style={styles.infoText}>
               ⚠ ATTENZIONE: Questo documento non è il biglietto finale. 

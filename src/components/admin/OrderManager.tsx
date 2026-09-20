@@ -269,6 +269,8 @@ export default function OrderManager() {
     const zuccalandRev = zuccalandOrders.reduce((s, o) => s + o.totalAmount, 0);
     const assaggiaRev = assaggiaOrders.reduce((s, o) => s + o.totalAmount, 0);
 
+    const zuccalandAdmissionTix = zuccalandOrders.reduce((s, o) => s + o.tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length, 0);
+    const zuccalandYouPickTix = zuccalandOrders.reduce((s, o) => s + o.tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio')).length, 0);
     const zuccalandTix = zuccalandOrders.reduce((s, o) => s + o.tickets.length, 0);
     const assaggiaTix = assaggiaOrders.reduce((s, o) => s + o.tickets.length, 0);
 
@@ -291,6 +293,8 @@ export default function OrderManager() {
       zuccaland: {
         revenue: zuccalandRev,
         tickets: zuccalandTix,
+        admissionTickets: zuccalandAdmissionTix,
+        youPickTickets: zuccalandYouPickTix,
         orders: zuccalandOrders.length,
       },
       assaggia: {
@@ -318,6 +322,20 @@ export default function OrderManager() {
     const totalTickets = zuccalandPaid.reduce((s, o) => s + o.tickets.length, 0);
     const freeOrders = zuccalandPaid.filter(o => o.totalAmount === 0).length;
 
+    let admissionTickets = 0;
+    let youPickTickets = 0;
+
+    zuccalandPaid.forEach(o => {
+      o.tickets.forEach(t => {
+        const isLab = t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio');
+        if (isLab) {
+          youPickTickets++;
+        } else {
+          admissionTickets++;
+        }
+      });
+    });
+
     let kidsCount = 0;
     const activityStats: Record<string, number> = {};
 
@@ -327,9 +345,10 @@ export default function OrderManager() {
         kidsCount += parsed.children;
       }
       if (parsed.activities.length > 0) {
+        const orderAdmission = o.tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length || 1;
         const attendees = (parsed.target?.toLowerCase().includes('bambini') && parsed.children !== null && parsed.children > 0)
           ? parsed.children
-          : (o.tickets.length || 1);
+          : orderAdmission;
 
         parsed.activities.forEach(act => {
           activityStats[act] = (activityStats[act] || 0) + attendees;
@@ -347,6 +366,8 @@ export default function OrderManager() {
     return {
       revenue,
       totalTickets,
+      admissionTickets,
+      youPickTickets,
       freeOrders,
       ordersCount: zuccalandPaid.length,
       kidsCount,
@@ -382,11 +403,16 @@ export default function OrderManager() {
   // ─── CSV Export ───────────────────────────────────────────────────────────
 
   const exportCSV = () => {
-    const headers = ['ID', 'Evento', 'Data Evento', 'Nome', 'Email', 'Telefono', 'Biglietti', 'Totale', 'Stato', 'Data Ordine', 'Note/Attività'];
+    const headers = ['ID', 'Evento', 'Data Evento', 'Nome', 'Email', 'Telefono', 'Biglietti/Ingressi', 'Totale', 'Stato', 'Data Ordine', 'Note/Attività'];
     const rows = filteredOrders.map(o => {
       const parsed = parseOrderNotes(o.notes);
       const ev = getOrderEventId(o) === 'zuccaland-2026' ? 'Zuccaland' : 'Assaggia & Passeggia';
-      const ticketsStr = o.tickets.map(t => t.type).join('; ');
+      const isZucc = ev === 'Zuccaland';
+      const admTix = isZucc ? o.tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length : o.tickets.length;
+      const youPickTix = isZucc ? o.tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio')).length : 0;
+      const ticketsStr = isZucc
+        ? `${admTix} Ingressi${youPickTix > 0 ? ` + ${youPickTix} You Pick Lab` : ''} (${o.tickets.map(t => t.type).join('; ')})`
+        : o.tickets.map(t => t.type).join('; ');
       return [
         o.id,
         ev,
@@ -572,7 +598,7 @@ export default function OrderManager() {
                 {globalStats.totalTickets}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-800)' }}>
-                <span>Zuccaland: <b style={{ color: '#fdba74' }}>{globalStats.zuccaland.tickets}</b></span>
+                <span>Zuccaland: <b style={{ color: '#fdba74' }}>{globalStats.zuccaland.admissionTickets} ing.</b>{globalStats.zuccaland.youPickTickets > 0 ? ` + ${globalStats.zuccaland.youPickTickets} lab` : ''}</span>
                 <span>A&P: <b style={{ color: '#93c5fd' }}>{globalStats.assaggia.tickets}</b></span>
               </div>
             </div>
@@ -917,13 +943,13 @@ export default function OrderManager() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <div className="card" style={{ padding: '1.25rem', borderColor: 'rgba(234,88,12,0.35)' }}>
               <div style={{ fontSize: '0.8rem', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
-                Biglietti Zuccaland
+                Ingressi Ordinari
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fed7aa', lineHeight: 1 }}>
-                {zuccalandStats.totalTickets}
+                {zuccalandStats.admissionTickets}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
-                {zuccalandStats.ordersCount} ordini pagati ({zuccalandDayFilter === 'all' ? 'totale weekend' : zuccalandDayFilter === '10' ? 'solo sabato 10' : 'solo domenica 11'})
+                {zuccalandStats.ordersCount} ordini ({zuccalandStats.admissionTickets} ingressi + {zuccalandStats.youPickTickets} You Pick)
               </div>
             </div>
 
@@ -956,10 +982,10 @@ export default function OrderManager() {
                 You Pick Lab
               </div>
               <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fdba74', lineHeight: 1 }}>
-                {zuccalandStats.ticketTypes['You Pick Lab'] || 0}
+                {zuccalandStats.youPickTickets}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
-                Laboratorio zucca personalizzata
+                Attività extra (+€3 · 1 zucca ciascuno)
               </div>
             </div>
           </div>
@@ -1291,9 +1317,41 @@ export default function OrderManager() {
 
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--white)' }}>
-                        {o.tickets.length} {o.tickets.length === 1 ? 'biglietto' : 'biglietti'}
-                      </div>
+                      {isZuccaland ? (
+                        (() => {
+                          const admissionTix = o.tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio'));
+                          const youPickTix = o.tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio'));
+                          return (
+                            <div>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--white)' }}>
+                                {admissionTix.length} {admissionTix.length === 1 ? 'Ingresso' : 'Ingressi'}
+                              </div>
+                              {youPickTix.length > 0 && (
+                                <div style={{ marginTop: '0.2rem' }}>
+                                  <span style={{
+                                    background: 'rgba(249, 115, 22, 0.18)',
+                                    color: '#fdba74',
+                                    border: '1px solid rgba(249, 115, 22, 0.4)',
+                                    padding: '0.12rem 0.45rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 750,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem'
+                                  }}>
+                                    🎨 {youPickTix.length}x You Pick Lab
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--white)' }}>
+                          {o.tickets.length} {o.tickets.length === 1 ? 'biglietto' : 'biglietti'}
+                        </div>
+                      )}
 
                       {/* Day of Event badge (Zuccaland) */}
                       {isZuccaland && parsed.eventDate && (

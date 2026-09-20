@@ -115,29 +115,57 @@ export default function ZuccalandSuccessClient({
           {/* Tickets */}
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem' }}>
-              {tickets.map((ticket, i) => (
-                <div key={ticket.id} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  background: '#fdf7f0',
-                  borderRadius: '0.75rem',
-                  padding: '0.875rem 1rem',
-                  border: '1px solid #eaddd0',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span style={{ fontSize: '1.25rem', display: 'flex' }}>
-                      <img src="/img/zuccaland/Pumpink.png" style={{ width: 24, height: 24, objectFit: 'contain' }} alt="Zucca" />
-                    </span>
-                    <div>
-                      <div style={{ color: '#2d1200', fontWeight: 600, fontSize: '0.9rem' }}>{ticket.type}</div>
-                      <div style={{ color: '#a06840', fontSize: '0.75rem' }}>Biglietto {i + 1}</div>
+              {(() => {
+                let admCount = 0;
+                let labCount = 0;
+                return tickets.map((ticket) => {
+                  const isLab = ticket.type.toLowerCase().includes('you pick') || ticket.type.toLowerCase().includes('laboratorio');
+                  if (isLab) labCount++;
+                  else admCount++;
+
+                  return (
+                    <div key={ticket.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      background: isLab ? '#fff7ed' : '#fdf7f0',
+                      borderRadius: '0.75rem',
+                      padding: '0.875rem 1rem',
+                      border: isLab ? '1.5px solid #fed7aa' : '1px solid #eaddd0',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1.25rem', display: 'flex' }}>
+                          {isLab ? '🎨' : <img src="/img/zuccaland/Pumpink.png" style={{ width: 24, height: 24, objectFit: 'contain' }} alt="Zucca" />}
+                        </span>
+                        <div>
+                          <div style={{ color: '#2d1200', fontWeight: 700, fontSize: '0.9rem' }}>{ticket.type}</div>
+                          <div style={{ color: isLab ? '#c2410c' : '#a06840', fontSize: '0.75rem', fontWeight: 600 }}>
+                            {isLab ? 'Attività Extra · Include 1 sola zucca' : `Ingresso Villaggio #${admCount}`}
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{ color: '#c85a0e', fontWeight: 700, fontSize: '1rem' }}>
+                        €{ticket.price.toFixed(2)}
+                      </span>
                     </div>
-                  </div>
-                  <span style={{ color: '#c85a0e', fontWeight: 700, fontSize: '1rem' }}>
-                    €{ticket.price.toFixed(2)}
-                  </span>
-                </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
+
+            {/* If You Pick Lab was purchased, show notice */}
+            {tickets.some(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio')) && (
+              <div style={{
+                background: '#fff7ed',
+                border: '1.5px solid #fed7aa',
+                borderRadius: '0.75rem',
+                padding: '0.85rem 1rem',
+                marginBottom: '1.25rem',
+                fontSize: '0.82rem',
+                color: '#7c2d12',
+                lineHeight: 1.45,
+              }}>
+                🎃 <strong>Promemoria You Pick Lab:</strong> Ogni acquisto di You Pick Lab dà diritto ad <strong>una sola zucca</strong> da scegliere, intagliare o dipingere nel campo e portare a casa.
+              </div>
+            )}
 
             {/* Total */}
             <div style={{

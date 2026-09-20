@@ -312,6 +312,8 @@ export interface ZuccalandDayStats {
   orders: number;
   revenue: number;
   tickets: number;
+  admissionTickets: number;
+  youPickTickets: number;
   kids: number;
   adults: number;
   ticketTypes: Record<string, number>;
@@ -320,6 +322,8 @@ export interface ZuccalandDayStats {
 
 export interface ZuccalandStatsResult {
   totalTickets: number;
+  admissionTickets: number;
+  youPickTickets: number;
   totalRevenue: number;
   paidOrdersCount: number;
   freeOrders: number;
@@ -339,9 +343,9 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
   const sql = getDb();
 
   const perDay: ZuccalandStatsResult['perDay'] = {
-    '10': { title: 'Sabato 10 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
-    '11': { title: 'Domenica 11 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
-    'unspecified': { title: 'Altre date / Non specificata', orders: 0, revenue: 0, tickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} }
+    '10': { title: 'Sabato 10 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '11': { title: 'Domenica 11 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    'unspecified': { title: 'Altre date / Non specificata', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} }
   };
 
   const orders = await sql`
@@ -359,6 +363,8 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
   if (orders.length === 0) {
     return {
       totalTickets: 0,
+      admissionTickets: 0,
+      youPickTickets: 0,
       totalRevenue: 0,
       paidOrdersCount: 0,
       freeOrders: 0,
@@ -396,7 +402,9 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
     });
 
     const parsed = parseOrderNotes(o.notes);
-    const baseTickets = oTickets.filter(t => !t.type.toLowerCase().includes('lab') && !t.type.toLowerCase().includes('extra')).length || oTickets.length;
+    const oAdmissionTix = oTickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length;
+    const oYouPickTix = oTickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio')).length;
+    const baseTickets = oAdmissionTix || oTickets.length;
     const kids = parsed.children ?? 0;
     const totalAttendees = parsed.totalRegistered ?? baseTickets;
     const adults = Math.max(0, totalAttendees - kids);
@@ -416,6 +424,8 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
     day.orders++;
     day.revenue += rev;
     day.tickets += oTickets.length;
+    day.admissionTickets += oAdmissionTix;
+    day.youPickTickets += oYouPickTix;
     day.kids += kids;
     day.adults += adults;
     oTickets.forEach(t => {
@@ -429,8 +439,13 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
     }
   }
 
+  const totalAdmission = tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length;
+  const totalYouPick = tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio')).length;
+
   return {
     totalTickets: tickets.length,
+    admissionTickets: totalAdmission,
+    youPickTickets: totalYouPick,
     totalRevenue,
     paidOrdersCount: orders.length,
     freeOrders,

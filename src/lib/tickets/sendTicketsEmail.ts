@@ -76,12 +76,17 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
 
   if (isZuccaland) {
     // ─── Zuccaland Email ───────────────────────────────────────────────────────
+    const admissionTickets = order.tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio'));
+    const extraTickets = order.tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio'));
+    const admissionCount = admissionTickets.length;
+    const youPickCount = extraTickets.length;
+
     const { error } = await resend.emails.send({
       from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
       to: order.buyerEmail,
       replyTo: 'info@prolocogasperina.it',
       subject: `🎃 I tuoi biglietti - Zuccaland 2026 · 10-11 Ottobre - Ord. #${orderRef}`,
-      html: buildZuccalandEmailHtml(order, orderRef, ticketCount, ticketsListHtml, primaryQrCode),
+      html: buildZuccalandEmailHtml(order, orderRef, admissionCount, youPickCount, ticketsListHtml, primaryQrCode),
       attachments: [
         {
           filename: `biglietti-zuccaland-${orderRef}.pdf`,
@@ -333,7 +338,14 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
 </html>`;
 }
 
-function buildZuccalandEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number, ticketsListHtml: string, qrCodeData: string): string {
+function buildZuccalandEmailHtml(
+  order: OrderWithTickets,
+  orderRef: string,
+  admissionCount: number,
+  youPickCount: number,
+  ticketsListHtml: string,
+  qrCodeData: string
+): string {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
   const parsedNotes = parseOrderNotes(order.notes);
 
@@ -359,6 +371,21 @@ function buildZuccalandEmailHtml(order: OrderWithTickets, orderRef: string, tick
           </div>
         `).join('')}
       </div>
+    </div>
+  ` : '';
+
+  const youPickNoticeHtml = youPickCount > 0 ? `
+    <!-- You Pick Lab Highlight Card -->
+    <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:14px;padding:18px 20px;margin-bottom:24px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:20px;">🎃</span>
+        <span style="font-size:14px;font-weight:800;color:#c2410c;">
+          You Pick Lab: ${youPickCount} ${youPickCount === 1 ? 'zucca inclusa' : 'zucche incluse'}
+        </span>
+      </div>
+      <p style="margin:0;font-size:12.5px;color:#7c2d12;line-height:1.5;">
+        <strong>Nota importante:</strong> Ogni acquisto di You Pick Lab dà diritto ad <strong>una sola zucca</strong> da scegliere, intagliare o dipingere nell'area laboratorio del villaggio (da portare a casa!).
+      </p>
     </div>
   ` : '';
 
@@ -410,18 +437,32 @@ function buildZuccalandEmailHtml(order: OrderWithTickets, orderRef: string, tick
                 </div>
                 <table width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="font-size:13px;color:#9a3412;padding-bottom:10px;vertical-align:top;font-weight:600;">Biglietti:</td>
+                    <td style="font-size:13px;color:#9a3412;padding-bottom:10px;vertical-align:top;font-weight:600;">Dettaglio Selezioni:</td>
                     <td style="text-align:right;font-size:13px;color:#431407;font-weight:700;padding-bottom:10px;">
                       <ul style="margin:0;padding:0;list-style:none;line-height:1.6;">
                         ${ticketsListHtml}
                       </ul>
                     </td>
                   </tr>
+                  <tr>
+                    <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;">🎟 Ingressi al Villaggio:</td>
+                    <td style="text-align:right;font-size:12.5px;color:#ea580c;font-weight:700;padding-bottom:10px;">
+                      ${admissionCount} ${admissionCount === 1 ? 'ingresso' : 'ingressi'}
+                    </td>
+                  </tr>
                   ${parsedNotes.numChildren > 0 ? `
                   <tr>
-                    <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;">👶 Biglietti bambini:</td>
+                    <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;">👶 Di cui bambini:</td>
                     <td style="text-align:right;font-size:12.5px;color:#ea580c;font-weight:700;padding-bottom:10px;">
-                      ${parsedNotes.numChildren} di ${order.tickets.length}
+                      ${parsedNotes.numChildren} di ${admissionCount}
+                    </td>
+                  </tr>
+                  ` : ''}
+                  ${youPickCount > 0 ? `
+                  <tr>
+                    <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;">🎨 You Pick Lab:</td>
+                    <td style="text-align:right;font-size:12.5px;color:#c2410c;font-weight:700;padding-bottom:10px;">
+                      ${youPickCount} ${youPickCount === 1 ? 'zucca inclusa' : 'zucche incluse'}
                     </td>
                   </tr>
                   ` : ''}
@@ -433,6 +474,7 @@ function buildZuccalandEmailHtml(order: OrderWithTickets, orderRef: string, tick
               </div>
 
               ${activitiesHtml}
+              ${youPickNoticeHtml}
 
               <!-- QR Code Check-in Card (Directly in Email Body) -->
               <div style="background:#fffaf5;border:2px solid #fed7aa;border-radius:18px;padding:26px 20px;margin-bottom:24px;text-align:center;box-shadow:0 6px 20px rgba(234,88,12,0.06);">
@@ -461,7 +503,7 @@ function buildZuccalandEmailHtml(order: OrderWithTickets, orderRef: string, tick
                   ID Ricevuta: <code style="background:#ffedd5;color:#7c2d12;padding:2px 8px;border-radius:6px;font-family:monospace;font-size:13px;letter-spacing:0.5px;">#${orderRef}</code>
                 </div>
                 <p style="margin:8px 0 0;font-size:11.5px;color:#9a3412;opacity:0.85;">
-                  Valido per <strong>${ticketCount} ${ticketCount === 1 ? 'partecipante' : 'partecipanti'}</strong> · Scannerizzabile direttamente dallo schermo
+                  Valido per <strong>${admissionCount} ${admissionCount === 1 ? 'ingresso' : 'ingressi'}</strong>${youPickCount > 0 ? ` + <strong>${youPickCount} You Pick Lab</strong>` : ''} · Scannerizzabile direttamente dallo schermo
                 </p>
               </div>
 

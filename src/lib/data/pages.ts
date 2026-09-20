@@ -194,7 +194,7 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
   ],
   ticketTypes: [
     { id: 'ingresso', label: 'Ingresso Ordinario', price: 5, description: 'Ingresso all\'evento Zuccaland', emoji: 'pumpkin', isExtra: false },
-    { id: 'laboratorio', label: 'You Pick Lab', price: 3, description: 'Scegli la tua zucca e intagliala o dipingila come preferisci!', emoji: '🎨', isExtra: true },
+    { id: 'laboratorio', label: 'You Pick Lab', price: 3, description: 'Scegli la tua zucca e intagliala o dipingila come preferisci! Ogni acquisto dà diritto ad 1 sola zucca.', emoji: '🎨', isExtra: true },
   ],
   freeActivities: [
     { id: 'zucca_vaso', label: 'Zucca in Vaso (3-7 anni)', details: 'Solo Sabato 14:30 - 16:30. A cura di Bibl. Comunale "S. Grande". Max 60 posti.' },

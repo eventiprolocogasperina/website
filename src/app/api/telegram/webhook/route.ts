@@ -20,7 +20,8 @@ function formatZuccalandStats(stats: ZuccalandStatsResult): string {
     .join('\n') || '<i>Nessuna prenotazione attività registrata</i>';
 
   return `🎃 <b>STATISTICHE ZUCCALAND 2026</b> 🎃\n\n` +
-    `🎟 <b>Biglietti Totali:</b> ${stats.totalTickets}\n` +
+    `🎟 <b>Ingressi al Villaggio:</b> ${stats.admissionTickets}\n` +
+    (stats.youPickTickets > 0 ? `🎨 <b>You Pick Lab:</b> ${stats.youPickTickets}\n` : '') +
     `💰 <b>Incasso Totale:</b> €${stats.totalRevenue.toFixed(2)}\n` +
     `📦 <b>Ordini Pagati:</b> ${stats.paidOrdersCount} (di cui ${stats.freeOrders} omaggio)\n\n` +
     `👥 <b>PARTECIPANTI (Stima):</b>\n` +
@@ -45,7 +46,7 @@ function formatZuccalandPerData(stats: ZuccalandStatsResult): string {
       .join('\n') || '  <i>Nessuna attività prenotata</i>';
 
     return `${emoji} <b>${header}</b>\n` +
-      `🎟 Biglietti: <b>${day.tickets}</b> | 💰 Incasso: <b>€${day.revenue.toFixed(2)}</b>\n` +
+      `🎟 Ingressi: <b>${day.admissionTickets}</b>${day.youPickTickets > 0 ? ` | 🎨 You Pick: <b>${day.youPickTickets}</b>` : ''} | 💰 Incasso: <b>€${day.revenue.toFixed(2)}</b>\n` +
       `📦 Ordini: <b>${day.orders}</b>\n` +
       `👥 Presenze: 👨‍🦰 <b>${day.adults}</b> Adulti | 🧒 <b>${day.kids}</b> Bambini (Tot: ${day.adults + day.kids})\n\n` +
       `<b>Tipologie Biglietti:</b>\n${types}\n\n` +
