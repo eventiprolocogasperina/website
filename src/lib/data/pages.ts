@@ -213,6 +213,16 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
     title: 'Riserva il tuo posto!',
     disclaimer: 'Le degustazioni culinarie agli stand non sono comprese nel prezzo del biglietto di ingresso.',
   },
+  faqs: [
+    {
+      question: "I bambini al di sotto di 1 anno di età pagano l'ingresso?",
+      answer: "**No, l'ingresso è gratuito per tutti i bambini al di sotto di 1 anno di età (non compiuto).** Per essi non è necessario acquistare alcun biglietto né effettuare la prenotazione del posto.\n\nPer i bambini a partire da 1 anno di età compiuto e per tutti gli accompagnatori adulti è invece obbligatorio l'acquisto del regolare biglietto di ingresso ordinario."
+    },
+    {
+      question: "In caso di pioggia o maltempo l'evento viene rimandato? Qual è la politica di rimborso?",
+      answer: "In caso di pioggia o condizioni meteorologiche avverse accertate, **l'evento non viene annullato ma viene rinviato a nuova data** stabilita dal comitato organizzatore. I biglietti e le eventuali prenotazioni dei laboratori già acquistati **rimarranno automaticamente validi per la nuova data di recupero** comunicata tempestivamente sui canali ufficiali e a mezzo email.\n\nQualora cause di forza maggiore o condizioni meteo ostative dovessero imporre un **secondo rinvio consecutivo** della manifestazione, ciascun acquirente maturerà la facoltà di richiedere il **rimborso integrale del 100%** della quota versata per la prenotazione, erogato tramite **bonifico bancario**.\n\nIn tale eventualità, per formalizzare la richiesta di rimborso sarà necessario compilare l'apposito [Modulo Richiesta Rimborso](/zuccaland/rimborso), specificando obbligatoriamente:\n1. **Nome e Cognome** indicati in fase di prenotazione;\n2. **Numero o numeri di prenotazione / codice transazione** (riportati nell'email di conferma ricevuta);\n3. **Indirizzo email** e recapito telefonico utilizzati per l'acquisto;\n4. **Intestatario del conto corrente** e codice **IBAN** (27 caratteri per conti italiani) per la disposizione del bonifico.\n\n*Nota di trasparenza:* Le richieste pervenute antecedentemente a un eventuale secondo rinvio non daranno luogo a rimborso monetario, ferma restando la piena validità del titolo di ingresso per la data di recupero."
+    }
+  ]
 };
 
 // Default content used if nothing is found in the DB

@@ -655,6 +655,28 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   </div>
                 </div>
 
+                {/* Child Gratuitous Note */}
+                <div style={{
+                  background: '#fef3c7',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: '1rem',
+                  padding: '0.75rem 1rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                  color: '#92400e',
+                  fontSize: '0.84rem',
+                  fontWeight: 650,
+                  lineHeight: 1.45,
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.08)'
+                }}>
+                  <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>👶</span>
+                  <div>
+                    <strong>I bambini sotto 1 anno d'età entrano gratis!</strong> Non necessitano di biglietto né prenotazione.
+                  </div>
+                </div>
+
                 {/* Tickets list - MOBILE FIRST STACKED CARDS (NO TEXT SQUEEZING) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.5rem' }}>
                   {ticketTypes.map((ticket, index) => {
@@ -2023,6 +2045,254 @@ function ConcludedSection() {
 }
 
 
+// ─── FAQ Section ──────────────────────────────────────────────────────────────
+
+function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer: string }> }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(0); // First item open by default
+
+  const list = faqs && faqs.length > 0 ? faqs : (DEFAULT_ZUCCALAND_CONTENT.faqs || []);
+  if (list.length === 0) return null;
+
+  const toggle = (idx: number) => {
+    setOpenIndex(current => current === idx ? null : idx);
+  };
+
+  return (
+    <section id="faq" style={{ padding: '3.5rem 1rem 5.5rem', position: 'relative', zIndex: 2, scrollMarginTop: '7rem' }}>
+      <div style={{ maxWidth: '840px', margin: '0 auto' }}>
+        
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: 'rgba(234, 88, 12, 0.1)',
+              color: '#c2410c',
+              padding: '0.35rem 0.95rem',
+              borderRadius: '999px',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: '0.75rem',
+            }}
+          >
+            ❓ Chiarimenti & Regolamento
+          </motion.div>
+
+          <h2 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(2rem, 5vw, 2.75rem)',
+            color: '#431407',
+            margin: '0 0 0.75rem',
+            lineHeight: 1.2
+          }}>
+            Domande Frequenti
+          </h2>
+          
+          <p style={{
+            color: '#9a3412',
+            fontSize: 'clamp(0.95rem, 2.8vw, 1.08rem)',
+            lineHeight: 1.6,
+            maxWidth: '620px',
+            margin: '0 auto',
+            fontWeight: 500
+          }}>
+            Tutte le informazioni importanti su gratuità bambini, biglietti, rinvio meteo e condizioni di rimborso.
+          </p>
+        </div>
+
+        {/* Accordion Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {list.map((faq, idx) => {
+            const isOpen = openIndex === idx;
+
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                style={{
+                  background: 'white',
+                  borderRadius: '1.25rem',
+                  border: `2px solid ${isOpen ? '#ea580c' : '#fed7aa'}`,
+                  overflow: 'hidden',
+                  boxShadow: isOpen 
+                    ? '0 10px 30px rgba(234, 88, 12, 0.15)' 
+                    : '0 4px 15px rgba(0,0,0,0.03)',
+                  transition: 'border-color 0.25s, box-shadow 0.25s',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => toggle(idx)}
+                  style={{
+                    width: '100%',
+                    padding: '1.25rem clamp(1rem, 3vw, 1.5rem)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                    background: isOpen ? '#fffaf5' : 'white',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                    transition: 'background 0.2s'
+                  }}
+                  aria-expanded={isOpen}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <span style={{
+                      fontSize: '1.05rem',
+                      background: isOpen ? '#ea580c' : '#ffedd5',
+                      color: isOpen ? 'white' : '#ea580c',
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      fontWeight: 800,
+                      transition: 'all 0.25s'
+                    }}>
+                      ?
+                    </span>
+                    <span style={{
+                      fontSize: 'clamp(0.98rem, 2.8vw, 1.15rem)',
+                      fontWeight: 800,
+                      color: isOpen ? '#ea580c' : '#431407',
+                      lineHeight: 1.35,
+                      transition: 'color 0.2s'
+                    }}>
+                      {faq.question}
+                    </span>
+                  </div>
+
+                  <motion.div
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ flexShrink: 0, color: isOpen ? '#ea580c' : '#9a3412' }}
+                  >
+                    <ChevronDown size={22} />
+                  </motion.div>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    >
+                      <div style={{
+                        padding: '0 clamp(1rem, 3vw, 1.5rem) 1.5rem',
+                        paddingLeft: 'clamp(1rem, 3vw, 3.8rem)',
+                        color: '#7c2d12',
+                        fontSize: 'clamp(0.92rem, 2.5vw, 1.02rem)',
+                        lineHeight: 1.7,
+                        borderTop: '1px solid #ffedd5',
+                        background: '#fffaf5',
+                        paddingTop: '1rem'
+                      }}>
+                        <FormattedText 
+                          as="div" 
+                          style={{ whiteSpace: 'pre-line' }} 
+                          text={faq.answer} 
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Assistance & Refund Quick Links Box */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          style={{
+            marginTop: '2.5rem',
+            background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+            border: '2px dashed #fdba74',
+            borderRadius: '1.5rem',
+            padding: '1.5rem clamp(1.2rem, 4vw, 2rem)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.25rem',
+            flexWrap: 'wrap'
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 800, color: '#431407', fontSize: '1.05rem', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span>💬</span> Hai altre domande o necessiti di supporto?
+            </div>
+            <div style={{ color: '#9a3412', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              Il nostro team è sempre a disposizione per assisterti con la tua prenotazione o per ogni chiarimento.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <Link
+              href="/zuccaland/rimborso"
+              style={{
+                background: 'white',
+                border: '1.5px solid #ea580c',
+                color: '#ea580c',
+                padding: '0.55rem 1.1rem',
+                borderRadius: '999px',
+                fontWeight: 750,
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.2s'
+              }}
+            >
+              Modulo Rimborso <ArrowRight size={14} />
+            </Link>
+
+            <Link
+              href="/contatti"
+              style={{
+                background: '#ea580c',
+                color: 'white',
+                padding: '0.55rem 1.1rem',
+                borderRadius: '999px',
+                fontWeight: 750,
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 4px 12px rgba(234,88,12,0.25)'
+              }}
+            >
+              Scrivici <ArrowRight size={14} />
+            </Link>
+          </div>
+        </motion.div>
+
+      </div>
+    </section>
+  );
+}
+
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 export default function ZuccalandClient({ content: rawContent }: { content: ZuccalandContent }) {
@@ -2041,7 +2311,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
 
   const [phase, setPhase] = useState<EventPhase>('on-sale');
   const [mounted, setMounted] = useState(false);
-  const [activeSection, setActiveSection] = useState<'hero' | 'attivita' | 'programma' | 'info' | 'acquista'>('hero');
+  const [activeSection, setActiveSection] = useState<'hero' | 'attivita' | 'programma' | 'info' | 'acquista' | 'faq'>('hero');
 
   useEffect(() => {
     setMounted(true);
@@ -2052,7 +2322,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
 
   useEffect(() => {
     const handleScroll = () => {
-      const sectionIds = ['acquista', 'programma', 'info', 'attivita'];
+      const sectionIds = ['faq', 'acquista', 'programma', 'info', 'attivita'];
       for (const id of sectionIds) {
         const el = document.getElementById(id);
         if (el) {
@@ -2191,6 +2461,13 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
             className={`zucca-nav-link ${activeSection === 'info' ? 'active' : ''}`}
           >
             Info & Servizi
+          </button>
+          <button 
+            type="button"
+            onClick={() => scrollToSection('faq')} 
+            className={`zucca-nav-link ${activeSection === 'faq' ? 'active' : ''}`}
+          >
+            FAQ
           </button>
         </div>
 
@@ -2708,6 +2985,9 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
           </motion.div>
         </div>
       )}
+
+      {/* ── Domande Frequenti (FAQ) ── */}
+      <ZuccalandFaqSection faqs={content.faqs} />
 
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, AlertCircle, CheckCircle2, ArrowLeft, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Save, AlertCircle, CheckCircle2, ArrowLeft, Plus, Trash2, Loader2, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { type ZuccalandContent, DEFAULT_ZUCCALAND_CONTENT } from '@/lib/data/pages';
 import AdminHeader from '@/components/admin/AdminHeader';
@@ -135,6 +135,17 @@ export default function ZuccalandAdminPage() {
     data && setData({ ...data, highlights: data.highlights.filter((_, i) => i !== index) });
   const updateHighlight = (index: number, field: string, value: string) =>
     data && setData({ ...data, highlights: data.highlights.map((h, i) => i === index ? { ...h, [field]: value } : h) });
+
+  // ── FAQs ──
+  const addFaq = () =>
+    data && setData({ ...data, faqs: [...(data.faqs || []), { question: 'Nuova domanda?', answer: '' }] });
+  const removeFaq = (index: number) =>
+    data && setData({ ...data, faqs: (data.faqs || []).filter((_, i) => i !== index) });
+  const updateFaq = (index: number, field: 'question' | 'answer', value: string) =>
+    data && setData({
+      ...data,
+      faqs: (data.faqs || []).map((faq, i) => (i === index ? { ...faq, [field]: value } : faq))
+    });
 
   const sectionHeaderStyle: React.CSSProperties = {
     fontSize: '1.15rem', fontWeight: 600, marginBottom: '1.25rem', color: 'var(--color-heading)',
@@ -525,6 +536,76 @@ export default function ZuccalandAdminPage() {
               <textarea style={{ ...fieldStyle, resize: 'vertical' }} rows={2} value={data.tickets.disclaimer} onChange={e => updateTickets('disclaimer', e.target.value)} />
             </div>
           </div>
+        </div>
+
+        {/* ── Domande Frequenti (FAQ) ── */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <h2 style={{ ...sectionHeaderStyle, margin: 0, borderBottom: 'none', paddingBottom: 0 }}>
+              Domande Frequenti (FAQ)
+            </h2>
+            <Link
+              href="/admin/rimborsi"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.82rem',
+                color: 'var(--blue-400)',
+                background: 'rgba(27,75,170,0.15)',
+                border: '1px solid rgba(27,75,170,0.3)',
+                padding: '0.4rem 0.8rem',
+                borderRadius: 'var(--radius-md)',
+                textDecoration: 'none',
+                fontWeight: 600
+              }}
+            >
+              <RotateCcw size={14} /> Vai a Gestione Rimborsi →
+            </Link>
+          </div>
+
+          <p style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', marginBottom: '1.25rem' }}>
+            Queste domande e risposte appariranno nella sezione FAQ pubblica di Zuccaland. Le risposte supportano formattazione grassetto (<strong>**testo**</strong>), corsivo (<em>*testo*</em>) e link markdown (<strong>[testo](url)</strong>).
+          </p>
+
+          <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
+            {(data.faqs || []).map((faq, idx) => (
+              <div key={idx} style={{ background: 'var(--neutral-900)', border: '1px solid var(--neutral-700)', borderRadius: '0.75rem', padding: '1.25rem', position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => removeFaq(idx)}
+                  style={deleteButtonStyle}
+                  title="Elimina FAQ"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <div style={{ marginBottom: '0.75rem', paddingRight: '2rem' }}>
+                  <label style={labelStyle}>Domanda #{idx + 1}</label>
+                  <input
+                    type="text"
+                    style={fieldStyle}
+                    value={faq.question}
+                    onChange={e => updateFaq(idx, 'question', e.target.value)}
+                    placeholder="Es. I bambini pagano l'ingresso?"
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Risposta</label>
+                  <textarea
+                    rows={4}
+                    style={{ ...fieldStyle, resize: 'vertical' }}
+                    value={faq.answer}
+                    onChange={e => updateFaq(idx, 'answer', e.target.value)}
+                    placeholder="Testo della risposta..."
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button type="button" onClick={addFaq} style={addButtonStyle}>
+            <Plus size={18} /> Aggiungi FAQ
+          </button>
         </div>
 
       </div>
