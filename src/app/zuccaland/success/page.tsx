@@ -53,6 +53,7 @@ export default async function ZuccalandSuccessPage({
       buyerName={order.buyerName}
       buyerEmail={order.buyerEmail}
       totalAmount={order.totalAmount}
+      notes={order.notes}
       tickets={order.tickets.map(t => ({
         id: t.id,
         type: t.type,

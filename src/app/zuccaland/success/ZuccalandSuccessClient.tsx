@@ -17,6 +17,7 @@ interface ZuccalandSuccessClientProps {
   buyerName: string;
   buyerEmail: string;
   totalAmount: number;
+  notes?: string | null;
   tickets: TicketItem[];
 }
 
@@ -26,9 +27,17 @@ export default function ZuccalandSuccessClient({
   buyerName,
   buyerEmail,
   totalAmount,
+  notes,
   tickets,
 }: ZuccalandSuccessClientProps) {
   const [downloading, setDownloading] = useState(false);
+
+  let dayLabel = '10 o 11 Ottobre 2026';
+  if (notes?.includes('10 Ottobre') || notes?.toLowerCase().includes('sabato')) {
+    dayLabel = 'Sabato 10 Ottobre 2026';
+  } else if (notes?.includes('11 Ottobre') || notes?.toLowerCase().includes('domenica')) {
+    dayLabel = 'Domenica 11 Ottobre 2026';
+  }
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -110,6 +119,26 @@ export default function ZuccalandSuccessClient({
             <span style={{ color: '#c85a0e', fontWeight: 700, fontSize: '0.95rem', letterSpacing: '0.05em' }}>
               #{orderRef}
             </span>
+          </div>
+
+          {/* Booked Day & Opening Time Banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, #fff7ed, #ffedd5)',
+            borderBottom: '1.5px solid #fed7aa',
+            padding: '1rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.85rem',
+          }}>
+            <span style={{ fontSize: '1.6rem' }}>📅</span>
+            <div>
+              <div style={{ color: '#c2410c', fontWeight: 800, fontSize: '0.98rem' }}>
+                {dayLabel}
+              </div>
+              <div style={{ color: '#7c2d12', fontSize: '0.82rem', fontWeight: 600, marginTop: '0.15rem' }}>
+                ⏰ Apertura cancelli e ingresso dalle <strong>ore 10:30</strong>
+              </div>
+            </div>
           </div>
 
           {/* Tickets */}

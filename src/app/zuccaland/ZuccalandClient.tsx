@@ -601,7 +601,7 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                         Scegli il giorno di partecipazione
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#9a3412' }}>
-                        Il villaggio è aperto sabato 10 e domenica 11 ottobre
+                        Il villaggio è aperto sabato 10 e domenica 11 ottobre dalle ore 10:30
                       </div>
                     </div>
                   </div>
@@ -625,7 +625,10 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                       }}
                     >
                       <div>🎃 Sabato 10 Ottobre</div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 650, color: selectedDay === '10 Ottobre' ? '#c2410c' : '#a8a29e', marginTop: '0.25rem' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: selectedDay === '10 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
+                        Dalle ore 10:30
+                      </div>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: selectedDay === '10 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
                         Zucca in Vaso & Zuccart
                       </div>
                     </button>
@@ -648,7 +651,10 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                       }}
                     >
                       <div>🎃 Domenica 11 Ottobre</div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 650, color: selectedDay === '11 Ottobre' ? '#c2410c' : '#a8a29e', marginTop: '0.25rem' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: selectedDay === '11 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
+                        Dalle ore 10:30
+                      </div>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: selectedDay === '11 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
                         Thriller Dance & Zuccart
                       </div>
                     </button>

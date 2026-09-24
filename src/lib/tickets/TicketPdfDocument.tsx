@@ -236,11 +236,13 @@ interface TicketPdfProps {
 }
 
 function parseOrderNotes(notes?: string | null) {
-  if (!notes) return { activities: [], numChildren: 0, target: '', raw: '' };
+  if (!notes) return { activities: [], numChildren: 0, target: '', dayKey: 'unspecified', eventDate: '', fullDateWithTime: '10-11 Ottobre 2026 - Ingresso dalle ore 10:30', raw: '' };
   
   let numChildren = 0;
   let target = '';
   let activities: string[] = [];
+  let dayKey: '10' | '11' | 'unspecified' = 'unspecified';
+  let eventDate = '';
 
   const kidsMatch = notes.match(/Bambini:\s*(\d+)\/(\d+)/i);
   if (kidsMatch) {
@@ -254,7 +256,27 @@ function parseOrderNotes(notes?: string | null) {
     activities = actsStr.split(',').map(s => s.trim()).filter(Boolean);
   }
 
-  return { activities, numChildren, target, raw: notes };
+  const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
+  if (dateMatch) {
+    eventDate = dateMatch[1].trim();
+  }
+
+  if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
+    dayKey = '10';
+    eventDate = 'Sabato 10 Ottobre 2026';
+  } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
+    dayKey = '11';
+    eventDate = 'Domenica 11 Ottobre 2026';
+  }
+
+  let fullDateWithTime = '10-11 Ottobre 2026 - Ingresso dalle ore 10:30';
+  if (dayKey === '10') {
+    fullDateWithTime = 'Sabato 10 Ottobre 2026 - Ingresso dalle ore 10:30';
+  } else if (dayKey === '11') {
+    fullDateWithTime = 'Domenica 11 Ottobre 2026 - Ingresso dalle ore 10:30';
+  }
+
+  return { activities, numChildren, target, dayKey, eventDate, fullDateWithTime, raw: notes };
 }
 
 export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoLogoBase64 }: TicketPdfProps) {
@@ -277,8 +299,10 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
   const stripeColor = isZuccaland ? '#f97316' : palette.primary;
   const priceColor = isZuccaland ? '#f97316' : palette.primary;
   const eventTitle = isZuccaland ? 'Zuccaland 2026' : 'Assaggia & Passeggia';
-  const eventSubtitle = isZuccaland ? 'Pro Loco Gasperina · 10-11 Ottobre 2026' : 'Pro Loco Gasperina · Gasperina (CZ)';
-  const eventDate = isZuccaland ? '10-11 Ottobre 2026 - Ingresso dalle ore 09:00' : '10 Agosto 2026 - Ritiro dalle ore 19:00';
+  const eventSubtitle = isZuccaland 
+    ? (parsedNotes.dayKey !== 'unspecified' ? `Pro Loco Gasperina · ${parsedNotes.eventDate}` : 'Pro Loco Gasperina · 10-11 Ottobre 2026') 
+    : 'Pro Loco Gasperina · Gasperina (CZ)';
+  const eventDate = isZuccaland ? parsedNotes.fullDateWithTime : '10 Agosto 2026 - Ritiro dalle ore 19:00';
 
   return (
     <Document
@@ -327,6 +351,14 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                 <Text style={styles.buyerFieldLabel}>Email</Text>
                 <Text style={styles.buyerFieldValue}>{order.buyerEmail}</Text>
               </View>
+              {isZuccaland && (
+                <View style={styles.buyerField}>
+                  <Text style={styles.buyerFieldLabel}>Giorno & Orario Ingresso</Text>
+                  <Text style={[styles.buyerFieldValue, { color: '#ea580c' }]}>
+                    {parsedNotes.dayKey === '10' ? 'Sabato 10 Ottobre · Ore 10:30' : parsedNotes.dayKey === '11' ? 'Domenica 11 Ottobre · Ore 10:30' : '10-11 Ottobre · Ore 10:30'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.buyerField}>
                 <Text style={styles.buyerFieldLabel}>{isZuccaland ? 'N° Ingressi & Extra' : 'N° Biglietti'}</Text>
                 <Text style={styles.buyerFieldValue}>

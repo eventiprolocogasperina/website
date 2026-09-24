@@ -150,7 +150,7 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
     description: 'Un\'esperienza incantata tra colori autunnali, laboratori per grandi e piccini, e tante degustazioni da leccarsi i baffi.',
   },
   event: {
-    startDate: '2026-10-10T09:00:00+02:00',
+    startDate: '2026-10-10T10:30:00+02:00',
     endDate: '2026-10-11T23:59:00+02:00',
     salesOpenDate: '2026-09-01T00:00:00+02:00',
     salesCloseDate: '2026-10-10T08:00:00+02:00',
@@ -221,6 +221,10 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
     {
       question: "In caso di pioggia o maltempo l'evento viene rimandato? Qual è la politica di rimborso?",
       answer: "In caso di pioggia o condizioni meteorologiche avverse accertate, **l'evento non viene annullato ma viene rinviato a nuova data** stabilita dal comitato organizzatore. I biglietti e le eventuali prenotazioni dei laboratori già acquistati **rimarranno automaticamente validi per la nuova data di recupero** comunicata tempestivamente sui canali ufficiali e a mezzo email.\n\nQualora cause di forza maggiore o condizioni meteo ostative dovessero imporre un **secondo rinvio consecutivo** della manifestazione, ciascun acquirente maturerà la facoltà di richiedere il **rimborso integrale del 100%** della quota versata per la prenotazione, erogato tramite **bonifico bancario**.\n\nIn tale eventualità, per formalizzare la richiesta di rimborso sarà necessario compilare l'apposito [Modulo Richiesta Rimborso](/zuccaland/rimborso), specificando obbligatoriamente:\n1. **Nome e Cognome** indicati in fase di prenotazione;\n2. **Numero o numeri di prenotazione / codice transazione** (riportati nell'email di conferma ricevuta);\n3. **Indirizzo email** e recapito telefonico utilizzati per l'acquisto;\n4. **Intestatario del conto corrente** e codice **IBAN** (27 caratteri per conti italiani) per la disposizione del bonifico.\n\n*Nota di trasparenza:* Le richieste pervenute antecedentemente a un eventuale secondo rinvio non daranno luogo a rimborso monetario, ferma restando la piena validità del titolo di ingresso per la data di recupero."
+    },
+    {
+      question: "A che ora apre il villaggio e per quale data sono validi i biglietti?",
+      answer: "I cancelli del villaggio Zuccaland aprono alle **ore 10:30** sia nella giornata di **Sabato 10 Ottobre** che in quella di **Domenica 11 Ottobre 2026**.\n\nI biglietti acquistati sono validi per l'accesso e per le attività **esclusivamente nella giornata selezionata in fase di prenotazione** (Sabato 10 o Domenica 11, chiaramente specificata sulla ricevuta e sul biglietto PDF) a partire dalle ore 10:30 e per tutta la durata dell'evento."
     }
   ]
 };

@@ -81,11 +81,18 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
     const admissionCount = admissionTickets.length;
     const youPickCount = extraTickets.length;
 
+    const parsedNotes = parseOrderNotes(order.notes);
+    const dayLabel = parsedNotes.dayKey === '10' 
+      ? 'Sabato 10 Ottobre' 
+      : parsedNotes.dayKey === '11' 
+        ? 'Domenica 11 Ottobre' 
+        : '10-11 Ottobre';
+
     const { error } = await resend.emails.send({
       from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
       to: order.buyerEmail,
       replyTo: 'info@prolocogasperina.it',
-      subject: `🎃 I tuoi biglietti - Zuccaland 2026 · 10-11 Ottobre - Ord. #${orderRef}`,
+      subject: `🎃 I tuoi biglietti - Zuccaland 2026 · ${dayLabel} (ore 10:30) - Ord. #${orderRef}`,
       html: buildZuccalandEmailHtml(order, orderRef, admissionCount, youPickCount, ticketsListHtml, primaryQrCode),
       attachments: [
         {
@@ -157,15 +164,20 @@ interface ParsedNotes {
   activities: string[];
   numChildren: number;
   target: string;
+  dayKey: '10' | '11' | 'unspecified';
+  eventDate: string;
+  fullDateWithTime: string;
   rawNotes: string;
 }
 
 function parseOrderNotes(notes?: string | null): ParsedNotes {
-  if (!notes) return { activities: [], numChildren: 0, target: '', rawNotes: '' };
+  if (!notes) return { activities: [], numChildren: 0, target: '', dayKey: 'unspecified', eventDate: '', fullDateWithTime: '10-11 Ottobre 2026 - Ingresso dalle ore 10:30', rawNotes: '' };
   
   let numChildren = 0;
   let target = '';
   let activities: string[] = [];
+  let dayKey: '10' | '11' | 'unspecified' = 'unspecified';
+  let eventDate = '';
 
   const kidsMatch = notes.match(/Bambini:\s*(\d+)\/(\d+)/i);
   if (kidsMatch) {
@@ -179,7 +191,27 @@ function parseOrderNotes(notes?: string | null): ParsedNotes {
     activities = actsStr.split(',').map(s => s.trim()).filter(Boolean);
   }
 
-  return { activities, numChildren, target, rawNotes: notes };
+  const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
+  if (dateMatch) {
+    eventDate = dateMatch[1].trim();
+  }
+
+  if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
+    dayKey = '10';
+    eventDate = 'Sabato 10 Ottobre 2026';
+  } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
+    dayKey = '11';
+    eventDate = 'Domenica 11 Ottobre 2026';
+  }
+
+  let fullDateWithTime = '10-11 Ottobre 2026 - Ingresso dalle ore 10:30';
+  if (dayKey === '10') {
+    fullDateWithTime = 'Sabato 10 Ottobre 2026 - Ingresso dalle ore 10:30';
+  } else if (dayKey === '11') {
+    fullDateWithTime = 'Domenica 11 Ottobre 2026 - Ingresso dalle ore 10:30';
+  }
+
+  return { activities, numChildren, target, dayKey, eventDate, fullDateWithTime, rawNotes: notes };
 }
 
 function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number, ticketsListHtml: string, hasMenu: boolean, qrCodeData: string): string {
@@ -408,7 +440,7 @@ function buildZuccalandEmailHtml(
               <img src="cid:event_header_logo" alt="Zuccaland 2026" style="height:85px;margin-bottom:12px;object-fit:contain;" />
               <div style="color:#7c2d12;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Il villaggio delle zucche di Gasperina</div>
               <div style="display:inline-block;background:#fff7ed;border:1px solid #fdba74;color:#ea580c;font-size:12px;margin-top:10px;font-weight:800;padding:4px 14px;border-radius:999px;">
-                🎃 10 e 11 Ottobre 2026 · Gasperina (CZ)
+                🎃 ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10 e 11 Ottobre 2026'} · Ingresso dalle ore 10:30 · Gasperina (CZ)
               </div>
             </td>
           </tr>
@@ -436,6 +468,13 @@ function buildZuccalandEmailHtml(
                   <span style="background:#ea580c;color:#ffffff;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;">#${orderRef}</span>
                 </div>
                 <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;font-weight:700;">📅 Data di Ingresso:</td>
+                    <td style="text-align:right;font-size:12.5px;color:#ea580c;font-weight:800;padding-bottom:10px;">
+                      ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10 o 11 Ottobre 2026'}<br/>
+                      <span style="font-size:11.5px;color:#c2410c;font-weight:600;">Ingresso dalle ore 10:30</span>
+                    </td>
+                  </tr>
                   <tr>
                     <td style="font-size:13px;color:#9a3412;padding-bottom:10px;vertical-align:top;font-weight:600;">Dettaglio Selezioni:</td>
                     <td style="text-align:right;font-size:13px;color:#431407;font-weight:700;padding-bottom:10px;">
@@ -523,8 +562,9 @@ function buildZuccalandEmailHtml(
 
               <!-- Entry Instructions -->
               <div style="background:#ffedd5;border-radius:14px;padding:18px 20px;border:1px solid #fdba74;margin-bottom:24px;">
-                <div style="font-size:14px;font-weight:800;color:#c2410c;margin-bottom:8px;">📋 Come ritirare i biglietti all'ingresso</div>
+                <div style="font-size:14px;font-weight:800;color:#c2410c;margin-bottom:8px;">📋 Informazioni per l'ingresso</div>
                 <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#9a3412;line-height:1.7;font-weight:500;">
+                  <li><strong>Orario di apertura cancelli:</strong> dalle <strong>ore 10:30</strong> per la giornata di <strong>${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : 'Sabato 10 o Domenica 11 Ottobre'}</strong></li>
                   <li>Mostra il <strong>QR Code</strong> presente in questa email o nel PDF allegato direttamente dallo smartphone</li>
                   <li>Presentalo all'ingresso dedicato alle prenotazioni online per ritirare i braccialetti/biglietti</li>
                   <li>La ricevuta è personale e valida per tutto il tuo gruppo</li>

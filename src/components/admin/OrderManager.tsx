@@ -51,6 +51,13 @@ export default function OrderManager() {
   const [editingOrder, setEditingOrder] = useState<OrderWithTickets | null>(null);
   const [editForm, setEditForm] = useState({ buyerName: '', buyerEmail: '', buyerPhone: '', notes: '' });
 
+  // Zuccaland time update modal
+  const [showTimeUpdateModal, setShowTimeUpdateModal] = useState(false);
+  const [timeUpdateTestEmail, setTimeUpdateTestEmail] = useState('');
+  const [sendingTimeUpdateTest, setSendingTimeUpdateTest] = useState(false);
+  const [sendingTimeUpdateBroadcast, setSendingTimeUpdateBroadcast] = useState(false);
+  const [timeUpdateStatusMessage, setTimeUpdateStatusMessage] = useState<string | null>(null);
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -159,6 +166,57 @@ export default function OrderManager() {
       alert('Errore durante la creazione');
     } finally {
       setTestingOrder(false);
+    }
+  };
+
+  const handleSendTimeUpdateTest = async () => {
+    if (!timeUpdateTestEmail.trim()) {
+      alert('Inserisci un indirizzo email per il test.');
+      return;
+    }
+    setSendingTimeUpdateTest(true);
+    setTimeUpdateStatusMessage(null);
+    try {
+      const res = await fetch('/api/admin/orders/zuccaland-time-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testEmail: timeUpdateTestEmail.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTimeUpdateStatusMessage(`✅ ${data.message}`);
+      } else {
+        alert(data.error || 'Errore durante l\'invio');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Errore di connessione');
+    } finally {
+      setSendingTimeUpdateTest(false);
+    }
+  };
+
+  const handleSendTimeUpdateBroadcast = async () => {
+    if (!confirm('ATTENZIONE: Confermi di voler inviare l\'email di aggiornamento orario (ore 10:30) e i biglietti PDF aggiornati a TUTTI i 40 clienti che hanno già prenotato per Zuccaland?')) {
+      return;
+    }
+    setSendingTimeUpdateBroadcast(true);
+    setTimeUpdateStatusMessage(null);
+    try {
+      const res = await fetch('/api/admin/orders/zuccaland-time-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmBroadcast: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTimeUpdateStatusMessage(`🎉 Invio completato con successo! Inviate ${data.sent} email su ${data.total} ordini pagati.`);
+      } else {
+        alert(data.error || 'Errore durante l\'invio massivo');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Errore di connessione');
+    } finally {
+      setSendingTimeUpdateBroadcast(false);
     }
   };
 
@@ -936,6 +994,33 @@ export default function OrderManager() {
                   🎃 Dom 11 Ott
                 </button>
               </div>
+
+              {/* Action Button for Time Correction Broadcast */}
+              <button
+                onClick={() => {
+                  setShowTimeUpdateModal(true);
+                  setTimeUpdateStatusMessage(null);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  padding: '0.45rem 1rem',
+                  borderRadius: '999px',
+                  border: '1.5px solid #ea580c',
+                  background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+                  color: 'white',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(234,88,12,0.3)',
+                  transition: 'all 0.2s',
+                  marginTop: '0.35rem',
+                  alignSelf: 'flex-start'
+                }}
+              >
+                <MailOpen size={13} /> 📢 Invia Rettifica Orario (10:30)
+              </button>
             </div>
           </div>
 
@@ -1601,6 +1686,132 @@ export default function OrderManager() {
               >
                 Salva Modifiche
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          ZUCCALAND TIME UPDATE MODAL
+      ────────────────────────────────────────────────────────────────────────── */}
+      {showTimeUpdateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: '1rem' }}>
+          <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '620px', maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid rgba(234,88,12,0.4)', background: '#1c130d' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={{ background: 'rgba(234,88,12,0.2)', color: '#fdba74', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Zuccaland 2026
+                </span>
+                <h2 style={{ fontSize: '1.25rem', color: '#fed7aa', margin: '0.5rem 0 0.2rem', fontWeight: 800 }}>
+                  📢 Rettifica Orario Ingresso (Ore 10:30)
+                </h2>
+              </div>
+              <button 
+                onClick={() => setShowTimeUpdateModal(false)} 
+                style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: '#fed7aa', lineHeight: 1.6 }}>
+                Sui primi biglietti emessi era indicato per refuso l&apos;ingresso alle <strong>ore 09:00</strong>. L&apos;orario ufficiale di apertura cancelli e inizio attività è fissato per le <strong>ore 10:30</strong>.
+              </p>
+
+              {/* Stats Box */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '0.85rem', border: '1px solid rgba(234,88,12,0.25)' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fed7aa' }}>40</div>
+                  <div style={{ fontSize: '0.72rem', color: '#fdba74' }}>Totale Ordini Pagati</div>
+                </div>
+                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(234,88,12,0.2)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ea580c' }}>20</div>
+                  <div style={{ fontSize: '0.72rem', color: '#fdba74' }}>Sabato 10 Ottobre</div>
+                </div>
+                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(234,88,12,0.2)' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#ea580c' }}>20</div>
+                  <div style={{ fontSize: '0.72rem', color: '#fdba74' }}>Domenica 11 Ottobre</div>
+                </div>
+              </div>
+
+              {/* Preview of what will be sent */}
+              <div style={{ background: 'rgba(234,88,12,0.08)', border: '1px solid rgba(234,88,12,0.3)', borderRadius: '0.85rem', padding: '1rem', fontSize: '0.82rem', color: '#ffedd5', lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 800, color: '#fed7aa', marginBottom: '0.35rem' }}>
+                  ✉️ Cosa riceveranno i clienti:
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                  <li>Oggetto personalizzato in base al giorno: <em>🎃 I tuoi biglietti - Zuccaland 2026 · [Sabato 10 / Domenica 11] (ore 10:30)</em></li>
+                  <li>Evidenza dell&apos;apertura cancelli alle <strong>ore 10:30</strong> nel corpo dell&apos;email e nel box istruzioni.</li>
+                  <li><strong>Nuovo biglietto PDF allegato</strong> con la data specifica dell&apos;ordine e la dicitura: <em>Ingresso dalle ore 10:30</em>.</li>
+                  <li>QR Code invariato e perfettamente valido all&apos;ingresso.</li>
+                </ul>
+              </div>
+
+              {/* Status Message */}
+              {timeUpdateStatusMessage && (
+                <div style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid #22c55e', color: '#86efac', padding: '0.75rem 1rem', borderRadius: '0.65rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                  {timeUpdateStatusMessage}
+                </div>
+              )}
+
+              {/* Option 1: Send Test Email */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--neutral-800)', borderRadius: '0.85rem', padding: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--neutral-300)', marginBottom: '0.4rem' }}>
+                  1. Invia una prova a un indirizzo email di test
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input 
+                    className="input" 
+                    type="email"
+                    placeholder="es. tuamail@example.com"
+                    value={timeUpdateTestEmail}
+                    onChange={e => setTimeUpdateTestEmail(e.target.value)}
+                    style={{ flex: 1, fontSize: '0.85rem' }}
+                  />
+                  <button 
+                    className="btn btn-outline"
+                    disabled={sendingTimeUpdateTest}
+                    onClick={handleSendTimeUpdateTest}
+                    style={{ fontSize: '0.82rem', padding: '0.5rem 0.85rem', whiteSpace: 'nowrap' }}
+                  >
+                    {sendingTimeUpdateTest ? <Loader2 size={14} className="animate-spin" /> : 'Invia Test'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 2: Broadcast to all 40 customers */}
+              <div style={{ borderTop: '1px solid rgba(234,88,12,0.2)', paddingTop: '1rem' }}>
+                <button 
+                  disabled={sendingTimeUpdateBroadcast}
+                  onClick={handleSendTimeUpdateBroadcast}
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.85rem',
+                    borderRadius: '0.85rem',
+                    background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 16px rgba(234,88,12,0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  {sendingTimeUpdateBroadcast ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Invio in corso alle 40 email...
+                    </>
+                  ) : (
+                    '🚀 Invia Rettifica Orario (10:30) e PDF a Tutti i 40 Clienti'
+                  )}
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
