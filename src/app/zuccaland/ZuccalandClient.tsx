@@ -252,18 +252,56 @@ function PhaseBanner({ phase }: { phase: EventPhase }) {
 
 // ─── Ticket Buyer ─────────────────────────────────────────────────────────────
 
-function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
+function ZuccalandTicketBuyer({
+  content,
+  initialDateCounts
+}: {
+  content: ZuccalandContent;
+  initialDateCounts?: {
+    '10': { admissionTickets: number; totalTickets: number; orders: number };
+    '11': { admissionTickets: number; totalTickets: number; orders: number };
+  };
+}) {
   const router = useRouter();
   const ticketTypes = content.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes;
   const freeActivities = content.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities;
   const baseTypes = ticketTypes.filter(t => !t.isExtra);
   const extraTypes = ticketTypes.filter(t => t.isExtra);
 
+  const dateLimits = useMemo(() => ({
+    '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(content.dateLimits?.['10'] || {}) },
+    '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(content.dateLimits?.['11'] || {}) },
+  }), [content.dateLimits]);
+
+  const isSoldOut10 = Boolean(
+    dateLimits['10'].manualSoldOut ||
+    (dateLimits['10'].enabled && (initialDateCounts?.['10']?.admissionTickets ?? 0) >= dateLimits['10'].maxTickets)
+  );
+
+  const isSoldOut11 = Boolean(
+    dateLimits['11'].manualSoldOut ||
+    (dateLimits['11'].enabled && (initialDateCounts?.['11']?.admissionTickets ?? 0) >= dateLimits['11'].maxTickets)
+  );
+
+  const allSoldOut = isSoldOut10 && isSoldOut11;
+
   const initialQty: Record<string, number> = {};
   ticketTypes.forEach(t => { initialQty[t.id] = 0; });
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [selectedDay, setSelectedDay] = useState<'10 Ottobre' | '11 Ottobre'>('10 Ottobre');
+  const [selectedDay, setSelectedDay] = useState<'10 Ottobre' | '11 Ottobre'>(() => {
+    if (isSoldOut10 && !isSoldOut11) return '11 Ottobre';
+    return '10 Ottobre';
+  });
+
+  useEffect(() => {
+    if (selectedDay === '10 Ottobre' && isSoldOut10 && !isSoldOut11) {
+      setSelectedDay('11 Ottobre');
+    } else if (selectedDay === '11 Ottobre' && isSoldOut11 && !isSoldOut10) {
+      setSelectedDay('10 Ottobre');
+    }
+  }, [isSoldOut10, isSoldOut11, selectedDay]);
+
   const [quantities, setQuantities] = useState<Record<string, number>>(initialQty);
   const [numChildren, setNumChildren] = useState(0);
   const [activityTarget, setActivityTarget] = useState<'children' | 'all'>('children');
@@ -396,6 +434,14 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
       setErrors({ tickets: 'Seleziona almeno un ingresso per continuare.' });
       return;
     }
+
+    const currentDayKey = selectedDay === '10 Ottobre' ? '10' : '11';
+    const currentDayLimit = dateLimits[currentDayKey];
+    if (currentDayLimit?.manualSoldOut || (currentDayLimit?.enabled && (initialDateCounts?.[currentDayKey]?.admissionTickets ?? 0) >= currentDayLimit.maxTickets)) {
+      alert(`Spiacenti, i biglietti per la data di ${selectedDay} sono esauriti (Sold Out).`);
+      return;
+    }
+
     if (!force && isMissingActivitiesOrLab && !reminderDismissed) {
       setShowActivityReminderModal(true);
       return;
@@ -585,6 +631,39 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                 exit={{ opacity: 0, x: 15 }}
                 transition={{ duration: 0.25 }}
               >
+                {allSoldOut ? (
+                  <div style={{
+                    background: 'linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%)',
+                    border: '2px solid #f87171',
+                    borderRadius: '1.25rem',
+                    padding: '2.5rem 1.5rem',
+                    textAlign: 'center',
+                    marginBottom: '1.5rem',
+                    boxShadow: '0 8px 24px rgba(239,68,68,0.1)'
+                  }}>
+                    <div style={{ fontSize: '3.2rem', marginBottom: '0.65rem' }}>🎃🚫</div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#991b1b', marginBottom: '0.5rem' }}>
+                      TUTTO ESAURITO PER TUTTE LE DATE
+                    </h3>
+                    <p style={{ color: '#7f1d1d', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 1.5rem' }}>
+                      I biglietti per <strong>Zuccaland 2026</strong> sono ufficialmente <strong>SOLD OUT</strong> sia per Sabato 10 che per Domenica 11 Ottobre. Grazie di cuore per l&apos;incredibile entusiasmo e la straordinaria partecipazione!
+                    </p>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      background: 'rgba(239,68,68,0.15)',
+                      color: '#b91c1c',
+                      padding: '0.55rem 1.25rem',
+                      borderRadius: '999px',
+                      fontSize: '0.88rem',
+                      fontWeight: 800
+                    }}>
+                      Le prenotazioni sono chiuse
+                    </div>
+                  </div>
+                ) : (
+                  <>
                 {/* Date Selection */}
                 <div style={{
                   background: 'white',
@@ -608,57 +687,125 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                     <button
                       type="button"
-                      onClick={() => setSelectedDay('10 Ottobre')}
+                      onClick={() => {
+                        if (!isSoldOut10) setSelectedDay('10 Ottobre');
+                      }}
+                      disabled={isSoldOut10}
                       style={{
                         padding: '0.75rem 0.4rem',
                         borderRadius: '1rem',
-                        border: `2px solid ${selectedDay === '10 Ottobre' ? '#ea580c' : '#fed7aa'}`,
-                        background: selectedDay === '10 Ottobre' ? '#fff7ed' : '#fafaf9',
-                        color: selectedDay === '10 Ottobre' ? '#ea580c' : '#78350f',
+                        border: `2px solid ${isSoldOut10 ? '#e7e5e4' : selectedDay === '10 Ottobre' ? '#ea580c' : '#fed7aa'}`,
+                        background: isSoldOut10 ? '#f5f5f4' : selectedDay === '10 Ottobre' ? '#fff7ed' : '#fafaf9',
+                        color: isSoldOut10 ? '#a8a29e' : selectedDay === '10 Ottobre' ? '#ea580c' : '#78350f',
                         fontWeight: 800,
                         fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
-                        cursor: 'pointer',
+                        cursor: isSoldOut10 ? 'not-allowed' : 'pointer',
                         textAlign: 'center',
-                        boxShadow: selectedDay === '10 Ottobre' ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
+                        boxShadow: (!isSoldOut10 && selectedDay === '10 Ottobre') ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
                         transition: 'all 0.2s',
                         lineHeight: 1.25,
+                        position: 'relative',
+                        opacity: isSoldOut10 ? 0.65 : 1,
                       }}
                     >
-                      <div>🎃 Sabato 10 Ottobre</div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: selectedDay === '10 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
-                        Dalle ore 10:30
+                      {isSoldOut10 && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '-8px',
+                          right: '-4px',
+                          background: '#ef4444',
+                          color: 'white',
+                          fontSize: '0.62rem',
+                          fontWeight: 900,
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          letterSpacing: '0.5px',
+                          boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+                          textTransform: 'uppercase',
+                        }}>
+                          Sold Out
+                        </div>
+                      )}
+                      <div style={{ textDecoration: isSoldOut10 ? 'line-through' : 'none' }}>🎃 Sabato 10 Ottobre</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSoldOut10 ? '#ef4444' : selectedDay === '10 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
+                        {isSoldOut10 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
                       </div>
-                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: selectedDay === '10 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
-                        Zucca in Vaso & Zuccart
+                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut10 ? '#d6d3d1' : selectedDay === '10 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
+                        {isSoldOut10 ? 'Non prenotabile' : 'Zucca in Vaso & Zuccart'}
                       </div>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSelectedDay('11 Ottobre')}
+                      onClick={() => {
+                        if (!isSoldOut11) setSelectedDay('11 Ottobre');
+                      }}
+                      disabled={isSoldOut11}
                       style={{
                         padding: '0.75rem 0.4rem',
                         borderRadius: '1rem',
-                        border: `2px solid ${selectedDay === '11 Ottobre' ? '#ea580c' : '#fed7aa'}`,
-                        background: selectedDay === '11 Ottobre' ? '#fff7ed' : '#fafaf9',
-                        color: selectedDay === '11 Ottobre' ? '#ea580c' : '#78350f',
+                        border: `2px solid ${isSoldOut11 ? '#e7e5e4' : selectedDay === '11 Ottobre' ? '#ea580c' : '#fed7aa'}`,
+                        background: isSoldOut11 ? '#f5f5f4' : selectedDay === '11 Ottobre' ? '#fff7ed' : '#fafaf9',
+                        color: isSoldOut11 ? '#a8a29e' : selectedDay === '11 Ottobre' ? '#ea580c' : '#78350f',
                         fontWeight: 800,
                         fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
-                        cursor: 'pointer',
+                        cursor: isSoldOut11 ? 'not-allowed' : 'pointer',
                         textAlign: 'center',
-                        boxShadow: selectedDay === '11 Ottobre' ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
+                        boxShadow: (!isSoldOut11 && selectedDay === '11 Ottobre') ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
                         transition: 'all 0.2s',
                         lineHeight: 1.25,
+                        position: 'relative',
+                        opacity: isSoldOut11 ? 0.65 : 1,
                       }}
                     >
-                      <div>🎃 Domenica 11 Ottobre</div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: selectedDay === '11 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
-                        Dalle ore 10:30
+                      {isSoldOut11 && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '-8px',
+                          right: '-4px',
+                          background: '#ef4444',
+                          color: 'white',
+                          fontSize: '0.62rem',
+                          fontWeight: 900,
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          letterSpacing: '0.5px',
+                          boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+                          textTransform: 'uppercase',
+                        }}>
+                          Sold Out
+                        </div>
+                      )}
+                      <div style={{ textDecoration: isSoldOut11 ? 'line-through' : 'none' }}>🎃 Domenica 11 Ottobre</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSoldOut11 ? '#ef4444' : selectedDay === '11 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
+                        {isSoldOut11 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
                       </div>
-                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: selectedDay === '11 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
-                        Thriller Dance & Zuccart
+                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut11 ? '#d6d3d1' : selectedDay === '11 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
+                        {isSoldOut11 ? 'Non prenotabile' : 'Thriller Dance & Zuccart'}
                       </div>
                     </button>
                   </div>
+                  {(isSoldOut10 || isSoldOut11) && !allSoldOut && (
+                    <div style={{
+                      marginTop: '0.75rem',
+                      padding: '0.55rem 0.85rem',
+                      borderRadius: '0.75rem',
+                      background: '#fff7ed',
+                      border: '1px solid #fed7aa',
+                      color: '#c2410c',
+                      fontSize: '0.78rem',
+                      fontWeight: 650,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}>
+                      <span>⚠️</span>
+                      <span>
+                        {isSoldOut10
+                          ? 'I posti per Sabato 10 Ottobre sono esauriti. Puoi ancora prenotare per Domenica 11 Ottobre!'
+                          : 'I posti per Domenica 11 Ottobre sono esauriti. Puoi ancora prenotare per Sabato 10 Ottobre!'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Child Gratuitous Note */}
@@ -1002,6 +1149,8 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                   >
                     Scegli i Laboratori Gratuiti (2/3) <ArrowRight size={20} strokeWidth={3} />
                   </motion.button>
+                )}
+                  </>
                 )}
               </motion.div>
             )}
@@ -1516,22 +1665,22 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
                     if (totalBase === 0) setErrors({ tickets: 'Seleziona almeno un ingresso per continuare.' });
                     else { setErrors({}); setStep(2); }
                   }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={totalBase === 0}
+                  whileHover={!allSoldOut && totalBase > 0 ? { scale: 1.02 } : {}}
+                  whileTap={!allSoldOut && totalBase > 0 ? { scale: 0.98 } : {}}
+                  disabled={allSoldOut || totalBase === 0}
                   style={{
                     width: '100%', padding: '1.1rem',
-                    background: totalBase > 0 ? 'white' : '#fdba74',
-                    color: totalBase > 0 ? '#ea580c' : '#7c2d12',
+                    background: allSoldOut ? '#e7e5e4' : totalBase > 0 ? 'white' : '#fdba74',
+                    color: allSoldOut ? '#a8a29e' : totalBase > 0 ? '#ea580c' : '#7c2d12',
                     border: 'none', borderRadius: '1rem',
                     fontSize: '1.05rem', fontWeight: 900,
-                    cursor: totalBase > 0 ? 'pointer' : 'not-allowed',
+                    cursor: (allSoldOut || totalBase === 0) ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                     boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
-                    opacity: totalBase > 0 ? 1 : 0.7,
+                    opacity: allSoldOut ? 0.6 : totalBase > 0 ? 1 : 0.7,
                   }}
                 >
-                  Continua (Step 2) <ArrowRight size={18} strokeWidth={3} />
+                  {allSoldOut ? 'Sold Out - Posti Esauriti' : <>Continua (Step 2) <ArrowRight size={18} strokeWidth={3} /></>}
                 </motion.button>
               ) : step === 2 ? (
                 <motion.button
@@ -1613,14 +1762,31 @@ function ZuccalandTicketBuyer({ content }: { content: ZuccalandContent }) {
           </div>
 
           <div style={{ flexShrink: 0 }}>
-            {step === 1 ? (
+            {allSoldOut ? (
+              <span style={{
+                background: '#ef4444',
+                color: 'white',
+                padding: '0.5rem 0.85rem',
+                borderRadius: '0.85rem',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem'
+              }}>
+                🚫 Sold Out
+              </span>
+            ) : step === 1 ? (
               <button
                 type="button"
                 onClick={() => setStep(2)}
+                disabled={totalBase === 0}
                 style={{
-                  background: '#ea580c', color: 'white', border: 'none',
+                  background: totalBase > 0 ? '#ea580c' : '#fdba74',
+                  color: 'white', border: 'none',
                   borderRadius: '0.85rem', padding: '0.7rem 1.15rem',
-                  fontSize: '0.88rem', fontWeight: 800, cursor: 'pointer',
+                  fontSize: '0.88rem', fontWeight: 800,
+                  cursor: totalBase > 0 ? 'pointer' : 'not-allowed',
                   display: 'flex', alignItems: 'center', gap: '0.35rem',
                   boxShadow: '0 4px 12px rgba(234,88,12,0.3)',
                   whiteSpace: 'nowrap',
@@ -2299,13 +2465,24 @@ function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer
   );
 }
 
-// ─── Main Page Component ──────────────────────────────────────────────────────
-
-export default function ZuccalandClient({ content: rawContent }: { content: ZuccalandContent }) {
+export default function ZuccalandClient({
+  content: rawContent,
+  initialDateCounts
+}: {
+  content: ZuccalandContent;
+  initialDateCounts?: {
+    '10': { admissionTickets: number; totalTickets: number; orders: number };
+    '11': { admissionTickets: number; totalTickets: number; orders: number };
+  };
+}) {
   // Merge with defaults to prevent crashes if DB row exists but is empty
   const content = useMemo(() => ({
     hero: { ...DEFAULT_ZUCCALAND_CONTENT.hero, ...(rawContent?.hero || {}) },
     event: { ...DEFAULT_ZUCCALAND_CONTENT.event, ...(rawContent?.event || {}) },
+    dateLimits: {
+      '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(rawContent?.dateLimits?.['10'] || {}) },
+      '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(rawContent?.dateLimits?.['11'] || {}) },
+    },
     infoCards: rawContent?.infoCards || DEFAULT_ZUCCALAND_CONTENT.infoCards,
     ticketTypes: rawContent?.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes,
     freeActivities: rawContent?.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities,
@@ -2314,6 +2491,18 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
     tickets: { ...DEFAULT_ZUCCALAND_CONTENT.tickets, ...(rawContent?.tickets || {}) },
     faqs: rawContent?.faqs || DEFAULT_ZUCCALAND_CONTENT.faqs,
   }), [rawContent]);
+
+  const isSoldOut10 = Boolean(
+    content.dateLimits['10'].manualSoldOut ||
+    (content.dateLimits['10'].enabled && (initialDateCounts?.['10']?.admissionTickets ?? 0) >= content.dateLimits['10'].maxTickets)
+  );
+
+  const isSoldOut11 = Boolean(
+    content.dateLimits['11'].manualSoldOut ||
+    (content.dateLimits['11'].enabled && (initialDateCounts?.['11']?.admissionTickets ?? 0) >= content.dateLimits['11'].maxTickets)
+  );
+
+  const allSoldOut = isSoldOut10 && isSoldOut11;
 
   const [phase, setPhase] = useState<EventPhase>('on-sale');
   const [mounted, setMounted] = useState(false);
@@ -2432,8 +2621,8 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
           <span 
             className="hidden sm:inline-flex"
             style={{
-              background: 'rgba(234, 88, 12, 0.1)',
-              color: '#c2410c',
+              background: allSoldOut ? 'rgba(239, 68, 68, 0.12)' : (isSoldOut10 || isSoldOut11) ? 'rgba(245, 158, 11, 0.12)' : 'rgba(234, 88, 12, 0.1)',
+              color: allSoldOut ? '#dc2626' : (isSoldOut10 || isSoldOut11) ? '#b45309' : '#c2410c',
               fontSize: '0.72rem',
               fontWeight: 750,
               padding: '0.2rem 0.55rem',
@@ -2441,7 +2630,13 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               whiteSpace: 'nowrap'
             }}
           >
-            10-11 Ott
+            {allSoldOut
+              ? '🚫 Sold Out 10-11 Ott'
+              : isSoldOut10
+              ? '10 Ott Sold Out • 11 Ott Disp.'
+              : isSoldOut11
+              ? '10 Ott Disp. • 11 Ott Sold Out'
+              : '10-11 Ott'}
           </span>
         </div>
 
@@ -2662,24 +2857,28 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
               <motion.a
                 href="#acquista"
                 onClick={e => { e.preventDefault(); document.getElementById('acquista')?.scrollIntoView({ behavior: 'smooth' }); }}
-                whileHover={{ scale: 1.04, boxShadow: '0 12px 35px rgba(234,88,12,0.4)' }}
+                whileHover={{ scale: 1.04, boxShadow: allSoldOut ? '0 12px 35px rgba(239,68,68,0.35)' : '0 12px 35px rgba(234,88,12,0.4)' }}
                 whileTap={{ scale: 0.97 }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '0.65rem',
-                  background: 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
+                  background: allSoldOut
+                    ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)'
+                    : 'linear-gradient(135deg, #ea580c 0%, #dc2626 100%)',
                   color: 'white',
                   padding: '0.95rem clamp(1.25rem, 4vw, 2.25rem)',
                   borderRadius: '999px',
                   fontWeight: 800, fontSize: 'clamp(0.95rem, 3vw, 1.08rem)',
                   textDecoration: 'none',
-                  boxShadow: '0 8px 25px rgba(234,88,12,0.35)',
+                  boxShadow: allSoldOut ? '0 8px 25px rgba(239,68,68,0.35)' : '0 8px 25px rgba(234,88,12,0.35)',
                   letterSpacing: '0.02em',
                 }}
               >
-                <Ticket size={19} /> Acquista il tuo Biglietto <ArrowRight size={19} strokeWidth={2.5} />
+                <Ticket size={19} /> {allSoldOut ? 'Tutto Esaurito (Sold Out)' : 'Acquista il tuo Biglietto'} <ArrowRight size={19} strokeWidth={2.5} />
               </motion.a>
               <p style={{ color: '#9a3412', fontSize: '0.82rem', fontWeight: 600, marginTop: '0.65rem', opacity: 0.85 }}>
-                A partire da €{Math.min(...(content.ticketTypes.filter(t => !t.isExtra).map(t => t.price).length > 0 ? content.ticketTypes.filter(t => !t.isExtra).map(t => t.price) : [5]))} · Pagamento sicuro con Nexi
+                {allSoldOut
+                  ? 'I biglietti per tutte le date sono al completo · Grazie a tutti!'
+                  : `A partire da €${Math.min(...(content.ticketTypes.filter(t => !t.isExtra).map(t => t.price).length > 0 ? content.ticketTypes.filter(t => !t.isExtra).map(t => t.price) : [5]))} · Pagamento sicuro con Nexi`}
               </p>
             </motion.div>
           )}
@@ -2911,7 +3110,7 @@ export default function ZuccalandClient({ content: rawContent }: { content: Zucc
       </section>
 
       {/* ── Ticket Buyer (only on-sale) ── */}
-      {showTickets && <ZuccalandTicketBuyer content={content} />}
+      {showTickets && <ZuccalandTicketBuyer content={content} initialDateCounts={initialDateCounts} />}
 
       {/* ── Concluded Section ── */}
       {showConcluded && <ConcludedSection />}

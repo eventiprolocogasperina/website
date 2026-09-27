@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, AlertCircle, CheckCircle2, ArrowLeft, Plus, Trash2, Loader2, RotateCcw } from 'lucide-react';
+import { Save, AlertCircle, CheckCircle2, ArrowLeft, Plus, Trash2, Loader2, RotateCcw, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import { type ZuccalandContent, DEFAULT_ZUCCALAND_CONTENT } from '@/lib/data/pages';
+import { type ZuccalandContent, type ZuccalandDateLimit, DEFAULT_ZUCCALAND_CONTENT } from '@/lib/data/pages';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -41,6 +41,26 @@ export default function ZuccalandAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
+  const [liveCounts, setLiveCounts] = useState<{
+    '10': { admissionTickets: number; totalTickets: number; orders: number };
+    '11': { admissionTickets: number; totalTickets: number; orders: number };
+  } | null>(null);
+  const [loadingCounts, setLoadingCounts] = useState(false);
+
+  const fetchLiveCounts = async () => {
+    setLoadingCounts(true);
+    try {
+      const res = await fetch('/api/zuccaland/availability');
+      const json = await res.json();
+      if (json.success && json.counts) {
+        setLiveCounts(json.counts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch live ticket counts:', err);
+    } finally {
+      setLoadingCounts(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/admin/pages?slug=zuccaland')
@@ -50,6 +70,10 @@ export default function ZuccalandAdminPage() {
           setData({
             hero: { ...DEFAULT_ZUCCALAND_CONTENT.hero, ...(json.data.hero || {}) },
             event: { ...DEFAULT_ZUCCALAND_CONTENT.event, ...(json.data.event || {}) },
+            dateLimits: {
+              '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(json.data.dateLimits?.['10'] || {}) },
+              '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(json.data.dateLimits?.['11'] || {}) },
+            },
             infoCards: json.data.infoCards || DEFAULT_ZUCCALAND_CONTENT.infoCards,
             ticketTypes: json.data.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes,
             freeActivities: json.data.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities,
@@ -62,6 +86,8 @@ export default function ZuccalandAdminPage() {
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
+
+    fetchLiveCounts();
   }, []);
 
   const handleSave = async () => {
@@ -97,6 +123,20 @@ export default function ZuccalandAdminPage() {
     data && setData({ ...data, program: { ...data.program, [field]: value } });
   const updateTickets = (field: string, value: string) =>
     data && setData({ ...data, tickets: { ...data.tickets, [field]: value } });
+  const updateDateLimit = (dayKey: '10' | '11', field: keyof ZuccalandDateLimit, value: any) => {
+    if (!data) return;
+    const currentLimits = data.dateLimits || DEFAULT_ZUCCALAND_CONTENT.dateLimits!;
+    setData({
+      ...data,
+      dateLimits: {
+        ...currentLimits,
+        [dayKey]: {
+          ...currentLimits[dayKey],
+          [field]: value
+        }
+      }
+    });
+  };
 
   // ── Info Cards ──
   const addInfoCard = () =>
@@ -301,6 +341,251 @@ export default function ZuccalandAdminPage() {
               <label style={labelStyle}>Fine Evento</label>
               <input type="datetime-local" style={fieldStyle} value={toLocalInput(data.event.endDate)} onChange={e => updateEvent('endDate', fromLocalInput(e.target.value))} />
             </div>
+          </div>
+        </div>
+
+        {/* ── Capienza e Limiti Biglietti (Sold Out) ── */}
+        <div className="card" style={{ padding: '1.5rem', border: '1px solid rgba(234,88,12,0.3)', background: 'linear-gradient(180deg, rgba(234,88,12,0.04) 0%, rgba(0,0,0,0) 100%)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <div>
+              <h2 style={{ ...sectionHeaderStyle, borderBottom: 'none', marginBottom: '0.35rem', paddingBottom: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>🎯</span> Capienza e Limiti Biglietti per Data (Sold Out)
+              </h2>
+              <p style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', lineHeight: 1.5, margin: 0 }}>
+                Imposta una capienza massima di biglietti per ciascuna data. Al raggiungimento del limite di ingressi venduti, la data risulterà automaticamente <strong>SOLD OUT</strong>. Puoi anche forzare manualmente lo stato di Sold Out con l&apos;apposito toggle.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchLiveCounts}
+              disabled={loadingCounts}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.8rem',
+                color: 'var(--neutral-300)',
+                background: 'var(--neutral-800)',
+                border: '1px solid var(--neutral-700)',
+                padding: '0.45rem 0.8rem',
+                borderRadius: 'var(--radius-md)',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+              title="Aggiorna vendite attuali dal database"
+            >
+              <RefreshCw size={13} className={loadingCounts ? 'animate-spin' : ''} />
+              Aggiorna vendite
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
+            {(['10', '11'] as const).map(dayKey => {
+              const dayLabel = dayKey === '10' ? 'Sabato 10 Ottobre' : 'Domenica 11 Ottobre';
+              const dayEmoji = dayKey === '10' ? '🟧' : '🟨';
+              const limits = data.dateLimits?.[dayKey] || DEFAULT_ZUCCALAND_CONTENT.dateLimits![dayKey];
+              const counts = liveCounts?.[dayKey] || { admissionTickets: 0, totalTickets: 0, orders: 0 };
+              
+              const isLimitActive = limits.enabled;
+              const isManualSoldOut = Boolean(limits.manualSoldOut);
+              const isCapacityReached = isLimitActive && counts.admissionTickets >= limits.maxTickets;
+              const isSoldOut = isManualSoldOut || isCapacityReached;
+
+              const percentUsed = isLimitActive && limits.maxTickets > 0
+                ? Math.min(100, Math.round((counts.admissionTickets / limits.maxTickets) * 100))
+                : 0;
+
+              return (
+                <div
+                  key={dayKey}
+                  style={{
+                    background: isSoldOut ? 'rgba(239,68,68,0.06)' : 'var(--neutral-900)',
+                    border: `1.5px solid ${isSoldOut ? 'rgba(239,68,68,0.35)' : 'var(--neutral-700)'}`,
+                    borderRadius: 'var(--radius-md)',
+                    padding: '1.25rem',
+                    position: 'relative',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {/* Header per la data */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '1.2rem' }}>{dayEmoji}</span>
+                      <strong style={{ fontSize: '1.05rem', color: 'var(--color-heading)' }}>{dayLabel}</strong>
+                    </div>
+
+                    {/* Badge Stato */}
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '999px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        background: isSoldOut ? 'rgba(239,68,68,0.2)' : isLimitActive ? 'rgba(234,88,12,0.2)' : 'rgba(74,222,128,0.15)',
+                        color: isSoldOut ? '#ef4444' : isLimitActive ? '#fb923c' : '#4ade80',
+                        border: `1px solid ${isSoldOut ? 'rgba(239,68,68,0.4)' : isLimitActive ? 'rgba(234,88,12,0.4)' : 'rgba(74,222,128,0.3)'}`,
+                      }}
+                    >
+                      {isManualSoldOut
+                        ? '🚨 Sold Out Manuale'
+                        : isCapacityReached
+                        ? '🚨 Sold Out (Capienza)'
+                        : isLimitActive
+                        ? `Aperto (${Math.max(0, limits.maxTickets - counts.admissionTickets)} rimanenti)`
+                        : 'Aperto (Illimitato)'}
+                    </span>
+                  </div>
+
+                  {/* Statistiche Realtime Biglietti */}
+                  <div style={{
+                    background: 'var(--neutral-800)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.85rem',
+                    marginBottom: '1.15rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                      <span style={{ color: 'var(--neutral-400)' }}>🎟️ Ingressi venduti:</span>
+                      <strong style={{ color: '#fed7aa', fontSize: '1.05rem' }}>
+                        {counts.admissionTickets}
+                        {isLimitActive && <span style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', fontWeight: 500 }}> / {limits.maxTickets} max</span>}
+                      </strong>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
+                      <span>📦 Ordini pagati: {counts.orders}</span>
+                      <span>Totale biglietti (inclusi extra): {counts.totalTickets}</span>
+                    </div>
+
+                    {/* Progress Bar se il limite è abilitato */}
+                    {isLimitActive && (
+                      <div style={{ marginTop: '0.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: percentUsed >= 90 ? '#ef4444' : '#fdba74', fontWeight: 600, marginBottom: '0.2rem' }}>
+                          <span>Capienza occupata</span>
+                          <span>{percentUsed}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: '6px', background: 'var(--neutral-700)', borderRadius: '999px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${percentUsed}%`,
+                              height: '100%',
+                              background: percentUsed >= 100 ? '#ef4444' : percentUsed >= 85 ? '#ea580c' : '#22c55e',
+                              transition: 'width 0.3s ease',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Toggle 1: Attiva Limite Biglietti */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem',
+                    background: 'var(--neutral-850)',
+                    border: '1px solid var(--neutral-750)',
+                    borderRadius: 'var(--radius-md)',
+                    marginBottom: '0.85rem',
+                    gap: '0.75rem'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-heading)' }}>
+                        Attiva Limite Biglietti
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.1rem' }}>
+                        Raggiunto il tetto, la data diventa automaticamente Sold Out
+                      </div>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px', flexShrink: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={limits.enabled}
+                        onChange={e => updateDateLimit(dayKey, 'enabled', e.target.checked)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: limits.enabled ? '#ea580c' : 'var(--neutral-700)',
+                        transition: '0.2s', borderRadius: '24px'
+                      }}>
+                        <span style={{
+                          position: 'absolute', content: '""', height: '18px', width: '18px', left: limits.enabled ? '23px' : '3px', bottom: '3px',
+                          backgroundColor: 'white', transition: '0.2s', borderRadius: '50%'
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Input Numero Massimo Biglietti */}
+                  <div style={{ marginBottom: '0.85rem', opacity: limits.enabled ? 1 : 0.5, pointerEvents: limits.enabled ? 'auto' : 'none' }}>
+                    <label style={labelStyle}>
+                      Capienza Massima Biglietti (Ingressi ordinari)
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        style={{ ...fieldStyle, fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem' }}
+                        value={limits.maxTickets}
+                        onChange={e => updateDateLimit(dayKey, 'maxTickets', parseInt(e.target.value) || 0)}
+                        placeholder="Es. 300"
+                        disabled={!limits.enabled}
+                      />
+                      <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', whiteSpace: 'nowrap' }}>
+                        biglietti max
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Toggle 2: Forza Sold Out Manuale */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem',
+                    background: limits.manualSoldOut ? 'rgba(239,68,68,0.12)' : 'var(--neutral-850)',
+                    border: `1px solid ${limits.manualSoldOut ? 'rgba(239,68,68,0.3)' : 'var(--neutral-750)'}`,
+                    borderRadius: 'var(--radius-md)',
+                    gap: '0.75rem'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: limits.manualSoldOut ? '#ef4444' : 'var(--color-heading)' }}>
+                        Forza Sold Out Manuale
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.1rem' }}>
+                        Chiudi subito la vendita per questa data a prescindere dal limite
+                      </div>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px', flexShrink: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(limits.manualSoldOut)}
+                        onChange={e => updateDateLimit(dayKey, 'manualSoldOut', e.target.checked)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: limits.manualSoldOut ? '#ef4444' : 'var(--neutral-700)',
+                        transition: '0.2s', borderRadius: '24px'
+                      }}>
+                        <span style={{
+                          position: 'absolute', content: '""', height: '18px', width: '18px', left: limits.manualSoldOut ? '23px' : '3px', bottom: '3px',
+                          backgroundColor: 'white', transition: '0.2s', borderRadius: '50%'
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+
+                </div>
+              );
+            })}
           </div>
         </div>
 

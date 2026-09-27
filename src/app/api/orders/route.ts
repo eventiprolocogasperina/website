@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createOrderWithTickets, markOrderPaid, getOrder } from '@/lib/data/tickets';
+import { createOrderWithTickets, markOrderPaid, getOrder, parseOrderNotes, getZuccalandDateCounts } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
+import { getPageContent, DEFAULT_ZUCCALAND_CONTENT, type ZuccalandContent } from '@/lib/data/pages';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,40 @@ export async function POST(request: Request) {
 
     if (!buyerName || !buyerEmail || !buyerPhone || totalAmount === undefined || !cart || cart.length === 0) {
       return NextResponse.json({ error: 'Dati incompleti' }, { status: 400 });
+    }
+
+    // Check Zuccaland date capacity and Sold Out status
+    if (eventId === 'zuccaland-2026') {
+      const parsed = parseOrderNotes(notes || '');
+      if (parsed.dayKey === '10' || parsed.dayKey === '11') {
+        const pageContent = await getPageContent<ZuccalandContent>('zuccaland', DEFAULT_ZUCCALAND_CONTENT);
+        const dayLimit = pageContent.dateLimits?.[parsed.dayKey];
+        const dayName = parsed.dayKey === '10' ? 'Sabato 10 Ottobre' : 'Domenica 11 Ottobre';
+
+        if (dayLimit?.manualSoldOut) {
+          return NextResponse.json({
+            error: `I biglietti per la data di ${dayName} sono esauriti (Sold Out).`
+          }, { status: 400 });
+        }
+
+        if (dayLimit?.enabled) {
+          const counts = await getZuccalandDateCounts();
+          const currentSold = counts[parsed.dayKey].admissionTickets;
+          const requestedAdmission = cart.reduce((sum: number, item: any) => {
+            const isExtra = item.type.toLowerCase().includes('you pick') || item.type.toLowerCase().includes('laboratorio');
+            return sum + (isExtra ? 0 : (item.quantity || 0));
+          }, 0);
+
+          if (currentSold + requestedAdmission > dayLimit.maxTickets) {
+            const left = Math.max(0, dayLimit.maxTickets - currentSold);
+            return NextResponse.json({
+              error: left > 0
+                ? `Posti insufficienti per la data selezionata (${dayName}). Rimangono solo ${left} bigliett${left === 1 ? 'o' : 'i'}.`
+                : `I biglietti per la data di ${dayName} sono esauriti (Sold Out).`
+            }, { status: 400 });
+          }
+        }
+      }
     }
 
     // Nexi's codTrans allows max 30 alphanumeric characters without hyphens.

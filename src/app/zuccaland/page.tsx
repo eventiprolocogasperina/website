@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getPageContent, DEFAULT_ZUCCALAND_CONTENT, type ZuccalandContent } from '@/lib/data/pages';
+import { getZuccalandDateCounts } from '@/lib/data/tickets';
 import ZuccalandClient from './ZuccalandClient';
 
 export const metadata: Metadata = {
@@ -10,6 +11,10 @@ export const metadata: Metadata = {
 export const revalidate = 0; // Ensures the page fetches fresh data from CMS
 
 export default async function ZuccalandPage() {
-  const data = await getPageContent<ZuccalandContent>('zuccaland', DEFAULT_ZUCCALAND_CONTENT);
-  return <ZuccalandClient content={data} />;
+  const [data, dateCounts] = await Promise.all([
+    getPageContent<ZuccalandContent>('zuccaland', DEFAULT_ZUCCALAND_CONTENT),
+    getZuccalandDateCounts()
+  ]);
+  return <ZuccalandClient content={data} initialDateCounts={dateCounts} />;
 }
+

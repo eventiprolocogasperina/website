@@ -339,6 +339,57 @@ export interface ZuccalandStatsResult {
   };
 }
 
+export interface ZuccalandDateCounts {
+  '10': { admissionTickets: number; totalTickets: number; orders: number };
+  '11': { admissionTickets: number; totalTickets: number; orders: number };
+}
+
+export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
+  const sql = getDb();
+  const counts: ZuccalandDateCounts = {
+    '10': { admissionTickets: 0, totalTickets: 0, orders: 0 },
+    '11': { admissionTickets: 0, totalTickets: 0, orders: 0 },
+  };
+
+  try {
+    const orders = await sql`
+      SELECT o.id, o.notes 
+      FROM orders o
+      WHERE o.status = 'PAID' 
+        AND o."deletedAt" IS NULL
+        AND (
+          o.id IN (SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" ILIKE '%zuccaland%')
+          OR o.notes ILIKE '%zuccaland%'
+        )
+    `;
+
+    if (orders.length === 0) return counts;
+
+    const orderIds = orders.map(o => o.id);
+    const tickets = await sql`
+      SELECT "orderId", type 
+      FROM tickets 
+      WHERE "orderId" = ANY(${orderIds})
+    `;
+
+    for (const o of orders) {
+      const parsed = parseOrderNotes(o.notes);
+      if (parsed.dayKey !== '10' && parsed.dayKey !== '11') continue;
+
+      const oTickets = tickets.filter(t => t.orderId === o.id);
+      const oAdmissionTix = oTickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length;
+      
+      counts[parsed.dayKey].orders++;
+      counts[parsed.dayKey].totalTickets += oTickets.length;
+      counts[parsed.dayKey].admissionTickets += (oAdmissionTix || oTickets.length);
+    }
+  } catch (error) {
+    console.error('Failed to get Zuccaland date counts:', error);
+  }
+
+  return counts;
+}
+
 export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
   const sql = getDb();
 

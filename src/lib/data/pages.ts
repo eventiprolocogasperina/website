@@ -111,6 +111,17 @@ export interface ZuccalandHighlight {
   textColor: string;
 }
 
+export interface ZuccalandDateLimit {
+  enabled: boolean;          // Toggle: abilita/disabilita il limite di capienza
+  maxTickets: number;        // Numero massimo di biglietti consentiti (capienza)
+  manualSoldOut?: boolean;   // Toggle: forza la data come Sold Out manuale
+}
+
+export interface ZuccalandDateLimits {
+  '10': ZuccalandDateLimit;  // Sabato 10 Ottobre
+  '11': ZuccalandDateLimit;  // Domenica 11 Ottobre
+}
+
 export interface ZuccalandContent {
   hero: {
     badge: string;
@@ -124,6 +135,7 @@ export interface ZuccalandContent {
     salesOpenDate: string;   // ISO datetime — when ticket sales open
     salesCloseDate: string;  // ISO datetime — when ticket sales close
   };
+  dateLimits?: ZuccalandDateLimits;
   infoCards: ZuccalandInfoCard[];
   ticketTypes: ZuccalandTicketType[];
   freeActivities: ZuccalandFreeActivity[];
@@ -154,6 +166,10 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
     endDate: '2026-10-11T23:59:00+02:00',
     salesOpenDate: '2026-09-01T00:00:00+02:00',
     salesCloseDate: '2026-10-10T08:00:00+02:00',
+  },
+  dateLimits: {
+    '10': { enabled: false, maxTickets: 300, manualSoldOut: false },
+    '11': { enabled: false, maxTickets: 300, manualSoldOut: false },
   },
   infoCards: [
     {
