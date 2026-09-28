@@ -659,497 +659,497 @@ function ZuccalandTicketBuyer({
                       fontSize: '0.88rem',
                       fontWeight: 800
                     }}>
-                      Le prenotazioni sono chiuse
+                      Le prenotazioni sono momentaneamente chiuse
                     </div>
                   </div>
                 ) : (
                   <>
-                {/* Date Selection */}
-                <div style={{
-                  background: 'white',
-                  borderRadius: '1.25rem',
-                  padding: '1.15rem',
-                  marginBottom: '1.25rem',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
-                  border: '1.5px solid #fed7aa'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
-                    <span style={{ fontSize: '1.25rem' }}>📅</span>
-                    <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#431407' }}>
-                        Scegli il giorno di partecipazione
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#9a3412' }}>
-                        Il villaggio è aperto sabato 10 e domenica 11 ottobre dalle ore 10:30
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!isSoldOut10) setSelectedDay('10 Ottobre');
-                      }}
-                      disabled={isSoldOut10}
-                      style={{
-                        padding: '0.75rem 0.4rem',
-                        borderRadius: '1rem',
-                        border: `2px solid ${isSoldOut10 ? '#e7e5e4' : selectedDay === '10 Ottobre' ? '#ea580c' : '#fed7aa'}`,
-                        background: isSoldOut10 ? '#f5f5f4' : selectedDay === '10 Ottobre' ? '#fff7ed' : '#fafaf9',
-                        color: isSoldOut10 ? '#a8a29e' : selectedDay === '10 Ottobre' ? '#ea580c' : '#78350f',
-                        fontWeight: 800,
-                        fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
-                        cursor: isSoldOut10 ? 'not-allowed' : 'pointer',
-                        textAlign: 'center',
-                        boxShadow: (!isSoldOut10 && selectedDay === '10 Ottobre') ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
-                        transition: 'all 0.2s',
-                        lineHeight: 1.25,
-                        position: 'relative',
-                        opacity: isSoldOut10 ? 0.65 : 1,
-                      }}
-                    >
-                      {isSoldOut10 && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '-8px',
-                          right: '-4px',
-                          background: '#ef4444',
-                          color: 'white',
-                          fontSize: '0.62rem',
-                          fontWeight: 900,
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                          letterSpacing: '0.5px',
-                          boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
-                          textTransform: 'uppercase',
-                        }}>
-                          Sold Out
-                        </div>
-                      )}
-                      <div style={{ textDecoration: isSoldOut10 ? 'line-through' : 'none' }}>🎃 Sabato 10 Ottobre</div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSoldOut10 ? '#ef4444' : selectedDay === '10 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
-                        {isSoldOut10 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
-                      </div>
-                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut10 ? '#d6d3d1' : selectedDay === '10 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
-                        {isSoldOut10 ? 'Non prenotabile' : 'Zucca in Vaso & Zuccart'}
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!isSoldOut11) setSelectedDay('11 Ottobre');
-                      }}
-                      disabled={isSoldOut11}
-                      style={{
-                        padding: '0.75rem 0.4rem',
-                        borderRadius: '1rem',
-                        border: `2px solid ${isSoldOut11 ? '#e7e5e4' : selectedDay === '11 Ottobre' ? '#ea580c' : '#fed7aa'}`,
-                        background: isSoldOut11 ? '#f5f5f4' : selectedDay === '11 Ottobre' ? '#fff7ed' : '#fafaf9',
-                        color: isSoldOut11 ? '#a8a29e' : selectedDay === '11 Ottobre' ? '#ea580c' : '#78350f',
-                        fontWeight: 800,
-                        fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
-                        cursor: isSoldOut11 ? 'not-allowed' : 'pointer',
-                        textAlign: 'center',
-                        boxShadow: (!isSoldOut11 && selectedDay === '11 Ottobre') ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
-                        transition: 'all 0.2s',
-                        lineHeight: 1.25,
-                        position: 'relative',
-                        opacity: isSoldOut11 ? 0.65 : 1,
-                      }}
-                    >
-                      {isSoldOut11 && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '-8px',
-                          right: '-4px',
-                          background: '#ef4444',
-                          color: 'white',
-                          fontSize: '0.62rem',
-                          fontWeight: 900,
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                          letterSpacing: '0.5px',
-                          boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
-                          textTransform: 'uppercase',
-                        }}>
-                          Sold Out
-                        </div>
-                      )}
-                      <div style={{ textDecoration: isSoldOut11 ? 'line-through' : 'none' }}>🎃 Domenica 11 Ottobre</div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSoldOut11 ? '#ef4444' : selectedDay === '11 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
-                        {isSoldOut11 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
-                      </div>
-                      <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut11 ? '#d6d3d1' : selectedDay === '11 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
-                        {isSoldOut11 ? 'Non prenotabile' : 'Thriller Dance & Zuccart'}
-                      </div>
-                    </button>
-                  </div>
-                  {(isSoldOut10 || isSoldOut11) && !allSoldOut && (
+                    {/* Date Selection */}
                     <div style={{
-                      marginTop: '0.75rem',
-                      padding: '0.55rem 0.85rem',
-                      borderRadius: '0.75rem',
-                      background: '#fff7ed',
-                      border: '1px solid #fed7aa',
-                      color: '#c2410c',
-                      fontSize: '0.78rem',
-                      fontWeight: 650,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
+                      background: 'white',
+                      borderRadius: '1.25rem',
+                      padding: '1.15rem',
+                      marginBottom: '1.25rem',
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+                      border: '1.5px solid #fed7aa'
                     }}>
-                      <span>⚠️</span>
-                      <span>
-                        {isSoldOut10
-                          ? 'I posti per Sabato 10 Ottobre sono esauriti. Puoi ancora prenotare per Domenica 11 Ottobre!'
-                          : 'I posti per Domenica 11 Ottobre sono esauriti. Puoi ancora prenotare per Sabato 10 Ottobre!'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Child Gratuitous Note */}
-                <div style={{
-                  background: '#fef3c7',
-                  border: '1.5px solid #fde68a',
-                  borderRadius: '1rem',
-                  padding: '0.75rem 1rem',
-                  marginBottom: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.65rem',
-                  color: '#92400e',
-                  fontSize: '0.84rem',
-                  fontWeight: 650,
-                  lineHeight: 1.45,
-                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.08)'
-                }}>
-                  <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>👶</span>
-                  <div>
-                    <strong>I bambini sotto 1 anno d'età entrano gratis!</strong> Non necessitano di biglietto né prenotazione.
-                  </div>
-                </div>
-
-                {/* Tickets list - MOBILE FIRST STACKED CARDS (NO TEXT SQUEEZING) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.5rem' }}>
-                  {ticketTypes.map((ticket, index) => {
-                    const qty = quantities[ticket.id] || 0;
-                    const disabledExtra = ticket.isExtra && totalBase === 0;
-
-                    return (
-                      <motion.div
-                        key={ticket.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.08 }}
-                        whileHover={disabledExtra ? {} : { scale: 1.01 }}
-                        style={{
-                          background: qty > 0 ? '#fff7ed' : 'white',
-                          border: `2px solid ${qty > 0 ? '#ea580c' : '#f3f4f6'}`,
-                          borderRadius: '1.25rem',
-                          padding: '1.1rem 1.15rem',
-                          boxShadow: qty > 0 ? '0 8px 25px rgba(234,88,12,0.18)' : '0 4px 15px rgba(0,0,0,0.04)',
-                          transition: 'all 0.2s',
-                          cursor: disabledExtra ? 'not-allowed' : 'pointer',
-                          opacity: disabledExtra ? 0.6 : 1,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.75rem',
-                        }}
-                        onClick={() => {
-                          if (disabledExtra) return;
-                          if (qty === 0) setQty(ticket.id, 1);
-                        }}
-                      >
-                        {/* Top Row: Icon + Title on Left, Price on Right */}
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
+                        <span style={{ fontSize: '1.25rem' }}>📅</span>
+                        <div>
+                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#431407' }}>
+                            Scegli il giorno di partecipazione
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#9a3412' }}>
+                            Il villaggio è aperto sabato 10 e domenica 11 ottobre dalle ore 10:30
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isSoldOut10) setSelectedDay('10 Ottobre');
+                          }}
+                          disabled={isSoldOut10}
+                          style={{
+                            padding: '0.75rem 0.4rem',
+                            borderRadius: '1rem',
+                            border: `2px solid ${isSoldOut10 ? '#e7e5e4' : selectedDay === '10 Ottobre' ? '#ea580c' : '#fed7aa'}`,
+                            background: isSoldOut10 ? '#f5f5f4' : selectedDay === '10 Ottobre' ? '#fff7ed' : '#fafaf9',
+                            color: isSoldOut10 ? '#a8a29e' : selectedDay === '10 Ottobre' ? '#ea580c' : '#78350f',
+                            fontWeight: 800,
+                            fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
+                            cursor: isSoldOut10 ? 'not-allowed' : 'pointer',
+                            textAlign: 'center',
+                            boxShadow: (!isSoldOut10 && selectedDay === '10 Ottobre') ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
+                            transition: 'all 0.2s',
+                            lineHeight: 1.25,
+                            position: 'relative',
+                            opacity: isSoldOut10 ? 0.65 : 1,
+                          }}
+                        >
+                          {isSoldOut10 && (
                             <div style={{
-                              fontSize: '1.6rem',
-                              background: qty > 0 ? '#ea580c' : '#fefce8',
-                              width: 44, height: 44, borderRadius: '0.85rem', flexShrink: 0,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: qty > 0 ? 'none' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
-                              transform: qty > 0 ? 'rotate(-6deg)' : 'none',
-                              transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            }}>
-                              <TicketEmoji emoji={ticket.emoji} />
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ fontWeight: 800, color: '#431407', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', lineHeight: 1.25 }}>
-                                <span>{ticket.label}</span>
-                                {ticket.isExtra && (
-                                  <span style={{ fontSize: '0.68rem', background: '#f97316', color: 'white', padding: '0.1rem 0.45rem', borderRadius: '1rem', fontWeight: 800, letterSpacing: '0.04em' }}>EXTRA</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <span style={{ color: '#ea580c', fontWeight: 900, fontSize: '1.3rem', lineHeight: 1 }}>€{ticket.price}</span>
-                            <div style={{ color: '#9a3412', fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' }}>contributo</div>
-                          </div>
-                        </div>
-
-                        {/* Middle Row: Description across FULL CARD WIDTH (never squeezed!) */}
-                        <div style={{
-                          color: disabledExtra ? '#c2410c' : '#9a3412',
-                          fontSize: '0.84rem',
-                          fontWeight: 500,
-                          lineHeight: 1.45,
-                          padding: '0 0.1rem'
-                        }}>
-                          {disabledExtra ? '⚠️ Richiede almeno un biglietto d\'ingresso' : ticket.description}
-                        </div>
-
-                        {ticket.isExtra && (
-                          <div style={{ marginTop: '-0.25rem', padding: '0 0.1rem' }}>
-                            <span style={{
-                              background: '#fff7ed',
-                              color: '#c2410c',
-                              border: '1px solid #fed7aa',
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              padding: '0.2rem 0.55rem',
+                              position: 'absolute',
+                              top: '-8px',
+                              right: '-4px',
+                              background: '#ef4444',
+                              color: 'white',
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              padding: '2px 6px',
                               borderRadius: '999px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem'
+                              letterSpacing: '0.5px',
+                              boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+                              textTransform: 'uppercase',
                             }}>
-                              🎃 1 sola zucca inclusa per biglietto
-                            </span>
+                              Sold Out
+                            </div>
+                          )}
+                          <div style={{ textDecoration: isSoldOut10 ? 'line-through' : 'none' }}>🎃 Sabato 10 Ottobre</div>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSoldOut10 ? '#ef4444' : selectedDay === '10 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
+                            {isSoldOut10 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
                           </div>
-                        )}
-
-                        {/* Bottom Row: Quantity Stepper Controls */}
+                          <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut10 ? '#d6d3d1' : selectedDay === '10 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
+                            {isSoldOut10 ? 'Non prenotabile' : 'Zucca in Vaso & Zuccart'}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!isSoldOut11) setSelectedDay('11 Ottobre');
+                          }}
+                          disabled={isSoldOut11}
+                          style={{
+                            padding: '0.75rem 0.4rem',
+                            borderRadius: '1rem',
+                            border: `2px solid ${isSoldOut11 ? '#e7e5e4' : selectedDay === '11 Ottobre' ? '#ea580c' : '#fed7aa'}`,
+                            background: isSoldOut11 ? '#f5f5f4' : selectedDay === '11 Ottobre' ? '#fff7ed' : '#fafaf9',
+                            color: isSoldOut11 ? '#a8a29e' : selectedDay === '11 Ottobre' ? '#ea580c' : '#78350f',
+                            fontWeight: 800,
+                            fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
+                            cursor: isSoldOut11 ? 'not-allowed' : 'pointer',
+                            textAlign: 'center',
+                            boxShadow: (!isSoldOut11 && selectedDay === '11 Ottobre') ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
+                            transition: 'all 0.2s',
+                            lineHeight: 1.25,
+                            position: 'relative',
+                            opacity: isSoldOut11 ? 0.65 : 1,
+                          }}
+                        >
+                          {isSoldOut11 && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '-8px',
+                              right: '-4px',
+                              background: '#ef4444',
+                              color: 'white',
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              padding: '2px 6px',
+                              borderRadius: '999px',
+                              letterSpacing: '0.5px',
+                              boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+                              textTransform: 'uppercase',
+                            }}>
+                              Sold Out
+                            </div>
+                          )}
+                          <div style={{ textDecoration: isSoldOut11 ? 'line-through' : 'none' }}>🎃 Domenica 11 Ottobre</div>
+                          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSoldOut11 ? '#ef4444' : selectedDay === '11 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
+                            {isSoldOut11 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut11 ? '#d6d3d1' : selectedDay === '11 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
+                            {isSoldOut11 ? 'Non prenotabile' : 'Thriller Dance & Zuccart'}
+                          </div>
+                        </button>
+                      </div>
+                      {(isSoldOut10 || isSoldOut11) && !allSoldOut && (
                         <div style={{
+                          marginTop: '0.75rem',
+                          padding: '0.55rem 0.85rem',
+                          borderRadius: '0.75rem',
+                          background: '#fff7ed',
+                          border: '1px solid #fed7aa',
+                          color: '#c2410c',
+                          fontSize: '0.78rem',
+                          fontWeight: 650,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
-                          paddingTop: '0.65rem',
-                          borderTop: '1px solid rgba(254, 215, 170, 0.5)',
-                          marginTop: '0.1rem'
-                        }} onClick={e => e.stopPropagation()}>
-                          <span style={{ fontSize: '0.8rem', color: '#9a3412', fontWeight: 700 }}>
-                            {qty > 0 ? `${qty} ${qty === 1 ? 'selezionato' : 'selezionati'}` : 'Seleziona quantità'}
+                          gap: '0.4rem',
+                        }}>
+                          <span>⚠️</span>
+                          <span>
+                            {isSoldOut10
+                              ? 'I posti per Sabato 10 Ottobre sono esauriti. Puoi ancora prenotare per Domenica 11 Ottobre!'
+                              : 'I posti per Domenica 11 Ottobre sono esauriti. Puoi ancora prenotare per Sabato 10 Ottobre!'}
                           </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Child Gratuitous Note */}
+                    <div style={{
+                      background: '#fef3c7',
+                      border: '1.5px solid #fde68a',
+                      borderRadius: '1rem',
+                      padding: '0.75rem 1rem',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.65rem',
+                      color: '#92400e',
+                      fontSize: '0.84rem',
+                      fontWeight: 650,
+                      lineHeight: 1.45,
+                      boxShadow: '0 2px 8px rgba(245, 158, 11, 0.08)'
+                    }}>
+                      <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>👶</span>
+                      <div>
+                        <strong>I bambini sotto 1 anno d'età entrano gratis!</strong> Non necessitano di biglietto né prenotazione.
+                      </div>
+                    </div>
+
+                    {/* Tickets list - MOBILE FIRST STACKED CARDS (NO TEXT SQUEEZING) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.5rem' }}>
+                      {ticketTypes.map((ticket, index) => {
+                        const qty = quantities[ticket.id] || 0;
+                        const disabledExtra = ticket.isExtra && totalBase === 0;
+
+                        return (
+                          <motion.div
+                            key={ticket.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.08 }}
+                            whileHover={disabledExtra ? {} : { scale: 1.01 }}
+                            style={{
+                              background: qty > 0 ? '#fff7ed' : 'white',
+                              border: `2px solid ${qty > 0 ? '#ea580c' : '#f3f4f6'}`,
+                              borderRadius: '1.25rem',
+                              padding: '1.1rem 1.15rem',
+                              boxShadow: qty > 0 ? '0 8px 25px rgba(234,88,12,0.18)' : '0 4px 15px rgba(0,0,0,0.04)',
+                              transition: 'all 0.2s',
+                              cursor: disabledExtra ? 'not-allowed' : 'pointer',
+                              opacity: disabledExtra ? 0.6 : 1,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.75rem',
+                            }}
+                            onClick={() => {
+                              if (disabledExtra) return;
+                              if (qty === 0) setQty(ticket.id, 1);
+                            }}
+                          >
+                            {/* Top Row: Icon + Title on Left, Price on Right */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                                <div style={{
+                                  fontSize: '1.6rem',
+                                  background: qty > 0 ? '#ea580c' : '#fefce8',
+                                  width: 44, height: 44, borderRadius: '0.85rem', flexShrink: 0,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  boxShadow: qty > 0 ? 'none' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                                  transform: qty > 0 ? 'rotate(-6deg)' : 'none',
+                                  transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                }}>
+                                  <TicketEmoji emoji={ticket.emoji} />
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontWeight: 800, color: '#431407', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', lineHeight: 1.25 }}>
+                                    <span>{ticket.label}</span>
+                                    {ticket.isExtra && (
+                                      <span style={{ fontSize: '0.68rem', background: '#f97316', color: 'white', padding: '0.1rem 0.45rem', borderRadius: '1rem', fontWeight: 800, letterSpacing: '0.04em' }}>EXTRA</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <span style={{ color: '#ea580c', fontWeight: 900, fontSize: '1.3rem', lineHeight: 1 }}>€{ticket.price}</span>
+                                <div style={{ color: '#9a3412', fontSize: '0.62rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' }}>contributo</div>
+                              </div>
+                            </div>
+
+                            {/* Middle Row: Description across FULL CARD WIDTH (never squeezed!) */}
+                            <div style={{
+                              color: disabledExtra ? '#c2410c' : '#9a3412',
+                              fontSize: '0.84rem',
+                              fontWeight: 500,
+                              lineHeight: 1.45,
+                              padding: '0 0.1rem'
+                            }}>
+                              {disabledExtra ? '⚠️ Richiede almeno un biglietto d\'ingresso' : ticket.description}
+                            </div>
+
+                            {ticket.isExtra && (
+                              <div style={{ marginTop: '-0.25rem', padding: '0 0.1rem' }}>
+                                <span style={{
+                                  background: '#fff7ed',
+                                  color: '#c2410c',
+                                  border: '1px solid #fed7aa',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  padding: '0.2rem 0.55rem',
+                                  borderRadius: '999px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem'
+                                }}>
+                                  🎃 1 sola zucca inclusa per biglietto
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Bottom Row: Quantity Stepper Controls */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              paddingTop: '0.65rem',
+                              borderTop: '1px solid rgba(254, 215, 170, 0.5)',
+                              marginTop: '0.1rem'
+                            }} onClick={e => e.stopPropagation()}>
+                              <span style={{ fontSize: '0.8rem', color: '#9a3412', fontWeight: 700 }}>
+                                {qty > 0 ? `${qty} ${qty === 1 ? 'selezionato' : 'selezionati'}` : 'Seleziona quantità'}
+                              </span>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <motion.button
+                                  type="button"
+                                  onClick={() => setQty(ticket.id, -1)}
+                                  disabled={qty === 0}
+                                  whileTap={{ scale: 0.9 }}
+                                  style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    border: 'none',
+                                    background: qty > 0 ? '#fdba74' : '#f3f4f6',
+                                    color: qty > 0 ? '#7c2d12' : '#9ca3af',
+                                    cursor: qty > 0 ? 'pointer' : 'not-allowed',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  }}
+                                  aria-label={`Riduci quantità ${ticket.label}`}
+                                >
+                                  <Minus size={18} strokeWidth={3} />
+                                </motion.button>
+
+                                <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#431407', minWidth: '1.6rem', textAlign: 'center' }}>
+                                  {qty}
+                                </span>
+
+                                <motion.button
+                                  type="button"
+                                  onClick={() => setQty(ticket.id, 1)}
+                                  disabled={disabledExtra}
+                                  whileTap={disabledExtra ? {} : { scale: 0.9 }}
+                                  style={{
+                                    width: 36, height: 36, borderRadius: '50%',
+                                    border: 'none',
+                                    background: disabledExtra ? '#d1d5db' : '#ea580c',
+                                    color: 'white',
+                                    cursor: disabledExtra ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    boxShadow: disabledExtra ? 'none' : '0 3px 8px rgba(234,88,12,0.4)',
+                                  }}
+                                  aria-label={`Aumenta quantità ${ticket.label}`}
+                                >
+                                  <Plus size={18} strokeWidth={3} />
+                                </motion.button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+
+                      <div style={{
+                        background: '#fff7ed', border: '1px solid #fed7aa',
+                        padding: '0.85rem 1rem', borderRadius: '1rem',
+                        display: 'flex', gap: '0.6rem', alignItems: 'flex-start'
+                      }}>
+                        <AlertCircle size={18} color="#ea580c" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <p style={{ color: '#9a3412', fontSize: '0.84rem', lineHeight: 1.45, margin: 0, fontWeight: 500 }}>
+                          <strong>Nota:</strong> {content.tickets.disclaimer}
+                        </p>
+                      </div>
+
+                      {errors.tickets && (
+                        <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                          style={{ color: '#ef4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0, fontWeight: 700 }}>
+                          <AlertCircle size={16} /> {errors.tickets}
+                        </motion.p>
+                      )}
+                    </div>
+
+                    {/* CHILDREN STEPPER & 1-TAP PRESETS (WHEN ENTRANCE SELECTED) */}
+                    {totalBase > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          background: 'rgba(255,255,255,0.85)',
+                          backdropFilter: 'blur(10px)',
+                          border: '2px solid white',
+                          borderRadius: '1.25rem',
+                          padding: '1.25rem',
+                          marginBottom: '1.5rem',
+                          boxShadow: '0 8px 25px rgba(0,0,0,0.03)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.85rem' }}>
+                          <div>
+                            <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 800, color: '#431407', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              👶 Biglietti per Bambini
+                            </h3>
+                            <p style={{ margin: 0, fontSize: '0.82rem', color: '#9a3412', fontWeight: 500 }}>
+                              Quanti dei <strong>{totalBase} {totalBase === 1 ? 'biglietto' : 'biglietti'}</strong> sono per bambini?
+                            </p>
+                          </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <motion.button
                               type="button"
-                              onClick={() => setQty(ticket.id, -1)}
-                              disabled={qty === 0}
+                              onClick={() => setNumChildren(prev => Math.max(0, prev - 1))}
+                              disabled={numChildren === 0}
                               whileTap={{ scale: 0.9 }}
                               style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                border: 'none',
-                                background: qty > 0 ? '#fdba74' : '#f3f4f6',
-                                color: qty > 0 ? '#7c2d12' : '#9ca3af',
-                                cursor: qty > 0 ? 'pointer' : 'not-allowed',
+                                width: 36, height: 36, borderRadius: '50%', border: 'none',
+                                background: numChildren > 0 ? '#fdba74' : '#f3f4f6',
+                                color: numChildren > 0 ? '#7c2d12' : '#9ca3af',
+                                cursor: numChildren > 0 ? 'pointer' : 'not-allowed',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                               }}
-                              aria-label={`Riduci quantità ${ticket.label}`}
                             >
-                              <Minus size={18} strokeWidth={3} />
+                              <Minus size={16} strokeWidth={3} />
                             </motion.button>
-
-                            <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#431407', minWidth: '1.6rem', textAlign: 'center' }}>
-                              {qty}
+                            <span style={{ fontWeight: 900, fontSize: '1.25rem', color: '#431407', minWidth: '1.8rem', textAlign: 'center' }}>
+                              {numChildren}
                             </span>
-
                             <motion.button
                               type="button"
-                              onClick={() => setQty(ticket.id, 1)}
-                              disabled={disabledExtra}
-                              whileTap={disabledExtra ? {} : { scale: 0.9 }}
+                              onClick={() => setNumChildren(prev => Math.min(totalBase, prev + 1))}
+                              disabled={numChildren >= totalBase}
+                              whileTap={numChildren < totalBase ? { scale: 0.9 } : {}}
                               style={{
-                                width: 36, height: 36, borderRadius: '50%',
-                                border: 'none',
-                                background: disabledExtra ? '#d1d5db' : '#ea580c',
+                                width: 36, height: 36, borderRadius: '50%', border: 'none',
+                                background: numChildren < totalBase ? '#ea580c' : '#d1d5db',
                                 color: 'white',
-                                cursor: disabledExtra ? 'not-allowed' : 'pointer',
+                                cursor: numChildren < totalBase ? 'pointer' : 'not-allowed',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: disabledExtra ? 'none' : '0 3px 8px rgba(234,88,12,0.4)',
+                                boxShadow: numChildren < totalBase ? '0 3px 8px rgba(234,88,12,0.3)' : 'none',
                               }}
-                              aria-label={`Aumenta quantità ${ticket.label}`}
                             >
-                              <Plus size={18} strokeWidth={3} />
+                              <Plus size={16} strokeWidth={3} />
                             </motion.button>
                           </div>
                         </div>
+
+                        {/* 1-TAP PRESETS */}
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.5rem', borderTop: '1px solid #ffedd5' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#9a3412', fontWeight: 600, alignSelf: 'center', marginRight: '0.2rem' }}>Scelta rapida:</span>
+                          <button
+                            type="button"
+                            onClick={() => setNumChildren(0)}
+                            style={{
+                              padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
+                              fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                              background: numChildren === 0 ? '#ea580c' : '#ffffff',
+                              color: numChildren === 0 ? 'white' : '#7c2d12',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            Solo Adulti (0)
+                          </button>
+                          {totalBase >= 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setNumChildren(1)}
+                              style={{
+                                padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
+                                fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                                background: numChildren === 1 ? '#ea580c' : '#ffffff',
+                                color: numChildren === 1 ? 'white' : '#7c2d12',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              1 Bimbo
+                            </button>
+                          )}
+                          {totalBase >= 2 && (
+                            <button
+                              type="button"
+                              onClick={() => setNumChildren(2)}
+                              style={{
+                                padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
+                                fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                                background: numChildren === 2 ? '#ea580c' : '#ffffff',
+                                color: numChildren === 2 ? 'white' : '#7c2d12',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              2 Bimbi
+                            </button>
+                          )}
+                          {totalBase >= 1 && numChildren !== totalBase && (
+                            <button
+                              type="button"
+                              onClick={() => setNumChildren(totalBase)}
+                              style={{
+                                padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
+                                fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                                background: numChildren === totalBase ? '#ea580c' : '#ffffff',
+                                color: numChildren === totalBase ? 'white' : '#7c2d12',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              Tutti Bimbi ({totalBase})
+                            </button>
+                          )}
+                        </div>
                       </motion.div>
-                    );
-                  })}
+                    )}
 
-                  <div style={{
-                    background: '#fff7ed', border: '1px solid #fed7aa',
-                    padding: '0.85rem 1rem', borderRadius: '1rem',
-                    display: 'flex', gap: '0.6rem', alignItems: 'flex-start'
-                  }}>
-                    <AlertCircle size={18} color="#ea580c" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <p style={{ color: '#9a3412', fontSize: '0.84rem', lineHeight: 1.45, margin: 0, fontWeight: 500 }}>
-                      <strong>Nota:</strong> {content.tickets.disclaimer}
-                    </p>
-                  </div>
-
-                  {errors.tickets && (
-                    <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                      style={{ color: '#ef4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0, fontWeight: 700 }}>
-                      <AlertCircle size={16} /> {errors.tickets}
-                    </motion.p>
-                  )}
-                </div>
-
-                {/* CHILDREN STEPPER & 1-TAP PRESETS (WHEN ENTRANCE SELECTED) */}
-                {totalBase > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{
-                      background: 'rgba(255,255,255,0.85)',
-                      backdropFilter: 'blur(10px)',
-                      border: '2px solid white',
-                      borderRadius: '1.25rem',
-                      padding: '1.25rem',
-                      marginBottom: '1.5rem',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.03)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.85rem' }}>
-                      <div>
-                        <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: 800, color: '#431407', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          👶 Biglietti per Bambini
-                        </h3>
-                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#9a3412', fontWeight: 500 }}>
-                          Quanti dei <strong>{totalBase} {totalBase === 1 ? 'biglietto' : 'biglietti'}</strong> sono per bambini?
-                        </p>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <motion.button
-                          type="button"
-                          onClick={() => setNumChildren(prev => Math.max(0, prev - 1))}
-                          disabled={numChildren === 0}
-                          whileTap={{ scale: 0.9 }}
-                          style={{
-                            width: 36, height: 36, borderRadius: '50%', border: 'none',
-                            background: numChildren > 0 ? '#fdba74' : '#f3f4f6',
-                            color: numChildren > 0 ? '#7c2d12' : '#9ca3af',
-                            cursor: numChildren > 0 ? 'pointer' : 'not-allowed',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}
-                        >
-                          <Minus size={16} strokeWidth={3} />
-                        </motion.button>
-                        <span style={{ fontWeight: 900, fontSize: '1.25rem', color: '#431407', minWidth: '1.8rem', textAlign: 'center' }}>
-                          {numChildren}
-                        </span>
-                        <motion.button
-                          type="button"
-                          onClick={() => setNumChildren(prev => Math.min(totalBase, prev + 1))}
-                          disabled={numChildren >= totalBase}
-                          whileTap={numChildren < totalBase ? { scale: 0.9 } : {}}
-                          style={{
-                            width: 36, height: 36, borderRadius: '50%', border: 'none',
-                            background: numChildren < totalBase ? '#ea580c' : '#d1d5db',
-                            color: 'white',
-                            cursor: numChildren < totalBase ? 'pointer' : 'not-allowed',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: numChildren < totalBase ? '0 3px 8px rgba(234,88,12,0.3)' : 'none',
-                          }}
-                        >
-                          <Plus size={16} strokeWidth={3} />
-                        </motion.button>
-                      </div>
-                    </div>
-
-                    {/* 1-TAP PRESETS */}
-                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.5rem', borderTop: '1px solid #ffedd5' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#9a3412', fontWeight: 600, alignSelf: 'center', marginRight: '0.2rem' }}>Scelta rapida:</span>
-                      <button
+                    {/* STEP 1 NEXT BUTTON */}
+                    {totalBase > 0 && (
+                      <motion.button
                         type="button"
-                        onClick={() => setNumChildren(0)}
+                        onClick={() => {
+                          setErrors({});
+                          setStep(2);
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         style={{
-                          padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
-                          fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                          background: numChildren === 0 ? '#ea580c' : '#ffffff',
-                          color: numChildren === 0 ? 'white' : '#7c2d12',
-                          transition: 'all 0.15s'
+                          width: '100%', padding: '1.1rem',
+                          background: '#ea580c', color: 'white',
+                          border: 'none', borderRadius: '1rem',
+                          fontSize: '1.05rem', fontWeight: 900, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
+                          boxShadow: '0 6px 20px rgba(234,88,12,0.35)',
                         }}
                       >
-                        Solo Adulti (0)
-                      </button>
-                      {totalBase >= 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setNumChildren(1)}
-                          style={{
-                            padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
-                            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                            background: numChildren === 1 ? '#ea580c' : '#ffffff',
-                            color: numChildren === 1 ? 'white' : '#7c2d12',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          1 Bimbo
-                        </button>
-                      )}
-                      {totalBase >= 2 && (
-                        <button
-                          type="button"
-                          onClick={() => setNumChildren(2)}
-                          style={{
-                            padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
-                            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                            background: numChildren === 2 ? '#ea580c' : '#ffffff',
-                            color: numChildren === 2 ? 'white' : '#7c2d12',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          2 Bimbi
-                        </button>
-                      )}
-                      {totalBase >= 1 && numChildren !== totalBase && (
-                        <button
-                          type="button"
-                          onClick={() => setNumChildren(totalBase)}
-                          style={{
-                            padding: '0.25rem 0.65rem', borderRadius: '999px', border: '1px solid #fed7aa',
-                            fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                            background: numChildren === totalBase ? '#ea580c' : '#ffffff',
-                            color: numChildren === totalBase ? 'white' : '#7c2d12',
-                            transition: 'all 0.15s'
-                          }}
-                        >
-                          Tutti Bimbi ({totalBase})
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* STEP 1 NEXT BUTTON */}
-                {totalBase > 0 && (
-                  <motion.button
-                    type="button"
-                    onClick={() => {
-                      setErrors({});
-                      setStep(2);
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{
-                      width: '100%', padding: '1.1rem',
-                      background: '#ea580c', color: 'white',
-                      border: 'none', borderRadius: '1rem',
-                      fontSize: '1.05rem', fontWeight: 900, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem',
-                      boxShadow: '0 6px 20px rgba(234,88,12,0.35)',
-                    }}
-                  >
-                    Scegli i Laboratori Gratuiti (2/3) <ArrowRight size={20} strokeWidth={3} />
-                  </motion.button>
-                )}
+                        Scegli i Laboratori Gratuiti (2/3) <ArrowRight size={20} strokeWidth={3} />
+                      </motion.button>
+                    )}
                   </>
                 )}
               </motion.div>
@@ -1285,22 +1285,21 @@ function ZuccalandTicketBuyer({
                             background: isDayDisabled
                               ? '#fafaf9'
                               : isSelected
-                              ? 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)'
-                              : '#ffffff',
-                            border: `2px solid ${
-                              isDayDisabled
+                                ? 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)'
+                                : '#ffffff',
+                            border: `2px solid ${isDayDisabled
                                 ? '#e7e5e4'
                                 : isSelected
-                                ? '#ea580c'
-                                : '#f3f4f6'
-                            }`,
+                                  ? '#ea580c'
+                                  : '#f3f4f6'
+                              }`,
                             opacity: isDayDisabled ? 0.65 : 1,
                             transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
                             boxShadow: isDayDisabled
                               ? 'none'
                               : isSelected
-                              ? '0 6px 20px rgba(234,88,12,0.14)'
-                              : '0 2px 8px rgba(0,0,0,0.02)',
+                                ? '0 6px 20px rgba(234,88,12,0.14)'
+                                : '0 2px 8px rgba(0,0,0,0.02)',
                           }}
                         >
                           {/* Top row: Icon + Title + Schedule badge on left, Badge & Checkbox / Disabled pill on right */}
@@ -2189,8 +2188,8 @@ function ConcludedSection() {
           Grazie a Tutti!
         </h2>
         <p style={{ color: '#7c2d12', fontSize: '1.1rem', lineHeight: 1.7, fontWeight: 500 }}>
-          L'edizione di quest'anno si è conclusa con grande successo. 
-          Grazie a tutti i partecipanti per aver reso questa giornata speciale! 
+          L'edizione di quest'anno si è conclusa con grande successo.
+          Grazie a tutti i partecipanti per aver reso questa giornata speciale!
           Ci vediamo alla prossima edizione di Zuccaland! 🧡
         </p>
         <motion.div
@@ -2232,7 +2231,7 @@ function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer
   return (
     <section id="faq" style={{ padding: '3.5rem 1rem 5.5rem', position: 'relative', zIndex: 2, scrollMarginTop: '7rem' }}>
       <div style={{ maxWidth: '840px', margin: '0 auto' }}>
-        
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <motion.div
@@ -2266,7 +2265,7 @@ function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer
           }}>
             Domande Frequenti
           </h2>
-          
+
           <p style={{
             color: '#9a3412',
             fontSize: 'clamp(0.95rem, 2.8vw, 1.08rem)',
@@ -2296,8 +2295,8 @@ function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer
                   borderRadius: '1.25rem',
                   border: `2px solid ${isOpen ? '#ea580c' : '#fed7aa'}`,
                   overflow: 'hidden',
-                  boxShadow: isOpen 
-                    ? '0 10px 30px rgba(234, 88, 12, 0.15)' 
+                  boxShadow: isOpen
+                    ? '0 10px 30px rgba(234, 88, 12, 0.15)'
                     : '0 4px 15px rgba(0,0,0,0.03)',
                   transition: 'border-color 0.25s, box-shadow 0.25s',
                 }}
@@ -2377,10 +2376,10 @@ function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer
                         background: '#fffaf5',
                         paddingTop: '1rem'
                       }}>
-                        <FormattedText 
-                          as="div" 
-                          style={{ whiteSpace: 'pre-line' }} 
-                          text={faq.answer} 
+                        <FormattedText
+                          as="div"
+                          style={{ whiteSpace: 'pre-line' }}
+                          text={faq.answer}
                         />
                       </div>
                     </motion.div>
@@ -2553,12 +2552,12 @@ export default function ZuccalandClient({
 
   return (
     <div style={{ background: '#fefce8', minHeight: '100vh', color: '#431407', position: 'relative', overflowX: 'hidden' }}>
-      
+
       {/* Easter Egg */}
       <FallingPumpkins />
 
       {/* ── Redesigned Useful Sticky Navigation Bar ── */}
-      <motion.nav 
+      <motion.nav
         aria-label="Navigazione rapida Zuccaland"
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -2567,15 +2566,15 @@ export default function ZuccalandClient({
       >
         {/* Left: Home link & compact brand identity */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
-          <Link 
-            href="/" 
-            style={{ 
-              textDecoration: 'none', 
-              color: '#ea580c', 
-              fontSize: '0.8rem', 
-              fontWeight: 750, 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Link
+            href="/"
+            style={{
+              textDecoration: 'none',
+              color: '#ea580c',
+              fontSize: '0.8rem',
+              fontWeight: 750,
+              display: 'flex',
+              alignItems: 'center',
               gap: '0.25rem',
               padding: '0.35rem 0.6rem',
               borderRadius: '999px',
@@ -2591,13 +2590,13 @@ export default function ZuccalandClient({
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            style={{ 
-              background: 'none', 
-              border: 'none', 
+            style={{
+              background: 'none',
+              border: 'none',
               cursor: 'pointer',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.35rem', 
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
               padding: '0.2rem 0.35rem',
               fontFamily: 'inherit',
               textAlign: 'left'
@@ -2605,10 +2604,10 @@ export default function ZuccalandClient({
             title="Torna all'inizio della pagina"
           >
             <span style={{ fontSize: '1rem', lineHeight: 1 }}>🎃</span>
-            <span style={{ 
-              fontFamily: 'var(--font-display)', 
-              fontWeight: 800, 
-              fontSize: '0.92rem', 
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800,
+              fontSize: '0.92rem',
               color: '#431407',
               letterSpacing: '-0.02em',
               whiteSpace: 'nowrap'
@@ -2618,7 +2617,7 @@ export default function ZuccalandClient({
           </button>
 
           {/* Quick Date pill */}
-          <span 
+          <span
             className="hidden sm:inline-flex"
             style={{
               background: allSoldOut ? 'rgba(239, 68, 68, 0.12)' : (isSoldOut10 || isSoldOut11) ? 'rgba(245, 158, 11, 0.12)' : 'rgba(234, 88, 12, 0.1)',
@@ -2633,39 +2632,39 @@ export default function ZuccalandClient({
             {allSoldOut
               ? '🚫 Sold Out 10-11 Ott'
               : isSoldOut10
-              ? '10 Ott Sold Out • 11 Ott Disp.'
-              : isSoldOut11
-              ? '10 Ott Disp. • 11 Ott Sold Out'
-              : '10-11 Ott'}
+                ? '10 Ott Sold Out • 11 Ott Disp.'
+                : isSoldOut11
+                  ? '10 Ott Disp. • 11 Ott Sold Out'
+                  : '10-11 Ott'}
           </span>
         </div>
 
         {/* Center: Real Useful Navigation Anchors */}
         <div className="zucca-nav-links">
-          <button 
+          <button
             type="button"
-            onClick={() => scrollToSection('attivita')} 
+            onClick={() => scrollToSection('attivita')}
             className={`zucca-nav-link ${activeSection === 'attivita' ? 'active' : ''}`}
           >
             Attività
           </button>
-          <button 
+          <button
             type="button"
-            onClick={() => scrollToSection('programma')} 
+            onClick={() => scrollToSection('programma')}
             className={`zucca-nav-link ${activeSection === 'programma' ? 'active' : ''}`}
           >
             Programma
           </button>
-          <button 
+          <button
             type="button"
-            onClick={() => scrollToSection('info')} 
+            onClick={() => scrollToSection('info')}
             className={`zucca-nav-link ${activeSection === 'info' ? 'active' : ''}`}
           >
             Info & Servizi
           </button>
-          <button 
+          <button
             type="button"
-            onClick={() => scrollToSection('faq')} 
+            onClick={() => scrollToSection('faq')}
             className={`zucca-nav-link ${activeSection === 'faq' ? 'active' : ''}`}
           >
             FAQ
@@ -2675,7 +2674,7 @@ export default function ZuccalandClient({
         {/* Right: Primary Call to Action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
           {showTickets && (
-            <a 
+            <a
               href="#acquista"
               onClick={e => { e.preventDefault(); scrollToSection('acquista'); }}
               style={{
@@ -2946,7 +2945,7 @@ export default function ZuccalandClient({
                   </h3>
                 </div>
               </div>
-              
+
               <p style={{ color: '#7c2d12', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1rem', fontWeight: 500, position: 'relative', zIndex: 2 }}>
                 {item.description}
               </p>
@@ -2992,56 +2991,56 @@ export default function ZuccalandClient({
           ))}
         </div>
       </section>
-      
+
       {/* ── Highlights (Merch & Music — discrete contextual perks) ── */}
       <section id="info" style={{ padding: '0 1rem 2.5rem', position: 'relative', zIndex: 2, scrollMarginTop: '8rem' }}>
-         <div style={{ maxWidth: '780px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
-            {content.highlights.map((hl, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15, duration: 0.4 }}
-                whileHover={{ y: -2, borderColor: '#fdba74', boxShadow: '0 8px 20px rgba(124, 45, 18, 0.06)' }}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.75)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1.5px solid #f1e4d3',
-                  borderRadius: '1.25rem',
-                  padding: '1.1rem 1.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.85rem',
-                  boxShadow: '0 2px 10px rgba(124, 45, 18, 0.03)',
-                  transition: 'border-color 0.2s, box-shadow 0.2s',
-                }}
-              >
-                <div style={{
-                  background: 'rgba(234, 88, 12, 0.08)',
-                  color: '#c2410c',
-                  width: '42px',
-                  height: '42px',
-                  minWidth: '42px',
-                  borderRadius: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px solid rgba(234, 88, 12, 0.15)',
-                }}>
-                  {getHighlightIcon(hl.icon, 20)}
-                </div>
-                <div>
-                  <h4 style={{ margin: '0 0 0.2rem', fontSize: '0.96rem', fontWeight: 700, color: '#431407', letterSpacing: '-0.01em' }}>
-                    {hl.title}
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.4, opacity: 0.85, fontWeight: 450 }}>
-                    {hl.description}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-         </div>
+        <div style={{ maxWidth: '780px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
+          {content.highlights.map((hl, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.15, duration: 0.4 }}
+              whileHover={{ y: -2, borderColor: '#fdba74', boxShadow: '0 8px 20px rgba(124, 45, 18, 0.06)' }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(8px)',
+                border: '1.5px solid #f1e4d3',
+                borderRadius: '1.25rem',
+                padding: '1.1rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.85rem',
+                boxShadow: '0 2px 10px rgba(124, 45, 18, 0.03)',
+                transition: 'border-color 0.2s, box-shadow 0.2s',
+              }}
+            >
+              <div style={{
+                background: 'rgba(234, 88, 12, 0.08)',
+                color: '#c2410c',
+                width: '42px',
+                height: '42px',
+                minWidth: '42px',
+                borderRadius: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(234, 88, 12, 0.15)',
+              }}>
+                {getHighlightIcon(hl.icon, 20)}
+              </div>
+              <div>
+                <h4 style={{ margin: '0 0 0.2rem', fontSize: '0.96rem', fontWeight: 700, color: '#431407', letterSpacing: '-0.01em' }}>
+                  {hl.title}
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#7c2d12', lineHeight: 1.4, opacity: 0.85, fontWeight: 450 }}>
+                  {hl.description}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       {/* ── Children Ticket Info Bridge ── */}
