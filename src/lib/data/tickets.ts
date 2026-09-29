@@ -164,13 +164,26 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: b
     return { success: false, message: `L'intero ordine è già stato utilizzato.`, ticket, order: order ? { ...order, thankYouEmailSent: !!order.thankYouEmailSent } : undefined, orderTickets: orderTickets as Ticket[], stats };
   }
 
-  await sql`UPDATE tickets SET "isCheckedIn" = true, "checkInTime" = CURRENT_TIMESTAMP WHERE "orderId" = ${ticket.orderId}`;
+  if (ticket.isCheckedIn) {
+    const stats = await getTicketingStats(ticket.eventId || 'assaggia-e-passeggia-2024');
+    let dateStr = ticket.checkInTime ? new Date(ticket.checkInTime).toLocaleString('it-IT') : 'in precedenza';
+    return { 
+      success: false, 
+      message: `Questo biglietto è già stato utilizzato.\n(Validato il: ${dateStr})`, 
+      ticket, 
+      order: order ? { ...order, thankYouEmailSent: !!order.thankYouEmailSent } : undefined, 
+      orderTickets: orderTickets as Ticket[], 
+      stats 
+    };
+  }
+
+  await sql`UPDATE tickets SET "isCheckedIn" = true, "checkInTime" = CURRENT_TIMESTAMP WHERE id = ${ticket.id}`;
   const updatedOrderTickets = await sql`SELECT * FROM tickets WHERE "orderId" = ${ticket.orderId}`;
-  const stats = await getTicketingStats('assaggia-e-passeggia-2024');
+  const stats = await getTicketingStats(ticket.eventId || 'assaggia-e-passeggia-2024');
   
   return { 
     success: true, 
-    message: `Intero ordine verificato! ${updatedOrderTickets.length} biglietti validati con successo.`, 
+    message: `Biglietto verificato con successo!`, 
     ticket: { ...ticket, isCheckedIn: true }, 
     order: order ? { ...order, thankYouEmailSent: !!order.thankYouEmailSent } : undefined, 
     orderTickets: updatedOrderTickets as Ticket[], 

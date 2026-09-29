@@ -2506,13 +2506,24 @@ export default function ZuccalandClient({
   const [phase, setPhase] = useState<EventPhase>('on-sale');
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<'hero' | 'attivita' | 'programma' | 'info' | 'acquista' | 'faq'>('hero');
+  const [showSoldOutPopup, setShowSoldOutPopup] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     setPhase(getEventPhase(content.event));
+    
+    if (!sessionStorage.getItem('zuccaland_soldout_popup_dismissed')) {
+      setShowSoldOutPopup(true);
+    }
+
     const interval = setInterval(() => setPhase(getEventPhase(content.event)), 30000);
     return () => clearInterval(interval);
   }, [content.event]);
+
+  const closePopup = () => {
+    setShowSoldOutPopup(false);
+    sessionStorage.setItem('zuccaland_soldout_popup_dismissed', 'true');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -2555,6 +2566,114 @@ export default function ZuccalandClient({
 
       {/* Easter Egg */}
       <FallingPumpkins />
+
+      <AnimatePresence>
+        {showSoldOutPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              style={{
+                background: 'linear-gradient(180deg, #ffedd5 0%, #fff7ed 100%)',
+                borderRadius: '1.5rem',
+                maxWidth: '560px',
+                width: '100%',
+                position: 'relative',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                overflow: 'hidden',
+                border: '2px solid #fed7aa',
+                maxHeight: '90vh',
+                overflowY: 'auto'
+              }}
+            >
+              {/* Top graphic area */}
+              <div style={{ position: 'relative', background: '#ea580c', padding: '2.5rem 1.5rem 2rem', textAlign: 'center', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', inset: 0, opacity: 0.2, backgroundImage: 'url("/img/zuccaland/Pumpink.png")', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                <button
+                  onClick={closePopup}
+                  style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
+                >
+                  <X size={20} />
+                </button>
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <h2 style={{ fontFamily: 'var(--font-display)', color: '#ffedd5', fontSize: '3.5rem', margin: '0 0 0.5rem', lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
+                    Zuccaland
+                  </h2>
+                  <div style={{ color: '#fef08a', fontSize: '2.8rem', fontWeight: 900, letterSpacing: '-1px', textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
+                    <span style={{ fontSize: '1.5rem', verticalAlign: 'middle', marginRight: '0.5rem' }}>è</span>
+                    SOLD-OUT
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+                <p style={{ color: '#9a3412', fontSize: '1.05rem', fontWeight: 600, marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                  Avete risposto in tantissimi e velocemente: avete fatto registrare il tutto esaurito per le uniche date annunciate ufficialmente!
+                </p>
+                <p style={{ color: '#78350f', fontSize: '0.95rem', marginBottom: '1.75rem', lineHeight: 1.5 }}>
+                  I biglietti disponibili erano a numero limitato, una scelta necessaria per garantire la massima sicurezza, il comfort e una gestione ottimale dell&apos;evento.
+                </p>
+                
+                <h3 style={{ color: '#ea580c', fontSize: '2rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '1px' }}>
+                  MA ATTENZIONE
+                </h3>
+                
+                <p style={{ color: '#9a3412', fontSize: '1.05rem', fontWeight: 600, marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                  L&apos;incredibile richiesta ci sta spingendo a valutare una possibile nuova data di Zuccaland e stiamo già lavorando per capire se sarà possibile aggiungere un altro appuntamento.
+                </p>
+                
+                <p style={{ color: '#b45309', fontSize: '0.95rem', fontWeight: 700, marginBottom: '2.5rem' }}>
+                  Non è ancora ufficiale: restate perciò connessi e seguite attentamente i nostri canali
+                </p>
+                
+                <div style={{ fontFamily: 'var(--font-display)', color: '#ea580c', fontSize: '3.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1.4rem', fontFamily: 'system-ui, sans-serif', fontWeight: 600, color: '#9a3412' }}>Nel frattempo,</span>
+                  Grazie!
+                </div>
+                
+                <button
+                  onClick={closePopup}
+                  style={{
+                    background: '#ea580c',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.85rem 2.5rem',
+                    borderRadius: '999px',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(234,88,12,0.4)',
+                    marginTop: '2rem',
+                    transition: 'transform 0.2s, boxShadow 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  Chiudi e scopri l&apos;evento
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Redesigned Useful Sticky Navigation Bar ── */}
       <motion.nav
