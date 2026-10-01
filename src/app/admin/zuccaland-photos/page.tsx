@@ -1,10 +1,10 @@
+import type { Metadata } from 'next';
 import AdminZuccalandPhotos from './AdminZuccalandPhotos';
 
+export const metadata: Metadata = {
+  title: 'Moderazione Foto Zuccaland – Admin',
+};
+
 export default function AdminZuccalandPhotosPage() {
-  return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Moderazione Foto Zuccaland</h1>
-      <AdminZuccalandPhotos />
-    </div>
-  );
+  return <AdminZuccalandPhotos />;
 }

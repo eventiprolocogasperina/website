@@ -34,7 +34,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/assaggia-e-passeggia')) return null;
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/assaggia-e-passeggia') || pathname === '/zuccaland/photo' || pathname === '/zuccaland/galleria') return null;
 
   // Not scrolled: subtle dark gradient → white text always readable (Netflix/Airbnb pattern).
   // Scrolled: solid colored bg → theme text.
