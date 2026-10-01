@@ -10,7 +10,8 @@ import {
   BarChart,
   Megaphone,
   Star,
-  RotateCcw
+  RotateCcw,
+  Camera
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
@@ -50,6 +51,7 @@ const navGroups = [
     label: 'Pagine e CMS',
     items: [
       { href: '/admin/pagine/zuccaland', label: 'Zuccaland', icon: Globe },
+      { href: '/admin/zuccaland-photos', label: 'Moderazione Foto', icon: Camera },
       { href: '/admin/pagine/sponsor', label: 'Sponsor', icon: Globe },
       { href: '/admin/pagine/associazione', label: 'Chi Siamo', icon: Globe },
     ]
