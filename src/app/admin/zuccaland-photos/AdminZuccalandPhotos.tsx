@@ -8,7 +8,7 @@ import AdminHeader from '@/components/admin/AdminHeader';
 type Photo = {
   id: number;
   cloudinary_public_id: string;
-  frame_name: string;
+  frame_name: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 };
@@ -72,12 +72,12 @@ function PhotoLightbox({
           alt={`Foto #${photo.id}`}
           sizes="500px"
           style={{ display: 'block', width: '100%', height: 'auto' }}
-          overlays={[{
+          overlays={photo.frame_name ? [{
             publicId: photo.frame_name,
             flags: ['relative'],
             width: '1.0',
             height: '1.0',
-          }]}
+          }] : undefined}
         />
       </div>
 
@@ -264,12 +264,12 @@ export default function AdminZuccalandPhotos() {
                     alt={`Foto #${photo.id}`}
                     sizes="250px"
                     style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.2s' }}
-                    overlays={[{
+                    overlays={photo.frame_name ? [{
                       publicId: photo.frame_name,
                       flags: ['relative'],
                       width: '1.0',
                       height: '1.0',
-                    }]}
+                    }] : undefined}
                   />
                   {/* Hover overlay */}
                   <div style={{
@@ -281,9 +281,7 @@ export default function AdminZuccalandPhotos() {
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.3)')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0)')}
                   >
-                    <Maximize2 size={28} color="white" style={{ opacity: 0, transition: 'opacity 0.2s' }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
-                    />
+                    <Maximize2 size={28} color="white" style={{ opacity: 0.8, transition: 'opacity 0.2s' }} />
                   </div>
                   {/* Badge status */}
                   <span style={{

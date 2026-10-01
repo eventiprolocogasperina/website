@@ -5,12 +5,12 @@ const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
 export type ZuccalandPhoto = {
   id: number;
   cloudinary_public_id: string;
-  frame_name: string;
+  frame_name: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: Date;
 };
 
-export async function addPhoto(cloudinaryPublicId: string, frameName: string) {
+export async function addPhoto(cloudinaryPublicId: string, frameName: string | null) {
   const result = await pool.query(
     `INSERT INTO zuccaland_photos (cloudinary_public_id, frame_name) 
      VALUES ($1, $2) RETURNING *`,
