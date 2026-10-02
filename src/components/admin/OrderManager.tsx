@@ -5,7 +5,8 @@ import {
   Search, Download, CheckCircle2, XCircle, 
   Phone, Mail, FileText, Loader2, Plus, MailOpen, Trash2, Edit,
   TrendingUp, Users, Calendar, Ticket as TicketIcon, BarChart3,
-  Sparkles, Wine, ArrowUpRight
+  Sparkles, Wine, ArrowUpRight,
+  CreditCard, Link2, Copy, Check, ExternalLink, Send
 } from 'lucide-react';
 import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 
@@ -57,6 +58,20 @@ export default function OrderManager() {
   const [sendingTimeUpdateTest, setSendingTimeUpdateTest] = useState(false);
   const [sendingTimeUpdateBroadcast, setSendingTimeUpdateBroadcast] = useState(false);
   const [timeUpdateStatusMessage, setTimeUpdateStatusMessage] = useState<string | null>(null);
+
+  // Pay-by-link modal state
+  const [selectedOrderForPayLink, setSelectedOrderForPayLink] = useState<OrderWithTickets | null>(null);
+  const [payLinkQuantities, setPayLinkQuantities] = useState<Record<string, number>>({});
+  const [payLinkAddedKids, setPayLinkAddedKids] = useState<number>(0);
+  const [payLinkSelectedActivities, setPayLinkSelectedActivities] = useState<string[]>([]);
+  const [payLinkCustomItem, setPayLinkCustomItem] = useState<{ name: string; price: string; quantity: number }>({ name: '', price: '', quantity: 0 });
+  const [payLinkCustomNote, setPayLinkCustomNote] = useState<string>('');
+  const [generatingPayLink, setGeneratingPayLink] = useState(false);
+  const [generatedPayLink, setGeneratedPayLink] = useState<string | null>(null);
+  const [generatedSubOrderId, setGeneratedSubOrderId] = useState<string | null>(null);
+  const [sendingPayLinkEmail, setSendingPayLinkEmail] = useState(false);
+  const [payLinkCopied, setPayLinkCopied] = useState(false);
+  const [payLinkStatusMsg, setPayLinkStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -275,6 +290,115 @@ export default function OrderManager() {
     } finally {
       setCreatingOrder(false);
     }
+  };
+
+  const handleOpenPayLinkModal = (order: OrderWithTickets) => {
+    setSelectedOrderForPayLink(order);
+    setPayLinkQuantities({});
+    setPayLinkAddedKids(0);
+    setPayLinkSelectedActivities([]);
+    setPayLinkCustomItem({ name: '', price: '', quantity: 0 });
+    setPayLinkCustomNote('');
+    setGeneratedPayLink(null);
+    setGeneratedSubOrderId(null);
+    setPayLinkCopied(false);
+    setPayLinkStatusMsg(null);
+  };
+
+  const handleGeneratePayLink = async () => {
+    if (!selectedOrderForPayLink) return;
+    setGeneratingPayLink(true);
+    setPayLinkStatusMsg(null);
+
+    try {
+      const isZucc = getOrderEventId(selectedOrderForPayLink) === 'zuccaland-2026';
+      
+      const items: Array<{ type: string; price: number; quantity: number }> = [];
+
+      if (isZucc) {
+        if ((payLinkQuantities['ingresso'] || 0) > 0) {
+          items.push({ type: 'Ingresso Ordinario', price: 5, quantity: payLinkQuantities['ingresso'] });
+        }
+        if ((payLinkQuantities['laboratorio'] || 0) > 0) {
+          items.push({ type: 'You Pick Lab', price: 3, quantity: payLinkQuantities['laboratorio'] });
+        }
+      } else {
+        if ((payLinkQuantities['ticket_intero'] || 0) > 0) {
+          items.push({ type: 'Ticket Intero', price: 20, quantity: payLinkQuantities['ticket_intero'] });
+        }
+        if ((payLinkQuantities['extra_wine'] || 0) > 0) {
+          items.push({ type: 'Extra wine', price: 5, quantity: payLinkQuantities['extra_wine'] });
+        }
+      }
+
+      if (payLinkCustomItem.quantity > 0 && parseFloat(payLinkCustomItem.price) > 0 && payLinkCustomItem.name.trim()) {
+        items.push({
+          type: payLinkCustomItem.name.trim(),
+          price: parseFloat(payLinkCustomItem.price),
+          quantity: payLinkCustomItem.quantity
+        });
+      }
+
+      if (items.length === 0) {
+        alert('Seleziona almeno un servizio o biglietto con quantità maggiore di 0.');
+        setGeneratingPayLink(false);
+        return;
+      }
+
+      const res = await fetch('/api/admin/orders/pay-by-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parentOrderId: selectedOrderForPayLink.id,
+          items,
+          addedChildren: payLinkAddedKids,
+          selectedActivities: payLinkSelectedActivities,
+          customNote: payLinkCustomNote
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Errore durante la generazione');
+      }
+
+      setGeneratedPayLink(data.payUrl);
+      setGeneratedSubOrderId(data.subOrderId);
+      setPayLinkStatusMsg({ type: 'success', text: `Pay-by-Link generato con successo! Importo: €${data.totalAmount.toFixed(2)}` });
+    } catch (err: any) {
+      console.error(err);
+      setPayLinkStatusMsg({ type: 'error', text: err.message || 'Errore durante la generazione' });
+    } finally {
+      setGeneratingPayLink(false);
+    }
+  };
+
+  const handleSendPayLinkEmail = async () => {
+    if (!generatedSubOrderId) return;
+    setSendingPayLinkEmail(true);
+    try {
+      const res = await fetch('/api/admin/orders/pay-by-link/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subOrderId: generatedSubOrderId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Errore durante l\'invio');
+      }
+      setPayLinkStatusMsg({ type: 'success', text: `Email inviata con successo all'acquirente!` });
+    } catch (err: any) {
+      alert(err.message || 'Errore durante l\'invio');
+    } finally {
+      setSendingPayLinkEmail(false);
+    }
+  };
+
+  const handleCopyPayLink = () => {
+    if (!generatedPayLink) return;
+    navigator.clipboard.writeText(generatedPayLink);
+    setPayLinkCopied(true);
+    setTimeout(() => setPayLinkCopied(false), 3000);
   };
 
   // ─── Filtered Orders Calculation ──────────────────────────────────────────
@@ -568,7 +692,7 @@ export default function OrderManager() {
               borderRadius: '999px',
               fontSize: '0.72rem',
               fontWeight: 800,
-              color: activeTab === 'zuccaland-2026' ? 'white' : '#fdba74',
+              color: activeTab === 'zuccaland-2026' ? 'white' : 'var(--theme-orange)',
             }}>
               {globalStats.zuccaland.orders}
             </span>
@@ -636,54 +760,54 @@ export default function OrderManager() {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Incasso Complessivo</span>
-                <span style={{ background: 'rgba(234, 179, 8, 0.12)', color: 'var(--gold-400)', padding: '0.2rem 0.55rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>Tutti gli Eventi</span>
+                <span style={{ background: 'var(--theme-yellow-bg)', color: 'var(--theme-yellow)', padding: '0.2rem 0.55rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>Tutti gli Eventi</span>
               </div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--gold-400)', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-heading)', lineHeight: 1.1 }}>
                 €{globalStats.totalRevenue.toFixed(2)}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-800)' }}>
-                <span>Zuccaland: <b style={{ color: '#fdba74' }}>€{globalStats.zuccaland.revenue.toFixed(0)}</b></span>
-                <span>A&P: <b style={{ color: '#93c5fd' }}>€{globalStats.assaggia.revenue.toFixed(0)}</b></span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-700)' }}>
+                <span>Zuccaland: <b style={{ color: 'var(--theme-orange)' }}>€{globalStats.zuccaland.revenue.toFixed(0)}</b></span>
+                <span>A&P: <b style={{ color: 'var(--theme-blue)' }}>€{globalStats.assaggia.revenue.toFixed(0)}</b></span>
               </div>
             </div>
 
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Biglietti Emessi</span>
-                <TicketIcon size={16} style={{ color: 'var(--blue-400)' }} />
+                <TicketIcon size={16} style={{ color: 'var(--blue-500)' }} />
               </div>
               <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-heading)', lineHeight: 1.1 }}>
                 {globalStats.totalTickets}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-800)' }}>
-                <span>Zuccaland: <b style={{ color: '#fdba74' }}>{globalStats.zuccaland.admissionTickets} ing.</b>{globalStats.zuccaland.youPickTickets > 0 ? ` + ${globalStats.zuccaland.youPickTickets} lab` : ''}</span>
-                <span>A&P: <b style={{ color: '#93c5fd' }}>{globalStats.assaggia.tickets}</b></span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-700)' }}>
+                <span>Zuccaland: <b style={{ color: 'var(--theme-orange)' }}>{globalStats.zuccaland.admissionTickets} ing.</b>{globalStats.zuccaland.youPickTickets > 0 ? ` + ${globalStats.zuccaland.youPickTickets} lab` : ''}</span>
+                <span>A&P: <b style={{ color: 'var(--theme-blue)' }}>{globalStats.assaggia.tickets}</b></span>
               </div>
             </div>
 
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Ordini Pagati</span>
-                <CheckCircle2 size={16} style={{ color: '#4ade80' }} />
+                <CheckCircle2 size={16} style={{ color: '#16a34a' }} />
               </div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#4ade80', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#16a34a', lineHeight: 1.1 }}>
                 {globalStats.paidOrdersCount}
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-800)' }}>
-                <span>In attesa: <b style={{ color: '#fbbf24' }}>{globalStats.pendingCount}</b></span>
-                <span>Omaggio: <b style={{ color: 'var(--blue-400)' }}>{globalStats.freeCount}</b></span>
+              <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-700)' }}>
+                <span>In attesa: <b style={{ color: 'var(--theme-yellow)' }}>{globalStats.pendingCount}</b></span>
+                <span>Omaggio: <b style={{ color: 'var(--blue-500)' }}>{globalStats.freeCount}</b></span>
               </div>
             </div>
 
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Scontrino Medio</span>
-                <TrendingUp size={16} style={{ color: 'var(--blue-400)' }} />
+                <TrendingUp size={16} style={{ color: 'var(--blue-500)' }} />
               </div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--blue-400)', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--blue-500)', lineHeight: 1.1 }}>
                 €{globalStats.aov}
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-800)' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid var(--neutral-700)' }}>
                 Media transazione per ordine pagato
               </div>
             </div>
@@ -696,7 +820,7 @@ export default function OrderManager() {
             <div className="card" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--white)' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-heading)' }}>
                     Confronto Incassi per Evento
                   </h4>
                   <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
@@ -713,7 +837,7 @@ export default function OrderManager() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {/* Visual Bar Proportion */}
-                  <div style={{ height: '14px', background: 'var(--neutral-800)', borderRadius: '999px', overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ height: '14px', background: 'var(--surface)', borderRadius: '999px', overflow: 'hidden', display: 'flex', border: '1px solid var(--neutral-700)' }}>
                     <div 
                       style={{ 
                         width: `${Math.round((globalStats.zuccaland.revenue / globalStats.totalRevenue) * 100)}%`, 
@@ -734,8 +858,8 @@ export default function OrderManager() {
 
                   {/* Legend Cards */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div style={{ background: 'rgba(234,88,12,0.08)', border: '1px solid rgba(234,88,12,0.25)', borderRadius: '0.75rem', padding: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#fdba74', fontWeight: 700 }}>
+                    <div style={{ background: 'var(--theme-orange-bg)', border: '1px solid var(--theme-orange-border)', borderRadius: '0.75rem', padding: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--theme-orange)', fontWeight: 700 }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ea580c' }} />
                         🎃 Zuccaland
                       </div>
@@ -747,12 +871,12 @@ export default function OrderManager() {
                       </div>
                     </div>
 
-                    <div style={{ background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.25)', borderRadius: '0.75rem', padding: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#93c5fd', fontWeight: 700 }}>
+                    <div style={{ background: 'var(--theme-blue-bg)', border: '1px solid var(--theme-blue-border)', borderRadius: '0.75rem', padding: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--theme-blue)', fontWeight: 700 }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb' }} />
                         🍷 Assaggia & Passeggia
                       </div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#3b82f6', marginTop: '0.2rem' }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--blue-600)', marginTop: '0.2rem' }}>
                         €{globalStats.assaggia.revenue.toFixed(2)}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.15rem' }}>
@@ -768,7 +892,7 @@ export default function OrderManager() {
             <div className="card" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--white)' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-heading)' }}>
                     Ripartizione Biglietti per Tipologia
                   </h4>
                   <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
@@ -792,12 +916,12 @@ export default function OrderManager() {
                     return (
                       <div key={type}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '0.3rem' }}>
-                          <span style={{ color: 'var(--neutral-200)', fontWeight: 600 }}>{type}</span>
+                          <span style={{ color: 'var(--color-heading)', fontWeight: 600 }}>{type}</span>
                           <span style={{ color: 'var(--neutral-400)', fontWeight: 700 }}>
                             {count} ({pct}%)
                           </span>
                         </div>
-                        <div style={{ height: '8px', background: 'var(--neutral-800)', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ height: '8px', background: 'var(--surface)', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--neutral-700)' }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '4px', transition: 'width 0.5s ease' }} />
                         </div>
                       </div>
@@ -811,7 +935,7 @@ export default function OrderManager() {
             <div className="card" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--white)' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-heading)' }}>
                     Tasso di Conversione & Stato Ordini
                   </h4>
                   <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
@@ -822,23 +946,23 @@ export default function OrderManager() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem', height: '10px', borderRadius: '999px', overflow: 'hidden', background: 'var(--neutral-800)' }}>
-                  <div style={{ width: `${(globalStats.paidOrdersCount / Math.max(1, orders.length)) * 100}%`, background: '#4ade80' }} title="Pagati" />
-                  <div style={{ width: `${(globalStats.pendingCount / Math.max(1, orders.length)) * 100}%`, background: '#fbbf24' }} title="In attesa" />
-                  <div style={{ width: `${(globalStats.failedCount / Math.max(1, orders.length)) * 100}%`, background: '#f87171' }} title="Falliti" />
+                <div style={{ display: 'flex', gap: '0.5rem', height: '10px', borderRadius: '999px', overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--neutral-700)' }}>
+                  <div style={{ width: `${(globalStats.paidOrdersCount / Math.max(1, orders.length)) * 100}%`, background: '#16a34a' }} title="Pagati" />
+                  <div style={{ width: `${(globalStats.pendingCount / Math.max(1, orders.length)) * 100}%`, background: '#d97706' }} title="In attesa" />
+                  <div style={{ width: `${(globalStats.failedCount / Math.max(1, orders.length)) * 100}%`, background: '#dc2626' }} title="Falliti" />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <div style={{ textAlign: 'center', padding: '0.6rem', background: 'rgba(74,222,128,0.06)', borderRadius: '0.6rem', border: '1px solid rgba(74,222,128,0.2)' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#4ade80' }}>{globalStats.paidOrdersCount}</div>
+                  <div style={{ textAlign: 'center', padding: '0.6rem', background: 'var(--badge-paid-bg)', borderRadius: '0.6rem', border: '1px solid var(--badge-paid-border)' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--badge-paid-text)' }}>{globalStats.paidOrdersCount}</div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>Pagati ({Math.round((globalStats.paidOrdersCount / Math.max(1, orders.length)) * 100)}%)</div>
                   </div>
-                  <div style={{ textAlign: 'center', padding: '0.6rem', background: 'rgba(251,191,36,0.06)', borderRadius: '0.6rem', border: '1px solid rgba(251,191,36,0.2)' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fbbf24' }}>{globalStats.pendingCount}</div>
+                  <div style={{ textAlign: 'center', padding: '0.6rem', background: 'var(--badge-pending-bg)', borderRadius: '0.6rem', border: '1px solid var(--badge-pending-border)' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--badge-pending-text)' }}>{globalStats.pendingCount}</div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>In attesa ({Math.round((globalStats.pendingCount / Math.max(1, orders.length)) * 100)}%)</div>
                   </div>
-                  <div style={{ textAlign: 'center', padding: '0.6rem', background: 'rgba(248,113,113,0.06)', borderRadius: '0.6rem', border: '1px solid rgba(248,113,113,0.2)' }}>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f87171' }}>{globalStats.failedCount}</div>
+                  <div style={{ textAlign: 'center', padding: '0.6rem', background: 'var(--badge-failed-bg)', borderRadius: '0.6rem', border: '1px solid var(--badge-failed-border)' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--badge-failed-text)' }}>{globalStats.failedCount}</div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>Falliti ({Math.round((globalStats.failedCount / Math.max(1, orders.length)) * 100)}%)</div>
                   </div>
                 </div>
@@ -848,7 +972,7 @@ export default function OrderManager() {
             {/* Quick Navigation Cards */}
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
-                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--white)' }}>
+                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-heading)' }}>
                   Gestione Dettagliata per Evento
                 </h4>
                 <p style={{ margin: '0 0 1.25rem', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
@@ -864,10 +988,10 @@ export default function OrderManager() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.85rem 1rem',
-                    background: 'rgba(234,88,12,0.1)',
-                    border: '1.5px solid rgba(234,88,12,0.3)',
+                    background: 'var(--theme-orange-bg)',
+                    border: '1.5px solid var(--theme-orange-border)',
                     borderRadius: '0.85rem',
-                    color: '#fdba74',
+                    color: 'var(--theme-orange)',
                     fontWeight: 700,
                     fontSize: '0.88rem',
                     cursor: 'pointer',
@@ -887,10 +1011,10 @@ export default function OrderManager() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.85rem 1rem',
-                    background: 'rgba(37,99,235,0.1)',
-                    border: '1.5px solid rgba(37,99,235,0.3)',
+                    background: 'var(--theme-blue-bg)',
+                    border: '1.5px solid var(--theme-blue-border)',
                     borderRadius: '0.85rem',
-                    color: '#93c5fd',
+                    color: 'var(--theme-blue)',
                     fontWeight: 700,
                     fontSize: '0.88rem',
                     cursor: 'pointer',
@@ -930,21 +1054,21 @@ export default function OrderManager() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                 <span style={{ fontSize: '1.4rem' }}>🎃</span>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#fed7aa' }}>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-heading)' }}>
                   Zuccaland 2026 · Gasperina
                 </h3>
               </div>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#fdba74' }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--neutral-400)' }}>
                 Il villaggio delle zucche · Sabato 10 e Domenica 11 Ottobre 2026
               </p>
             </div>
 
             {/* Multi-Date Filter Selector */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.72rem', color: '#fed7aa', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800 }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800 }}>
                 📅 Filtra per Giorno Evento:
               </span>
-              <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '999px', border: '1px solid rgba(234,88,12,0.3)' }}>
+              <div style={{ display: 'flex', background: 'var(--neutral-900)', padding: '3px', borderRadius: '999px', border: '1px solid var(--neutral-700)' }}>
                 <button
                   onClick={() => setZuccalandDayFilter('all')}
                   style={{
@@ -955,7 +1079,7 @@ export default function OrderManager() {
                     fontWeight: 700,
                     cursor: 'pointer',
                     background: zuccalandDayFilter === 'all' ? '#ea580c' : 'transparent',
-                    color: zuccalandDayFilter === 'all' ? 'white' : '#fdba74',
+                    color: zuccalandDayFilter === 'all' ? '#ffffff' : 'var(--color-heading)',
                     transition: 'all 0.2s',
                   }}
                 >
@@ -971,7 +1095,7 @@ export default function OrderManager() {
                     fontWeight: 700,
                     cursor: 'pointer',
                     background: zuccalandDayFilter === '10' ? '#ea580c' : 'transparent',
-                    color: zuccalandDayFilter === '10' ? 'white' : '#fdba74',
+                    color: zuccalandDayFilter === '10' ? '#ffffff' : 'var(--color-heading)',
                     transition: 'all 0.2s',
                   }}
                 >
@@ -987,7 +1111,7 @@ export default function OrderManager() {
                     fontWeight: 700,
                     cursor: 'pointer',
                     background: zuccalandDayFilter === '11' ? '#ea580c' : 'transparent',
-                    color: zuccalandDayFilter === '11' ? 'white' : '#fdba74',
+                    color: zuccalandDayFilter === '11' ? '#ffffff' : 'var(--color-heading)',
                     transition: 'all 0.2s',
                   }}
                 >
@@ -1026,11 +1150,11 @@ export default function OrderManager() {
 
           {/* Zuccaland KPI Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <div className="card" style={{ padding: '1.25rem', borderColor: 'rgba(234,88,12,0.35)' }}>
+            <div className="card" style={{ padding: '1.25rem', borderColor: 'var(--theme-orange-border)' }}>
               <div style={{ fontSize: '0.8rem', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
                 Ingressi Ordinari
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fed7aa', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-heading)', lineHeight: 1 }}>
                 {zuccalandStats.admissionTickets}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
@@ -1038,11 +1162,11 @@ export default function OrderManager() {
               </div>
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderColor: 'rgba(234,88,12,0.35)' }}>
+            <div className="card" style={{ padding: '1.25rem', borderColor: 'var(--theme-orange-border)' }}>
               <div style={{ fontSize: '0.8rem', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
                 Incasso Zuccaland
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#f97316', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ea580c', lineHeight: 1 }}>
                 €{zuccalandStats.revenue.toFixed(2)}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
@@ -1050,11 +1174,11 @@ export default function OrderManager() {
               </div>
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderColor: 'rgba(234,88,12,0.4)', background: 'rgba(234,88,12,0.04)' }}>
+            <div className="card" style={{ padding: '1.25rem', borderColor: 'var(--theme-orange-border)', background: 'var(--theme-orange-bg)' }}>
               <div style={{ fontSize: '0.8rem', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
                 👶 Bambini Registrati
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ea580c', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#c2410c', lineHeight: 1 }}>
                 {zuccalandStats.kidsCount}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
@@ -1062,11 +1186,11 @@ export default function OrderManager() {
               </div>
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderColor: 'rgba(234,88,12,0.35)' }}>
+            <div className="card" style={{ padding: '1.25rem', borderColor: 'var(--theme-orange-border)' }}>
               <div style={{ fontSize: '0.8rem', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
                 You Pick Lab
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fdba74', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-heading)', lineHeight: 1 }}>
                 {zuccalandStats.youPickTickets}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
@@ -1076,10 +1200,10 @@ export default function OrderManager() {
           </div>
 
           {/* Workshop & Activities Participation */}
-          <div className="card" style={{ padding: '1.5rem', borderColor: 'rgba(234,88,12,0.3)' }}>
+          <div className="card" style={{ padding: '1.5rem', borderColor: 'var(--theme-orange-border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#fed7aa' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-heading)' }}>
                   🎨 Partecipazione Laboratori Gratuiti
                 </h4>
                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
@@ -1096,12 +1220,12 @@ export default function OrderManager() {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
                 {Object.entries(zuccalandStats.activityStats).map(([act, count]) => (
-                  <div key={act} style={{ background: 'rgba(234,88,12,0.06)', border: '1px solid rgba(234,88,12,0.2)', borderRadius: '0.75rem', padding: '1rem' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fed7aa', marginBottom: '0.25rem' }}>
+                  <div key={act} style={{ background: 'var(--theme-orange-bg)', border: '1px solid var(--theme-orange-border)', borderRadius: '0.75rem', padding: '1rem' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-heading)', marginBottom: '0.25rem' }}>
                       {act}
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#ea580c' }}>
-                      {count} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fdba74' }}>partecipanti</span>
+                      {count} <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--neutral-400)' }}>partecipanti</span>
                     </div>
                   </div>
                 ))}
@@ -1148,11 +1272,11 @@ export default function OrderManager() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                 <span style={{ fontSize: '1.4rem' }}>🍷</span>
-                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#93c5fd' }}>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-heading)' }}>
                   Assaggia & Passeggia · Edizione 2026
                 </h3>
               </div>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#bfdbfe' }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--neutral-400)' }}>
                 Itinerario Enogastronomico tra le rughe di Gasperina · 10 Agosto 2026
               </p>
             </div>
@@ -1183,7 +1307,7 @@ export default function OrderManager() {
                 }}
                 disabled={sendingEmails}
                 className="btn btn-outline"
-                style={{ fontSize: '0.8rem', padding: '0.45rem 1rem', borderColor: 'var(--blue-500)', color: 'var(--blue-400)' }}
+                style={{ fontSize: '0.8rem', padding: '0.45rem 1rem', borderColor: 'var(--blue-500)', color: 'var(--blue-500)' }}
               >
                 {sendingEmails ? <Loader2 size={16} className="animate-spin" style={{ marginRight: '0.5rem', display: 'inline-block' }} /> : null}
                 {sendingEmails ? 'Invio in corso...' : 'Invia Email Ringraziamento'}
@@ -1202,11 +1326,11 @@ export default function OrderManager() {
 
           {/* A&P KPI Stats (Notice: NO CHILDREN / NO WORKSHOPS) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <div className="card" style={{ padding: '1.25rem', borderColor: 'rgba(27,75,170,0.35)' }}>
-              <div style={{ fontSize: '0.8rem', color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
+            <div className="card" style={{ padding: '1.25rem', borderColor: 'var(--theme-blue-border)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--blue-600)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
                 Biglietti Interi
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#93c5fd', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-heading)', lineHeight: 1 }}>
                 {assaggiaStats.ticketTypes['Ticket Intero'] || 0}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
@@ -1214,11 +1338,11 @@ export default function OrderManager() {
               </div>
             </div>
 
-            <div className="card" style={{ padding: '1.25rem', borderColor: 'rgba(27,75,170,0.35)' }}>
-              <div style={{ fontSize: '0.8rem', color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
+            <div className="card" style={{ padding: '1.25rem', borderColor: 'var(--theme-blue-border)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--gold-600)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: '0.35rem' }}>
                 Extra Wine / Calici
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--gold-400)', lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-heading)', lineHeight: 1 }}>
                 {assaggiaStats.ticketTypes['Extra wine'] || 0}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.5rem' }}>
@@ -1355,9 +1479,9 @@ export default function OrderManager() {
                   <td>
                     {isZuccaland ? (
                       <span style={{
-                        background: 'rgba(234, 88, 12, 0.12)',
-                        color: '#fdba74',
-                        border: '1px solid rgba(234, 88, 12, 0.3)',
+                        background: 'var(--theme-orange-bg)',
+                        color: 'var(--theme-orange)',
+                        border: '1px solid var(--theme-orange-border)',
                         padding: '0.2rem 0.5rem',
                         borderRadius: '6px',
                         fontSize: '0.75rem',
@@ -1370,9 +1494,9 @@ export default function OrderManager() {
                       </span>
                     ) : (
                       <span style={{
-                        background: 'rgba(27, 75, 170, 0.12)',
-                        color: '#93c5fd',
-                        border: '1px solid rgba(27, 75, 170, 0.3)',
+                        background: 'var(--theme-blue-bg)',
+                        color: 'var(--theme-blue)',
+                        border: '1px solid var(--theme-blue-border)',
                         padding: '0.2rem 0.5rem',
                         borderRadius: '6px',
                         fontSize: '0.75rem',
@@ -1388,7 +1512,7 @@ export default function OrderManager() {
 
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ color: 'var(--white)', fontWeight: 600 }}>{o.buyerName}</span>
+                      <span style={{ color: 'var(--color-heading)', fontWeight: 600 }}>{o.buyerName}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
                         <Mail size={12} /> {o.buyerEmail}
                       </span>
@@ -1408,15 +1532,15 @@ export default function OrderManager() {
                           const youPickTix = o.tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio'));
                           return (
                             <div>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--white)' }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-heading)' }}>
                                 {admissionTix.length} {admissionTix.length === 1 ? 'Ingresso' : 'Ingressi'}
                               </div>
                               {youPickTix.length > 0 && (
                                 <div style={{ marginTop: '0.2rem' }}>
                                   <span style={{
-                                    background: 'rgba(249, 115, 22, 0.18)',
-                                    color: '#fdba74',
-                                    border: '1px solid rgba(249, 115, 22, 0.4)',
+                                    background: 'var(--theme-orange-bg)',
+                                    color: 'var(--theme-orange)',
+                                    border: '1px solid var(--theme-orange-border)',
                                     padding: '0.12rem 0.45rem',
                                     borderRadius: '4px',
                                     fontSize: '0.72rem',
@@ -1433,7 +1557,7 @@ export default function OrderManager() {
                           );
                         })()
                       ) : (
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--white)' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-heading)' }}>
                           {o.tickets.length} {o.tickets.length === 1 ? 'biglietto' : 'biglietti'}
                         </div>
                       )}
@@ -1442,9 +1566,9 @@ export default function OrderManager() {
                       {isZuccaland && parsed.eventDate && (
                         <div>
                           <span style={{
-                            background: 'rgba(251, 191, 36, 0.12)',
-                            color: '#fef08a',
-                            border: '1px solid rgba(251, 191, 36, 0.3)',
+                            background: 'var(--theme-yellow-bg)',
+                            color: 'var(--theme-yellow)',
+                            border: '1px solid var(--theme-yellow-border)',
                             padding: '0.1rem 0.45rem',
                             borderRadius: '4px',
                             fontSize: '0.72rem',
@@ -1462,9 +1586,9 @@ export default function OrderManager() {
                       {isZuccaland && parsed.children !== null && (
                         <div>
                           <span style={{
-                            background: 'rgba(234, 88, 12, 0.15)',
-                            color: '#fdba74',
-                            border: '1px solid rgba(234, 88, 12, 0.3)',
+                            background: 'var(--theme-orange-bg)',
+                            color: 'var(--theme-orange)',
+                            border: '1px solid var(--theme-orange-border)',
                             padding: '0.15rem 0.45rem',
                             borderRadius: '4px',
                             fontSize: '0.75rem',
@@ -1483,9 +1607,9 @@ export default function OrderManager() {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.1rem' }}>
                           {parsed.activities.map((act, i) => (
                             <span key={i} style={{
-                              background: 'rgba(59, 130, 246, 0.15)',
-                              color: '#93c5fd',
-                              border: '1px solid rgba(59, 130, 246, 0.3)',
+                              background: 'var(--theme-blue-bg)',
+                              color: 'var(--theme-blue)',
+                              border: '1px solid var(--theme-blue-border)',
                               padding: '0.1rem 0.4rem',
                               borderRadius: '4px',
                               fontSize: '0.7rem',
@@ -1499,7 +1623,7 @@ export default function OrderManager() {
 
                       {/* Generic notes if no activities or children */}
                       {o.notes && parsed.activities.length === 0 && parsed.children === null && !parsed.eventDate && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--blue-400)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--blue-500)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
                           <FileText size={12} /> {o.notes}
                         </div>
                       )}
@@ -1507,9 +1631,9 @@ export default function OrderManager() {
                   </td>
 
                   <td>
-                    <div style={{ fontSize: '1rem', color: 'var(--white)', fontWeight: 600 }}>
+                    <div style={{ fontSize: '1rem', color: 'var(--color-heading)', fontWeight: 600 }}>
                       {o.totalAmount === 0 && o.status === 'PAID' ? (
-                        <span style={{ color: 'var(--blue-400)' }}>OMAGGIO</span>
+                        <span style={{ color: 'var(--blue-500)' }}>OMAGGIO</span>
                       ) : (
                         `€${o.totalAmount.toFixed(2)}`
                       )}
@@ -1518,9 +1642,10 @@ export default function OrderManager() {
 
                   <td>
                     <span style={{ 
-                      padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
-                      background: o.status === 'PAID' ? 'rgba(74,222,128,0.1)' : o.status === 'PENDING' ? 'rgba(251,191,36,0.1)' : 'rgba(248,113,113,0.1)',
-                      color: o.status === 'PAID' ? '#4ade80' : o.status === 'PENDING' ? '#fbbf24' : '#f87171'
+                      padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
+                      background: o.status === 'PAID' ? 'var(--badge-paid-bg)' : o.status === 'PENDING' ? 'var(--badge-pending-bg)' : 'var(--badge-failed-bg)',
+                      color: o.status === 'PAID' ? 'var(--badge-paid-text)' : o.status === 'PENDING' ? 'var(--badge-pending-text)' : 'var(--badge-failed-text)',
+                      border: `1px solid ${o.status === 'PAID' ? 'var(--badge-paid-border)' : o.status === 'PENDING' ? 'var(--badge-pending-border)' : 'var(--badge-failed-border)'}`
                     }}>
                       {o.status}
                     </span>
@@ -1545,6 +1670,13 @@ export default function OrderManager() {
                       )}
                       {o.status === 'PAID' && (
                         <>
+                          <button 
+                            onClick={() => handleOpenPayLinkModal(o)} 
+                            style={{ color: '#fb923c', background: 'none', border: 'none', cursor: 'pointer' }} 
+                            title="Aggiungi Servizi / Pay-by-Link Nexi"
+                          >
+                            <CreditCard size={16} />
+                          </button>
                           <a href={`/api/tickets/download?orderId=${o.id}`} target="_blank" style={{ color: 'var(--neutral-400)' }} title="Scarica PDF">
                             <Download size={16} />
                           </a>
@@ -1637,7 +1769,7 @@ export default function OrderManager() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', color: 'white', margin: 0 }}>Modifica Ordine #{editingOrder.id.substring(0,8).toUpperCase()}</h2>
+              <h2 style={{ fontSize: '1.25rem', color: 'var(--color-heading)', margin: 0 }}>Modifica Ordine #{editingOrder.id.substring(0,8).toUpperCase()}</h2>
               <button onClick={() => setEditingOrder(null)} style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>
                 <XCircle size={24} />
               </button>
@@ -1816,6 +1948,533 @@ export default function OrderManager() {
           </div>
         </div>
       )}
+      {/* ────────────────────────────────────────────────────────────────────────
+          PAY-BY-LINK / AGGIUNGI SERVIZI MODAL
+      ────────────────────────────────────────────────────────────────────────── */}
+      {selectedOrderForPayLink && (() => {
+        const isZucc = getOrderEventId(selectedOrderForPayLink) === 'zuccaland-2026';
+        const parsedNotes = parseOrderNotes(selectedOrderForPayLink.notes);
+
+        // Calcolo totale in tempo reale
+        let currentCalculatedTotal = 0;
+        if (isZucc) {
+          currentCalculatedTotal += (payLinkQuantities['ingresso'] || 0) * 5;
+          currentCalculatedTotal += (payLinkQuantities['laboratorio'] || 0) * 3;
+        } else {
+          currentCalculatedTotal += (payLinkQuantities['ticket_intero'] || 0) * 20;
+          currentCalculatedTotal += (payLinkQuantities['extra_wine'] || 0) * 5;
+        }
+        if (payLinkCustomItem.quantity > 0 && parseFloat(payLinkCustomItem.price) > 0) {
+          currentCalculatedTotal += payLinkCustomItem.quantity * parseFloat(payLinkCustomItem.price);
+        }
+
+        const zuccalandFreeActivities = [
+          { id: 'zucca_vaso', label: 'Zucca in Vaso (3-7 anni)', details: 'Solo Sabato 14:30 - 16:30' },
+          { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Aperto Sabato e Domenica' },
+          { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'Solo Domenica 14:30 - 16:00' },
+        ];
+
+        return (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+            backdropFilter: 'blur(5px)'
+          }}>
+            <div className="card" style={{
+              maxWidth: '640px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              background: 'var(--neutral-900)',
+              border: '1px solid var(--neutral-700)',
+              padding: '1.75rem',
+              borderRadius: '1.25rem',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.35)'
+            }}>
+              
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '1.3rem' }}>{isZucc ? '🎃' : '🍷'}</span>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                      Aggiungi Servizi & Pay-by-Link Nexi
+                    </h3>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--neutral-400)' }}>
+                    Genera un link di pagamento Nexi per saldare servizi o biglietti aggiuntivi.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setSelectedOrderForPayLink(null)} 
+                  style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1 }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              {/* Box Info Ordine Principale */}
+              <div style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--neutral-700)',
+                borderRadius: '0.85rem',
+                padding: '0.9rem 1rem',
+                marginBottom: '1.25rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--neutral-400)' }}>Rif. Ordine:</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-heading)', fontSize: '0.85rem' }}>
+                    #{selectedOrderForPayLink.id.substring(0, 8).toUpperCase()}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--neutral-400)' }}>Cliente:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-heading)', fontSize: '0.88rem' }}>
+                    {selectedOrderForPayLink.buyerName} ({selectedOrderForPayLink.buyerEmail})
+                  </span>
+                </div>
+                {parsedNotes.eventDate && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--neutral-400)' }}>Data Evento:</span>
+                    <span style={{ fontWeight: 600, color: isZucc ? 'var(--theme-orange)' : 'var(--theme-blue)', fontSize: '0.82rem' }}>
+                      📅 {parsedNotes.eventDate}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--neutral-400)' }}>Biglietti Attuali:</span>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--color-text)', textAlign: 'right', maxWidth: '300px' }}>
+                    {selectedOrderForPayLink.tickets.length > 0 
+                      ? Object.entries(
+                          selectedOrderForPayLink.tickets.reduce((acc, t) => {
+                            acc[t.type] = (acc[t.type] || 0) + 1;
+                            return acc;
+                          }, {} as Record<string, number>)
+                        ).map(([type, c]) => `${c}x ${type}`).join(', ')
+                      : 'Nessun biglietto'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Servizi a pagamento */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-heading)', marginBottom: '0.75rem' }}>
+                  1. Servizi & Biglietti a Pagamento
+                </label>
+
+                {isZucc ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {/* Ingresso Ordinario Zuccaland */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', padding: '0.75rem 1rem', borderRadius: '0.75rem'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>
+                          🎃 Ingresso Ordinario
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          €5.00 cad. (Adulti e Bambini da 1 anno in su)
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, ingresso: Math.max(0, (prev['ingresso'] || 0) - 1) }))}
+                        >-</button>
+                        <span style={{ width: '24px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem' }}>
+                          {payLinkQuantities['ingresso'] || 0}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, ingresso: (prev['ingresso'] || 0) + 1 }))}
+                        >+</button>
+                      </div>
+                    </div>
+
+                    {/* You Pick Lab */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: 'var(--neutral-800)', padding: '0.75rem 1rem', borderRadius: '0.75rem'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>
+                          🎨 You Pick Lab (Laboratorio Zucca)
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          €3.00 cad. (Include 1 zucca da scegliere e decorare)
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, laboratorio: Math.max(0, (prev['laboratorio'] || 0) - 1) }))}
+                        >-</button>
+                        <span style={{ width: '24px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-heading)' }}>
+                          {payLinkQuantities['laboratorio'] || 0}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, laboratorio: (prev['laboratorio'] || 0) + 1 }))}
+                        >+</button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {/* Assaggia Ticket Intero */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: 'var(--neutral-800)', padding: '0.75rem 1rem', borderRadius: '0.75rem'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>
+                          🍷 Ticket Intero Assaggia & Passeggia
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          €20.00 cad.
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, ticket_intero: Math.max(0, (prev['ticket_intero'] || 0) - 1) }))}
+                        >-</button>
+                        <span style={{ width: '24px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-heading)' }}>
+                          {payLinkQuantities['ticket_intero'] || 0}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, ticket_intero: (prev['ticket_intero'] || 0) + 1 }))}
+                        >+</button>
+                      </div>
+                    </div>
+
+                    {/* Extra Wine */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: 'var(--neutral-800)', padding: '0.75rem 1rem', borderRadius: '0.75rem'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>
+                          🍾 Extra wine / Calice
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          €5.00 cad.
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, extra_wine: Math.max(0, (prev['extra_wine'] || 0) - 1) }))}
+                        >-</button>
+                        <span style={{ width: '24px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-heading)' }}>
+                          {payLinkQuantities['extra_wine'] || 0}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '28px', height: '28px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={() => setPayLinkQuantities(prev => ({ ...prev, extra_wine: (prev['extra_wine'] || 0) + 1 }))}
+                        >+</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Voce personalizzata opzionale */}
+                <div style={{ marginTop: '0.75rem', background: 'var(--surface)', border: '1px dashed var(--neutral-700)', padding: '0.75rem 1rem', borderRadius: '0.75rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-heading)', marginBottom: '0.5rem' }}>
+                    + Servizio / Voce Personalizzata (opzionale)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px', gap: '0.5rem' }}>
+                    <input
+                      className="input"
+                      style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      placeholder="Nome servizio (es. Supplemento)"
+                      value={payLinkCustomItem.name}
+                      onChange={e => setPayLinkCustomItem(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      placeholder="Prezzo €"
+                      value={payLinkCustomItem.price}
+                      onChange={e => setPayLinkCustomItem(prev => ({ ...prev, price: e.target.value }))}
+                    />
+                    <input
+                      className="input"
+                      type="number"
+                      min="0"
+                      style={{ fontSize: '0.82rem', padding: '0.4rem 0.6rem' }}
+                      placeholder="Q.tà"
+                      value={payLinkCustomItem.quantity || ''}
+                      onChange={e => setPayLinkCustomItem(prev => ({ ...prev, quantity: parseInt(e.target.value, 10) || 0 }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sezione Zuccaland: Bambini e Laboratori Gratuiti */}
+              {isZucc && (
+                <div style={{
+                  marginBottom: '1.25rem',
+                  background: 'var(--theme-orange-bg)',
+                  border: '1px solid var(--theme-orange-border)',
+                  borderRadius: '0.85rem',
+                  padding: '1rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--theme-orange)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Sparkles size={14} /> 2. Bambini & Laboratori Gratuiti
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                        Se la prenotazione riguarda bambini, seleziona i laboratori a cui iscriverli
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--neutral-400)' }}>Bambini aggiunti:</span>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ width: '26px', height: '26px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        onClick={() => setPayLinkAddedKids(prev => Math.max(0, prev - 1))}
+                      >-</button>
+                      <span style={{ fontWeight: 700, minWidth: '18px', textAlign: 'center', color: 'var(--color-heading)' }}>{payLinkAddedKids}</span>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{ width: '26px', height: '26px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        onClick={() => setPayLinkAddedKids(prev => prev + 1)}
+                      >+</button>
+                    </div>
+                  </div>
+
+                  {/* Flag Laboratori gratuiti */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    {zuccalandFreeActivities.map(act => {
+                      const isSelected = payLinkSelectedActivities.includes(act.label);
+                      return (
+                        <label
+                          key={act.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.6rem',
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '0.5rem',
+                            background: isSelected ? 'var(--theme-orange-bg)' : 'var(--surface)',
+                            border: `1px solid ${isSelected ? 'var(--theme-orange-border)' : 'var(--neutral-700)'}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setPayLinkSelectedActivities(prev => 
+                                prev.includes(act.label) ? prev.filter(a => a !== act.label) : [...prev, act.label]
+                              );
+                            }}
+                            style={{ accentColor: '#ea580c', width: '16px', height: '16px' }}
+                          />
+                          <div style={{ fontSize: '0.82rem' }}>
+                            <span style={{ fontWeight: 600, color: isSelected ? 'var(--theme-orange)' : 'var(--color-heading)' }}>
+                              {act.label}
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>
+                              ({act.details})
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Totale da saldare */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                background: 'var(--surface)',
+                borderRadius: '0.85rem',
+                border: '1px solid var(--neutral-700)',
+                marginBottom: '1.25rem'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Importo Totale da Saldare</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>Transazione bancaria tramite Nexi XPay</div>
+                </div>
+                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: currentCalculatedTotal > 0 ? '#16a34a' : 'var(--neutral-400)' }}>
+                  €{currentCalculatedTotal.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Status Message */}
+              {payLinkStatusMsg && (
+                <div style={{
+                  marginBottom: '1rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '0.65rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  background: payLinkStatusMsg.type === 'success' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(248, 113, 113, 0.15)',
+                  border: `1px solid ${payLinkStatusMsg.type === 'success' ? '#4ade80' : '#f87171'}`,
+                  color: payLinkStatusMsg.type === 'success' ? '#16a34a' : '#dc2626'
+                }}>
+                  {payLinkStatusMsg.text}
+                </div>
+              )}
+
+              {/* Box Link Generato */}
+              {generatedPayLink ? (
+                <div style={{
+                  background: 'var(--theme-blue-bg)',
+                  border: '1px solid var(--theme-blue-border)',
+                  borderRadius: '0.85rem',
+                  padding: '1rem',
+                  marginBottom: '1rem'
+                }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--theme-blue)', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Link2 size={14} /> Link di Pagamento Generato:
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                    <input
+                      className="input"
+                      readOnly
+                      value={generatedPayLink}
+                      style={{ fontSize: '0.82rem', fontFamily: 'monospace', flex: 1, padding: '0.45rem 0.65rem' }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={handleCopyPayLink}
+                      style={{ padding: '0.45rem 0.85rem', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      {payLinkCopied ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
+                      {payLinkCopied ? 'Copiato!' : 'Copia'}
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      disabled={sendingPayLinkEmail}
+                      onClick={handleSendPayLinkEmail}
+                      style={{
+                        padding: '0.65rem',
+                        borderRadius: '0.65rem',
+                        background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                        color: 'white',
+                        border: 'none',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        cursor: sendingPayLinkEmail ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem'
+                      }}
+                    >
+                      {sendingPayLinkEmail ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                      Invia Email al Cliente
+                    </button>
+
+                    <a
+                      href={generatedPayLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        padding: '0.65rem',
+                        borderRadius: '0.65rem',
+                        background: 'var(--surface)',
+                        color: 'var(--color-heading)',
+                        textDecoration: 'none',
+                        fontWeight: 700,
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem',
+                        border: '1px solid var(--neutral-700)'
+                      }}
+                    >
+                      <ExternalLink size={15} /> Apri Pagina
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                /* Pulsante Genera */
+                <button
+                  type="button"
+                  disabled={generatingPayLink || currentCalculatedTotal <= 0}
+                  onClick={handleGeneratePayLink}
+                  style={{
+                    width: '100%',
+                    padding: '0.9rem',
+                    borderRadius: '0.85rem',
+                    background: currentCalculatedTotal > 0
+                      ? 'linear-gradient(135deg, #ea580c, #c2410c)'
+                      : 'var(--neutral-700)',
+                    color: currentCalculatedTotal > 0 ? 'white' : 'var(--neutral-400)',
+                    border: 'none',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    cursor: (generatingPayLink || currentCalculatedTotal <= 0) ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    boxShadow: currentCalculatedTotal > 0 ? '0 4px 16px rgba(234, 88, 12, 0.35)' : 'none',
+                    opacity: (generatingPayLink || currentCalculatedTotal <= 0) ? 0.6 : 1
+                  }}
+                >
+                  {generatingPayLink ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Generazione Pay-by-Link in corso...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={17} /> Genera Pay-by-Link Nexi (€{currentCalculatedTotal.toFixed(2)})
+                    </>
+                  )}
+                </button>
+              )}
+
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

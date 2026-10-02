@@ -417,7 +417,7 @@ export default function RefundManager() {
                           gap: '0.5rem',
                           fontFamily: 'monospace',
                           fontSize: '0.85rem',
-                          color: '#fdba74'
+                          color: 'var(--theme-orange)'
                         }}>
                           <Ticket size={14} color="#ea580c" />
                           <span>{r.booking_numbers}</span>
@@ -683,12 +683,12 @@ export default function RefundManager() {
               </div>
               <div style={{ marginBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>IBAN: </span>
-                <span style={{ fontFamily: 'monospace', color: '#38bdf8', fontWeight: 700 }}>{editingRefund.iban}</span>
+                <span style={{ fontFamily: 'monospace', color: 'var(--theme-blue)', fontWeight: 700 }}>{editingRefund.iban}</span>
                 <span style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({editingRefund.iban?.length} car.)</span>
               </div>
               <div>
                 <span style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Codici Prenotazione: </span>
-                <span style={{ fontFamily: 'monospace', color: '#fdba74' }}>{editingRefund.booking_numbers}</span>
+                <span style={{ fontFamily: 'monospace', color: 'var(--theme-orange)' }}>{editingRefund.booking_numbers}</span>
               </div>
             </div>
 

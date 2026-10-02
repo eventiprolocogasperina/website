@@ -75,7 +75,7 @@ export default function MemberForm({ initialData, onClose, onSave, onDelete }: M
       }}>
         
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--white)' }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--color-heading)' }}>
             {isEdit ? 'Modifica Socio' : 'Nuovo Socio'}
           </h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>

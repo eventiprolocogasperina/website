@@ -159,7 +159,7 @@ export default function NewsForm({ initialData, onClose, onSave, onDelete }: New
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           background: 'var(--neutral-950)', borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
         }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--white)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-heading)' }}>
             {isEdit ? `Modifica: ${initialData.title}` : 'Nuova Notizia'}
           </h3>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>

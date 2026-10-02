@@ -190,7 +190,7 @@ export default function ImageUpload({
               type="button"
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.3rem',
-                padding: '0.5rem 0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)',
+                padding: '0.5rem 0.75rem', background: '#1e293b', border: '1px solid #334155',
                 color: 'white', borderRadius: 'var(--radius-sm)', cursor: uploading ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem'
               }}

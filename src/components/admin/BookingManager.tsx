@@ -154,7 +154,7 @@ export default function BookingManager() {
                 <tr key={b.id}>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ color: 'var(--white)', fontWeight: 500 }}>{b.nome} {b.cognome}</span>
+                      <span style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{b.nome} {b.cognome}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <Mail size={12} /> {b.email}
                       </span>
@@ -172,7 +172,7 @@ export default function BookingManager() {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <Hash size={14} style={{ color: 'var(--neutral-500)' }} />
-                      <span style={{ fontSize: '1rem', color: 'var(--white)', fontWeight: 600 }}>{b.partecipanti}</span>
+                      <span style={{ fontSize: '1rem', color: 'var(--color-heading)', fontWeight: 600 }}>{b.partecipanti}</span>
                     </div>
                   </td>
                   <td>
@@ -180,8 +180,8 @@ export default function BookingManager() {
                       value={b.stato} 
                       onChange={(e) => handleStatusUpdate(b.id, e.target.value)}
                       style={{ 
-                        background: b.stato === 'confermato' ? 'rgba(74,222,128,0.1)' : 'rgba(248,113,113,0.1)',
-                        color: b.stato === 'confermato' ? '#4ade80' : '#f87171',
+                        background: b.stato === 'confermato' ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.15)',
+                        color: b.stato === 'confermato' ? 'var(--badge-paid-text, #16a34a)' : 'var(--badge-failed-text, #dc2626)',
                         border: 'none',
                         borderRadius: 'var(--radius-sm)',
                         padding: '0.25rem 0.5rem',
@@ -240,7 +240,7 @@ export default function BookingManager() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
          <div className="card" style={{ padding: '1rem' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginBottom: '0.25rem' }}>Totale Persone Prenotate</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--white)' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--color-heading)' }}>
               {filteredBookings.reduce((acc, b) => acc + b.partecipanti, 0)}
             </div>
          </div>

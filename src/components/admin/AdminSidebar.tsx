@@ -88,7 +88,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
       />
       <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       {/* Logo */}
-      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--neutral-800)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Image src="/img/Logo_color_sm.png" alt="Logo" width={36} height={36} style={{ objectFit: 'contain' }} />
           <div style={{ lineHeight: 1.1 }}>
@@ -162,7 +162,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
       </nav>
 
       {/* Bottom actions */}
-      <div style={{ padding: '0.75rem', borderTop: '1px solid var(--neutral-800)', display: 'flex', flexDirection: 'column', gap: '0.1rem', flexShrink: 0 }}>
+      <div style={{ padding: '0.75rem', borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.1rem', flexShrink: 0 }}>
         <button
           onClick={toggleTheme}
           style={{

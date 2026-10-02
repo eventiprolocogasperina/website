@@ -174,17 +174,17 @@ export default function DiscountManager() {
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Tag size={16} style={{ color: 'var(--blue-400)' }} />
-                      <span style={{ color: 'var(--white)', fontWeight: 600, fontFamily: 'monospace', fontSize: '1.1rem' }}>{d.code}</span>
+                      <span style={{ color: 'var(--color-heading)', fontWeight: 600, fontFamily: 'monospace', fontSize: '1.1rem' }}>{d.code}</span>
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: '1rem', color: 'var(--white)', fontWeight: 500 }}>
+                    <div style={{ fontSize: '1rem', color: 'var(--color-heading)', fontWeight: 500 }}>
                       {d.type === 'PERCENTAGE' ? `${d.value}%` : `€${d.value.toFixed(2)}`}
                     </div>
                   </td>
                   <td>
                     <div style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>
-                      <span style={{ color: 'var(--white)', fontWeight: 500 }}>{d.current_uses}</span>
+                      <span style={{ color: 'var(--color-heading)', fontWeight: 500 }}>{d.current_uses}</span>
                       {d.max_uses > 0 ? ` / ${d.max_uses}` : ' (illimitati)'}
                     </div>
                   </td>
@@ -275,7 +275,7 @@ export default function DiscountManager() {
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <input type="checkbox" id="active" checked={form.active} onChange={e => setForm({...form, active: e.target.checked})} />
-                <label htmlFor="active" style={{ cursor: 'pointer', color: 'var(--white)' }}>Codice Attivo</label>
+                <label htmlFor="active" style={{ cursor: 'pointer', color: 'var(--color-heading)' }}>Codice Attivo</label>
               </div>
               
               {error && (
