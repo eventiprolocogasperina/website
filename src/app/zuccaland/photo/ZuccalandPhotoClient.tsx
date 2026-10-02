@@ -12,6 +12,7 @@ const FRAMES: { id: string | null; label: string; emoji: string }[] = [
   { id: null, label: 'Nessuna', emoji: '✕' },
   { id: 'Canvas-27', label: 'Autunnale', emoji: '🍂' },
   { id: 'Canvas-28', label: 'Stregata', emoji: '🎃' },
+  { id: 'Frame_34', label: 'PumpKing', emoji: '👑' },
 ];
 
 // ─── Formato foto: portrait 1080×1350 (4:5) ───────────────────────────────────
@@ -295,15 +296,15 @@ export default function ZuccalandPhotoClient() {
                 </p>
               </div>
 
-              {/* Selettore cornice — griglia 3 colonne */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '1rem' }}>
+              {/* Selettore cornice — griglia */}
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${FRAMES.length}, 1fr)`, gap: '0.45rem', marginBottom: '1rem' }}>
                 {FRAMES.map(f => (
                   <button key={String(f.id)} onClick={() => setSelectedFrame(f.id)} style={{
-                    padding: '0.65rem 0.35rem', borderRadius: '0.85rem',
+                    padding: '0.65rem 0.25rem', borderRadius: '0.85rem',
                     border: `2px solid ${selectedFrame === f.id ? '#ea580c' : '#eaddd0'}`,
                     background: selectedFrame === f.id ? '#fff7ed' : 'white',
                     color: selectedFrame === f.id ? '#ea580c' : '#78350f',
-                    fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', textAlign: 'center',
+                    fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', textAlign: 'center',
                     boxShadow: selectedFrame === f.id ? '0 4px 12px rgba(234,88,12,0.15)' : '0 2px 6px rgba(0,0,0,0.04)',
                     transition: 'all 0.2s',
                   }}>
@@ -446,6 +447,24 @@ export default function ZuccalandPhotoClient() {
                     objectFit: 'cover', pointerEvents: 'none',
                   }} />
                 )}
+              </div>
+
+              {/* Selettore cornice in anteprima */}
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${FRAMES.length}, 1fr)`, gap: '0.45rem', marginBottom: '1.25rem' }}>
+                {FRAMES.map(f => (
+                  <button key={String(f.id)} onClick={() => setSelectedFrame(f.id)} style={{
+                    padding: '0.55rem 0.25rem', borderRadius: '0.75rem',
+                    border: `2px solid ${selectedFrame === f.id ? '#ea580c' : '#eaddd0'}`,
+                    background: selectedFrame === f.id ? '#fff7ed' : 'white',
+                    color: selectedFrame === f.id ? '#ea580c' : '#78350f',
+                    fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', textAlign: 'center',
+                    boxShadow: selectedFrame === f.id ? '0 4px 12px rgba(234,88,12,0.15)' : '0 2px 6px rgba(0,0,0,0.04)',
+                    transition: 'all 0.2s',
+                  }}>
+                    <div style={{ fontSize: f.id === null ? '0.95rem' : '1.15rem', marginBottom: '0.15rem' }}>{f.emoji}</div>
+                    {f.label}
+                  </button>
+                ))}
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem' }}>
