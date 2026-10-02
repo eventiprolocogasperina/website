@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { getOrder } from '@/lib/data/tickets';
+import { sendTelegramNotification } from '@/lib/telegram';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -142,6 +143,15 @@ export async function POST(req: Request) {
       console.error('Error sending pay-by-link email:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    sendTelegramNotification(
+      `📤 <b>Pay-by-Link INVIATO via Email</b>\n\n` +
+      `🎪 <b>Evento:</b> ${eventEmoji} ${eventTitle}\n` +
+      `👤 <b>Cliente:</b> ${subOrder.buyerName}\n` +
+      `📧 <b>Inviato a:</b> ${subOrder.buyerEmail}\n` +
+      `💰 <b>Importo da saldare:</b> €${subOrder.totalAmount.toFixed(2)}\n` +
+      `🔗 <b>Rif. Ordine:</b> #${(parentOrderId || subOrderId).substring(0, 8).toUpperCase()}`
+    ).catch(err => console.error('Telegram send-email notification error:', err));
 
     return NextResponse.json({ success: true, message: `Email inviata con successo a ${subOrder.buyerEmail}` });
   } catch (err: any) {
