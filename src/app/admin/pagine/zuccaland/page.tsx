@@ -44,6 +44,7 @@ export default function ZuccalandAdminPage() {
   const [liveCounts, setLiveCounts] = useState<{
     '10': { admissionTickets: number; totalTickets: number; orders: number };
     '11': { admissionTickets: number; totalTickets: number; orders: number };
+    '25': { admissionTickets: number; totalTickets: number; orders: number };
   } | null>(null);
   const [loadingCounts, setLoadingCounts] = useState(false);
 
@@ -73,6 +74,7 @@ export default function ZuccalandAdminPage() {
             dateLimits: {
               '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(json.data.dateLimits?.['10'] || {}) },
               '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(json.data.dateLimits?.['11'] || {}) },
+              '25': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['25']!, ...(json.data.dateLimits?.['25'] || {}) },
             },
             infoCards: json.data.infoCards || DEFAULT_ZUCCALAND_CONTENT.infoCards,
             ticketTypes: json.data.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes,
@@ -123,7 +125,7 @@ export default function ZuccalandAdminPage() {
     data && setData({ ...data, program: { ...data.program, [field]: value } });
   const updateTickets = (field: string, value: string) =>
     data && setData({ ...data, tickets: { ...data.tickets, [field]: value } });
-  const updateDateLimit = (dayKey: '10' | '11', field: keyof ZuccalandDateLimit, value: any) => {
+  const updateDateLimit = (dayKey: '10' | '11' | '25', field: keyof ZuccalandDateLimit, value: any) => {
     if (!data) return;
     const currentLimits = data.dateLimits || DEFAULT_ZUCCALAND_CONTENT.dateLimits!;
     setData({
@@ -131,7 +133,7 @@ export default function ZuccalandAdminPage() {
       dateLimits: {
         ...currentLimits,
         [dayKey]: {
-          ...currentLimits[dayKey],
+          ...(currentLimits[dayKey] || DEFAULT_ZUCCALAND_CONTENT.dateLimits![dayKey] || { enabled: false, maxTickets: 300, manualSoldOut: false, active: false }),
           [field]: value
         }
       }
@@ -380,16 +382,17 @@ export default function ZuccalandAdminPage() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
-            {(['10', '11'] as const).map(dayKey => {
-              const dayLabel = dayKey === '10' ? 'Sabato 10 Ottobre' : 'Domenica 11 Ottobre';
-              const dayEmoji = dayKey === '10' ? '🟧' : '🟨';
-              const limits = data.dateLimits?.[dayKey] || DEFAULT_ZUCCALAND_CONTENT.dateLimits![dayKey];
+            {(['10', '11', '25'] as const).map(dayKey => {
+              const dayLabel = dayKey === '10' ? 'Sabato 10 Ottobre' : (dayKey === '11' ? 'Domenica 11 Ottobre' : 'Domenica 25 Ottobre');
+              const dayEmoji = dayKey === '10' ? '🟧' : (dayKey === '11' ? '🟨' : '🎃');
+              const limits = data.dateLimits?.[dayKey] || DEFAULT_ZUCCALAND_CONTENT.dateLimits![dayKey] || { enabled: false, maxTickets: 300, manualSoldOut: false, active: false };
               const counts = liveCounts?.[dayKey] || { admissionTickets: 0, totalTickets: 0, orders: 0 };
               
               const isLimitActive = limits.enabled;
               const isManualSoldOut = Boolean(limits.manualSoldOut);
               const isCapacityReached = isLimitActive && counts.admissionTickets >= limits.maxTickets;
               const isSoldOut = isManualSoldOut || isCapacityReached;
+              const isDateActive = dayKey === '25' ? Boolean(limits.active) : true;
 
               const percentUsed = isLimitActive && limits.maxTickets > 0
                 ? Math.min(100, Math.round((counts.admissionTickets / limits.maxTickets) * 100))
@@ -399,8 +402,8 @@ export default function ZuccalandAdminPage() {
                 <div
                   key={dayKey}
                   style={{
-                    background: isSoldOut ? 'rgba(239,68,68,0.06)' : 'var(--neutral-900)',
-                    border: `1.5px solid ${isSoldOut ? 'rgba(239,68,68,0.35)' : 'var(--neutral-700)'}`,
+                    background: !isDateActive ? 'rgba(255,255,255,0.02)' : isSoldOut ? 'rgba(239,68,68,0.06)' : 'var(--neutral-900)',
+                    border: `1.5px solid ${!isDateActive ? 'var(--neutral-800)' : isSoldOut ? 'rgba(239,68,68,0.35)' : 'var(--neutral-700)'}`,
                     borderRadius: 'var(--radius-md)',
                     padding: '1.25rem',
                     position: 'relative',
@@ -411,7 +414,14 @@ export default function ZuccalandAdminPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ fontSize: '1.2rem' }}>{dayEmoji}</span>
-                      <strong style={{ fontSize: '1.05rem', color: 'var(--color-heading)' }}>{dayLabel}</strong>
+                      <div>
+                        <strong style={{ fontSize: '1.05rem', color: 'var(--color-heading)' }}>{dayLabel}</strong>
+                        {dayKey === '25' && (
+                          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: limits.active ? '#4ade80' : '#ea580c' }}>
+                            {limits.active ? '● Attiva sul sito' : '○ Nascosta sul sito'}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Badge Stato */}
@@ -423,12 +433,14 @@ export default function ZuccalandAdminPage() {
                         borderRadius: '999px',
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px',
-                        background: isSoldOut ? 'rgba(239,68,68,0.2)' : isLimitActive ? 'rgba(234,88,12,0.2)' : 'rgba(74,222,128,0.15)',
-                        color: isSoldOut ? '#ef4444' : isLimitActive ? '#fb923c' : '#4ade80',
-                        border: `1px solid ${isSoldOut ? 'rgba(239,68,68,0.4)' : isLimitActive ? 'rgba(234,88,12,0.4)' : 'rgba(74,222,128,0.3)'}`,
+                        background: !isDateActive ? 'rgba(148,163,184,0.15)' : isSoldOut ? 'rgba(239,68,68,0.2)' : isLimitActive ? 'rgba(234,88,12,0.2)' : 'rgba(74,222,128,0.15)',
+                        color: !isDateActive ? '#94a3b8' : isSoldOut ? '#ef4444' : isLimitActive ? '#fb923c' : '#4ade80',
+                        border: `1px solid ${!isDateActive ? 'rgba(148,163,184,0.3)' : isSoldOut ? 'rgba(239,68,68,0.4)' : isLimitActive ? 'rgba(234,88,12,0.4)' : 'rgba(74,222,128,0.3)'}`,
                       }}
                     >
-                      {isManualSoldOut
+                      {!isDateActive
+                        ? '⚪ Nascosta'
+                        : isManualSoldOut
                         ? '🚨 Sold Out Manuale'
                         : isCapacityReached
                         ? '🚨 Sold Out (Capienza)'
@@ -437,6 +449,48 @@ export default function ZuccalandAdminPage() {
                         : 'Aperto (Illimitato)'}
                     </span>
                   </div>
+
+                  {/* Toggle Attivazione Data sul Sito (Specifico per Domenica 25 Ottobre) */}
+                  {dayKey === '25' && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.85rem',
+                      background: limits.active ? 'rgba(74,222,128,0.08)' : 'rgba(234,88,12,0.08)',
+                      border: `1.5px solid ${limits.active ? 'rgba(74,222,128,0.35)' : 'rgba(234,88,12,0.3)'}`,
+                      borderRadius: 'var(--radius-md)',
+                      marginBottom: '1rem',
+                      gap: '0.75rem'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: limits.active ? '#4ade80' : '#fb923c', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span>{limits.active ? '🟢 Data Visibile e Prenotabile' : '⚪ Data Nascosta sul Sito'}</span>
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--neutral-400)', marginTop: '0.15rem' }}>
+                          {limits.active ? 'La prenotazione per il 25 Ottobre è visibile al pubblico.' : 'Attiva questo toggle quando vuoi mostrare e aprire la prenotazione.'}
+                        </div>
+                      </div>
+                      <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', flexShrink: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(limits.active)}
+                          onChange={e => updateDateLimit('25', 'active', e.target.checked)}
+                          style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span style={{
+                          position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                          backgroundColor: limits.active ? '#22c55e' : 'var(--neutral-700)',
+                          transition: '0.2s', borderRadius: '24px'
+                        }}>
+                          <span style={{
+                            position: 'absolute', content: '""', height: '20px', width: '20px', left: limits.active ? '25px' : '3px', bottom: '3px',
+                            backgroundColor: 'white', transition: '0.2s', borderRadius: '50%'
+                          }} />
+                        </span>
+                      </label>
+                    </div>
+                  )}
 
                   {/* Statistiche Realtime Biglietti */}
                   <div style={{

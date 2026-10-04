@@ -303,13 +303,16 @@ export function parseOrderNotes(notes?: string | null) {
   }
 
   let eventDate: string | null = null;
-  let dayKey: '10' | '11' | 'unspecified' = 'unspecified';
+  let dayKey: '10' | '11' | '25' | 'unspecified' = 'unspecified';
   const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
   if (dateMatch) {
     eventDate = dateMatch[1].trim();
   }
   
-  if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
+  if (eventDate?.includes('25') || notes.includes('25 Ottobre')) {
+    dayKey = '25';
+    if (!eventDate) eventDate = 'Domenica 25 Ottobre 2026';
+  } else if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
     dayKey = '10';
     if (!eventDate) eventDate = 'Sabato 10 Ottobre 2026';
   } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
@@ -348,6 +351,7 @@ export interface ZuccalandStatsResult {
   perDay: {
     '10': ZuccalandDayStats;
     '11': ZuccalandDayStats;
+    '25': ZuccalandDayStats;
     'unspecified': ZuccalandDayStats;
   };
 }
@@ -355,6 +359,7 @@ export interface ZuccalandStatsResult {
 export interface ZuccalandDateCounts {
   '10': { admissionTickets: number; totalTickets: number; orders: number };
   '11': { admissionTickets: number; totalTickets: number; orders: number };
+  '25': { admissionTickets: number; totalTickets: number; orders: number };
 }
 
 export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
@@ -362,6 +367,7 @@ export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
   const counts: ZuccalandDateCounts = {
     '10': { admissionTickets: 0, totalTickets: 0, orders: 0 },
     '11': { admissionTickets: 0, totalTickets: 0, orders: 0 },
+    '25': { admissionTickets: 0, totalTickets: 0, orders: 0 },
   };
 
   try {
@@ -387,7 +393,7 @@ export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
 
     for (const o of orders) {
       const parsed = parseOrderNotes(o.notes);
-      if (parsed.dayKey !== '10' && parsed.dayKey !== '11') continue;
+      if (parsed.dayKey !== '10' && parsed.dayKey !== '11' && parsed.dayKey !== '25') continue;
 
       const oTickets = tickets.filter(t => t.orderId === o.id);
       const oAdmissionTix = oTickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length;
@@ -409,6 +415,7 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
   const perDay: ZuccalandStatsResult['perDay'] = {
     '10': { title: 'Sabato 10 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
     '11': { title: 'Domenica 11 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '25': { title: 'Domenica 25 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
     'unspecified': { title: 'Altre date / Non specificata', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} }
   };
 

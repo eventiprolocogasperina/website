@@ -16,10 +16,16 @@ export async function POST(request: Request) {
     // Check Zuccaland date capacity and Sold Out status
     if (eventId === 'zuccaland-2026') {
       const parsed = parseOrderNotes(notes || '');
-      if (parsed.dayKey === '10' || parsed.dayKey === '11') {
+      if (parsed.dayKey === '10' || parsed.dayKey === '11' || parsed.dayKey === '25') {
         const pageContent = await getPageContent<ZuccalandContent>('zuccaland', DEFAULT_ZUCCALAND_CONTENT);
         const dayLimit = pageContent.dateLimits?.[parsed.dayKey];
-        const dayName = parsed.dayKey === '10' ? 'Sabato 10 Ottobre' : 'Domenica 11 Ottobre';
+        const dayName = parsed.dayKey === '10' ? 'Sabato 10 Ottobre' : (parsed.dayKey === '11' ? 'Domenica 11 Ottobre' : 'Domenica 25 Ottobre');
+
+        if (parsed.dayKey === '25' && !dayLimit?.active) {
+          return NextResponse.json({
+            error: 'Le prenotazioni per la data di Domenica 25 Ottobre non sono al momento aperte.'
+          }, { status: 400 });
+        }
 
         if (dayLimit?.manualSoldOut) {
           return NextResponse.json({

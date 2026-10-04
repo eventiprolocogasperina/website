@@ -260,6 +260,7 @@ function ZuccalandTicketBuyer({
   initialDateCounts?: {
     '10': { admissionTickets: number; totalTickets: number; orders: number };
     '11': { admissionTickets: number; totalTickets: number; orders: number };
+    '25': { admissionTickets: number; totalTickets: number; orders: number };
   };
 }) {
   const router = useRouter();
@@ -271,7 +272,10 @@ function ZuccalandTicketBuyer({
   const dateLimits = useMemo(() => ({
     '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(content.dateLimits?.['10'] || {}) },
     '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(content.dateLimits?.['11'] || {}) },
+    '25': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['25']!, ...(content.dateLimits?.['25'] || {}) },
   }), [content.dateLimits]);
+
+  const is25Active = Boolean(dateLimits['25']?.active);
 
   const isSoldOut10 = Boolean(
     dateLimits['10'].manualSoldOut ||
@@ -283,24 +287,39 @@ function ZuccalandTicketBuyer({
     (dateLimits['11'].enabled && (initialDateCounts?.['11']?.admissionTickets ?? 0) >= dateLimits['11'].maxTickets)
   );
 
-  const allSoldOut = isSoldOut10 && isSoldOut11;
+  const isSoldOut25 = Boolean(
+    !is25Active ||
+    dateLimits['25']?.manualSoldOut ||
+    (dateLimits['25'].enabled && (initialDateCounts?.['25']?.admissionTickets ?? 0) >= dateLimits['25'].maxTickets)
+  );
+
+  const allSoldOut = is25Active
+    ? (isSoldOut10 && isSoldOut11 && isSoldOut25)
+    : (isSoldOut10 && isSoldOut11);
 
   const initialQty: Record<string, number> = {};
   ticketTypes.forEach(t => { initialQty[t.id] = 0; });
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [selectedDay, setSelectedDay] = useState<'10 Ottobre' | '11 Ottobre'>(() => {
-    if (isSoldOut10 && !isSoldOut11) return '11 Ottobre';
+  const [selectedDay, setSelectedDay] = useState<'10 Ottobre' | '11 Ottobre' | '25 Ottobre'>(() => {
+    if (!isSoldOut10) return '10 Ottobre';
+    if (!isSoldOut11) return '11 Ottobre';
+    if (is25Active && !isSoldOut25) return '25 Ottobre';
     return '10 Ottobre';
   });
 
   useEffect(() => {
-    if (selectedDay === '10 Ottobre' && isSoldOut10 && !isSoldOut11) {
-      setSelectedDay('11 Ottobre');
-    } else if (selectedDay === '11 Ottobre' && isSoldOut11 && !isSoldOut10) {
-      setSelectedDay('10 Ottobre');
+    if (selectedDay === '10 Ottobre' && isSoldOut10) {
+      if (!isSoldOut11) setSelectedDay('11 Ottobre');
+      else if (is25Active && !isSoldOut25) setSelectedDay('25 Ottobre');
+    } else if (selectedDay === '11 Ottobre' && isSoldOut11) {
+      if (!isSoldOut10) setSelectedDay('10 Ottobre');
+      else if (is25Active && !isSoldOut25) setSelectedDay('25 Ottobre');
+    } else if (selectedDay === '25 Ottobre' && (!is25Active || isSoldOut25)) {
+      if (!isSoldOut10) setSelectedDay('10 Ottobre');
+      else if (!isSoldOut11) setSelectedDay('11 Ottobre');
     }
-  }, [isSoldOut10, isSoldOut11, selectedDay]);
+  }, [isSoldOut10, isSoldOut11, isSoldOut25, is25Active, selectedDay]);
 
   const [quantities, setQuantities] = useState<Record<string, number>>(initialQty);
   const [numChildren, setNumChildren] = useState(0);
@@ -337,7 +356,7 @@ function ZuccalandTicketBuyer({
   useEffect(() => {
     if (selectedDay === '10 Ottobre') {
       setSelectedActivities(prev => prev.filter(id => id !== 'facepainting'));
-    } else if (selectedDay === '11 Ottobre') {
+    } else if (selectedDay === '11 Ottobre' || selectedDay === '25 Ottobre') {
       setSelectedActivities(prev => prev.filter(id => id !== 'zucca_vaso'));
     }
   }, [selectedDay]);
@@ -374,7 +393,7 @@ function ZuccalandTicketBuyer({
   const toggleActivity = (actId: string) => {
     // Guard against day restrictions
     if (selectedDay === '10 Ottobre' && actId === 'facepainting') return;
-    if (selectedDay === '11 Ottobre' && actId === 'zucca_vaso') return;
+    if ((selectedDay === '11 Ottobre' || selectedDay === '25 Ottobre') && actId === 'zucca_vaso') return;
 
     setSelectedActivities(prev =>
       prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId]
@@ -435,10 +454,14 @@ function ZuccalandTicketBuyer({
       return;
     }
 
-    const currentDayKey = selectedDay === '10 Ottobre' ? '10' : '11';
+    const currentDayKey: '10' | '11' | '25' = selectedDay === '10 Ottobre' ? '10' : (selectedDay === '11 Ottobre' ? '11' : '25');
     const currentDayLimit = dateLimits[currentDayKey];
-    if (currentDayLimit?.manualSoldOut || (currentDayLimit?.enabled && (initialDateCounts?.[currentDayKey]?.admissionTickets ?? 0) >= currentDayLimit.maxTickets)) {
-      alert(`Spiacenti, i biglietti per la data di ${selectedDay} sono esauriti (Sold Out).`);
+    if (
+      (currentDayKey === '25' && !is25Active) ||
+      currentDayLimit?.manualSoldOut ||
+      (currentDayLimit?.enabled && (initialDateCounts?.[currentDayKey]?.admissionTickets ?? 0) >= currentDayLimit.maxTickets)
+    ) {
+      alert(`Spiacenti, i biglietti per la data di ${selectedDay} non sono disponibili o sono esauriti (Sold Out).`);
       return;
     }
 
@@ -463,7 +486,8 @@ function ZuccalandTicketBuyer({
 
       const actLabels = selectedActivities.map(id => freeActivities.find(a => a.id === id)?.label || id);
 
-      let orderNotes = `Data: ${selectedDay === '10 Ottobre' ? 'Sabato 10 Ottobre 2026' : 'Domenica 11 Ottobre 2026'} | Bambini: ${numChildren}/${totalBase}`;
+      const dayFormatted = selectedDay === '10 Ottobre' ? 'Sabato 10 Ottobre 2026' : (selectedDay === '11 Ottobre' ? 'Domenica 11 Ottobre 2026' : 'Domenica 25 Ottobre 2026');
+      let orderNotes = `Data: ${dayFormatted} | Bambini: ${numChildren}/${totalBase}`;
       if (actLabels.length > 0) {
         orderNotes += ` | Attività [${targetLabel}]: ${actLabels.join(', ')}`;
       }
@@ -680,11 +704,13 @@ function ZuccalandTicketBuyer({
                             Scegli il giorno di partecipazione
                           </div>
                           <div style={{ fontSize: '0.78rem', color: '#9a3412' }}>
-                            Il villaggio è aperto sabato 10 e domenica 11 ottobre dalle ore 10:30
+                            {is25Active
+                              ? 'Il villaggio è aperto sabato 10, domenica 11 e domenica 25 ottobre dalle ore 10:30'
+                              : 'Il villaggio è aperto sabato 10 e domenica 11 ottobre dalle ore 10:30'}
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: is25Active ? 'repeat(auto-fit, minmax(130px, 1fr))' : '1fr 1fr', gap: '0.6rem' }}>
                         <button
                           type="button"
                           onClick={() => {
@@ -783,8 +809,59 @@ function ZuccalandTicketBuyer({
                             {isSoldOut11 ? 'Non prenotabile' : 'Thriller Dance & Zuccart'}
                           </div>
                         </button>
+                        {is25Active && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isSoldOut25) setSelectedDay('25 Ottobre');
+                            }}
+                            disabled={isSoldOut25}
+                            style={{
+                              padding: '0.75rem 0.4rem',
+                              borderRadius: '1rem',
+                              border: `2px solid ${isSoldOut25 ? '#e7e5e4' : selectedDay === '25 Ottobre' ? '#ea580c' : '#fed7aa'}`,
+                              background: isSoldOut25 ? '#f5f5f4' : selectedDay === '25 Ottobre' ? '#fff7ed' : '#fafaf9',
+                              color: isSoldOut25 ? '#a8a29e' : selectedDay === '25 Ottobre' ? '#ea580c' : '#78350f',
+                              fontWeight: 800,
+                              fontSize: 'clamp(0.78rem, 3.2vw, 0.88rem)',
+                              cursor: isSoldOut25 ? 'not-allowed' : 'pointer',
+                              textAlign: 'center',
+                              boxShadow: (!isSoldOut25 && selectedDay === '25 Ottobre') ? '0 4px 12px rgba(234,88,12,0.15)' : 'none',
+                              transition: 'all 0.2s',
+                              lineHeight: 1.25,
+                              position: 'relative',
+                              opacity: isSoldOut25 ? 0.65 : 1,
+                            }}
+                          >
+                            {isSoldOut25 && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '-8px',
+                                right: '-4px',
+                                background: '#ef4444',
+                                color: 'white',
+                                fontSize: '0.62rem',
+                                fontWeight: 900,
+                                padding: '2px 6px',
+                                borderRadius: '999px',
+                                letterSpacing: '0.5px',
+                                boxShadow: '0 2px 6px rgba(239,68,68,0.3)',
+                                textTransform: 'uppercase',
+                              }}>
+                                Sold Out
+                              </div>
+                            )}
+                            <div style={{ textDecoration: isSoldOut25 ? 'line-through' : 'none' }}>🎃 Domenica 25 Ottobre</div>
+                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isSoldOut25 ? '#ef4444' : selectedDay === '25 Ottobre' ? '#c2410c' : '#9a3412', marginTop: '0.2rem' }}>
+                              {isSoldOut25 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
+                            </div>
+                            <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut25 ? '#d6d3d1' : selectedDay === '25 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
+                              {isSoldOut25 ? 'Non prenotabile' : 'Thriller Dance & Zuccart'}
+                            </div>
+                          </button>
+                        )}
                       </div>
-                      {(isSoldOut10 || isSoldOut11) && !allSoldOut && (
+                      {(isSoldOut10 || isSoldOut11 || (is25Active && isSoldOut25)) && !allSoldOut && (
                         <div style={{
                           marginTop: '0.75rem',
                           padding: '0.55rem 0.85rem',
@@ -800,9 +877,13 @@ function ZuccalandTicketBuyer({
                         }}>
                           <span>⚠️</span>
                           <span>
-                            {isSoldOut10
-                              ? 'I posti per Sabato 10 Ottobre sono esauriti. Puoi ancora prenotare per Domenica 11 Ottobre!'
-                              : 'I posti per Domenica 11 Ottobre sono esauriti. Puoi ancora prenotare per Sabato 10 Ottobre!'}
+                            {isSoldOut10 && isSoldOut11
+                              ? 'I posti per il 10 e 11 Ottobre sono esauriti. Puoi ancora prenotare per Domenica 25 Ottobre!'
+                              : isSoldOut10
+                              ? `I posti per Sabato 10 Ottobre sono esauriti. Puoi ancora prenotare per ${is25Active ? 'Domenica 11 o 25 Ottobre' : 'Domenica 11 Ottobre'}!`
+                              : isSoldOut11
+                              ? `I posti per Domenica 11 Ottobre sono esauriti. Puoi ancora prenotare per ${is25Active ? 'Sabato 10 o Domenica 25 Ottobre' : 'Sabato 10 Ottobre'}!`
+                              : 'I posti per Domenica 25 Ottobre sono esauriti. Puoi ancora prenotare per Sabato 10 o Domenica 11 Ottobre!'}
                           </span>
                         </div>
                       )}
@@ -1243,7 +1324,7 @@ function ZuccalandTicketBuyer({
                     {freeActivities.map(act => {
                       const isSaturdayOnly = act.id === 'zucca_vaso';
                       const isSundayOnly = act.id === 'facepainting';
-                      const isDayDisabled = (selectedDay === '10 Ottobre' && isSundayOnly) || (selectedDay === '11 Ottobre' && isSaturdayOnly);
+                      const isDayDisabled = (selectedDay === '10 Ottobre' && isSundayOnly) || ((selectedDay === '11 Ottobre' || selectedDay === '25 Ottobre') && isSaturdayOnly);
                       const isSelected = selectedActivities.includes(act.id);
                       const icon = getActivityIcon(act);
                       const participantCount = numChildren > 0 && numChildren < totalBase && activityTarget === 'children'
@@ -2472,6 +2553,7 @@ export default function ZuccalandClient({
   initialDateCounts?: {
     '10': { admissionTickets: number; totalTickets: number; orders: number };
     '11': { admissionTickets: number; totalTickets: number; orders: number };
+    '25': { admissionTickets: number; totalTickets: number; orders: number };
   };
 }) {
   // Merge with defaults to prevent crashes if DB row exists but is empty
@@ -2481,6 +2563,7 @@ export default function ZuccalandClient({
     dateLimits: {
       '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(rawContent?.dateLimits?.['10'] || {}) },
       '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(rawContent?.dateLimits?.['11'] || {}) },
+      '25': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['25']!, ...(rawContent?.dateLimits?.['25'] || {}) },
     },
     infoCards: rawContent?.infoCards || DEFAULT_ZUCCALAND_CONTENT.infoCards,
     ticketTypes: rawContent?.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes,
@@ -2490,6 +2573,8 @@ export default function ZuccalandClient({
     tickets: { ...DEFAULT_ZUCCALAND_CONTENT.tickets, ...(rawContent?.tickets || {}) },
     faqs: rawContent?.faqs || DEFAULT_ZUCCALAND_CONTENT.faqs,
   }), [rawContent]);
+
+  const is25Active = Boolean(content.dateLimits['25']?.active);
 
   const isSoldOut10 = Boolean(
     content.dateLimits['10'].manualSoldOut ||
@@ -2501,29 +2586,27 @@ export default function ZuccalandClient({
     (content.dateLimits['11'].enabled && (initialDateCounts?.['11']?.admissionTickets ?? 0) >= content.dateLimits['11'].maxTickets)
   );
 
-  const allSoldOut = isSoldOut10 && isSoldOut11;
+  const isSoldOut25 = Boolean(
+    !is25Active ||
+    content.dateLimits['25']?.manualSoldOut ||
+    (content.dateLimits['25']?.enabled && (initialDateCounts?.['25']?.admissionTickets ?? 0) >= content.dateLimits['25'].maxTickets)
+  );
+
+  const allSoldOut = is25Active
+    ? (isSoldOut10 && isSoldOut11 && isSoldOut25)
+    : (isSoldOut10 && isSoldOut11);
 
   const [phase, setPhase] = useState<EventPhase>('on-sale');
   const [mounted, setMounted] = useState(false);
   const [activeSection, setActiveSection] = useState<'hero' | 'attivita' | 'programma' | 'info' | 'acquista' | 'faq'>('hero');
-  const [showSoldOutPopup, setShowSoldOutPopup] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     setPhase(getEventPhase(content.event));
-    
-    if (!sessionStorage.getItem('zuccaland_soldout_popup_dismissed')) {
-      setShowSoldOutPopup(true);
-    }
 
     const interval = setInterval(() => setPhase(getEventPhase(content.event)), 30000);
     return () => clearInterval(interval);
   }, [content.event]);
-
-  const closePopup = () => {
-    setShowSoldOutPopup(false);
-    sessionStorage.setItem('zuccaland_soldout_popup_dismissed', 'true');
-  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -2566,114 +2649,6 @@ export default function ZuccalandClient({
 
       {/* Easter Egg */}
       <FallingPumpkins />
-
-      <AnimatePresence>
-        {showSoldOutPopup && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '1rem',
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              style={{
-                background: 'linear-gradient(180deg, #ffedd5 0%, #fff7ed 100%)',
-                borderRadius: '1.5rem',
-                maxWidth: '560px',
-                width: '100%',
-                position: 'relative',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-                overflow: 'hidden',
-                border: '2px solid #fed7aa',
-                maxHeight: '90vh',
-                overflowY: 'auto'
-              }}
-            >
-              {/* Top graphic area */}
-              <div style={{ position: 'relative', background: '#ea580c', padding: '2.5rem 1.5rem 2rem', textAlign: 'center', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: 0, opacity: 0.2, backgroundImage: 'url("/img/zuccaland/Pumpink.png")', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                <button
-                  onClick={closePopup}
-                  style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
-                >
-                  <X size={20} />
-                </button>
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <h2 style={{ fontFamily: 'var(--font-display)', color: '#ffedd5', fontSize: '3.5rem', margin: '0 0 0.5rem', lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
-                    Zuccaland
-                  </h2>
-                  <div style={{ color: '#fef08a', fontSize: '2.8rem', fontWeight: 900, letterSpacing: '-1px', textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
-                    <span style={{ fontSize: '1.5rem', verticalAlign: 'middle', marginRight: '0.5rem' }}>è</span>
-                    SOLD-OUT
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
-                <p style={{ color: '#9a3412', fontSize: '1.05rem', fontWeight: 600, marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                  Avete risposto in tantissimi e velocemente: avete fatto registrare il tutto esaurito per le uniche date annunciate ufficialmente!
-                </p>
-                <p style={{ color: '#78350f', fontSize: '0.95rem', marginBottom: '1.75rem', lineHeight: 1.5 }}>
-                  I biglietti disponibili erano a numero limitato, una scelta necessaria per garantire la massima sicurezza, il comfort e una gestione ottimale dell&apos;evento.
-                </p>
-                
-                <h3 style={{ color: '#ea580c', fontSize: '2rem', fontWeight: 900, textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '1px' }}>
-                  MA ATTENZIONE
-                </h3>
-                
-                <p style={{ color: '#9a3412', fontSize: '1.05rem', fontWeight: 600, marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                  L&apos;incredibile richiesta ci sta spingendo a valutare una possibile nuova data di Zuccaland e stiamo già lavorando per capire se sarà possibile aggiungere un altro appuntamento.
-                </p>
-                
-                <p style={{ color: '#b45309', fontSize: '0.95rem', fontWeight: 700, marginBottom: '2.5rem' }}>
-                  Non è ancora ufficiale: restate perciò connessi e seguite attentamente i nostri canali
-                </p>
-                
-                <div style={{ fontFamily: 'var(--font-display)', color: '#ea580c', fontSize: '3.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '1.4rem', fontFamily: 'system-ui, sans-serif', fontWeight: 600, color: '#9a3412' }}>Nel frattempo,</span>
-                  Grazie!
-                </div>
-                
-                <button
-                  onClick={closePopup}
-                  style={{
-                    background: '#ea580c',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.85rem 2.5rem',
-                    borderRadius: '999px',
-                    fontWeight: 800,
-                    fontSize: '1rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(234,88,12,0.4)',
-                    marginTop: '2rem',
-                    transition: 'transform 0.2s, boxShadow 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  Chiudi e scopri l&apos;evento
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Redesigned Useful Sticky Navigation Bar ── */}
       <motion.nav

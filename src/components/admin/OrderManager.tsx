@@ -29,8 +29,8 @@ export default function OrderManager() {
   // Navigation tabs: 'all' | 'zuccaland-2026' | 'assaggia-passeggia'
   const [activeTab, setActiveTab] = useState<'all' | 'zuccaland-2026' | 'assaggia-passeggia'>('all');
   
-  // Day filter for Zuccaland (multi-date: 10 vs 11 Ottobre)
-  const [zuccalandDayFilter, setZuccalandDayFilter] = useState<'all' | '10' | '11'>('all');
+  // Day filter for Zuccaland (multi-date: 10, 11, 25 Ottobre)
+  const [zuccalandDayFilter, setZuccalandDayFilter] = useState<'all' | '10' | '11' | '25'>('all');
 
   const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
   const [testingOrder, setTestingOrder] = useState(false);
@@ -423,9 +423,11 @@ export default function OrderManager() {
       if (activeTab === 'zuccaland-2026' && zuccalandDayFilter !== 'all') {
         const parsed = parseOrderNotes(o.notes);
         if (zuccalandDayFilter === '10') {
-          matchesDay = parsed.eventDate ? parsed.eventDate.includes('10') : true;
+          matchesDay = parsed.dayKey === '10' || (parsed.eventDate ? parsed.eventDate.includes('10') : false);
         } else if (zuccalandDayFilter === '11') {
-          matchesDay = parsed.eventDate ? parsed.eventDate.includes('11') : false;
+          matchesDay = parsed.dayKey === '11' || (parsed.eventDate ? parsed.eventDate.includes('11') : false);
+        } else if (zuccalandDayFilter === '25') {
+          matchesDay = parsed.dayKey === '25' || (parsed.eventDate ? parsed.eventDate.includes('25') : false);
         }
       }
 
@@ -495,9 +497,10 @@ export default function OrderManager() {
       if (o.status !== 'PAID' || getOrderEventId(o) !== 'zuccaland-2026') return false;
       if (zuccalandDayFilter === 'all') return true;
       const parsed = parseOrderNotes(o.notes);
-      return zuccalandDayFilter === '10' 
-        ? (parsed.eventDate ? parsed.eventDate.includes('10') : true)
-        : (parsed.eventDate ? parsed.eventDate.includes('11') : false);
+      if (zuccalandDayFilter === '10') return parsed.dayKey === '10' || (parsed.eventDate ? parsed.eventDate.includes('10') : false);
+      if (zuccalandDayFilter === '11') return parsed.dayKey === '11' || (parsed.eventDate ? parsed.eventDate.includes('11') : false);
+      if (zuccalandDayFilter === '25') return parsed.dayKey === '25' || (parsed.eventDate ? parsed.eventDate.includes('25') : false);
+      return true;
     });
 
     const revenue = zuccalandPaid.reduce((s, o) => s + o.totalAmount, 0);
@@ -1117,6 +1120,22 @@ export default function OrderManager() {
                 >
                   🎃 Dom 11 Ott
                 </button>
+                <button
+                  onClick={() => setZuccalandDayFilter('25')}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: zuccalandDayFilter === '25' ? '#ea580c' : 'transparent',
+                    color: zuccalandDayFilter === '25' ? '#ffffff' : 'var(--color-heading)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  🎃 Dom 25 Ott
+                </button>
               </div>
 
               {/* Action Button for Time Correction Broadcast */}
@@ -1207,7 +1226,7 @@ export default function OrderManager() {
                   🎨 Partecipazione Laboratori Gratuiti
                 </h4>
                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
-                  Iscrizioni registrate tramite checkout {zuccalandDayFilter !== 'all' ? `(${zuccalandDayFilter === '10' ? 'Sabato 10' : 'Domenica 11'})` : 'sull\'intero evento'}
+                  Iscrizioni registrate tramite checkout {zuccalandDayFilter !== 'all' ? `(${zuccalandDayFilter === '10' ? 'Sabato 10' : (zuccalandDayFilter === '11' ? 'Domenica 11' : 'Domenica 25')})` : 'sull\'intero evento'}
                 </p>
               </div>
               <span style={{ fontSize: '1.1rem' }}>🎃</span>

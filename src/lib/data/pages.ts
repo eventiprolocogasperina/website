@@ -115,11 +115,13 @@ export interface ZuccalandDateLimit {
   enabled: boolean;          // Toggle: abilita/disabilita il limite di capienza
   maxTickets: number;        // Numero massimo di biglietti consentiti (capienza)
   manualSoldOut?: boolean;   // Toggle: forza la data come Sold Out manuale
+  active?: boolean;          // Toggle: attiva/mostra la data sul sito (per date aggiuntive come il 25 ottobre)
 }
 
 export interface ZuccalandDateLimits {
   '10': ZuccalandDateLimit;  // Sabato 10 Ottobre
   '11': ZuccalandDateLimit;  // Domenica 11 Ottobre
+  '25'?: ZuccalandDateLimit; // Domenica 25 Ottobre
 }
 
 export interface ZuccalandContent {
@@ -170,6 +172,7 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
   dateLimits: {
     '10': { enabled: false, maxTickets: 300, manualSoldOut: false },
     '11': { enabled: false, maxTickets: 300, manualSoldOut: false },
+    '25': { enabled: false, maxTickets: 300, manualSoldOut: false, active: false },
   },
   infoCards: [
     {

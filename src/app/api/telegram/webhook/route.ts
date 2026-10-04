@@ -58,6 +58,11 @@ function formatZuccalandPerData(stats: ZuccalandStatsResult): string {
     `\n\n━━━━━━━━━━━━━━━━━━━━\n\n` +
     renderDaySection(stats.perDay['11'], 'DOMENICA 11 OTTOBRE 2026', '🟨');
 
+  if (stats.perDay['25'] && (stats.perDay['25'].tickets > 0 || stats.perDay['25'].orders > 0)) {
+    reply += `\n\n━━━━━━━━━━━━━━━━━━━━\n\n` +
+      renderDaySection(stats.perDay['25'], 'DOMENICA 25 OTTOBRE 2026', '🎃');
+  }
+
   if (stats.perDay['unspecified'].tickets > 0 || stats.perDay['unspecified'].orders > 0) {
     reply += `\n\n━━━━━━━━━━━━━━━━━━━━\n\n` +
       renderDaySection(stats.perDay['unspecified'], 'DATA NON SPECIFICATA / ALTRE', '⚪');
