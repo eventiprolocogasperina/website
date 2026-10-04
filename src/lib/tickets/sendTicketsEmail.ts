@@ -86,7 +86,9 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
       ? 'Sabato 10 Ottobre' 
       : parsedNotes.dayKey === '11' 
         ? 'Domenica 11 Ottobre' 
-        : '10-11 Ottobre';
+        : parsedNotes.dayKey === '25'
+          ? 'Domenica 25 Ottobre'
+          : '10, 11 o 25 Ottobre';
 
     const { error } = await resend.emails.send({
       from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
@@ -164,19 +166,19 @@ interface ParsedNotes {
   activities: string[];
   numChildren: number;
   target: string;
-  dayKey: '10' | '11' | 'unspecified';
+  dayKey: '10' | '11' | '25' | 'unspecified';
   eventDate: string;
   fullDateWithTime: string;
   rawNotes: string;
 }
 
 function parseOrderNotes(notes?: string | null): ParsedNotes {
-  if (!notes) return { activities: [], numChildren: 0, target: '', dayKey: 'unspecified', eventDate: '', fullDateWithTime: '10-11 Ottobre 2026 - Ingresso dalle ore 10:30', rawNotes: '' };
+  if (!notes) return { activities: [], numChildren: 0, target: '', dayKey: 'unspecified', eventDate: '', fullDateWithTime: '10, 11 o 25 Ottobre 2026 - Ingresso dalle ore 10:30', rawNotes: '' };
   
   let numChildren = 0;
   let target = '';
   let activities: string[] = [];
-  let dayKey: '10' | '11' | 'unspecified' = 'unspecified';
+  let dayKey: '10' | '11' | '25' | 'unspecified' = 'unspecified';
   let eventDate = '';
 
   const kidsMatch = notes.match(/Bambini:\s*(\d+)\/(\d+)/i);
@@ -196,7 +198,10 @@ function parseOrderNotes(notes?: string | null): ParsedNotes {
     eventDate = dateMatch[1].trim();
   }
 
-  if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
+  if (eventDate?.includes('25') || notes.includes('25 Ottobre')) {
+    dayKey = '25';
+    eventDate = 'Domenica 25 Ottobre 2026';
+  } else if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
     dayKey = '10';
     eventDate = 'Sabato 10 Ottobre 2026';
   } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
@@ -204,11 +209,13 @@ function parseOrderNotes(notes?: string | null): ParsedNotes {
     eventDate = 'Domenica 11 Ottobre 2026';
   }
 
-  let fullDateWithTime = '10-11 Ottobre 2026 - Ingresso dalle ore 10:30';
+  let fullDateWithTime = '10, 11 o 25 Ottobre 2026 - Ingresso dalle ore 10:30';
   if (dayKey === '10') {
     fullDateWithTime = 'Sabato 10 Ottobre 2026 - Ingresso dalle ore 10:30';
   } else if (dayKey === '11') {
     fullDateWithTime = 'Domenica 11 Ottobre 2026 - Ingresso dalle ore 10:30';
+  } else if (dayKey === '25') {
+    fullDateWithTime = 'Domenica 25 Ottobre 2026 - Ingresso dalle ore 10:30';
   }
 
   return { activities, numChildren, target, dayKey, eventDate, fullDateWithTime, rawNotes: notes };
@@ -440,7 +447,7 @@ function buildZuccalandEmailHtml(
               <img src="cid:event_header_logo" alt="Zuccaland 2026" style="height:85px;margin-bottom:12px;object-fit:contain;" />
               <div style="color:#7c2d12;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Il villaggio delle zucche di Gasperina</div>
               <div style="display:inline-block;background:#fff7ed;border:1px solid #fdba74;color:#ea580c;font-size:12px;margin-top:10px;font-weight:800;padding:4px 14px;border-radius:999px;">
-                🎃 ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10 e 11 Ottobre 2026'} · Ingresso dalle ore 10:30 · Gasperina (CZ)
+                🎃 ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10, 11 o 25 Ottobre 2026'} · Ingresso dalle ore 10:30 · Gasperina (CZ)
               </div>
             </td>
           </tr>
@@ -471,7 +478,7 @@ function buildZuccalandEmailHtml(
                   <tr>
                     <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;font-weight:700;">📅 Data di Ingresso:</td>
                     <td style="text-align:right;font-size:12.5px;color:#ea580c;font-weight:800;padding-bottom:10px;">
-                      ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10 o 11 Ottobre 2026'}<br/>
+                      ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10, 11 o 25 Ottobre 2026'}<br/>
                       <span style="font-size:11.5px;color:#c2410c;font-weight:600;">Ingresso dalle ore 10:30</span>
                     </td>
                   </tr>
@@ -564,7 +571,7 @@ function buildZuccalandEmailHtml(
               <div style="background:#ffedd5;border-radius:14px;padding:18px 20px;border:1px solid #fdba74;margin-bottom:24px;">
                 <div style="font-size:14px;font-weight:800;color:#c2410c;margin-bottom:8px;">📋 Informazioni per l'ingresso</div>
                 <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#9a3412;line-height:1.7;font-weight:500;">
-                  <li><strong>Orario di apertura cancelli:</strong> dalle <strong>ore 10:30</strong> per la giornata di <strong>${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : 'Sabato 10 o Domenica 11 Ottobre'}</strong></li>
+                  <li><strong>Orario di apertura cancelli:</strong> dalle <strong>ore 10:30</strong> per la giornata di <strong>${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : 'Sabato 10, Domenica 11 o Domenica 25 Ottobre'}</strong></li>
                   <li>Mostra il <strong>QR Code</strong> presente in questa email o nel PDF allegato direttamente dallo smartphone</li>
                   <li>Presentalo all'ingresso dedicato alle prenotazioni online per ritirare i braccialetti/biglietti</li>
                   <li>La ricevuta è personale e valida per tutto il tuo gruppo</li>

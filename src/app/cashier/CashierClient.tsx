@@ -95,7 +95,9 @@ export default function CashierClient() {
   const [cassaName, setCassaName] = useState('Cassa 1');
   const [operatorName, setOperatorName] = useState('');
   const [session, setSession] = useState<{
+    id?: string;
     eventId: string;
+    name?: string;
     eventName: string;
     categories: string[];
     items: CashierItem[];
@@ -108,6 +110,7 @@ export default function CashierClient() {
   const [activeCategory, setActiveCategory] = useState<string>('TUTTI');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<Record<string, number>>({});
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   
   // Checkout Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -171,7 +174,15 @@ export default function CashierClient() {
       const data = await res.json();
 
       if (data.success && data.event) {
-        setSession(data.event);
+        const ev = data.event;
+        const normalized = {
+          ...ev,
+          id: ev.id || ev.eventId,
+          eventId: ev.eventId || ev.id,
+          name: ev.name || ev.eventName,
+          eventName: ev.eventName || ev.name,
+        };
+        setSession(normalized);
         localStorage.setItem('cashier_event_code', codeToUse.trim().toUpperCase());
         localStorage.setItem('cashier_cassa_name', cassaName);
         if (operatorName) {
@@ -268,6 +279,7 @@ export default function CashierClient() {
     if (totalItemsCount > 0 && confirm('Vuoi svuotare l\'intero carrello?')) {
       playSound('delete');
       setCart({});
+      setIsMobileCartOpen(false);
     }
   };
 
@@ -287,7 +299,7 @@ export default function CashierClient() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          eventId: session.eventId,
+          eventId: session.eventId || session.id,
           itemId: item.id,
           isAvailable: newStatus
         })
@@ -329,6 +341,7 @@ export default function CashierClient() {
 
   const handleOpenCheckout = () => {
     if (totalItemsCount === 0) return;
+    setIsMobileCartOpen(false);
     setPaymentMethod('CONTANTI');
     setCashReceived(totalAmount); // default to exact amount
     setOmaggioNote('');
@@ -347,12 +360,15 @@ export default function CashierClient() {
 
     setSubmittingOrder(true);
     try {
+      const targetEventId = session.eventId || session.id;
+      const targetEventName = session.eventName || session.name;
+
       const res = await fetch('/api/cashier/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          eventId: session.eventId,
-          eventName: session.eventName,
+          eventId: targetEventId,
+          eventName: targetEventName,
           cassaName,
           operatorName: operatorName || undefined,
           totalAmount,
@@ -390,7 +406,7 @@ export default function CashierClient() {
     if (!session) return;
     setLoadingZStats(true);
     try {
-      const url = `/api/cashier/stats?eventId=${session.eventId}${cassaFilter !== 'all' ? `&cassaName=${encodeURIComponent(cassaFilter)}` : ''}`;
+      const url = `/api/cashier/stats?eventId=${session.eventId || session.id}${cassaFilter !== 'all' ? `&cassaName=${encodeURIComponent(cassaFilter)}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success && data.stats) {
@@ -414,7 +430,7 @@ export default function CashierClient() {
     if (!session) return;
     setLoadingHistory(true);
     try {
-      const res = await fetch(`/api/cashier/orders?eventId=${session.eventId}&cassaName=${encodeURIComponent(cassaName)}`);
+      const res = await fetch(`/api/cashier/orders?eventId=${session.eventId || session.id}&cassaName=${encodeURIComponent(cassaName)}`);
       const data = await res.json();
       if (data.success && data.orders) {
         setRecentOrders(data.orders);
@@ -669,46 +685,57 @@ export default function CashierClient() {
     }}>
 
       {/* ── Top Cashier Bar ── */}
-      <header style={{
-        background: '#0f172a',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        padding: '0.65rem 1rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '0.65rem',
-        zIndex: 40
-      }}>
+      <header className="cashier-header">
         {/* Left: Event info & Cassa badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
           <div style={{
             background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
             color: 'white',
-            padding: '0.35rem 0.75rem',
+            padding: '0.3rem 0.6rem',
             borderRadius: '999px',
-            fontSize: '0.78rem',
+            fontSize: '0.72rem',
             fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.35rem'
+            gap: '0.25rem',
+            flexShrink: 0
           }}>
-            <Sparkles size={14} style={{ color: '#fbbf24' }} /> Pro Loco
+            <Sparkles size={13} style={{ color: '#fbbf24' }} /> Pro Loco
           </div>
 
-          <div>
-            <strong style={{ fontSize: '1rem', color: '#ffffff', display: 'block', lineHeight: 1.2 }}>
+          <div style={{ minWidth: 0 }}>
+            <strong className="cashier-header-title" style={{ fontSize: '0.92rem', color: '#ffffff', display: 'block', lineHeight: 1.2 }}>
               {session.eventName}
             </strong>
-            <div style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}>
               <span style={{ color: '#4ade80', fontWeight: 800 }}>● {cassaName}</span>
-              {operatorName && <span>| Op: <strong>{operatorName}</strong></span>}
+              {operatorName && <span className="hide-mobile">| Op: <strong>{operatorName}</strong></span>}
             </div>
           </div>
         </div>
 
-        {/* Right: Actions (Chiusura cassa, Cronologia, Refresh, Fullscreen, Logout) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {/* Right: Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+          {/* Mobile Cart Trigger Button */}
+          <button
+            onClick={() => setIsMobileCartOpen(true)}
+            className="mobile-cart-btn-header"
+            title="Apri carrello"
+            style={{
+              padding: '0.45rem 0.65rem',
+              borderRadius: '0.75rem',
+              background: totalItemsCount > 0 ? '#0284c7' : 'rgba(255, 255, 255, 0.06)',
+              border: totalItemsCount > 0 ? '1.5px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#ffffff',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            <ShoppingCart size={15} />
+            {totalItemsCount > 0 && <span>{totalItemsCount}</span>}
+          </button>
+
           <button
             onClick={handleOpenZReport}
             title="Chiusura Cassa e Riepilogo Contributi"
@@ -716,7 +743,7 @@ export default function CashierClient() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
-              padding: '0.45rem 0.8rem',
+              padding: '0.45rem 0.65rem',
               borderRadius: '0.75rem',
               background: 'rgba(234, 179, 8, 0.12)',
               border: '1px solid rgba(234, 179, 8, 0.3)',
@@ -726,7 +753,8 @@ export default function CashierClient() {
               cursor: 'pointer'
             }}
           >
-            <BarChart3 size={15} /> Chiusura Cassa
+            <BarChart3 size={15} />
+            <span className="hide-mobile">Chiusura Cassa</span>
           </button>
 
           <button
@@ -736,7 +764,7 @@ export default function CashierClient() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.35rem',
-              padding: '0.45rem 0.8rem',
+              padding: '0.45rem 0.65rem',
               borderRadius: '0.75rem',
               background: 'rgba(255, 255, 255, 0.06)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -746,7 +774,8 @@ export default function CashierClient() {
               cursor: 'pointer'
             }}
           >
-            <History size={15} /> Storico
+            <History size={15} />
+            <span className="hide-mobile">Storico</span>
           </button>
 
           <button
@@ -766,6 +795,7 @@ export default function CashierClient() {
 
           <button
             onClick={toggleFullscreen}
+            className="hide-mobile"
             title="Schermo intero (POS mode)"
             style={{
               padding: '0.45rem',
@@ -805,7 +835,7 @@ export default function CashierClient() {
       }} className="cashier-grid">
 
         {/* LEFT COLUMN: CATEGORIES & DISHES */}
-        <main style={{
+        <main className="cashier-main" style={{
           display: 'flex',
           flexDirection: 'column',
           padding: '1rem',
@@ -813,22 +843,23 @@ export default function CashierClient() {
           borderRight: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           {/* Category Tabs & Search */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.2rem', flex: 1 }}>
+          <div className="cashier-controls-row">
+            <div className="cashier-cat-scroll">
               {['TUTTI', ...session.categories].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   style={{
-                    padding: '0.6rem 1.1rem',
+                    padding: '0.55rem 1rem',
                     borderRadius: '0.85rem',
                     border: `1.5px solid ${activeCategory === cat ? '#38bdf8' : 'rgba(255,255,255,0.08)'}`,
                     background: activeCategory === cat ? '#0284c7' : 'rgba(30, 41, 59, 0.6)',
                     color: activeCategory === cat ? '#ffffff' : '#94a3b8',
-                    fontSize: '0.88rem',
+                    fontSize: '0.85rem',
                     fontWeight: 800,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
+                    flexShrink: 0,
                     transition: 'all 0.15s'
                   }}
                 >
@@ -838,7 +869,7 @@ export default function CashierClient() {
             </div>
 
             {/* Quick Search */}
-            <div style={{ position: 'relative', width: '180px' }}>
+            <div className="cashier-search-wrapper" style={{ position: 'relative' }}>
               <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
               <input
                 type="text"
@@ -847,7 +878,7 @@ export default function CashierClient() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '0.5rem 0.65rem 0.5rem 2rem',
+                  padding: '0.55rem 0.65rem 0.55rem 2.2rem',
                   borderRadius: '0.75rem',
                   background: 'rgba(15, 23, 42, 0.7)',
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -861,7 +892,7 @@ export default function CashierClient() {
           </div>
 
           {/* Dish Grid */}
-          <div style={{
+          <div className="cashier-dishes-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
             gap: '0.75rem',
@@ -877,6 +908,7 @@ export default function CashierClient() {
                   onClick={() => addToCart(item)}
                   onContextMenu={(e) => toggleItemAvailability(item, e)}
                   disabled={!isAvailable}
+                  className="cashier-dish-card"
                   style={{
                     position: 'relative',
                     background: !isAvailable
@@ -895,7 +927,7 @@ export default function CashierClient() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    minHeight: '140px',
+                    minHeight: '135px',
                     cursor: isAvailable ? 'pointer' : 'not-allowed',
                     transition: 'all 0.12s ease-out',
                     textAlign: 'center',
@@ -907,15 +939,16 @@ export default function CashierClient() {
                   {inCartQty > 0 && (
                     <div style={{
                       position: 'absolute',
-                      top: '8px',
-                      right: '8px',
+                      top: '6px',
+                      right: '6px',
                       background: '#0284c7',
                       color: 'white',
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       fontWeight: 900,
                       borderRadius: '999px',
-                      padding: '2px 8px',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                      padding: '2px 7px',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                      zIndex: 2
                     }}>
                       {inCartQty}x
                     </div>
@@ -925,40 +958,41 @@ export default function CashierClient() {
                   {!isAvailable && (
                     <div style={{
                       position: 'absolute',
-                      top: '8px',
-                      right: '8px',
+                      top: '6px',
+                      right: '6px',
                       background: '#ef4444',
                       color: 'white',
-                      fontSize: '0.65rem',
+                      fontSize: '0.62rem',
                       fontWeight: 900,
                       borderRadius: '999px',
-                      padding: '2px 6px',
-                      textTransform: 'uppercase'
+                      padding: '2px 5px',
+                      textTransform: 'uppercase',
+                      zIndex: 2
                     }}>
                       Esaurito
                     </div>
                   )}
 
                   {/* Emoji Icon */}
-                  <span style={{ fontSize: '2.5rem', marginBottom: '0.4rem', lineHeight: 1 }}>
+                  <span className="cashier-dish-emoji" style={{ fontSize: '2.4rem', marginBottom: '0.35rem', lineHeight: 1 }}>
                     {item.icon || '🍽️'}
                   </span>
 
                   {/* Name */}
-                  <div style={{
-                    fontSize: '0.92rem',
+                  <div className="cashier-dish-name" style={{
+                    fontSize: '0.9rem',
                     fontWeight: 750,
                     color: isAvailable ? '#f1f5f9' : '#94a3b8',
                     lineHeight: 1.25,
-                    marginBottom: '0.5rem',
+                    marginBottom: '0.4rem',
                     textDecoration: isAvailable ? 'none' : 'line-through'
                   }}>
                     {item.name}
                   </div>
 
                   {/* Contribution Price Badge */}
-                  <div style={{
-                    fontSize: '1.05rem',
+                  <div className="cashier-dish-price" style={{
+                    fontSize: '1.02rem',
                     fontWeight: 900,
                     color: inCartQty > 0 ? '#38bdf8' : '#34d399',
                     fontFamily: 'monospace'
@@ -978,7 +1012,7 @@ export default function CashierClient() {
         </main>
 
         {/* RIGHT COLUMN: CART / SCONTRINO CONTRIBUTI */}
-        <aside style={{
+        <aside className="desktop-cart-aside" style={{
           display: 'flex',
           flexDirection: 'column',
           background: '#0b1120',
@@ -1164,6 +1198,247 @@ export default function CashierClient() {
 
       </div>
 
+      {/* ── Mobile Floating Cart Bar (Bottom Sticky) ── */}
+      {totalItemsCount > 0 && (
+        <div className="mobile-cart-bar" style={{
+          position: 'fixed',
+          bottom: '12px',
+          left: '12px',
+          right: '12px',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          border: '1.5px solid rgba(56, 189, 248, 0.5)',
+          borderRadius: '1.25rem',
+          padding: '0.65rem 0.9rem',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(14, 165, 233, 0.25)',
+          zIndex: 45,
+          backdropFilter: 'blur(12px)'
+        }}>
+          <button
+            type="button"
+            onClick={() => setIsMobileCartOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              background: 'none',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              padding: 0,
+              textAlign: 'left'
+            }}
+          >
+            <div style={{
+              width: 42,
+              height: 42,
+              borderRadius: '0.85rem',
+              background: '#0284c7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              flexShrink: 0
+            }}>
+              <ShoppingCart size={20} color="white" />
+              <span style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                background: '#10b981',
+                color: 'white',
+                fontSize: '0.7rem',
+                fontWeight: 900,
+                borderRadius: '999px',
+                padding: '1px 5px',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.4)'
+              }}>
+                {totalItemsCount}
+              </span>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                {totalItemsCount === 1 ? '1 piatto' : `${totalItemsCount} piatti`} · Dettagli
+              </div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#38bdf8', fontFamily: 'monospace', lineHeight: 1.1 }}>
+                €{Number(totalAmount).toFixed(2)}
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenCheckout}
+            style={{
+              padding: '0.7rem 1.15rem',
+              borderRadius: '0.9rem',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              fontWeight: 900,
+              fontSize: '0.92rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+              flexShrink: 0
+            }}
+          >
+            INCASSA <ArrowRight size={17} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Mobile Cart Drawer / Bottom Sheet ── */}
+      {isMobileCartOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 90,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+        }}>
+          <div style={{
+            background: '#0f172a',
+            borderTop: '2px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '1.5rem 1.5rem 0 0',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '1.25rem 1rem 1.5rem',
+            boxShadow: '0 -20px 40px rgba(0,0,0,0.8)',
+            animation: 'slideUp 0.22s ease-out'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <ShoppingCart size={20} style={{ color: '#38bdf8' }} />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>
+                  Carrello Ordine ({totalItemsCount})
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {totalItemsCount > 0 && (
+                  <button
+                    onClick={() => { clearCart(); setIsMobileCartOpen(false); }}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                  >
+                    <Trash2 size={14} /> Svuota
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsMobileCartOpen(false)}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#94a3b8', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '45vh', paddingRight: '0.2rem', marginBottom: '1rem' }}>
+              {cartList.map(item => (
+                <div
+                  key={item.id}
+                  style={{
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    borderRadius: '0.85rem',
+                    padding: '0.65rem 0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.5rem',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.name}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      €{Number(item.price).toFixed(2)} cad.
+                    </div>
+                  </div>
+
+                  {/* Quantity Stepper */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button
+                      onClick={() => decreaseQuantity(item.id)}
+                      style={{
+                        width: 32, height: 32, borderRadius: '0.6rem',
+                        background: 'rgba(255,255,255,0.08)', border: 'none',
+                        color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                      }}
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span style={{ minWidth: '22px', textAlign: 'center', fontWeight: 800, color: '#fff', fontSize: '0.95rem' }}>
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => addToCart(session.items.find(i => i.id === item.id)!)}
+                      style={{
+                        width: 32, height: 32, borderRadius: '0.6rem',
+                        background: '#0284c7', border: 'none',
+                        color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                      }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+
+                  <strong style={{ minWidth: '55px', textAlign: 'right', fontWeight: 900, color: '#34d399', fontSize: '0.95rem', fontFamily: 'monospace' }}>
+                    €{Number(item.subtotal).toFixed(2)}
+                  </strong>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.85rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
+                  TOTALE CONTRIBUTO
+                </span>
+                <span style={{ fontSize: '1.8rem', fontWeight: 900, color: '#38bdf8', fontFamily: 'monospace' }}>
+                  €{Number(totalAmount).toFixed(2)}
+                </span>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsMobileCartOpen(false);
+                  handleOpenCheckout();
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.95rem',
+                  borderRadius: '1rem',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 900,
+                  fontSize: '1.05rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                PROCEDI AL PAGAMENTO (€{Number(totalAmount).toFixed(2)}) <ArrowRight size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════════════════════════════════════════════════════════════
           3. CHECKOUT / VERSAMENTO MODAL (with Calcolatore Resto Rapido)
       ═══════════════════════════════════════════════════════════════════════ */}
@@ -1179,7 +1454,7 @@ export default function CashierClient() {
           justifyContent: 'center',
           padding: '1rem'
         }}>
-          <div style={{
+          <div className="cashier-modal-inner" style={{
             maxWidth: '520px',
             width: '100%',
             background: '#0f172a',
@@ -1901,10 +2176,128 @@ export default function CashierClient() {
 
       {/* Responsive layout styles */}
       <style jsx>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+
+        .cashier-header {
+          background: #0f172a;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 0.65rem 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.65rem;
+          z-index: 40;
+        }
+
+        .cashier-controls-row {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 0.85rem;
+          align-items: center;
+        }
+
+        .cashier-cat-scroll {
+          display: flex;
+          gap: 0.35rem;
+          overflow-x: auto;
+          padding-bottom: 0.2rem;
+          flex: 1;
+          white-space: nowrap;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+
+        .cashier-cat-scroll::-webkit-scrollbar {
+          display: none;
+        }
+
+        .cashier-search-wrapper {
+          width: 180px;
+          flex-shrink: 0;
+        }
+
         @media (max-width: 900px) {
           .cashier-grid {
             grid-template-columns: 1fr !important;
             height: auto !important;
+          }
+          .desktop-cart-aside {
+            display: none !important;
+          }
+          .mobile-cart-bar {
+            display: flex !important;
+          }
+          .mobile-cart-btn-header {
+            display: inline-flex !important;
+          }
+          .cashier-main {
+            padding: 0.65rem !important;
+            padding-bottom: 110px !important;
+          }
+          .cashier-header {
+            padding: 0.5rem 0.65rem !important;
+            gap: 0.35rem !important;
+          }
+          .cashier-header-title {
+            max-width: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .hide-mobile {
+            display: none !important;
+          }
+        }
+
+        @media (min-width: 901px) {
+          .mobile-cart-bar {
+            display: none !important;
+          }
+          .mobile-cart-btn-header {
+            display: none !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .cashier-controls-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.4rem;
+          }
+          .cashier-search-wrapper {
+            width: 100% !important;
+          }
+          .cashier-dishes-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+          }
+          .cashier-dish-card {
+            min-height: 112px !important;
+            padding: 0.75rem 0.5rem !important;
+            border-radius: 1rem !important;
+          }
+          .cashier-dish-emoji {
+            font-size: 1.85rem !important;
+            margin-bottom: 0.2rem !important;
+          }
+          .cashier-dish-name {
+            font-size: 0.8rem !important;
+            margin-bottom: 0.3rem !important;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+          .cashier-dish-price {
+            font-size: 0.95rem !important;
+          }
+          .cashier-modal-inner {
+            padding: 1.15rem !important;
+            border-radius: 1.25rem !important;
+            max-height: 94vh !important;
           }
         }
       `}</style>

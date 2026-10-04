@@ -23,20 +23,23 @@ export async function GET() {
     const zuccalandOrders = orders.filter(o => 
       o.notes?.toLowerCase().includes('zuccaland') || 
       o.notes?.includes('10 Ottobre') || 
-      o.notes?.includes('11 Ottobre')
+      o.notes?.includes('11 Ottobre') ||
+      o.notes?.includes('25 Ottobre') ||
+      o.notes?.includes('25')
     );
 
     const breakdown = {
       total: zuccalandOrders.length,
       sabato10: zuccalandOrders.filter(o => o.notes?.includes('10 Ottobre') || o.notes?.toLowerCase().includes('sabato')).length,
-      domenica11: zuccalandOrders.filter(o => o.notes?.includes('11 Ottobre') || o.notes?.toLowerCase().includes('domenica')).length,
+      domenica11: zuccalandOrders.filter(o => (o.notes?.includes('11 Ottobre') || o.notes?.toLowerCase().includes('domenica')) && !o.notes?.includes('25')).length,
+      domenica25: zuccalandOrders.filter(o => o.notes?.includes('25 Ottobre') || o.notes?.includes('25')).length,
       orders: zuccalandOrders.map(o => ({
         id: o.id,
         orderRef: o.id.replace(/-/g, '').substring(0, 8).toUpperCase(),
         buyerName: o.buyerName,
         buyerEmail: o.buyerEmail,
         buyerPhone: o.buyerPhone,
-        bookedDay: (o.notes?.includes('10 Ottobre') || o.notes?.toLowerCase().includes('sabato')) ? 'Sabato 10 Ottobre' : 'Domenica 11 Ottobre',
+        bookedDay: (o.notes?.includes('25 Ottobre') || o.notes?.includes('25')) ? 'Domenica 25 Ottobre' : ((o.notes?.includes('10 Ottobre') || o.notes?.toLowerCase().includes('sabato')) ? 'Sabato 10 Ottobre' : 'Domenica 11 Ottobre'),
         createdAt: o.createdAt
       }))
     };

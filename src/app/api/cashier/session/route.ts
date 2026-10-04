@@ -40,7 +40,9 @@ export async function POST(request: Request) {
       success: true,
       event: {
         id: matchedEvent.id,
+        eventId: matchedEvent.id,
         name: matchedEvent.name,
+        eventName: matchedEvent.name,
         categories: matchedEvent.categories,
         items: matchedEvent.items,
         notes: matchedEvent.notes,

@@ -20,7 +20,10 @@ export async function POST(request: Request) {
       items
     } = data;
 
-    if (!eventId || !eventName || !items || !Array.isArray(items) || items.length === 0) {
+    const finalEventId = eventId || data.id;
+    const finalEventName = eventName || data.name;
+
+    if (!finalEventId || !finalEventName || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Dati ordine incompleti' },
         { status: 400 }
@@ -35,8 +38,8 @@ export async function POST(request: Request) {
     }
 
     const order = await createCashierOrder({
-      eventId,
-      eventName,
+      eventId: finalEventId,
+      eventName: finalEventName,
       cassaName: cassaName || 'Cassa 1',
       operatorName,
       totalAmount: paymentMethod === 'OMAGGIO' ? 0 : Number(totalAmount || 0),

@@ -32,8 +32,10 @@ export default function ZuccalandSuccessClient({
 }: ZuccalandSuccessClientProps) {
   const [downloading, setDownloading] = useState(false);
 
-  let dayLabel = '10 o 11 Ottobre 2026';
-  if (notes?.includes('10 Ottobre') || notes?.toLowerCase().includes('sabato')) {
+  let dayLabel = '10, 11 o 25 Ottobre 2026';
+  if (notes?.includes('25 Ottobre') || notes?.includes('25')) {
+    dayLabel = 'Domenica 25 Ottobre 2026';
+  } else if (notes?.includes('10 Ottobre') || notes?.toLowerCase().includes('sabato')) {
     dayLabel = 'Sabato 10 Ottobre 2026';
   } else if (notes?.includes('11 Ottobre') || notes?.toLowerCase().includes('domenica')) {
     dayLabel = 'Domenica 11 Ottobre 2026';
