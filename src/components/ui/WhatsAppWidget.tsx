@@ -19,6 +19,7 @@ const DEFAULT_TOPICS: SupportTopic[] = [
 
 export default function WhatsAppWidget() {
   const pathname = usePathname();
+  if (pathname?.startsWith('/cashier')) return null;
   const [isOpen, setIsOpen] = useState(false);
   const [topics, setTopics] = useState<SupportTopic[]>(DEFAULT_TOPICS);
   const [loading, setLoading] = useState(false);

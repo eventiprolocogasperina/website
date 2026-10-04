@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createCashierOrder, getCashierOrders } from '@/lib/data/cashier';
+import { createCashierOrder, getCashierOrders, voidCashierOrder } from '@/lib/data/cashier';
 import QRCode from 'qrcode';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       cashReceived,
       cashChange,
       omaggioNote,
+      orderNote,
       items
     } = data;
 
@@ -46,36 +47,26 @@ export async function POST(request: Request) {
       paymentMethod,
       cashReceived: paymentMethod === 'CONTANTI' ? Number(cashReceived || 0) : undefined,
       cashChange: paymentMethod === 'CONTANTI' ? Number(cashChange || 0) : undefined,
-      omaggioNote: paymentMethod === 'OMAGGIO' ? omaggioNote : undefined,
+      omaggioNote: paymentMethod === 'OMAGGIO' ? (omaggioNote || orderNote) : (orderNote || undefined),
       items
     });
 
-    // Costruisci URL pubblico della ricevuta digitale
     const host = request.headers.get('host') || 'www.prolocogasperina.it';
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const receiptUrl = `${protocol}://${host}/ricevuta/${order.id}`;
 
-    // Genera QR Code in formato data URL
     let qrCodeDataUrl = '';
     try {
       qrCodeDataUrl = await QRCode.toDataURL(receiptUrl, {
         width: 320,
         margin: 2,
-        color: {
-          dark: '#0f172a',
-          light: '#ffffff'
-        }
+        color: { dark: '#0f172a', light: '#ffffff' }
       });
     } catch (err) {
       console.error('Failed to generate QR code data URL:', err);
     }
 
-    return NextResponse.json({
-      success: true,
-      order,
-      receiptUrl,
-      qrCodeDataUrl
-    });
+    return NextResponse.json({ success: true, order, receiptUrl, qrCodeDataUrl });
   } catch (error: any) {
     console.error('Failed to create cashier order:', error);
     return NextResponse.json(
@@ -92,16 +83,30 @@ export async function GET(request: Request) {
     const cassaName = searchParams.get('cassaName') || undefined;
 
     if (!eventId) {
-      return NextResponse.json(
-        { success: false, error: 'eventId richiesto' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'eventId richiesto' }, { status: 400 });
     }
 
     const orders = await getCashierOrders(eventId, { cassaName, limit: 50 });
     return NextResponse.json({ success: true, orders });
   } catch (error: any) {
     console.error('Failed to get cashier orders:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Errore interno' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const { orderId } = await request.json();
+    if (!orderId) {
+      return NextResponse.json({ success: false, error: 'orderId richiesto' }, { status: 400 });
+    }
+    await voidCashierOrder(orderId);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Failed to void cashier order:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Errore interno' },
       { status: 500 }
