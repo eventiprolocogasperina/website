@@ -265,7 +265,15 @@ function ZuccalandTicketBuyer({
 }) {
   const router = useRouter();
   const ticketTypes = content.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes;
-  const freeActivities = content.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities;
+  const freeActivities = useMemo(() => {
+    const list = [...(content.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities)];
+    DEFAULT_ZUCCALAND_CONTENT.freeActivities.forEach(defAct => {
+      if (!list.some(a => a.id === defAct.id)) {
+        list.push(defAct);
+      }
+    });
+    return list;
+  }, [content.freeActivities]);
   const baseTypes = ticketTypes.filter(t => !t.isExtra);
   const extraTypes = ticketTypes.filter(t => t.isExtra);
 
@@ -355,9 +363,11 @@ function ZuccalandTicketBuyer({
   // Clean up activities incompatible with the selected day
   useEffect(() => {
     if (selectedDay === '10 Ottobre') {
-      setSelectedActivities(prev => prev.filter(id => id !== 'facepainting'));
-    } else if (selectedDay === '11 Ottobre' || selectedDay === '25 Ottobre') {
-      setSelectedActivities(prev => prev.filter(id => id !== 'zucca_vaso'));
+      setSelectedActivities(prev => prev.filter(id => id !== 'facepainting' && id !== 'altre_attivita_25'));
+    } else if (selectedDay === '11 Ottobre') {
+      setSelectedActivities(prev => prev.filter(id => id !== 'zucca_vaso' && id !== 'altre_attivita_25'));
+    } else if (selectedDay === '25 Ottobre') {
+      setSelectedActivities(prev => prev.filter(id => id !== 'zucca_vaso' && id !== 'facepainting'));
     }
   }, [selectedDay]);
 
@@ -392,8 +402,9 @@ function ZuccalandTicketBuyer({
 
   const toggleActivity = (actId: string) => {
     // Guard against day restrictions
-    if (selectedDay === '10 Ottobre' && actId === 'facepainting') return;
-    if ((selectedDay === '11 Ottobre' || selectedDay === '25 Ottobre') && actId === 'zucca_vaso') return;
+    if (selectedDay === '10 Ottobre' && (actId === 'facepainting' || actId === 'altre_attivita_25')) return;
+    if (selectedDay === '11 Ottobre' && (actId === 'zucca_vaso' || actId === 'altre_attivita_25')) return;
+    if (selectedDay === '25 Ottobre' && (actId === 'zucca_vaso' || actId === 'facepainting')) return;
 
     setSelectedActivities(prev =>
       prev.includes(actId) ? prev.filter(id => id !== actId) : [...prev, actId]
@@ -527,6 +538,7 @@ function ZuccalandTicketBuyer({
   // Helper for activity icons
   const getActivityIcon = (act: { id: string; label: string }) => {
     const text = (act.id + ' ' + act.label).toLowerCase();
+    if (text.includes('altre') || text.includes('annunciare') || text.includes('speciale')) return '✨';
     if (text.includes('vaso') || text.includes('zucca')) return '🎃';
     if (text.includes('pittur') || text.includes('art')) return '🖌️';
     if (text.includes('face') || text.includes('thrill') || text.includes('dance')) return '🧟';
@@ -856,7 +868,7 @@ function ZuccalandTicketBuyer({
                               {isSoldOut25 ? 'Posti Esauriti' : 'Dalle ore 10:30'}
                             </div>
                             <div style={{ fontSize: '0.66rem', fontWeight: 600, color: isSoldOut25 ? '#d6d3d1' : selectedDay === '25 Ottobre' ? '#ea580c' : '#a8a29e', marginTop: '0.15rem' }}>
-                              {isSoldOut25 ? 'Non prenotabile' : 'Thriller Dance & Zuccart'}
+                              {isSoldOut25 ? 'Non prenotabile' : 'Zuccart & Nuove Attività'}
                             </div>
                           </button>
                         )}
@@ -1323,8 +1335,12 @@ function ZuccalandTicketBuyer({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {freeActivities.map(act => {
                       const isSaturdayOnly = act.id === 'zucca_vaso';
-                      const isSundayOnly = act.id === 'facepainting';
-                      const isDayDisabled = (selectedDay === '10 Ottobre' && isSundayOnly) || ((selectedDay === '11 Ottobre' || selectedDay === '25 Ottobre') && isSaturdayOnly);
+                      const isSunday11Only = act.id === 'facepainting';
+                      const isSunday25Only = act.id === 'altre_attivita_25' || act.id === 'altre_attivita';
+                      const isDayDisabled = 
+                        (selectedDay === '10 Ottobre' && (isSunday11Only || isSunday25Only)) ||
+                        (selectedDay === '11 Ottobre' && (isSaturdayOnly || isSunday25Only)) ||
+                        (selectedDay === '25 Ottobre' && (isSaturdayOnly || isSunday11Only));
                       const isSelected = selectedActivities.includes(act.id);
                       const icon = getActivityIcon(act);
                       const participantCount = numChildren > 0 && numChildren < totalBase && activityTarget === 'children'
@@ -1332,7 +1348,7 @@ function ZuccalandTicketBuyer({
                         : (numChildren > 0 ? (activityTarget === 'children' ? numChildren : totalBase) : totalBase);
 
                       // Timing schedule badge
-                      let schedulePill = '🕒 Sempre aperto (Sabato & Domenica)';
+                      let schedulePill = '🕒 Sempre aperto';
                       let schedulePillBg = '#fef3c7';
                       let schedulePillColor = '#92400e';
 
@@ -1340,8 +1356,12 @@ function ZuccalandTicketBuyer({
                         schedulePill = '🕒 Sabato 14:30 - 16:30 (Max 60 posti)';
                         schedulePillBg = '#ffedd5';
                         schedulePillColor = '#c2410c';
-                      } else if (isSundayOnly) {
-                        schedulePill = '🕒 Domenica 14:30 - 16:00';
+                      } else if (isSunday11Only) {
+                        schedulePill = '🕒 Domenica 11 Ottobre · 14:30 - 16:00';
+                        schedulePillBg = '#ffedd5';
+                        schedulePillColor = '#c2410c';
+                      } else if (isSunday25Only) {
+                        schedulePill = '🕒 Domenica 25 Ottobre · Attività speciali in arrivo!';
                         schedulePillBg = '#ffedd5';
                         schedulePillColor = '#c2410c';
                       }
@@ -1425,7 +1445,7 @@ function ZuccalandTicketBuyer({
                                   fontSize: '0.72rem', fontWeight: 800, padding: '0.25rem 0.6rem',
                                   borderRadius: '999px', whiteSpace: 'nowrap'
                                 }}>
-                                  {isSaturdayOnly ? 'Solo Sabato' : 'Solo Domenica'}
+                                  {isSaturdayOnly ? 'Solo Sab. 10' : isSunday11Only ? 'Solo Dom. 11' : 'Solo Dom. 25'}
                                 </span>
                               ) : (
                                 <>
@@ -1455,7 +1475,7 @@ function ZuccalandTicketBuyer({
                           {/* Bottom: Details across FULL WIDTH or Day restriction note */}
                           {isDayDisabled ? (
                             <div style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600, background: '#fef2f2', padding: '0.45rem 0.75rem', borderRadius: '0.65rem', border: '1px solid #fecaca' }}>
-                              ⚠️ Questa attività si svolge esclusivamente <strong>{isSaturdayOnly ? 'Sabato 10 Ottobre (14:30 - 16:30)' : 'Domenica 11 Ottobre (14:30 - 16:00)'}</strong>. Per selezionarla, torna allo Step 1 e cambia la data di partecipazione.
+                              ⚠️ Questa attività si svolge esclusivamente <strong>{isSaturdayOnly ? 'Sabato 10 Ottobre (14:30 - 16:30)' : isSunday11Only ? 'Domenica 11 Ottobre (14:30 - 16:00)' : 'Domenica 25 Ottobre'}</strong>. Per selezionarla, torna allo Step 1 e cambia la data di partecipazione.
                             </div>
                           ) : (
                             <div style={{ fontSize: '0.82rem', color: '#9a3412', lineHeight: 1.45, fontWeight: 500, paddingLeft: '0.1rem' }}>
@@ -2038,7 +2058,7 @@ function ZuccalandTicketBuyer({
                   </div>
 
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#7c2d12', lineHeight: 1.4 }}>
-                    I laboratori (<em>Zucca in Vaso</em>, <em>Zuccart</em>, <em>Facepainting & Dance</em>) sono <strong>già inclusi nel prezzo del biglietto</strong>.
+                    I laboratori creativi sono <strong>già inclusi nel prezzo del biglietto</strong>.
                   </p>
 
                   {!hasFreeActivities ? (
@@ -2567,7 +2587,15 @@ export default function ZuccalandClient({
     },
     infoCards: rawContent?.infoCards || DEFAULT_ZUCCALAND_CONTENT.infoCards,
     ticketTypes: rawContent?.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes,
-    freeActivities: rawContent?.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities,
+    freeActivities: (() => {
+      const list = [...(rawContent?.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities)];
+      DEFAULT_ZUCCALAND_CONTENT.freeActivities.forEach(defAct => {
+        if (!list.some(a => a.id === defAct.id)) {
+          list.push(defAct);
+        }
+      });
+      return list;
+    })(),
     highlights: rawContent?.highlights || DEFAULT_ZUCCALAND_CONTENT.highlights,
     program: { ...DEFAULT_ZUCCALAND_CONTENT.program, ...(rawContent?.program || {}) },
     tickets: { ...DEFAULT_ZUCCALAND_CONTENT.tickets, ...(rawContent?.tickets || {}) },

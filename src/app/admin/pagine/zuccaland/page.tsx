@@ -78,7 +78,16 @@ export default function ZuccalandAdminPage() {
             },
             infoCards: json.data.infoCards || DEFAULT_ZUCCALAND_CONTENT.infoCards,
             ticketTypes: json.data.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes,
-            freeActivities: json.data.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities,
+            freeActivities: (() => {
+              const current = json.data.freeActivities || DEFAULT_ZUCCALAND_CONTENT.freeActivities;
+              const merged = [...current];
+              DEFAULT_ZUCCALAND_CONTENT.freeActivities.forEach(defAct => {
+                if (!merged.some(a => a.id === defAct.id)) {
+                  merged.push(defAct);
+                }
+              });
+              return merged;
+            })(),
             highlights: json.data.highlights || DEFAULT_ZUCCALAND_CONTENT.highlights,
             program: { ...DEFAULT_ZUCCALAND_CONTENT.program, ...(json.data.program || {}) },
             tickets: { ...DEFAULT_ZUCCALAND_CONTENT.tickets, ...(json.data.tickets || {}) },

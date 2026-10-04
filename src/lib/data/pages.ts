@@ -183,7 +183,8 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
       items: [
         '🎃 Zucca in Vaso · Età 3-7 · Solo Sabato 14:30 - 16:30',
         '🖌️ Zuccart · Età 3-7 · Sempre aperto',
-        '🧟 Facepainting & Thriller Dance · Dai 6 anni · Solo Domenica 14:30 - 16:00',
+        '🧟 Facepainting & Thriller Dance · Dai 6 anni · Solo Domenica 11 14:30 - 16:00',
+        '✨ Altre attività da annunciare · Domenica 25 Ottobre',
       ],
     },
     {
@@ -217,8 +218,9 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
   ],
   freeActivities: [
     { id: 'zucca_vaso', label: 'Zucca in Vaso (3-7 anni)', details: 'Solo Sabato 14:30 - 16:30. A cura di Bibl. Comunale "S. Grande". Max 60 posti.' },
-    { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Sempre aperto sia Sabato che Domenica. A cura della Pro Loco.' },
-    { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'Solo Domenica 14:30 - 16:00. A cura di Vanessa Aiello.' },
+    { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Sempre aperto. A cura della Pro Loco.' },
+    { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'Solo Domenica 11 Ottobre 14:30 - 16:00. A cura di Vanessa Aiello.' },
+    { id: 'altre_attivita_25', label: 'Altre attività da annunciare', details: 'Domenica 25 Ottobre. Nuove entusiasmanti attività e laboratori speciali in arrivo!' },
   ],
   highlights: [
     { icon: 'shopping-bag', title: 'Merchandising', description: 'Acquista un ricordo esclusivo dell\'evento presso il nostro stand dedicato.', bgColor: '#ea580c', textColor: '#ffffff' },

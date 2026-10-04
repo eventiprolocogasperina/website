@@ -1,0 +1,107 @@
+import { NextResponse } from 'next/server';
+import { createCashierOrder, getCashierOrders } from '@/lib/data/cashier';
+import QRCode from 'qrcode';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: Request) {
+  try {
+    const data = await request.json();
+    const {
+      eventId,
+      eventName,
+      cassaName,
+      operatorName,
+      totalAmount,
+      paymentMethod,
+      cashReceived,
+      cashChange,
+      omaggioNote,
+      items
+    } = data;
+
+    if (!eventId || !eventName || !items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Dati ordine incompleti' },
+        { status: 400 }
+      );
+    }
+
+    if (!['CONTANTI', 'POS', 'OMAGGIO'].includes(paymentMethod)) {
+      return NextResponse.json(
+        { success: false, error: 'Metodo di versamento non valido' },
+        { status: 400 }
+      );
+    }
+
+    const order = await createCashierOrder({
+      eventId,
+      eventName,
+      cassaName: cassaName || 'Cassa 1',
+      operatorName,
+      totalAmount: paymentMethod === 'OMAGGIO' ? 0 : Number(totalAmount || 0),
+      paymentMethod,
+      cashReceived: paymentMethod === 'CONTANTI' ? Number(cashReceived || 0) : undefined,
+      cashChange: paymentMethod === 'CONTANTI' ? Number(cashChange || 0) : undefined,
+      omaggioNote: paymentMethod === 'OMAGGIO' ? omaggioNote : undefined,
+      items
+    });
+
+    // Costruisci URL pubblico della ricevuta digitale
+    const host = request.headers.get('host') || 'www.prolocogasperina.it';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const receiptUrl = `${protocol}://${host}/ricevuta/${order.id}`;
+
+    // Genera QR Code in formato data URL
+    let qrCodeDataUrl = '';
+    try {
+      qrCodeDataUrl = await QRCode.toDataURL(receiptUrl, {
+        width: 320,
+        margin: 2,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        }
+      });
+    } catch (err) {
+      console.error('Failed to generate QR code data URL:', err);
+    }
+
+    return NextResponse.json({
+      success: true,
+      order,
+      receiptUrl,
+      qrCodeDataUrl
+    });
+  } catch (error: any) {
+    console.error('Failed to create cashier order:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Errore interno' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const eventId = searchParams.get('eventId');
+    const cassaName = searchParams.get('cassaName') || undefined;
+
+    if (!eventId) {
+      return NextResponse.json(
+        { success: false, error: 'eventId richiesto' },
+        { status: 400 }
+      );
+    }
+
+    const orders = await getCashierOrders(eventId, { cassaName, limit: 50 });
+    return NextResponse.json({ success: true, orders });
+  } catch (error: any) {
+    console.error('Failed to get cashier orders:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Errore interno' },
+      { status: 500 }
+    );
+  }
+}

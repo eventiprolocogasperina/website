@@ -1989,8 +1989,9 @@ export default function OrderManager() {
 
         const zuccalandFreeActivities = [
           { id: 'zucca_vaso', label: 'Zucca in Vaso (3-7 anni)', details: 'Solo Sabato 14:30 - 16:30' },
-          { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Aperto Sabato e Domenica' },
-          { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'Solo Domenica 14:30 - 16:00' },
+          { id: 'zuccart', label: 'Zuccart (3-7 anni)', details: 'Aperto tutti i giorni' },
+          { id: 'facepainting', label: 'Facepainting & Thriller Dance (6+)', details: 'Solo Domenica 11 Ottobre 14:30 - 16:00' },
+          { id: 'altre_attivita_25', label: 'Altre attività da annunciare', details: 'Domenica 25 Ottobre' },
         ];
 
         return (
