@@ -17,7 +17,8 @@ import {
   Search,
   Users,
   Sparkles,
-  Info
+  Info,
+  Trash2
 } from 'lucide-react';
 import QRCode from 'qrcode';
 
@@ -136,6 +137,28 @@ export default function ZuccalandInvitiPage() {
       alert('❌ Errore durante il reinvio dell\'email.');
     } finally {
       setResendingId(null);
+    }
+  };
+
+  const handleDeleteInvite = async (inv: InviteRecord) => {
+    if (!confirm(`Sei sicuro di voler eliminare definitivamente l'invito per "${inv.buyerName}" (${inv.buyerEmail})?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/zuccaland/invites', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: inv.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ Invito per ${inv.buyerName} eliminato con successo.`);
+        fetchInvites();
+      } else {
+        alert(`❌ Errore eliminazione: ${data.error || 'Impossibile eliminare l\'invito'}`);
+      }
+    } catch (err) {
+      alert('❌ Errore durante l\'eliminazione dell\'invito.');
     }
   };
 
@@ -632,6 +655,25 @@ export default function ZuccalandInvitiPage() {
                               }}
                             >
                               <Send size={14} className={resendingId === inv.id ? 'animate-spin' : ''} /> Reinvia
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteInvite(inv)}
+                              title="Elimina Invito"
+                              style={{
+                                padding: '0.45rem 0.65rem',
+                                borderRadius: '8px',
+                                background: 'rgba(239,68,68,0.12)',
+                                border: '1px solid rgba(239,68,68,0.3)',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                fontSize: '0.78rem',
+                              }}
+                            >
+                              <Trash2 size={14} /> Elimina
                             </button>
                           </div>
                         </td>

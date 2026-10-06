@@ -182,3 +182,24 @@ export async function PUT(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { orderId } = await request.json();
+    if (!orderId) {
+      return NextResponse.json({ success: false, error: 'orderId richiesto' }, { status: 400 });
+    }
+
+    const sql = getDb();
+    await sql`DELETE FROM tickets WHERE "orderId" = ${orderId}`;
+    await sql`DELETE FROM orders WHERE id = ${orderId}`;
+
+    return NextResponse.json({ success: true, message: 'Invito eliminato con successo' });
+  } catch (err: any) {
+    console.error('Error deleting invitation:', err);
+    return NextResponse.json(
+      { success: false, error: err.message || 'Errore durante l\'eliminazione dell\'invito' },
+      { status: 500 }
+    );
+  }
+}

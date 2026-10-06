@@ -33,7 +33,11 @@ import {
   Settings
 } from 'lucide-react';
 
-const COMMON_EMOJIS = ['🍝', '🍲', '🍖', '🥩', '🥔', '🥪', '🥖', '🍕', '🍷', '🍾', '🍺', '💧', '🥤', '🍰', '☕'];
+const COMMON_EMOJIS = [
+  '🍝', '🍲', '🍖', '🥩', '🥔', '🥪', '🥖', '🍕', '🍷', '🍾', '🍺', '💧', '🥤', '🍰', '☕',
+  '🍔', '🍟', '🌭', '🌮', '🥗', '🍦', '🍪', '🧃', '🫖', '🍩', '🥞', '🍤', '🍙', '🥨', '🫓',
+  '🎃', '🍇', '🍎', '🧀', '🥓', '🌶️', '🍽️'
+];
 
 export default function AdminCashierPage() {
   const [config, setConfig] = useState<CashierConfig>(DEFAULT_CASHIER_CONFIG);
@@ -696,22 +700,45 @@ export default function AdminCashierPage() {
                     <tr key={item.id} style={{ borderTop: '1px solid var(--neutral-800)' }}>
                       {/* Emoji Icon */}
                       <td style={{ padding: '0.6rem 0.75rem' }}>
-                        <select
-                          value={item.icon || '🍽️'}
-                          onChange={(e) => updateItem(item.id, 'icon', e.target.value)}
-                          style={{
-                            background: 'var(--neutral-800)',
-                            border: '1px solid var(--neutral-700)',
-                            borderRadius: '0.5rem',
-                            padding: '0.3rem',
-                            fontSize: '1.25rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {COMMON_EMOJIS.map(em => (
-                            <option key={em} value={em}>{em}</option>
-                          ))}
-                        </select>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <input
+                            type="text"
+                            value={item.icon || '🍽️'}
+                            onChange={(e) => updateItem(item.id, 'icon', e.target.value)}
+                            style={{
+                              width: '46px',
+                              height: '38px',
+                              textAlign: 'center',
+                              background: 'var(--neutral-800)',
+                              border: '1px solid var(--neutral-700)',
+                              borderRadius: '0.5rem',
+                              fontSize: '1.25rem',
+                              color: 'var(--color-heading)'
+                            }}
+                            title="Digita o incolla qualsiasi emoji da tastiera"
+                          />
+                          <select
+                            value=""
+                            onChange={(e) => {
+                              if (e.target.value) updateItem(item.id, 'icon', e.target.value);
+                            }}
+                            style={{
+                              background: 'var(--neutral-800)',
+                              border: '1px solid var(--neutral-700)',
+                              borderRadius: '0.5rem',
+                              padding: '0.35rem 0.2rem',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              color: 'var(--neutral-400)'
+                            }}
+                            title="Scegli da un elenco rapido di emoji"
+                          >
+                            <option value="">⚙️</option>
+                            {COMMON_EMOJIS.map(em => (
+                              <option key={em} value={em}>{em}</option>
+                            ))}
+                          </select>
+                        </div>
                       </td>
 
                       {/* Name */}
