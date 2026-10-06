@@ -319,6 +319,45 @@ export default function AdminCashierPage() {
     handleSaveConfig(newConfig);
   };
 
+  const handleResetReport = async () => {
+    if (!currentEvent) return;
+    const input = prompt(
+      `⚠️ AZZERAMENTO TOTALE INCASSI & ORDINI\n\n` +
+      `Questa azione cancellerà PERMANENTEMENTE tutti gli ordini registrati per l'evento "${currentEvent.name}" e riazzererà il report incassi (Z-Report) e la sequenza numerica ordini.\n\n` +
+      `Per confermare l'azzeramento, digita la parola "conferma":`
+    );
+
+    if (input === null) return;
+
+    if (input.trim().toLowerCase() !== 'conferma') {
+      alert('❌ Parola di conferma errata. Operazione annullata.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch('/api/admin/cashier/reset-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: currentEvent.id,
+          confirmation: input.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Report incassi e ordini azzerati con successo!');
+        fetchConfig();
+      } else {
+        alert(`❌ Errore: ${data.error || 'Impossibile azzerare il report'}`);
+      }
+    } catch (err: any) {
+      alert('❌ Errore di connessione durante l’azzeramento.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ─── Export CSV ────────────────────────────────────────────────────────────
 
   const exportCSV = () => {
@@ -1100,6 +1139,26 @@ export default function AdminCashierPage() {
                 }}
               >
                 <Download size={14} /> Esporta CSV
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetReport}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#ef4444',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                <Trash2 size={14} /> Azzera Report Incassi ⚠️
               </button>
             </div>
           </div>

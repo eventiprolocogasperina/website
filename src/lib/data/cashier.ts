@@ -183,10 +183,19 @@ export async function resetCashierOrderSequence(eventId: string, startingNumber:
 
   const config = await getCashierConfig();
   const evt = config.events.find(e => e.id === eventId);
-  if (evt) {
-    evt.startingNumber = startingNumber;
-    await saveCashierConfig(config);
-  }
+  return true;
+}
+
+export async function resetCashierReport(eventId: string): Promise<boolean> {
+  await ensureCashierOrdersTable();
+  const sql = getDb();
+  await sql`DELETE FROM cashier_orders WHERE "eventId" = ${eventId}`;
+
+  const config = await getCashierConfig();
+  const evt = config.events.find(e => e.id === eventId);
+  const startingNumber = evt?.startingNumber || 1;
+  await resetCashierOrderSequence(eventId, startingNumber);
+
   return true;
 }
 
