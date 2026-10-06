@@ -34,7 +34,9 @@ import {
   Ban,
   Copy,
   FileText,
-  ChevronRight
+  ChevronRight,
+  ChefHat,
+  Layers
 } from 'lucide-react';
 
 // ─── Sound Feedback ───────────────────────────────────────────────────────────
@@ -205,6 +207,68 @@ export default function CashierClient() {
 
   const T = useMemo(() => getThemeTokens(isLight), [isLight]);
 
+  const handlePrintDepartmentSlips = (order: CashierOrder) => {
+    const deptsMap: Record<string, typeof order.items> = {};
+    order.items.forEach(it => {
+      const dept = it.department || it.category || 'Generale';
+      if (!deptsMap[dept]) deptsMap[dept] = [];
+      deptsMap[dept].push(it);
+    });
+
+    const printWindow = window.open('', '_blank', 'width=600,height=800');
+    if (!printWindow) return;
+
+    const orderNumStr = String(order.orderNumber).padStart(3, '0');
+    const dateStr = new Date(order.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+    const slipsHtml = Object.entries(deptsMap).map(([dept, items]) => `
+      <div class="slip">
+        <div class="header">
+          <div class="dept-title">STAND / REPARTO: ${dept.toUpperCase()}</div>
+          <div class="order-num">#${orderNumStr}</div>
+          <div class="meta">${order.eventName} · ${order.cassaName} · ore ${dateStr}</div>
+          ${order.omaggioNote ? `<div class="note">NOTE: ${order.omaggioNote}</div>` : ''}
+        </div>
+        <table class="items">
+          ${items.map(it => `
+            <tr>
+              <td class="qty">${it.quantity}x</td>
+              <td class="name">${it.name}</td>
+            </tr>
+          `).join('')}
+        </table>
+        <div class="footer">PRO LOCO GASPERINA · COMANDA REPARTO</div>
+      </div>
+    `).join('<div class="page-break"></div>');
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Talloncini Comande Reparto #${orderNumStr}</title>
+        <style>
+          body { font-family: -apple-system, monospace, sans-serif; margin: 0; padding: 10px; color: #000; }
+          .slip { border: 2px dashed #000; padding: 15px; margin-bottom: 20px; page-break-inside: avoid; }
+          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
+          .dept-title { font-size: 16px; font-weight: 900; background: #000; color: #fff; padding: 6px; border-radius: 4px; margin-bottom: 5px; }
+          .order-num { font-size: 42px; font-weight: 900; margin: 4px 0; }
+          .meta { font-size: 11px; }
+          .note { font-size: 13px; font-weight: 800; color: #d97706; margin-top: 6px; background: #fef3c7; padding: 4px; }
+          .items { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          .items td { padding: 8px 4px; font-size: 18px; font-weight: 800; border-bottom: 1px solid #ddd; }
+          .items .qty { width: 40px; font-size: 24px; font-weight: 900; text-align: center; color: #ea580c; }
+          .footer { text-align: center; font-size: 10px; margin-top: 15px; border-top: 1px solid #000; padding-top: 5px; font-weight: 700; }
+          .page-break { page-break-after: always; }
+        </style>
+      </head>
+      <body onload="window.print(); window.close();">
+        ${slipsHtml}
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   // ─── Init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -316,12 +380,19 @@ export default function CashierClient() {
 
   const filteredItems = useMemo(() => {
     if (!session) return [];
+    
+    // Check if there are cassa-specific product assignments for this cassa
+    const cassaAllowedIds = (session as any).cassaAssignments?.[cassaName];
+
     return session.items.filter(item => {
+      if (cassaAllowedIds && Array.isArray(cassaAllowedIds) && cassaAllowedIds.length > 0) {
+        if (!cassaAllowedIds.includes(item.id)) return false;
+      }
       const matchesCat = activeCategory === 'TUTTI' || item.category === activeCategory;
       const matchesSearch = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCat && matchesSearch;
     });
-  }, [session, activeCategory, searchQuery]);
+  }, [session, cassaName, activeCategory, searchQuery]);
 
   // ─── Change Calculator ─────────────────────────────────────────────────────
 
@@ -633,6 +704,17 @@ export default function CashierClient() {
             {totalItemsCount > 0 && <span>{totalItemsCount}</span>}
           </button>
 
+          <a href="/cashier/stand" target="_blank" rel="noopener noreferrer" title="Monitor Stand & Reparti" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+            padding: '0.45rem 0.65rem', borderRadius: '0.75rem',
+            background: 'rgba(234,88,12,0.15)',
+            border: '1px solid rgba(234,88,12,0.35)',
+            color: '#f97316', fontSize: '0.8rem', fontWeight: 800, textDecoration: 'none', cursor: 'pointer'
+          }}>
+            <ChefHat size={15} />
+            <span className="hide-mobile">Stand 🍳</span>
+          </a>
+
           <button onClick={() => { setIsZReportOpen(true); fetchZStats(zFilterCassa); }} title="Chiusura Cassa" style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
             padding: '0.45rem 0.65rem', borderRadius: '0.75rem',
@@ -752,6 +834,18 @@ export default function CashierClient() {
                       background: T.accent, color: 'white', fontSize: '0.72rem', fontWeight: 900,
                       borderRadius: '999px', padding: '2px 7px', boxShadow: '0 2px 6px rgba(0,0,0,0.4)', zIndex: 2
                     }}>{inCartQty}x</div>
+                  )}
+                  {item.stockQuantity !== undefined && item.stockQuantity !== null && isAvailable && (
+                    <div style={{
+                      position: 'absolute', top: '6px', left: '6px',
+                      background: item.stockQuantity <= 10 ? 'rgba(234,179,8,0.2)' : 'rgba(2,132,199,0.15)',
+                      color: item.stockQuantity <= 10 ? '#eab308' : '#38bdf8',
+                      border: `1px solid ${item.stockQuantity <= 10 ? 'rgba(234,179,8,0.4)' : 'rgba(56,189,248,0.3)'}`,
+                      fontSize: '0.65rem', fontWeight: 800,
+                      borderRadius: '999px', padding: '2px 6px', zIndex: 2
+                    }}>
+                      📦 {item.stockQuantity}
+                    </div>
                   )}
                   {!isAvailable && (
                     <div style={{
@@ -1218,6 +1312,16 @@ export default function CashierClient() {
                 </div>
               )}
             </div>
+
+            <button onClick={() => handlePrintDepartmentSlips(completedOrder.order)} style={{
+              width: '100%', padding: '0.75rem', borderRadius: '1rem',
+              background: '#f8fafc', border: '1.5px solid #cbd5e1',
+              color: '#0f172a', fontWeight: 800, fontSize: '0.88rem',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+              marginBottom: '0.75rem'
+            }}>
+              <Printer size={16} style={{ color: '#ea580c' }} /> Stampa Talloncini Reparto / Stand 🧾
+            </button>
 
             <button onClick={() => setCompletedOrder(null)} style={{
               width: '100%', padding: '0.95rem', borderRadius: '1rem',

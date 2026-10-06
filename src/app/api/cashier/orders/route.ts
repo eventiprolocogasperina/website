@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createCashierOrder, getCashierOrders, voidCashierOrder } from '@/lib/data/cashier';
+import { broadcastCashierEvent } from '../realtime/route';
 import QRCode from 'qrcode';
 
 export const dynamic = 'force-dynamic';
@@ -65,6 +66,10 @@ export async function POST(request: Request) {
     } catch (err) {
       console.error('Failed to generate QR code data URL:', err);
     }
+
+    try {
+      broadcastCashierEvent('order_created', { order });
+    } catch { /* ignore */ }
 
     return NextResponse.json({ success: true, order, receiptUrl, qrCodeDataUrl });
   } catch (error: any) {

@@ -7,8 +7,10 @@ export interface CashierItem {
   id: string;
   name: string;
   category: string;
+  department?: string; // Reparto / Stand di competenza (es. "Panini", "Bibite", "Dolci", "Primi")
   price: number; // Valore del contributo in Euro
   isAvailable: boolean; // false se terminato/esaurito
+  stockQuantity?: number; // Porzioni rimaste (es. 50). Se <= 0, passa in isAvailable = false
   icon?: string; // Emoji o icona
   description?: string;
 }
@@ -19,6 +21,10 @@ export interface CashierEvent {
   eventCode: string; // Codice PIN/Accesso operatore cassa, es. "SAGRA2026"
   active: boolean;
   categories: string[];
+  departments?: string[]; // Elenco dei reparti/stand attivi (es. ['Panini & Cucina', 'Bar & Bibite', 'Dolci', 'Primi'])
+  enableDepartments?: boolean; // false = Modalità Totem Unico (default), true = Multi-Stand/Reparti
+  casses?: string[]; // Elenco delle casse attive (es. ['Cassa 1', 'Cassa 2', 'Cassa Bar', 'Stand Dolci'])
+  cassaAssignments?: Record<string, string[]>; // Mappatura cassa -> array di ID prodotti/servizi abilitati per quella cassa
   items: CashierItem[];
   startingNumber?: number; // Numero progressivo di partenza (default: 1)
   notes?: string;
@@ -35,10 +41,13 @@ export interface CashierOrderItem {
   id: string;
   name: string;
   category: string;
+  department?: string; // Reparto / Stand (se assente, usa category)
   price: number; // Valore contributo unitario
   quantity: number;
   subtotal: number;
 }
+
+export type DepartmentStatus = 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED';
 
 export interface CashierOrder {
   id: string; // UUID/nanoid per link univoco ricevuta QR
@@ -53,6 +62,7 @@ export interface CashierOrder {
   cashChange?: number;
   omaggioNote?: string;
   items: CashierOrderItem[];
+  departmentStatuses?: Record<string, DepartmentStatus>; // Tracciamento dello stato per ciascun reparto
   status: 'COMPLETED' | 'VOIDED';
   createdAt: string;
 }
@@ -79,23 +89,26 @@ export const DEFAULT_CASHIER_CONFIG: CashierConfig = {
       eventCode: 'FESTA2026',
       active: true,
       startingNumber: 1,
+      enableDepartments: false, // Default: Totem Unico Cassa & Cucina
       notes: 'Contributi per le attività e stand gastronomico della Pro Loco',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       categories: ['Primi', 'Secondi & Contorni', 'Panini', 'Bevande', 'Dolci'],
+      departments: ['Primi & Cucina', 'Griglia & Panini', 'Bar & Bibite', 'Stand Dolci'],
+      cassaAssignments: {},
       items: [
-        { id: 'itm_1', name: 'Fileja alla Silana', category: 'Primi', price: 7.00, isAvailable: true, icon: '🍝' },
-        { id: 'itm_2', name: 'Pasta e Fagioli nei Cocci', category: 'Primi', price: 6.00, isAvailable: true, icon: '🍲' },
-        { id: 'itm_3', name: 'Grigliata di Maiale & Salsiccia', category: 'Secondi & Contorni', price: 8.50, isAvailable: true, icon: '🍖' },
-        { id: 'itm_4', name: 'Patate ‘Mpacchiuse e Peperoni', category: 'Secondi & Contorni', price: 4.50, isAvailable: true, icon: '🥔' },
-        { id: 'itm_5', name: 'Panino Salsiccia & Cime di Rapa', category: 'Panini', price: 6.50, isAvailable: true, icon: '🥪' },
-        { id: 'itm_6', name: 'Panino con Melanzane Sott’olio', category: 'Panini', price: 5.00, isAvailable: true, icon: '🥖' },
-        { id: 'itm_7', name: 'Bicchiere Vino Locale Rosso/Bianco', category: 'Bevande', price: 2.00, isAvailable: true, icon: '🍷' },
-        { id: 'itm_8', name: 'Bottiglia Vino Locale (0.75L)', category: 'Bevande', price: 8.00, isAvailable: true, icon: '🍾' },
-        { id: 'itm_9', name: 'Birra Artigianale alla Spina', category: 'Bevande', price: 3.50, isAvailable: true, icon: '🍺' },
-        { id: 'itm_10', name: 'Acqua Naturale / Frizzante (0.5L)', category: 'Bevande', price: 1.00, isAvailable: true, icon: '💧' },
-        { id: 'itm_11', name: 'Pitta ‘Mpigliata e Dolci Tipici', category: 'Dolci', price: 3.00, isAvailable: true, icon: '🍰' },
-        { id: 'itm_12', name: 'Caffè Espresso', category: 'Bevande', price: 1.20, isAvailable: true, icon: '☕' }
+        { id: 'itm_1', name: 'Fileja alla Silana', category: 'Primi', department: 'Primi & Cucina', price: 7.00, isAvailable: true, stockQuantity: 80, icon: '🍝' },
+        { id: 'itm_2', name: 'Pasta e Fagioli nei Cocci', category: 'Primi', department: 'Primi & Cucina', price: 6.00, isAvailable: true, stockQuantity: 60, icon: '🍲' },
+        { id: 'itm_3', name: 'Grigliata di Maiale & Salsiccia', category: 'Secondi & Contorni', department: 'Griglia & Panini', price: 8.50, isAvailable: true, stockQuantity: 100, icon: '🍖' },
+        { id: 'itm_4', name: 'Patate ‘Mpacchiuse e Peperoni', category: 'Secondi & Contorni', department: 'Primi & Cucina', price: 4.50, isAvailable: true, stockQuantity: 70, icon: '🥔' },
+        { id: 'itm_5', name: 'Panino Salsiccia & Cime di Rapa', category: 'Panini', department: 'Griglia & Panini', price: 6.50, isAvailable: true, stockQuantity: 120, icon: '🥪' },
+        { id: 'itm_6', name: 'Panino con Melanzane Sott’olio', category: 'Panini', department: 'Griglia & Panini', price: 5.00, isAvailable: true, stockQuantity: 50, icon: '🥖' },
+        { id: 'itm_7', name: 'Bicchiere Vino Locale Rosso/Bianco', category: 'Bevande', department: 'Bar & Bibite', price: 2.00, isAvailable: true, stockQuantity: 300, icon: '🍷' },
+        { id: 'itm_8', name: 'Bottiglia Vino Locale (0.75L)', category: 'Bevande', department: 'Bar & Bibite', price: 8.00, isAvailable: true, stockQuantity: 40, icon: '🍾' },
+        { id: 'itm_9', name: 'Birra Artigianale alla Spina', category: 'Bevande', department: 'Bar & Bibite', price: 3.50, isAvailable: true, stockQuantity: 200, icon: '🍺' },
+        { id: 'itm_10', name: 'Acqua Naturale / Frizzante (0.5L)', category: 'Bevande', department: 'Bar & Bibite', price: 1.00, isAvailable: true, stockQuantity: 500, icon: '💧' },
+        { id: 'itm_11', name: 'Pitta ‘Mpigliata e Dolci Tipici', category: 'Dolci', department: 'Stand Dolci', price: 3.00, isAvailable: true, stockQuantity: 90, icon: '🍰' },
+        { id: 'itm_12', name: 'Caffè Espresso', category: 'Bevande', department: 'Bar & Bibite', price: 1.20, isAvailable: true, stockQuantity: 400, icon: '☕' }
       ]
     }
   ],
@@ -128,9 +141,16 @@ export async function ensureCashierOrdersTable(): Promise<void> {
         "cashChange"    DECIMAL(10,2),
         "omaggioNote"   TEXT,
         items           JSONB NOT NULL,
+        "departmentStatuses" JSONB,
         status          VARCHAR(50) NOT NULL DEFAULT 'COMPLETED',
         "createdAt"     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+    `;
+    await sql`
+      ALTER TABLE cashier_orders ADD COLUMN IF NOT EXISTS "departmentStatuses" JSONB;
+    `;
+    await sql`
+      CREATE SEQUENCE IF NOT EXISTS cashier_order_seq START WITH 1 INCREMENT BY 1;
     `;
     await sql`
       CREATE INDEX IF NOT EXISTS idx_cashier_orders_event ON cashier_orders("eventId");
@@ -153,6 +173,23 @@ export async function saveCashierConfig(config: CashierConfig): Promise<boolean>
   return await savePageContent<CashierConfig>('cashier_config', config);
 }
 
+export async function resetCashierOrderSequence(eventId: string, startingNumber: number = 1): Promise<boolean> {
+  await ensureCashierOrdersTable();
+  const sql = getDb();
+  const seqVal = Math.max(1, startingNumber);
+
+  // Set sequence in PostgreSQL
+  await sql`SELECT setval('cashier_order_seq', ${seqVal}, false)`;
+
+  const config = await getCashierConfig();
+  const evt = config.events.find(e => e.id === eventId);
+  if (evt) {
+    evt.startingNumber = startingNumber;
+    await saveCashierConfig(config);
+  }
+  return true;
+}
+
 // ─── Order Operations ────────────────────────────────────────────────────────
 
 export async function createCashierOrder(orderData: {
@@ -173,18 +210,58 @@ export async function createCashierOrder(orderData: {
   // Genera un ID univoco pulito per l'URL della ricevuta
   const orderId = 'csh_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 
-  // Recupera configurazione per sapere eventuale startingNumber
+  // Recupera configurazione per verificare startingNumber e decrementare porzioni stock
   const config = await getCashierConfig();
-  const eventConfig = config.events.find(e => e.id === orderData.eventId);
+  const eventConfigIndex = config.events.findIndex(e => e.id === orderData.eventId);
+  const eventConfig = eventConfigIndex >= 0 ? config.events[eventConfigIndex] : undefined;
   const startingNumber = eventConfig?.startingNumber || 1;
 
-  // Calcola atomicamente il numero progressivo successivo per questo evento
-  const maxResult = await sql`
-    SELECT COALESCE(MAX("orderNumber"), ${startingNumber - 1}) as "maxOrder"
-    FROM cashier_orders
-    WHERE "eventId" = ${orderData.eventId}
-  `;
-  const nextNumber = Number(maxResult[0]?.maxOrder || (startingNumber - 1)) + 1;
+  // 1. Decremento Atomico Stock Porzioni
+  let stockUpdated = false;
+  if (eventConfig && Array.isArray(eventConfig.items)) {
+    for (const orderItem of orderData.items) {
+      const targetItem = eventConfig.items.find(i => i.id === orderItem.id || i.name === orderItem.name);
+      if (targetItem && typeof targetItem.stockQuantity === 'number') {
+        targetItem.stockQuantity = Math.max(0, targetItem.stockQuantity - Number(orderItem.quantity || 1));
+        if (targetItem.stockQuantity === 0) {
+          targetItem.isAvailable = false;
+        }
+        stockUpdated = true;
+      }
+    }
+    if (stockUpdated) {
+      await saveCashierConfig(config);
+    }
+  }
+
+  // Assicura che ciascun articolo abbia un reparto definito (fallback a category)
+  const itemsWithDepartment: CashierOrderItem[] = orderData.items.map(it => {
+    let dept = it.department;
+    if (!dept) {
+      const eventItem = eventConfig?.items?.find(i => i.id === it.id || i.name === it.name);
+      dept = eventItem?.department || it.category || 'Generale';
+    }
+    return { ...it, department: dept };
+  });
+
+  // Costruisci gli stati iniziali per ciascun reparto ("PENDING")
+  const initialDeptStatuses: Record<string, DepartmentStatus> = {};
+  for (const it of itemsWithDepartment) {
+    const dept = it.department || 'Generale';
+    if (!initialDeptStatuses[dept]) {
+      initialDeptStatuses[dept] = 'PENDING';
+    }
+  }
+
+  // 2. Generazione Numero Ordine Atomica tramite Sequence PostgreSQL per prevenire numeri duplicati tra casse parallele
+  const seqResult = await sql`SELECT nextval('cashier_order_seq') as seq`;
+  let nextNumber = Number(seqResult[0]?.seq || startingNumber);
+
+  // Se la sequenza è inferiore a startingNumber, corregila
+  if (nextNumber < startingNumber) {
+    nextNumber = startingNumber;
+    await sql`SELECT setval('cashier_order_seq', ${nextNumber})`;
+  }
 
   const orderRows = await sql`
     INSERT INTO cashier_orders (
@@ -200,6 +277,7 @@ export async function createCashierOrder(orderData: {
       "cashChange",
       "omaggioNote",
       items,
+      "departmentStatuses",
       status,
       "createdAt"
     ) VALUES (
@@ -214,7 +292,8 @@ export async function createCashierOrder(orderData: {
       ${orderData.cashReceived ?? null},
       ${orderData.cashChange ?? null},
       ${orderData.omaggioNote || null},
-      ${JSON.stringify(orderData.items)},
+      ${JSON.stringify(itemsWithDepartment)},
+      ${JSON.stringify(initialDeptStatuses)},
       'COMPLETED',
       CURRENT_TIMESTAMP
     )
@@ -231,6 +310,7 @@ export async function createCashierOrder(orderData: {
       "cashChange",
       "omaggioNote",
       items,
+      "departmentStatuses",
       status,
       "createdAt"
   `;
@@ -249,6 +329,7 @@ export async function createCashierOrder(orderData: {
     cashChange: row.cashChange ? Number(row.cashChange) : undefined,
     omaggioNote: row.omaggioNote || undefined,
     items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+    departmentStatuses: row.departmentStatuses ? (typeof row.departmentStatuses === 'string' ? JSON.parse(row.departmentStatuses) : row.departmentStatuses) : initialDeptStatuses,
     status: row.status,
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString()
   };
@@ -275,6 +356,7 @@ export async function getCashierOrderById(orderId: string): Promise<CashierOrder
     cashChange: row.cashChange ? Number(row.cashChange) : undefined,
     omaggioNote: row.omaggioNote || undefined,
     items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+    departmentStatuses: row.departmentStatuses ? (typeof row.departmentStatuses === 'string' ? JSON.parse(row.departmentStatuses) : row.departmentStatuses) : undefined,
     status: row.status,
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString()
   };
@@ -282,6 +364,7 @@ export async function getCashierOrderById(orderId: string): Promise<CashierOrder
 
 export async function getCashierOrders(eventId: string, options?: {
   cassaName?: string;
+  department?: string;
   limit?: number;
 }): Promise<CashierOrder[]> {
   await ensureCashierOrdersTable();
@@ -305,7 +388,7 @@ export async function getCashierOrders(eventId: string, options?: {
     `;
   }
 
-  return rows.map(row => ({
+  const result: CashierOrder[] = rows.map(row => ({
     id: row.id,
     eventId: row.eventId,
     eventName: row.eventName,
@@ -318,15 +401,50 @@ export async function getCashierOrders(eventId: string, options?: {
     cashChange: row.cashChange ? Number(row.cashChange) : undefined,
     omaggioNote: row.omaggioNote || undefined,
     items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+    departmentStatuses: row.departmentStatuses ? (typeof row.departmentStatuses === 'string' ? JSON.parse(row.departmentStatuses) : row.departmentStatuses) : undefined,
     status: row.status,
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString()
   }));
+
+  // Se richiesto un filtro per reparto/stand specifico
+  if (options?.department && options.department !== 'all') {
+    const targetDept = options.department.toLowerCase();
+    return result.filter(o =>
+      o.items.some(it => (it.department || it.category || 'Generale').toLowerCase() === targetDept)
+    );
+  }
+
+  return result;
+}
+
+export async function updateCashierDepartmentStatus(orderId: string, department: string, status: DepartmentStatus): Promise<boolean> {
+  await ensureCashierOrdersTable();
+  const sql = getDb();
+  const order = await getCashierOrderById(orderId);
+  if (!order) return false;
+
+  const currentStatuses = order.departmentStatuses || {};
+  
+  if (department === 'ALL_DEPARTMENTS') {
+    // Evadi l'intero ordine sul totem unico generale
+    const depts = Array.from(new Set(order.items.map(i => i.department || i.category || 'Generale')));
+    depts.forEach(d => { currentStatuses[d] = status; });
+  } else {
+    currentStatuses[department] = status;
+  }
+
+  await sql`
+    UPDATE cashier_orders
+    SET "departmentStatuses" = ${JSON.stringify(currentStatuses)}
+    WHERE id = ${orderId}
+  `;
+  return true;
 }
 
 export async function voidCashierOrder(orderId: string): Promise<boolean> {
   await ensureCashierOrdersTable();
   const sql = getDb();
-  const res = await sql`
+  await sql`
     UPDATE cashier_orders
     SET status = 'VOIDED'
     WHERE id = ${orderId}

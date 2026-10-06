@@ -25,7 +25,12 @@ import {
   Download,
   Copy,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Store,
+  CheckSquare,
+  Square,
+  Package,
+  Settings
 } from 'lucide-react';
 
 const COMMON_EMOJIS = ['🍝', '🍲', '🍖', '🥩', '🥔', '🥪', '🥖', '🍕', '🍷', '🍾', '🍺', '💧', '🥤', '🍰', '☕'];
@@ -38,8 +43,9 @@ export default function AdminCashierPage() {
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Tab: 'menu' | 'report' | 'settings'
-  const [activeTab, setActiveTab] = useState<'menu' | 'report' | 'events'>('menu');
+  // Tab: 'menu' | 'cassas' | 'report' | 'events'
+  const [activeTab, setActiveTab] = useState<'menu' | 'cassas' | 'report' | 'events'>('menu');
+  const [selectedCassaForConfig, setSelectedCassaForConfig] = useState<string>('Cassa 1');
 
   // Load config & stats
   const fetchConfig = async () => {
@@ -115,6 +121,7 @@ export default function AdminCashierPage() {
       category: currentEvent.categories[0] || 'Primi',
       price: 5.00,
       isAvailable: true,
+      stockQuantity: 100,
       icon: '🍽️'
     };
     const updatedEvents = config.events.map(evt => {
@@ -177,6 +184,107 @@ export default function AdminCashierPage() {
     setConfig({ ...config, events: updatedEvents });
   };
 
+  // ─── Cassa Item Assignment Helpers ─────────────────────────────────────────
+
+  const knownCasses = currentEvent?.casses && currentEvent.casses.length > 0
+    ? currentEvent.casses
+    : Array.from(new Set([
+        'Cassa 1',
+        'Cassa 2',
+        'Cassa Bar',
+        'Stand Dolci',
+        ...Object.keys(currentEvent?.cassaAssignments || {})
+      ]));
+
+  const toggleCassaItemAssignment = (cassaName: string, itemId: string) => {
+    if (!currentEvent) return;
+    const currentAssigned = currentEvent.cassaAssignments?.[cassaName] || [];
+    const exists = currentAssigned.includes(itemId);
+    const newAssigned = exists
+      ? currentAssigned.filter(id => id !== itemId)
+      : [...currentAssigned, itemId];
+
+    const updatedEvents = config.events.map(evt => {
+      if (evt.id !== currentEvent.id) return evt;
+      return {
+        ...evt,
+        cassaAssignments: {
+          ...(evt.cassaAssignments || {}),
+          [cassaName]: newAssigned
+        },
+        updatedAt: new Date().toISOString()
+      };
+    });
+    setConfig({ ...config, events: updatedEvents });
+  };
+
+  const setCassaAllItems = (cassaName: string, selectAll: boolean) => {
+    if (!currentEvent) return;
+    const newAssigned = selectAll ? currentEvent.items.map(i => i.id) : [];
+    const updatedEvents = config.events.map(evt => {
+      if (evt.id !== currentEvent.id) return evt;
+      return {
+        ...evt,
+        cassaAssignments: {
+          ...(evt.cassaAssignments || {}),
+          [cassaName]: newAssigned
+        },
+        updatedAt: new Date().toISOString()
+      };
+    });
+    setConfig({ ...config, events: updatedEvents });
+  };
+
+  const addCassaName = () => {
+    if (!currentEvent) return;
+    const name = prompt('Inserisci il nome della nuova cassa (es. "Cassa Bar", "Stand Dolci", "Cassa Griglia"):');
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    if (knownCasses.includes(trimmed)) {
+      alert('Esiste già una cassa configurata con questo nome!');
+      return;
+    }
+    const newCassesList = [...knownCasses, trimmed];
+    const updatedEvents = config.events.map(evt => {
+      if (evt.id !== currentEvent.id) return evt;
+      return {
+        ...evt,
+        casses: newCassesList,
+        cassaAssignments: {
+          ...(evt.cassaAssignments || {}),
+          [trimmed]: []
+        },
+        updatedAt: new Date().toISOString()
+      };
+    });
+    setConfig({ ...config, events: updatedEvents });
+    setSelectedCassaForConfig(trimmed);
+  };
+
+  const removeCassaName = (cassaName: string) => {
+    if (!currentEvent) return;
+    if (!confirm(`Sei sicuro di voler eliminare definitivamente la cassa "${cassaName}"?`)) return;
+
+    const newCassesList = knownCasses.filter(c => c !== cassaName);
+    const currentAssignedMap = { ...(currentEvent.cassaAssignments || {}) };
+    delete currentAssignedMap[cassaName];
+
+    const updatedEvents = config.events.map(evt => {
+      if (evt.id !== currentEvent.id) return evt;
+      return {
+        ...evt,
+        casses: newCassesList,
+        cassaAssignments: currentAssignedMap,
+        updatedAt: new Date().toISOString()
+      };
+    });
+
+    setConfig({ ...config, events: updatedEvents });
+    if (selectedCassaForConfig === cassaName) {
+      setSelectedCassaForConfig(newCassesList[0] || '');
+    }
+  };
+
   // ─── Event Management ──────────────────────────────────────────────────────
 
   const createNewEvent = () => {
@@ -191,11 +299,12 @@ export default function AdminCashierPage() {
       active: true,
       categories: ['Primi', 'Secondi', 'Bevande', 'Dolci'],
       items: [
-        { id: 'itm_sample_1', name: 'Piatto Specialità', category: 'Primi', price: 6.00, isAvailable: true, icon: '🍝' },
-        { id: 'itm_sample_2', name: 'Acqua Minerale (0.5L)', category: 'Bevande', price: 1.00, isAvailable: true, icon: '💧' },
-        { id: 'itm_sample_3', name: 'Bicchiere di Vino', category: 'Bevande', price: 2.00, isAvailable: true, icon: '🍷' }
+        { id: 'itm_sample_1', name: 'Piatto Specialità', category: 'Primi', price: 6.00, isAvailable: true, stockQuantity: 100, icon: '🍝' },
+        { id: 'itm_sample_2', name: 'Acqua Minerale (0.5L)', category: 'Bevande', price: 1.00, isAvailable: true, stockQuantity: 500, icon: '💧' },
+        { id: 'itm_sample_3', name: 'Bicchiere di Vino', category: 'Bevande', price: 2.00, isAvailable: true, stockQuantity: 300, icon: '🍷' }
       ],
       startingNumber: 1,
+      cassaAssignments: {},
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -248,7 +357,7 @@ export default function AdminCashierPage() {
     <div>
       <AdminHeader
         title="Cassa & Eventi"
-        subtitle="Gestisci il listino contributi, codici di accesso per i volontari e report incassi delle sagre"
+        subtitle="Gestisci il listino contributi, la disponibilità in stock per piatto e le casse dell'evento"
         actions={
           <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <Link
@@ -369,7 +478,7 @@ export default function AdminCashierPage() {
       </div>
 
       {/* ── Sub Navigation Tabs ── */}
-      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
         <button
           onClick={() => setActiveTab('menu')}
           style={{
@@ -387,6 +496,25 @@ export default function AdminCashierPage() {
           }}
         >
           <UtensilsCrossed size={16} /> Listino Piatti & Contributi
+        </button>
+
+        <button
+          onClick={() => setActiveTab('cassas')}
+          style={{
+            padding: '0.6rem 1.1rem',
+            borderRadius: 'var(--radius-md)',
+            border: 'none',
+            background: activeTab === 'cassas' ? 'var(--blue-600)' : 'transparent',
+            color: activeTab === 'cassas' ? '#fff' : 'var(--neutral-400)',
+            fontWeight: 750,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}
+        >
+          <Store size={16} /> Configura Singole Casse
         </button>
 
         <button
@@ -424,12 +552,12 @@ export default function AdminCashierPage() {
             gap: '0.4rem'
           }}
         >
-          <Layers size={16} /> Configurazione Evento
+          <Layers size={16} /> Impostazioni Evento
         </button>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          TAB 1: MENU & DISHES LIST
+          TAB 1: MENU & DISHES LIST (WITH STOCK MANAGEMENT)
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'menu' && currentEvent && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -491,13 +619,13 @@ export default function AdminCashierPage() {
 
           {/* Dishes Table Card */}
           <div className="card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-heading)' }}>
-                  🍽️ Listino Articoli / Piatti
+                  🍽️ Listino Articoli, Prezzi & Stock Quantità
                 </h3>
                 <p style={{ margin: '0.15rem 0 0', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
-                  Tutti i prezzi sono visualizzati e rendicontati come <strong>Contributi di partecipazione</strong>.
+                  Imposta il contributo (€) ed il numero di porzioni disponibili in stock per ciascun piatto. Quando lo stock arriva a 0, il piatto si disattiva automaticamente in cassa.
                 </p>
               </div>
 
@@ -517,14 +645,15 @@ export default function AdminCashierPage() {
                   <tr style={{ background: 'var(--neutral-850)', color: 'var(--neutral-400)', textAlign: 'left' }}>
                     <th style={{ padding: '0.65rem 0.75rem', width: '50px' }}>Icona</th>
                     <th style={{ padding: '0.65rem 0.75rem' }}>Nome Piatto</th>
-                    <th style={{ padding: '0.65rem 0.75rem', width: '160px' }}>Categoria</th>
+                    <th style={{ padding: '0.65rem 0.75rem', width: '150px' }}>Categoria</th>
                     <th style={{ padding: '0.65rem 0.75rem', width: '130px' }}>Contributo (€)</th>
+                    <th style={{ padding: '0.65rem 0.75rem', width: '145px', textAlign: 'center' }}>Stock Quantità</th>
                     <th style={{ padding: '0.65rem 0.75rem', width: '140px', textAlign: 'center' }}>Disponibilità</th>
                     <th style={{ padding: '0.65rem 0.75rem', width: '50px', textAlign: 'center' }}>Azioni</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentEvent.items.map((item, index) => (
+                  {currentEvent.items.map((item) => (
                     <tr key={item.id} style={{ borderTop: '1px solid var(--neutral-800)' }}>
                       {/* Emoji Icon */}
                       <td style={{ padding: '0.6rem 0.75rem' }}>
@@ -611,6 +740,48 @@ export default function AdminCashierPage() {
                         </div>
                       </td>
 
+                      {/* Stock Quantity */}
+                      <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="∞"
+                            value={item.stockQuantity !== undefined ? item.stockQuantity : ''}
+                            onChange={(e) => {
+                              const valStr = e.target.value;
+                              if (valStr === '') {
+                                updateItem(item.id, 'stockQuantity', undefined);
+                              } else {
+                                const num = parseInt(valStr, 10);
+                                const safeNum = isNaN(num) ? undefined : Math.max(0, num);
+                                updateItem(item.id, 'stockQuantity', safeNum);
+                                if (safeNum === 0) {
+                                  updateItem(item.id, 'isAvailable', false);
+                                } else if (safeNum && safeNum > 0 && !item.isAvailable) {
+                                  updateItem(item.id, 'isAvailable', true);
+                                }
+                              }
+                            }}
+                            style={{
+                              width: '75px',
+                              padding: '0.45rem 0.5rem',
+                              borderRadius: 'var(--radius-md)',
+                              background: 'var(--neutral-800)',
+                              border: '1px solid var(--neutral-700)',
+                              color: item.stockQuantity === 0 ? '#ef4444' : item.stockQuantity !== undefined ? '#38bdf8' : 'var(--neutral-400)',
+                              fontSize: '0.9rem',
+                              fontWeight: 800,
+                              fontFamily: 'monospace',
+                              textAlign: 'center'
+                            }}
+                          />
+                          <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', fontWeight: 600 }}>
+                            {item.stockQuantity !== undefined ? 'pz' : '∞'}
+                          </span>
+                        </div>
+                      </td>
+
                       {/* Availability Toggle */}
                       <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>
                         <button
@@ -658,7 +829,223 @@ export default function AdminCashierPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          TAB 2: REPORT & STATISTICHE LIVE (Z-REPORT)
+          TAB 2: CASSA-BY-CASSA PRODUCT ASSIGNMENT
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'cassas' && currentEvent && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Info Header Card */}
+          <div className="card" style={{ padding: '1.25rem', background: 'rgba(30, 41, 59, 0.5)', borderColor: 'var(--neutral-700)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Store size={20} /> Configurazione Prodotti per Singola Cassa
+            </h3>
+            <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--neutral-300)', lineHeight: 1.5 }}>
+              Associa i prodotti del listino a ciascun punto cassa (es. <strong>Cassa Bar</strong> vede solo bevande e caffè, <strong>Stand Dolci</strong> vede solo dolci).<br />
+              <span style={{ color: '#fb923c', fontWeight: 700 }}>Nota:</span> Se per una cassa non selezioni alcun prodotto (oppure clicchi &quot;Mostra Tutti&quot;), saranno visibili <strong>tutti i prodotti dell&apos;evento</strong>.
+            </p>
+          </div>
+
+          {/* Cassa Selector Chips */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {knownCasses.map(cassaName => {
+              const assignedIds = currentEvent.cassaAssignments?.[cassaName];
+              const isSelected = selectedCassaForConfig === cassaName;
+              const countStr = assignedIds && assignedIds.length > 0 ? `${assignedIds.length} prodotti` : 'Tutti i prodotti';
+
+              return (
+                <div
+                  key={cassaName}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: isSelected ? 'rgba(56, 189, 248, 0.18)' : 'var(--neutral-850)',
+                    border: `1px solid ${isSelected ? '#38bdf8' : 'var(--neutral-700)'}`,
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0.55rem 0.95rem',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setSelectedCassaForConfig(cassaName)}
+                >
+                  <Store size={16} color={isSelected ? '#38bdf8' : 'var(--neutral-400)'} />
+                  <div>
+                    <strong style={{ fontSize: '0.88rem', color: isSelected ? '#38bdf8' : 'var(--color-heading)', display: 'block' }}>
+                      {cassaName}
+                    </strong>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>
+                      {countStr}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeCassaName(cassaName);
+                    }}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      color: '#ef4444',
+                      borderRadius: '0.35rem',
+                      cursor: 'pointer',
+                      marginLeft: '0.4rem',
+                      padding: '0.25rem 0.4rem',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                    title={`Elimina cassa "${cassaName}"`}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={addCassaName}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.55rem 0.85rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--neutral-800)',
+                border: '1px dashed var(--neutral-600)',
+                color: 'var(--neutral-300)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={14} /> Nuova Cassa
+            </button>
+          </div>
+
+          {/* Detailed Item Assignment Grid for Selected Cassa */}
+          {selectedCassaForConfig && (
+            <div className="card" style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-heading)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Store size={18} color="#38bdf8" /> Prodotti Abilitati per &quot;{selectedCassaForConfig}&quot;
+                  </h4>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
+                    {(currentEvent.cassaAssignments?.[selectedCassaForConfig]?.length || 0) === 0
+                      ? 'Attualmente questa cassa mostra TUTTI i prodotti del listino (Default).'
+                      : `${currentEvent.cassaAssignments?.[selectedCassaForConfig]?.length} di ${currentEvent.items.length} prodotti selezionati.`}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCassaAllItems(selectedCassaForConfig, true)}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--neutral-800)',
+                      border: '1px solid var(--neutral-700)',
+                      color: '#38bdf8',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
+                    <CheckSquare size={14} /> Seleziona Tutti
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCassaAllItems(selectedCassaForConfig, false)}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--neutral-800)',
+                      border: '1px solid var(--neutral-700)',
+                      color: 'var(--neutral-400)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem'
+                    }}
+                  >
+                    <Square size={14} /> Mostra Tutti (Default)
+                  </button>
+                </div>
+              </div>
+
+              {/* Items Grouped by Category */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {currentEvent.categories.map(cat => {
+                  const catItems = currentEvent.items.filter(i => i.category === cat);
+                  if (catItems.length === 0) return null;
+
+                  const assignedForCassa = currentEvent.cassaAssignments?.[selectedCassaForConfig] || [];
+
+                  return (
+                    <div key={cat} style={{ background: 'var(--neutral-850)', borderRadius: 'var(--radius-md)', padding: '1rem', border: '1px solid var(--neutral-800)' }}>
+                      <h5 style={{ margin: '0 0 0.75rem', fontSize: '0.88rem', fontWeight: 800, color: 'var(--neutral-300)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        📁 {cat} ({catItems.length})
+                      </h5>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.65rem' }}>
+                        {catItems.map(item => {
+                          const isAssigned = assignedForCassa.includes(item.id);
+
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => toggleCassaItemAssignment(selectedCassaForConfig, item.id)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.65rem',
+                                padding: '0.65rem 0.85rem',
+                                borderRadius: 'var(--radius-md)',
+                                background: isAssigned ? 'rgba(56, 189, 248, 0.12)' : 'var(--neutral-800)',
+                                border: `1.5px solid ${isAssigned ? '#38bdf8' : 'var(--neutral-700)'}`,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <div style={{ color: isAssigned ? '#38bdf8' : 'var(--neutral-500)', display: 'flex', alignItems: 'center' }}>
+                                {isAssigned ? <CheckSquare size={18} /> : <Square size={18} />}
+                              </div>
+
+                              <span style={{ fontSize: '1.2rem' }}>{item.icon || '🍽️'}</span>
+
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 750, color: isAssigned ? '#fff' : 'var(--neutral-300)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                  {item.name}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', display: 'flex', gap: '0.5rem' }}>
+                                  <span>€{item.price.toFixed(2)}</span>
+                                  {item.stockQuantity !== undefined && (
+                                    <span style={{ color: item.stockQuantity === 0 ? '#ef4444' : '#38bdf8', fontWeight: 700 }}>
+                                      📦 {item.stockQuantity} pz
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TAB 3: REPORT & STATISTICHE LIVE (Z-REPORT)
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'report' && currentEvent && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -847,7 +1234,7 @@ export default function AdminCashierPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          TAB 3: EVENT CONFIGURATION
+          TAB 4: EVENT CONFIGURATION
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'events' && currentEvent && (
         <div className="card" style={{ padding: '1.5rem', maxWidth: '650px' }}>
@@ -938,6 +1325,34 @@ export default function AdminCashierPage() {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--neutral-300)', marginBottom: '0.35rem' }}>
+                Modalità Smistamento Multi-Stand / Reparti
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const updated = config.events.map(ev => ev.id === currentEvent.id ? { ...ev, enableDepartments: !ev.enableDepartments } : ev);
+                  setConfig({ ...config, events: updated });
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 750,
+                  cursor: 'pointer',
+                  background: currentEvent.enableDepartments ? 'rgba(56,189,248,0.15)' : 'rgba(148,163,184,0.15)',
+                  color: currentEvent.enableDepartments ? '#38bdf8' : '#94a3b8'
+                }}
+              >
+                {currentEvent.enableDepartments ? '🔵 Multi-Stand Attivo (Comande divise per Reparto)' : '⚪ Totem Unico (Default - Singolo Monitor Cassa/Cucina)'}
+              </button>
+              <span style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', display: 'block', marginTop: '0.25rem' }}>
+                Se disattivo (default), il monitor <code>/cashier/stand</code> mostra gli ordini completi su un unico schermo Totem Generale.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--neutral-300)', marginBottom: '0.35rem' }}>
                 Numero Progressivo di Partenza
               </label>
               <input
@@ -962,6 +1377,50 @@ export default function AdminCashierPage() {
               <span style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', display: 'block', marginTop: '0.25rem' }}>
                 Il primo ordine partirà da questo numero (es. 1).
               </span>
+            </div>
+
+            <div style={{ marginTop: '0.5rem', paddingTop: '0.85rem', borderTop: '1px solid var(--neutral-800)' }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  const num = prompt('Inserisci il numero da cui far ripartire la numerazione degli ordini:', String(currentEvent.startingNumber || 1));
+                  if (!num) return;
+                  const startNum = parseInt(num) || 1;
+                  if (!confirm(`Sei sicuro di voler resettare la numerazione ordini facendo ripartire dal numero #${startNum}?`)) return;
+
+                  try {
+                    const res = await fetch('/api/admin/cashier/reset-sequence', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ eventId: currentEvent.id, startingNumber: startNum })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert(`✅ Numerazione resettata con successo! I prossimi ordini ripartiranno dal #${startNum}.`);
+                      fetchConfig();
+                    } else {
+                      alert(`❌ Errore: ${data.error || 'Impossibile resettare la numerazione'}`);
+                    }
+                  } catch (err) {
+                    alert('❌ Errore di connessione durante il reset.');
+                  }
+                }}
+                style={{
+                  padding: '0.65rem 1.1rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid rgba(234,88,12,0.4)',
+                  background: 'rgba(234,88,12,0.15)',
+                  color: '#fb923c',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <RefreshCw size={15} /> Reset Sequenza Numerazione Ordini 🔄
+              </button>
             </div>
 
             <div>

@@ -12,7 +12,8 @@ import {
   Star,
   RotateCcw,
   Camera,
-  Receipt
+  Receipt,
+  Send
 } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
 import { Moon, Sun } from 'lucide-react';
@@ -43,6 +44,7 @@ const navGroups = [
     label: 'Biglietteria & Ordini',
     items: [
       { href: '/admin/ordini', label: 'Ordini', icon: ShoppingCart },
+      { href: '/admin/zuccaland-inviti', label: 'Inviti Zuccaland', icon: Send },
       { href: '/admin/cassa', label: 'Cassa & Eventi', icon: Receipt },
       { href: '/admin/rimborsi', label: 'Rimborsi', icon: RotateCcw },
       { href: '/admin/prenotazioni', label: 'Prenotazioni', icon: CalendarCheck },

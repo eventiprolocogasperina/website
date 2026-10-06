@@ -44,6 +44,7 @@ export async function POST(request: Request) {
         name: matchedEvent.name,
         eventName: matchedEvent.name,
         categories: matchedEvent.categories,
+        cassaAssignments: matchedEvent.cassaAssignments || {},
         items: matchedEvent.items,
         notes: matchedEvent.notes,
       }
