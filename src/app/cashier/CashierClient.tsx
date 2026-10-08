@@ -163,7 +163,13 @@ export default function CashierClient() {
   const [operatorName, setOperatorName] = useState('');
   const [session, setSession] = useState<{
     id?: string; eventId: string; name?: string; eventName: string;
-    categories: string[]; items: CashierItem[]; notes?: string;
+    categories: string[]; items: CashierItem[];
+    cassaAssignments?: Record<string, string[]>;
+    casses?: string[];
+    masterCassa?: string;
+    enableDepartments?: boolean;
+    startingNumber?: number;
+    notes?: string;
   } | null>(null);
 
   // UI
@@ -300,7 +306,18 @@ export default function CashierClient() {
       const data = await res.json();
       if (data.success && data.event) {
         const ev = data.event;
-        setSession({ ...ev, id: ev.id || ev.eventId, eventId: ev.eventId || ev.id, name: ev.name || ev.eventName, eventName: ev.eventName || ev.name });
+        setSession({
+          ...ev,
+          id: ev.id || ev.eventId,
+          eventId: ev.eventId || ev.id,
+          name: ev.name || ev.eventName,
+          eventName: ev.eventName || ev.name,
+          casses: ev.casses,
+          masterCassa: ev.masterCassa,
+          enableDepartments: ev.enableDepartments,
+          cassaAssignments: ev.cassaAssignments,
+          startingNumber: ev.startingNumber,
+        });
         localStorage.setItem('cashier_event_code', codeToUse.trim().toUpperCase());
         localStorage.setItem('cashier_cassa_name', cassaName);
         if (operatorName) localStorage.setItem('cashier_operator_name', operatorName);
@@ -424,6 +441,9 @@ export default function CashierClient() {
       alert("L'importo ricevuto è inferiore al totale!"); return;
     }
     setSubmittingOrder(true);
+    // Determina se questa cassa è la cassa principale (genera biglietti progressivi)
+    const masterCassa = session.masterCassa || session.casses?.[0] || 'Cassa 1';
+    const isMasterCassa = cassaName.trim() === masterCassa.trim();
     try {
       const res = await fetch('/api/cashier/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -435,7 +455,8 @@ export default function CashierClient() {
           cashChange: paymentMethod === 'CONTANTI' ? cashChange : undefined,
           omaggioNote: paymentMethod === 'OMAGGIO' ? (omaggioNote || 'Omaggio Pro Loco') : undefined,
           orderNote: orderNote || undefined,
-          items: cartList
+          items: cartList,
+          isMasterCassa
         })
       });
       const data = await res.json();
@@ -592,28 +613,25 @@ export default function CashierClient() {
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: T.textMuted, marginBottom: '0.4rem' }}>
                 🏷️ Postazione Cassa
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem', marginBottom: '0.4rem' }}>
-                {CASSA_PRESETS.slice(0, 3).map(preset => (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.4rem' }}>
+                {CASSA_PRESETS.map((preset, idx) => (
                   <button key={preset} type="button" onClick={() => setCassaName(preset)} style={{
-                    padding: '0.55rem', borderRadius: '0.75rem',
+                    padding: '0.55rem 0.4rem', borderRadius: '0.75rem',
                     border: `1.5px solid ${cassaName === preset ? '#38bdf8' : T.border}`,
                     background: cassaName === preset ? 'rgba(56,189,248,0.15)' : T.bgInput,
                     color: cassaName === preset ? '#38bdf8' : T.textMuted,
-                    fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer'
-                  }}>{preset}</button>
+                    fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem'
+                  }}>
+                    {idx === 0 ? '🎟️' : '🧾'}
+                    <span>{preset}</span>
+                    {idx === 0 && <span style={{ fontSize: '0.6rem', color: '#38bdf8', fontWeight: 900 }}>PRINCIPALE</span>}
+                  </button>
                 ))}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
-                {CASSA_PRESETS.slice(3).map(preset => (
-                  <button key={preset} type="button" onClick={() => setCassaName(preset)} style={{
-                    padding: '0.55rem', borderRadius: '0.75rem',
-                    border: `1.5px solid ${cassaName === preset ? '#38bdf8' : T.border}`,
-                    background: cassaName === preset ? 'rgba(56,189,248,0.15)' : T.bgInput,
-                    color: cassaName === preset ? '#38bdf8' : T.textMuted,
-                    fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer'
-                  }}>{preset}</button>
-                ))}
-              </div>
+              <p style={{ fontSize: '0.7rem', color: T.textSubtle, margin: '0.35rem 0 0', lineHeight: 1.4 }}>
+                🎟️ La cassa principale emette biglietti progressivi — le altre emettono ricevute semplici.
+              </p>
             </div>
 
             <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
@@ -686,6 +704,13 @@ export default function CashierClient() {
             </strong>
             <div style={{ fontSize: '0.7rem', color: T.textMuted, display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}>
               <span style={{ color: '#4ade80', fontWeight: 800 }}>● {cassaName}</span>
+              {(() => {
+                const master = session.masterCassa || session.casses?.[0] || 'Cassa 1';
+                const isMaster = cassaName.trim() === master.trim();
+                return isMaster
+                  ? <span style={{ background: 'rgba(251,191,36,0.2)', color: '#fbbf24', fontSize: '0.62rem', fontWeight: 900, borderRadius: '999px', padding: '1px 5px' }}>🎟️ PRINCIPALE</span>
+                  : <span style={{ background: 'rgba(148,163,184,0.15)', color: T.textSubtle, fontSize: '0.62rem', fontWeight: 800, borderRadius: '999px', padding: '1px 5px' }}>🧾 RICEVUTA</span>;
+              })()}
               {operatorName && <span className="hide-mobile">| {operatorName}</span>}
             </div>
           </div>
@@ -1254,86 +1279,301 @@ export default function CashierClient() {
       {/* ═══════════════════════════════════════════════════════════════════════
           4. COMPLETED ORDER / QR MODAL
       ═══════════════════════════════════════════════════════════════════════ */}
-      {completedOrder && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(10px)', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-        }}>
+      {completedOrder && (() => {
+        const masterCassa = session?.masterCassa || session?.casses?.[0] || 'Cassa 1';
+        const isMasterReceipt = completedOrder.order.orderNumber > 0;
+        return (
           <div style={{
-            maxWidth: '460px', width: '100%', background: '#ffffff', color: '#0f172a',
-            borderRadius: '1.75rem', padding: '2rem 1.5rem', boxShadow: '0 25px 60px rgba(0,0,0,0.8)', textAlign: 'center', position: 'relative'
+            position: 'fixed', inset: 0,
+            background: isMasterReceipt
+              ? 'linear-gradient(160deg, rgba(0,0,0,0.92) 0%, rgba(15,23,42,0.96) 100%)'
+              : 'rgba(0,0,0,0.82)',
+            backdropFilter: 'blur(12px)', zIndex: 110,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
           }}>
-            <button onClick={() => setCompletedOrder(null)} style={{
-              position: 'absolute', top: '1rem', right: '1rem',
-              background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%',
-              width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
-            }}>
-              <X size={18} />
-            </button>
+            {isMasterReceipt ? (
+              /* ── BIGLIETTO PROGRESSIVO (Cassa Principale) ── */
+              <div style={{
+                maxWidth: '420px', width: '100%', position: 'relative',
+                animation: 'ticketAppear 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+              }}>
+                {/* Ticket body */}
+                <div style={{
+                  background: '#ffffff', borderRadius: '1.5rem 1.5rem 0 0',
+                  padding: '2rem 1.75rem 0', textAlign: 'center', position: 'relative', overflow: 'hidden'
+                }}>
+                  {/* Top accent bar */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: '6px',
+                    background: 'linear-gradient(90deg, #1e3a8a 0%, #3b82f6 50%, #38bdf8 100%)'
+                  }} />
 
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', margin: '0 auto 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle2 size={32} />
-            </div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              Ordine Concluso ✓
-            </div>
+                  <button onClick={() => setCompletedOrder(null)} style={{
+                    position: 'absolute', top: '1rem', right: '1rem',
+                    background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%',
+                    width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', color: '#64748b'
+                  }}>
+                    <X size={16} />
+                  </button>
 
-            <div style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '1.25rem', padding: '1rem', margin: '1rem 0' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Numero Progressivo</span>
-              <div style={{ fontSize: '4.5rem', fontWeight: 900, color: '#1e3a8a', lineHeight: 1, fontFamily: 'monospace', margin: '0.25rem 0' }}>
-                #{String(completedOrder.order.orderNumber).padStart(3, '0')}
+                  {/* Header */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', color: '#94a3b8', marginBottom: '0.15rem' }}>
+                      Pro Loco Gasperina APS
+                    </div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+                      {completedOrder.order.eventName}
+                    </div>
+                  </div>
+
+                  {/* ✅ Success ring */}
+                  <div style={{
+                    width: '52px', height: '52px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                    color: 'white', margin: '0 auto 1rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 8px 24px rgba(22,163,74,0.4)'
+                  }}>
+                    <CheckCircle2 size={28} />
+                  </div>
+
+                  {/* Big number */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
+                    borderRadius: '1.25rem', padding: '1.25rem 1rem',
+                    marginBottom: '1rem', position: 'relative'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: '#94a3b8', marginBottom: '0.25rem' }}>
+                      🎟️ BIGLIETTO N°
+                    </div>
+                    <div style={{
+                      fontSize: '5.5rem', fontWeight: 900, color: '#ffffff',
+                      lineHeight: 1, fontFamily: 'monospace',
+                      textShadow: '0 4px 20px rgba(56,189,248,0.5)'
+                    }}>
+                      {String(completedOrder.order.orderNumber).padStart(3, '0')}
+                    </div>
+                    <div style={{
+                      fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700, marginTop: '0.4rem'
+                    }}>
+                      {completedOrder.order.cassaName}
+                      {completedOrder.order.operatorName && ` · ${completedOrder.order.operatorName}`}
+                    </div>
+                  </div>
+
+                  {/* Items list */}
+                  <div style={{ textAlign: 'left', marginBottom: '0.85rem' }}>
+                    {completedOrder.order.items.map((it, i) => (
+                      <div key={i} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '0.35rem 0', borderBottom: i < completedOrder.order.items.length - 1 ? '1px solid #f1f5f9' : 'none',
+                        fontSize: '0.88rem'
+                      }}>
+                        <span style={{ color: '#334155', fontWeight: 600 }}>
+                          <span style={{ color: '#0284c7', fontWeight: 900, marginRight: '0.35rem' }}>{it.quantity}×</span>
+                          {it.name}
+                        </span>
+                        <span style={{ color: '#059669', fontWeight: 800, fontFamily: 'monospace' }}>€{(it.price * it.quantity).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total + Payment */}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                    background: '#f8fafc', borderRadius: '0.85rem', padding: '0.7rem 1rem',
+                    marginBottom: '0.75rem'
+                  }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>TOTALE</span>
+                    <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', fontFamily: 'monospace' }}>
+                      €{Number(completedOrder.order.totalAmount).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Payment details */}
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem', display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <span>💳 {completedOrder.order.paymentMethod}</span>
+                    {completedOrder.order.cashChange !== undefined && completedOrder.order.cashChange > 0 && (
+                      <span style={{ color: '#16a34a', fontWeight: 800 }}>Resto: €{Number(completedOrder.order.cashChange).toFixed(2)}</span>
+                    )}
+                    {completedOrder.order.omaggioNote && (
+                      <span style={{ color: '#ea580c' }}>📝 {completedOrder.order.omaggioNote}</span>
+                    )}
+                  </div>
+
+                  {/* QR */}
+                  {completedOrder.qrCodeDataUrl && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', background: '#f8fafc', borderRadius: '1rem', padding: '0.75rem', marginBottom: '1rem', textAlign: 'left' }}>
+                      <div style={{ display: 'inline-block', padding: '0.4rem', background: 'white', borderRadius: '0.6rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0 }}>
+                        <Image src={completedOrder.qrCodeDataUrl} alt="QR Ricevuta" width={72} height={72} unoptimized style={{ display: 'block' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#334155' }}>Ricevuta Digitale</div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>📱 Inquadra il QR per la ricevuta</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tear line */}
+                <div style={{
+                  height: '28px', background: '#ffffff',
+                  borderTop: '2px dashed #cbd5e1',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: T.bg, position: 'absolute', left: '-14px' }} />
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: T.bg, position: 'absolute', right: '-14px' }} />
+                </div>
+
+                {/* Action buttons at bottom */}
+                <div style={{
+                  background: '#ffffff', borderRadius: '0 0 1.5rem 1.5rem',
+                  padding: '0 1.75rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem'
+                }}>
+                  <button onClick={() => handlePrintDepartmentSlips(completedOrder.order)} style={{
+                    width: '100%', padding: '0.7rem', borderRadius: '0.85rem',
+                    background: '#f8fafc', border: '1.5px solid #e2e8f0',
+                    color: '#334155', fontWeight: 800, fontSize: '0.85rem',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                  }}>
+                    <Printer size={15} style={{ color: '#ea580c' }} /> Stampa Talloncini Reparto
+                  </button>
+                  <button onClick={() => setCompletedOrder(null)} style={{
+                    width: '100%', padding: '0.95rem', borderRadius: '1rem',
+                    background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                    color: 'white', border: 'none', fontWeight: 900, fontSize: '1.05rem',
+                    cursor: 'pointer', boxShadow: '0 8px 24px rgba(37,99,235,0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                  }}>
+                    PROSSIMO CLIENTE <ArrowRight size={18} />
+                  </button>
+                </div>
               </div>
-              <span style={{ fontSize: '0.8rem', fontWeight: 750, background: '#e2e8f0', color: '#334155', padding: '0.2rem 0.65rem', borderRadius: '999px' }}>
-                {completedOrder.order.cassaName}
-              </span>
-            </div>
+            ) : (
+              /* ── RICEVUTA SEMPLICE (Casse Secondarie) ── */
+              <div style={{
+                maxWidth: '420px', width: '100%', background: '#ffffff', color: '#0f172a',
+                borderRadius: '1.5rem', padding: '1.75rem', boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+                textAlign: 'center', position: 'relative', overflow: 'hidden'
+              }}>
+                {/* Top bar */}
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, height: '5px',
+                  background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)'
+                }} />
 
-            {completedOrder.qrCodeDataUrl && (
-              <div style={{ margin: '1.25rem 0' }}>
-                <div style={{ display: 'inline-block', padding: '0.75rem', background: 'white', borderRadius: '1rem', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' }}>
-                  <Image src={completedOrder.qrCodeDataUrl} alt="QR Ricevuta" width={180} height={180} unoptimized style={{ display: 'block' }} />
+                <button onClick={() => setCompletedOrder(null)} style={{
+                  position: 'absolute', top: '1rem', right: '1rem',
+                  background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%',
+                  width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: '#64748b'
+                }}>
+                  <X size={16} />
+                </button>
+
+                {/* Header */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '2px', color: '#94a3b8', marginBottom: '0.15rem' }}>
+                    Pro Loco Gasperina APS
+                  </div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569' }}>
+                    {completedOrder.order.eventName}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginTop: '0.65rem' }}>
-                  📱 Inquadra per la ricevuta digitale
+
+                {/* Success */}
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '50%',
+                  background: '#dcfce7', color: '#16a34a', margin: '0 auto 0.75rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <CheckCircle2 size={28} />
                 </div>
+
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem' }}>
+                  🧾 Ricevuta
+                </div>
+
+                {/* Receipt tag */}
+                <div style={{
+                  background: '#f1f5f9', border: '1px solid #e2e8f0',
+                  borderRadius: '1rem', padding: '1rem', marginBottom: '1rem', textAlign: 'left'
+                }}>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                    Cassa: {completedOrder.order.cassaName}
+                    {completedOrder.order.operatorName && ` · ${completedOrder.order.operatorName}`}
+                  </div>
+                  {completedOrder.order.items.map((it, i) => (
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      padding: '0.3rem 0', borderBottom: i < completedOrder.order.items.length - 1 ? '1px solid #e2e8f0' : 'none',
+                      fontSize: '0.88rem'
+                    }}>
+                      <span style={{ color: '#334155', fontWeight: 600 }}>
+                        <span style={{ color: '#0284c7', fontWeight: 900, marginRight: '0.3rem' }}>{it.quantity}×</span>{it.name}
+                      </span>
+                      <span style={{ color: '#059669', fontWeight: 800, fontFamily: 'monospace' }}>€{(it.price * it.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                    marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '2px solid #cbd5e1'
+                  }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>TOTALE</span>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a', fontFamily: 'monospace' }}>
+                      €{Number(completedOrder.order.totalAmount).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment info */}
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '1rem', display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  <span>💳 {completedOrder.order.paymentMethod}</span>
+                  {completedOrder.order.cashChange !== undefined && completedOrder.order.cashChange > 0 && (
+                    <span style={{ color: '#16a34a', fontWeight: 800 }}>Resto: €{Number(completedOrder.order.cashChange).toFixed(2)}</span>
+                  )}
+                  {completedOrder.order.omaggioNote && (
+                    <span style={{ color: '#ea580c' }}>📝 {completedOrder.order.omaggioNote}</span>
+                  )}
+                </div>
+
+                {/* QR */}
+                {completedOrder.qrCodeDataUrl && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', background: '#f8fafc', borderRadius: '1rem', padding: '0.75rem', marginBottom: '1rem', textAlign: 'left' }}>
+                    <div style={{ display: 'inline-block', padding: '0.4rem', background: 'white', borderRadius: '0.6rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0 }}>
+                      <Image src={completedOrder.qrCodeDataUrl} alt="QR Ricevuta" width={64} height={64} unoptimized style={{ display: 'block' }} />
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                      📱 QR per ricevuta digitale
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={() => handlePrintDepartmentSlips(completedOrder.order)} style={{
+                  width: '100%', padding: '0.65rem', borderRadius: '0.85rem',
+                  background: '#f8fafc', border: '1.5px solid #e2e8f0',
+                  color: '#334155', fontWeight: 800, fontSize: '0.82rem',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                  marginBottom: '0.5rem'
+                }}>
+                  <Printer size={14} style={{ color: '#ea580c' }} /> Stampa Talloncini Reparto
+                </button>
+
+                <button onClick={() => setCompletedOrder(null)} style={{
+                  width: '100%', padding: '0.9rem', borderRadius: '1rem',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white', border: 'none', fontWeight: 900, fontSize: '1rem',
+                  cursor: 'pointer', boxShadow: '0 6px 20px rgba(16,185,129,0.35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}>
+                  PROSSIMO CLIENTE <ArrowRight size={17} />
+                </button>
               </div>
             )}
-
-            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.5rem' }}>
-              Totale: <strong>€{Number(completedOrder.order.totalAmount).toFixed(2)}</strong> · {completedOrder.order.paymentMethod}
-              {completedOrder.order.cashChange !== undefined && completedOrder.order.cashChange > 0 && (
-                <div style={{ color: '#16a34a', fontWeight: 800, marginTop: '0.2rem' }}>
-                  Resto: €{Number(completedOrder.order.cashChange).toFixed(2)}
-                </div>
-              )}
-              {completedOrder.order.omaggioNote && (
-                <div style={{ color: '#ea580c', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                  Nota: {completedOrder.order.omaggioNote}
-                </div>
-              )}
-            </div>
-
-            <button onClick={() => handlePrintDepartmentSlips(completedOrder.order)} style={{
-              width: '100%', padding: '0.75rem', borderRadius: '1rem',
-              background: '#f8fafc', border: '1.5px solid #cbd5e1',
-              color: '#0f172a', fontWeight: 800, fontSize: '0.88rem',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-              marginBottom: '0.75rem'
-            }}>
-              <Printer size={16} style={{ color: '#ea580c' }} /> Stampa Talloncini Reparto / Stand 🧾
-            </button>
-
-            <button onClick={() => setCompletedOrder(null)} style={{
-              width: '100%', padding: '0.95rem', borderRadius: '1rem',
-              background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-              color: 'white', border: 'none', fontWeight: 900, fontSize: '1.1rem',
-              cursor: 'pointer', boxShadow: '0 8px 24px rgba(37,99,235,0.35)'
-            }}>
-              PROSSIMO CLIENTE <ArrowRight size={18} style={{ verticalAlign: 'middle', marginLeft: '0.4rem' }} />
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           5. CHIUSURA CASSA / Z-REPORT
@@ -1549,6 +1789,11 @@ export default function CashierClient() {
         @keyframes slideUp {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
+        }
+
+        @keyframes ticketAppear {
+          from { transform: scale(0.88) translateY(20px); opacity: 0; }
+          to   { transform: scale(1) translateY(0); opacity: 1; }
         }
 
         .cashier-header {

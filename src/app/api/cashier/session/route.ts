@@ -36,6 +36,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // La prima cassa nella lista è la "master" (genera biglietti progressivi)
+    const cassasList = matchedEvent.casses && matchedEvent.casses.length > 0
+      ? matchedEvent.casses
+      : ['Cassa 1'];
+    const masterCassa = cassasList[0];
+
     return NextResponse.json({
       success: true,
       event: {
@@ -45,6 +51,10 @@ export async function POST(request: Request) {
         eventName: matchedEvent.name,
         categories: matchedEvent.categories,
         cassaAssignments: matchedEvent.cassaAssignments || {},
+        casses: cassasList,
+        masterCassa,
+        enableDepartments: matchedEvent.enableDepartments || false,
+        startingNumber: matchedEvent.startingNumber || 1,
         items: matchedEvent.items,
         notes: matchedEvent.notes,
       }

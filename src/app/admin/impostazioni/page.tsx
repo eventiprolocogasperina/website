@@ -177,7 +177,7 @@ export default function AdminImpostazioniPage() {
           </div>
 
           {/* Argomenti Assistenza WhatsApp */}
-          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+          <div className="card" style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem' }}>
               <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MessageCircle size={18} style={{ color: '#25D366' }} /> Argomenti Assistenza WhatsApp
@@ -240,6 +240,159 @@ export default function AdminImpostazioniPage() {
                   Nessun argomento impostato. Gli utenti non potranno usare l'assistenza WhatsApp.
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Meta WhatsApp Cloud API Integration & Broadcast Settings */}
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid rgba(37,211,102,0.3)' }}>
+            <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, marginBottom: '1.25rem', fontSize: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <MessageCircle size={20} style={{ color: '#25D366' }} /> Meta WhatsApp Cloud API (Invio Broadcast & Rinvio)
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              Configura qui le credenziali <strong>Meta Developer / WhatsApp Business Cloud API</strong> per consentire all&apos;associazione di inviare comunicazioni tempestive WhatsApp agli acquirenti in caso di rinvio o comunicazioni organizzative.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Phone Number ID (Meta App)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Es. 105938475928374"
+                  value={settings.wa_phone_number_id || ''}
+                  onChange={e => setSettings({ ...settings, wa_phone_number_id: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Permanent Access Token (Meta Bearer Token)
+                </label>
+                <input
+                  type="password"
+                  placeholder="EAA..."
+                  value={settings.wa_access_token || ''}
+                  onChange={e => setSettings({ ...settings, wa_access_token: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                    Nome Template Meta (opzionale)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Es. avviso_rinvio_evento"
+                    value={settings.wa_template_name || ''}
+                    onChange={e => setSettings({ ...settings, wa_template_name: e.target.value })}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                    Codice Lingua Template
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="it"
+                    value={settings.wa_language_code || 'it'}
+                    onChange={e => setSettings({ ...settings, wa_language_code: e.target.value })}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Editable Message Template with Placeholders */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Messaggio Predefinito per Rinvio / Avviso WhatsApp
+                </label>
+                <textarea
+                  rows={4}
+                  value={settings.wa_postponement_message || `Ciao {{nome}}, ti informiamo che l'evento {{evento}} è stato rinviato alla nuova data di {{nuova_data}}. I tuoi biglietti rimangono 100% validi per la nuova data. Consulta il regolamento completo: {{regolamento}}`}
+                  onChange={e => setSettings({ ...settings, wa_postponement_message: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.88rem', outline: 'none', fontFamily: 'monospace', lineHeight: 1.5, boxSizing: 'border-box' }}
+                />
+                <div style={{ marginTop: '0.5rem', background: 'var(--neutral-900)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neutral-800)', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                  <strong>Placeholder disponibili:</strong>
+                  <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{nome}}'}</span>,
+                  <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{nuova_data}}'}</span>,
+                  <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{evento}}'}</span>,
+                  <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{regolamento}}'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Banner & Modal Avviso Rinvio Meteo Zuccaland */}
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid rgba(234,88,12,0.4)' }}>
+            <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, marginBottom: '1.25rem', fontSize: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>🌧️🎃</span> Banner & Popup Avviso Rinvio Meteo (Sito Zuccaland)
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              Personalizza qui i testi del <strong>Banner Sticky</strong> e del <strong>Popup Modal</strong> che appaiono sui dispositivi dei visitatori della pagina Zuccaland in caso di rinvio per maltempo.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Enable / Disable Banner toggle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--neutral-800)', borderRadius: 'var(--radius-md)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--color-heading)', fontSize: '0.9rem' }}>Banner & Popup Rinvio Meteo Attivi</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', marginTop: '0.2rem' }}>
+                    {settings.zuccaland_postponed_enabled === 'true' ? '🟢 Il banner e il popup di avviso sono VISIBILI sul sito Zuccaland' : '🔴 L\'avviso sul sito è DISATTIVATO'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, zuccaland_postponed_enabled: settings.zuccaland_postponed_enabled === 'true' ? 'false' : 'true' })}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: settings.zuccaland_postponed_enabled === 'true' ? '#4ade80' : 'var(--neutral-500)' }}
+                >
+                  {settings.zuccaland_postponed_enabled === 'true' ? <ToggleRight size={36} /> : <ToggleLeft size={36} />}
+                </button>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Titolo Avviso (es. AVVISO METEO: Evento Rinviato per Pioggia)
+                </label>
+                <input
+                  type="text"
+                  placeholder="AVVISO IMPORTANTE: RINVIO PER METEO AVVERSO"
+                  value={settings.zuccaland_postponed_title || ''}
+                  onChange={e => setSettings({ ...settings, zuccaland_postponed_title: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Nuova Data Stabilita (es. Domenica 25 Ottobre 2026)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Domenica 25 Ottobre 2026"
+                  value={settings.zuccaland_postponed_new_date || ''}
+                  onChange={e => setSettings({ ...settings, zuccaland_postponed_new_date: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Messaggio Dettagliato Rinvio
+                </label>
+                <textarea
+                  rows={4}
+                  value={settings.zuccaland_postponed_message || ''}
+                  placeholder="Causa condizioni meteo avverse accertate, l'evento Zuccaland è rinviato alla nuova data stabilita. I biglietti già acquistati rimangono 100% validi per la data di recupero."
+                  onChange={e => setSettings({ ...settings, zuccaland_postponed_message: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.88rem', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
           </div>
 

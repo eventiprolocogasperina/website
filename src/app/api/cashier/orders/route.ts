@@ -19,7 +19,8 @@ export async function POST(request: Request) {
       cashChange,
       omaggioNote,
       orderNote,
-      items
+      items,
+      isMasterCassa  // true = cassa principale (biglietti progressivi), false = ricevuta semplice
     } = data;
 
     const finalEventId = eventId || data.id;
@@ -49,7 +50,8 @@ export async function POST(request: Request) {
       cashReceived: paymentMethod === 'CONTANTI' ? Number(cashReceived || 0) : undefined,
       cashChange: paymentMethod === 'CONTANTI' ? Number(cashChange || 0) : undefined,
       omaggioNote: paymentMethod === 'OMAGGIO' ? (omaggioNote || orderNote) : (orderNote || undefined),
-      items
+      items,
+      isMasterCassa: isMasterCassa !== false  // undefined/true → master, false → ricevuta semplice
     });
 
     const host = request.headers.get('host') || 'www.prolocogasperina.it';

@@ -59,6 +59,17 @@ export default function OrderManager() {
   const [sendingTimeUpdateBroadcast, setSendingTimeUpdateBroadcast] = useState(false);
   const [timeUpdateStatusMessage, setTimeUpdateStatusMessage] = useState<string | null>(null);
 
+  // Meta WhatsApp Broadcast Modal state
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [waTargetDay, setWaTargetDay] = useState<'all' | '10' | '11' | '25'>('all');
+  const [waNewDateText, setWaNewDateText] = useState('Domenica 25 Ottobre 2026');
+  const [waCustomMessage, setWaCustomMessage] = useState('');
+  const [waSendMode, setWaSendMode] = useState<'test' | 'broadcast'>('test');
+  const [waTestPhone, setWaTestPhone] = useState('');
+  const [waSending, setWaSending] = useState(false);
+  const [waResult, setWaResult] = useState<any>(null);
+  const [waSyncSiteBanner, setWaSyncSiteBanner] = useState(true);
+
   // Pay-by-link modal state
   const [selectedOrderForPayLink, setSelectedOrderForPayLink] = useState<OrderWithTickets | null>(null);
   const [payLinkQuantities, setPayLinkQuantities] = useState<Record<string, number>>({});
@@ -1138,32 +1149,90 @@ export default function OrderManager() {
                 </button>
               </div>
 
-              {/* Action Button for Time Correction Broadcast */}
-              <button
-                onClick={() => {
-                  setShowTimeUpdateModal(true);
-                  setTimeUpdateStatusMessage(null);
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  padding: '0.45rem 1rem',
-                  borderRadius: '999px',
-                  border: '1.5px solid #ea580c',
-                  background: 'linear-gradient(135deg, #ea580c, #c2410c)',
-                  color: 'white',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(234,88,12,0.3)',
-                  transition: 'all 0.2s',
-                  marginTop: '0.35rem',
-                  alignSelf: 'flex-start'
-                }}
-              >
-                <MailOpen size={13} /> 📢 Invia Rettifica Orario (10:30)
-              </button>
+              {/* Action Buttons for Broadcasts */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                <button
+                  onClick={() => {
+                    setShowTimeUpdateModal(true);
+                    setTimeUpdateStatusMessage(null);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '999px',
+                    border: '1.5px solid #ea580c',
+                    background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+                    color: 'white',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(234,88,12,0.3)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <MailOpen size={13} /> 📢 Rettifica Orario (10:30)
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowWhatsAppModal(true);
+                    setWaResult(null);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '999px',
+                    border: '1.5px solid #25D366',
+                    background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                    color: 'white',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Send size={13} /> 📱 Avviso Rinvio WhatsApp
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const currentAlert = await fetch('/api/zuccaland/alert').then(r => r.json());
+                    const nextEnabled = !currentAlert.enabled;
+                    await fetch('/api/zuccaland/alert', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        enabled: nextEnabled,
+                        title: 'AVVISO METEO: Evento Rinviato per Pioggia',
+                        newDate: 'Domenica 25 Ottobre 2026',
+                        message: 'Causa condizioni meteo avverse accertate, l\'evento Zuccaland è rinviato alla nuova data stabilita. I biglietti già acquistati rimangono 100% validi per la data di recupero.'
+                      })
+                    });
+                    alert(nextEnabled ? '✅ Banner & Modal di Avviso Rinvio Meteo ATTIVATI sul sito Zuccaland!' : '🔴 Banner di Avviso Rinvio Meteo DISATTIVATI sul sito.');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '999px',
+                    border: '1.5px solid #f87171',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#f87171',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  🌧️ Banner Meteo Sito (On/Off)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1837,6 +1906,248 @@ export default function OrderManager() {
               >
                 Salva Modifiche
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          META WHATSAPP CLOUD API BROADCAST MODAL
+      ────────────────────────────────────────────────────────────────────────── */}
+      {showWhatsAppModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: '1rem' }}>
+          <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid rgba(37,211,102,0.5)', background: '#0e1f15' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={{ background: 'rgba(37,211,102,0.2)', color: '#4ade80', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Meta WhatsApp Cloud API
+                </span>
+                <h2 style={{ fontSize: '1.25rem', color: '#ffffff', margin: '0.5rem 0 0.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  📱 Avviso Rinvio & Comunicazione WhatsApp
+                </h2>
+              </div>
+              <button 
+                onClick={() => setShowWhatsAppModal(false)} 
+                style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: '#bbf7d0', lineHeight: 1.5 }}>
+                Invia una comunicazione WhatsApp immediata agli acquirenti in caso di rinvio per maltempo o rettifiche di data.
+              </p>
+
+              {/* Target Date Selector */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'white', marginBottom: '0.4rem' }}>
+                  📅 Seleziona acquirenti della data:
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'Tutti gli acquirenti' },
+                    { id: '10', label: 'Sabato 10 Ottobre' },
+                    { id: '11', label: 'Domenica 11 Ottobre' },
+                    { id: '25', label: 'Domenica 25 Ottobre' },
+                  ].map(d => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setWaTargetDay(d.id as any)}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid ' + (waTargetDay === d.id ? '#25D366' : 'rgba(255,255,255,0.15)'),
+                        background: waTargetDay === d.id ? 'rgba(37,211,102,0.25)' : 'rgba(255,255,255,0.05)',
+                        color: waTargetDay === d.id ? '#4ade80' : 'white',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Input for New Date */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'white', marginBottom: '0.4rem' }}>
+                  📆 Nuova data stabilita per l&apos;evento:
+                </label>
+                <input
+                  type="text"
+                  value={waNewDateText}
+                  onChange={e => setWaNewDateText(e.target.value)}
+                  placeholder="Es. Domenica 25 Ottobre 2026"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.6rem', color: 'white', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Message text with Placeholders */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'white', marginBottom: '0.4rem' }}>
+                  💬 Testo Messaggio (personalizzabile da CMS):
+                </label>
+                <textarea
+                  rows={4}
+                  value={waCustomMessage}
+                  onChange={e => setWaCustomMessage(e.target.value)}
+                  placeholder="Se lasciato vuoto, verrà usato il messaggio predefinito salvato nelle Impostazioni."
+                  style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.6rem', color: 'white', fontSize: '0.85rem', fontFamily: 'monospace', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '0.74rem', color: '#86efac', marginTop: '0.35rem' }}>
+                  Placeholder dinamici: <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nome}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nuova_data}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{evento}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{regolamento}}'}</code>
+                </div>
+              </div>
+
+              {/* Mode Toggle: Test vs Broadcast */}
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(37,211,102,0.2)' }}>
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', color: 'white', fontSize: '0.85rem', fontWeight: 700 }}>
+                    <input
+                      type="radio"
+                      name="waMode"
+                      checked={waSendMode === 'test'}
+                      onChange={() => setWaSendMode('test')}
+                    />
+                    🧪 Modalità Test (Invia solo ad un numero)
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', color: '#f87171', fontSize: '0.85rem', fontWeight: 700 }}>
+                    <input
+                      type="radio"
+                      name="waMode"
+                      checked={waSendMode === 'broadcast'}
+                      onChange={() => setWaSendMode('broadcast')}
+                    />
+                    🚀 Invio Massivo Reale (A tutti gli acquirenti)
+                  </label>
+                </div>
+
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#86efac', fontSize: '0.82rem', fontWeight: 700 }}>
+                    <input
+                      type="checkbox"
+                      checked={waSyncSiteBanner}
+                      onChange={e => setWaSyncSiteBanner(e.target.checked)}
+                    />
+                    🌐 Attiva contemporaneamente il Banner & Popup di Avviso Rinvio Meteo sul sito Zuccaland
+                  </label>
+                </div>
+
+                {waSendMode === 'test' ? (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <input
+                      type="tel"
+                      placeholder="Cellulare di prova (es. 3471234567)"
+                      value={waTestPhone}
+                      onChange={e => setWaTestPhone(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.5rem', color: 'white', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ color: '#fca5a5', fontSize: '0.78rem', lineHeight: 1.4, marginTop: '0.75rem' }}>
+                    ⚠️ Verrà inviato un messaggio WhatsApp a tutti gli acquirenti pagati della data selezionata tramite la Meta WhatsApp Cloud API.
+                  </div>
+                )}
+              </div>
+
+              {/* Result logs */}
+              {waResult && (
+                <div style={{ background: waResult.success ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', border: '1px solid ' + (waResult.success ? '#22c55e' : '#ef4444'), borderRadius: '0.65rem', padding: '0.85rem', color: 'white', fontSize: '0.82rem' }}>
+                  {waResult.error ? (
+                    <div style={{ color: '#f87171', fontWeight: 700 }}>❌ {waResult.error}</div>
+                  ) : (
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#4ade80', marginBottom: '0.35rem' }}>
+                        ✅ Operazione completata! Inviati: {waResult.successCount} | Falliti: {waResult.failCount || 0}
+                      </div>
+                      {waResult.logs && waResult.logs.length > 0 && (
+                        <div style={{ maxHeight: '120px', overflowY: 'auto', background: 'rgba(0,0,0,0.5)', padding: '0.5rem', borderRadius: 4, marginTop: '0.4rem', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {waResult.logs.map((log: any, i: number) => (
+                            <div key={i} style={{ color: log.status === 'SENT' ? '#86efac' : '#fca5a5' }}>
+                              {log.phone} ({log.name}): {log.status} {log.error ? `- ${log.error}` : ''}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(false)}
+                  style={{ padding: '0.65rem 1.25rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                >
+                  Chiudi
+                </button>
+
+                <button
+                  type="button"
+                  disabled={waSending}
+                  onClick={async () => {
+                    setWaSending(true);
+                    setWaResult(null);
+                    try {
+                      if (waSyncSiteBanner) {
+                        await fetch('/api/zuccaland/alert', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            enabled: true,
+                            title: 'AVVISO METEO: Evento Rinviato per Pioggia',
+                            newDate: waNewDateText,
+                            message: waCustomMessage || 'Causa condizioni meteo avverse accertate, Zuccaland è rinviato alla nuova data stabilita. I biglietti già acquistati rimangono 100% validi per la data di recupero.'
+                          })
+                        });
+                      }
+
+                      const res = await fetch('/api/admin/whatsapp/send-broadcast', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          eventId: 'zuccaland-2026',
+                          targetDay: waTargetDay,
+                          newDate: waNewDateText,
+                          customMessage: waCustomMessage,
+                          sendMode: waSendMode,
+                          testPhoneNumber: waTestPhone,
+                        }),
+                      });
+                      const data = await res.json();
+                      setWaResult(data);
+                    } catch (e: any) {
+                      setWaResult({ success: false, error: e.message || 'Errore di connessione' });
+                    } finally {
+                      setWaSending(false);
+                    }
+                  }}
+                  style={{
+                    padding: '0.65rem 1.4rem',
+                    borderRadius: '0.65rem',
+                    border: 'none',
+                    background: waSendMode === 'test' ? 'linear-gradient(135deg, #25D366, #128C7E)' : 'linear-gradient(135deg, #dc2626, #991b1b)',
+                    color: 'white',
+                    cursor: waSending ? 'not-allowed' : 'pointer',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 4px 14px rgba(37,211,102,0.3)',
+                    opacity: waSending ? 0.8 : 1,
+                  }}
+                >
+                  {waSending ? <Loader2 size={16} className="animate-spin" /> : waSendMode === 'test' ? '🧪 Invia Prova WhatsApp' : '🚀 Avvia Broadcast WhatsApp'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -211,7 +211,9 @@ export async function createCashierOrder(orderData: {
   cashReceived?: number;
   cashChange?: number;
   omaggioNote?: string;
+  orderNote?: string;
   items: CashierOrderItem[];
+  isMasterCassa?: boolean; // True solo per la cassa principale (genera numeri progressivi)
 }): Promise<CashierOrder> {
   await ensureCashierOrdersTable();
   const sql = getDb();
@@ -262,14 +264,21 @@ export async function createCashierOrder(orderData: {
     }
   }
 
-  // 2. Generazione Numero Ordine Atomica tramite Sequence PostgreSQL per prevenire numeri duplicati tra casse parallele
-  const seqResult = await sql`SELECT nextval('cashier_order_seq') as seq`;
-  let nextNumber = Number(seqResult[0]?.seq || startingNumber);
-
-  // Se la sequenza è inferiore a startingNumber, corregila
-  if (nextNumber < startingNumber) {
-    nextNumber = startingNumber;
-    await sql`SELECT setval('cashier_order_seq', ${nextNumber})`;
+  // 2. Generazione Numero Ordine:
+  //    - Cassa principale (isMasterCassa): usa la sequenza PostgreSQL → biglietto progressivo
+  //    - Altre casse: orderNumber = 0 → semplice ricevuta senza numero progressivo
+  let nextNumber: number;
+  if (orderData.isMasterCassa !== false) {
+    // Default: se isMasterCassa non è esplicitamente false, usa la sequenza
+    const seqResult = await sql`SELECT nextval('cashier_order_seq') as seq`;
+    nextNumber = Number(seqResult[0]?.seq || startingNumber);
+    if (nextNumber < startingNumber) {
+      nextNumber = startingNumber;
+      await sql`SELECT setval('cashier_order_seq', ${nextNumber})`;
+    }
+  } else {
+    // Cassa secondaria → ricevuta semplice, nessun numero progressivo
+    nextNumber = 0;
   }
 
   const orderRows = await sql`

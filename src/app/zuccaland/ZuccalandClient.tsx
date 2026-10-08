@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Minus, Plus, Loader2, CheckCircle, AlertCircle, Tag, X, ArrowRight, ArrowLeft, ShieldCheck, Ticket, Calendar, Clock, MapPin, Music, ShoppingBag, Coffee, Image as ImageIcon, PartyPopper, Sparkles, Check, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
+import { Minus, Plus, Loader2, CheckCircle, AlertCircle, Tag, X, ArrowRight, ArrowLeft, ShieldCheck, Ticket, Calendar, Clock, MapPin, Music, ShoppingBag, Coffee, Image as ImageIcon, PartyPopper, Sparkles, Check, ChevronDown, ChevronUp, ChevronRight, FileText, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -247,6 +247,178 @@ function PhaseBanner({ phase }: { phase: EventPhase }) {
       {config.icon}
       {config.text}
     </motion.div>
+  );
+}
+
+// ─── Postponement Notice (Banner + Popup Modal) ────────────────────────────────
+
+function ZuccalandPostponementNotice() {
+  const [alert, setAlert] = useState<{
+    enabled: boolean;
+    title: string;
+    newDate: string;
+    message: string;
+  } | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/zuccaland/alert')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.enabled) {
+          setAlert(data);
+          const dismissed = sessionStorage.getItem('zuccaland_postponed_dismissed');
+          if (!dismissed) {
+            setShowModal(true);
+          }
+        }
+      })
+      .catch(e => console.error('Error fetching alert:', e));
+  }, []);
+
+  if (!alert || !alert.enabled) return null;
+
+  return (
+    <>
+      {/* 1. TOP STICKY BANNER */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        style={{
+          background: 'linear-gradient(135deg, #7c2d12 0%, #9a3412 100%)',
+          color: 'white',
+          padding: '0.85rem 1.25rem',
+          borderRadius: '1.25rem',
+          border: '2px solid #ea580c',
+          boxShadow: '0 10px 30px rgba(234,88,12,0.3)',
+          margin: '1rem auto 1.5rem',
+          maxWidth: '900px',
+          width: 'calc(100% - 2rem)',
+          position: 'relative',
+          zIndex: 50,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 'min(100%, 280px)' }}>
+            <span style={{ fontSize: '1.8rem' }}>🌧️🎃</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ background: '#ea580c', color: 'white', fontSize: '0.7rem', fontWeight: 900, padding: '0.15rem 0.5rem', borderRadius: '999px', textTransform: 'uppercase' }}>
+                  Avviso Meteo
+                </span>
+                <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>{alert.title}</span>
+              </div>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.84rem', opacity: 0.95, lineHeight: 1.4 }}>
+                Nuova Data: <strong style={{ color: '#fdba74' }}>{alert.newDate}</strong> · I biglietti acquistati rimangono 100% validi.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                background: 'white', color: '#7c2d12',
+                border: 'none', padding: '0.45rem 0.95rem',
+                borderRadius: '999px', fontWeight: 800,
+                fontSize: '0.82rem', cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Info e Dettagli
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* 2. POPUP MODAL ON FIRST VISIT */}
+      <AnimatePresence>
+        {showModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', bounce: 0.4 }}
+              style={{
+                background: 'linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%)',
+                borderRadius: '1.75rem',
+                border: '3px solid #ea580c',
+                padding: 'clamp(1.5rem, 5vw, 2.25rem)',
+                maxWidth: '560px',
+                width: '100%',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  sessionStorage.setItem('zuccaland_postponed_dismissed', 'true');
+                }}
+                style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(234,88,12,0.15)', border: 'none', color: '#7c2d12', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}
+              >
+                <X size={18} />
+              </button>
+
+              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem', filter: 'drop-shadow(0 4px 10px rgba(234,88,12,0.3))' }}>
+                  🌧️🎃
+                </div>
+                <span style={{ background: '#ea580c', color: 'white', fontSize: '0.75rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Comunicazione Ufficiale Meteo
+                </span>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.4rem, 4.5vw, 1.8rem)', color: '#431407', margin: '0.75rem 0 0.5rem', lineHeight: 1.25 }}>
+                  {alert.title}
+                </h2>
+              </div>
+
+              <div style={{ background: 'white', borderRadius: '1.25rem', padding: '1.25rem', border: '1px solid #fdba74', marginBottom: '1.5rem', boxShadow: '0 4px 15px rgba(234,88,12,0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ea580c', fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.5rem' }}>
+                  <Calendar size={18} /> Nuova Data: {alert.newDate}
+                </div>
+                <p style={{ color: '#7c2d12', fontSize: '0.92rem', lineHeight: 1.6, margin: 0, fontWeight: 500 }}>
+                  {alert.message}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <a
+                  href="https://drive.google.com/file/d/1jaJ8vUe_ePAJubcM-dwLufVJ9Z8GgujK/view?usp=share_link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: '#ea580c', color: 'white',
+                    padding: '0.85rem 1.25rem', borderRadius: '999px',
+                    fontWeight: 800, fontSize: '0.92rem', textDecoration: 'none',
+                    textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                    boxShadow: '0 6px 20px rgba(234,88,12,0.3)'
+                  }}
+                >
+                  <FileText size={16} /> Consulta il Regolamento Ufficiale (PDF) <ExternalLink size={14} />
+                </a>
+
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    sessionStorage.setItem('zuccaland_postponed_dismissed', 'true');
+                  }}
+                  style={{
+                    background: '#ffedd5', color: '#7c2d12',
+                    border: 'none', padding: '0.75rem 1.25rem', borderRadius: '999px',
+                    fontWeight: 750, fontSize: '0.88rem', cursor: 'pointer'
+                  }}
+                >
+                  Ho capito, chiudi
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -1658,6 +1830,18 @@ function ZuccalandTicketBuyer({
                   >
                     <ArrowLeft size={16} /> Modifica Scelta Laboratori
                   </button>
+
+                  <div style={{ fontSize: '0.8rem', color: '#7c2d12', textAlign: 'center', marginTop: '0.25rem', lineHeight: 1.4, opacity: 0.9 }}>
+                    Confermando la prenotazione dichiari di aver letto e accettato il{' '}
+                    <a
+                      href="https://drive.google.com/file/d/1jaJ8vUe_ePAJubcM-dwLufVJ9Z8GgujK/view?usp=share_link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#ea580c', fontWeight: 800, textDecoration: 'underline' }}
+                    >
+                      Regolamento Ufficiale (PDF)
+                    </a>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -2519,6 +2703,28 @@ function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer
           </div>
 
           <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <a
+              href="https://drive.google.com/file/d/1jaJ8vUe_ePAJubcM-dwLufVJ9Z8GgujK/view?usp=share_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: '#ea580c',
+                color: 'white',
+                padding: '0.55rem 1.1rem',
+                borderRadius: '999px',
+                fontWeight: 750,
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 4px 12px rgba(234,88,12,0.25)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <FileText size={15} /> Regolamento (PDF) <ExternalLink size={13} />
+            </a>
+
             <Link
               href="/zuccaland/rimborso"
               style={{
@@ -2851,6 +3057,9 @@ export default function ZuccalandClient({
 
       {/* Phase Banner */}
       {mounted && <PhaseBanner phase={phase} />}
+
+      {/* Postponement Notice (Banner + Popup Modal) */}
+      <ZuccalandPostponementNotice />
 
       {/* ── Hero ── */}
       <section style={{
