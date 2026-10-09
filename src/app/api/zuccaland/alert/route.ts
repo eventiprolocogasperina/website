@@ -24,7 +24,7 @@ export async function GET() {
       success: true,
       enabled: settings.zuccaland_postponed_enabled === 'true',
       title: settings.zuccaland_postponed_title || 'AVVISO IMPORTANTE: RINVIO PER METEO AVVERSO',
-      newDate: settings.zuccaland_postponed_new_date || 'Domenica 25 Ottobre 2026',
+      newDate: settings.zuccaland_postponed_new_date || 'Sabato 17 Ottobre 2026',
       message: settings.zuccaland_postponed_message || "Causa condizioni meteo avverse accertate, l'evento Zuccaland è rinviato alla nuova data stabilita. I biglietti già acquistati rimangono 100% validi per la data di recupero.",
     });
   } catch (err: any) {
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const updates = [
       { key: 'zuccaland_postponed_enabled', value: enabled ? 'true' : 'false' },
       { key: 'zuccaland_postponed_title', value: title || 'AVVISO IMPORTANTE: RINVIO PER METEO AVVERSO' },
-      { key: 'zuccaland_postponed_new_date', value: newDate || 'Domenica 25 Ottobre 2026' },
+      { key: 'zuccaland_postponed_new_date', value: newDate || 'Sabato 17 Ottobre 2026' },
       { key: 'zuccaland_postponed_message', value: message || '' },
     ];
 

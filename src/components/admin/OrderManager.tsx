@@ -62,7 +62,7 @@ export default function OrderManager() {
   // Meta WhatsApp Broadcast Modal state
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [waTargetDay, setWaTargetDay] = useState<'all' | '10' | '11' | '25'>('all');
-  const [waNewDateText, setWaNewDateText] = useState('Domenica 25 Ottobre 2026');
+  const [waNewDateText, setWaNewDateText] = useState('Sabato 17 Ottobre 2026');
   const [waCustomMessage, setWaCustomMessage] = useState('');
   const [waSendMode, setWaSendMode] = useState<'test' | 'broadcast'>('test');
   const [waTestPhone, setWaTestPhone] = useState('');
@@ -73,7 +73,7 @@ export default function OrderManager() {
   // Email Postponement Broadcast Modal state
   const [showEmailPostponementModal, setShowEmailPostponementModal] = useState(false);
   const [emailTargetDay, setEmailTargetDay] = useState<'all' | '10' | '11' | '25'>('all');
-  const [emailNewDateText, setEmailNewDateText] = useState('Domenica 25 Ottobre 2026');
+  const [emailNewDateText, setEmailNewDateText] = useState('Sabato 17 Ottobre 2026');
   const [emailSubjectText, setEmailSubjectText] = useState('📢 Comunicazione Ufficiale Meteo: Rinvio Zuccaland 2026');
   const [emailCustomMessage, setEmailCustomMessage] = useState('');
   const [emailSendMode, setEmailSendMode] = useState<'test' | 'broadcast'>('test');

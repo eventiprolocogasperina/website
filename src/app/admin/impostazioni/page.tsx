@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Save, Check, X, ToggleLeft, ToggleRight, Plus, Trash2, MessageCircle, Mail } from 'lucide-react';
+import { Loader2, Save, Check, X, ToggleLeft, ToggleRight, Plus, Trash2, MessageCircle, Mail, AlertCircle } from 'lucide-react';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 interface Settings {
@@ -397,6 +397,70 @@ export default function AdminImpostazioniPage() {
                   <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{evento}}'}</span>,
                   <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{regolamento}}'}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Zuccaland Postponement Banner & Popup CMS Settings */}
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid rgba(245,158,11,0.4)' }}>
+            <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, marginBottom: '1.25rem', fontSize: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={18} style={{ color: '#f59e0b' }} /> Banner & Popup Rinvio Zuccaland sul Sito
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              Modifica e attiva il banner adesivo in cima al sito e il popup di avviso per il rinvio di Zuccaland.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', padding: '0.75rem 1rem', background: 'var(--neutral-900)', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-800)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--color-heading)' }}>Stato Banner Rinvio sul Sito</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--neutral-400)' }}>Mostra il banner in evidenza su /zuccaland</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, zuccaland_postponed_enabled: settings.zuccaland_postponed_enabled === 'true' ? 'false' : 'true' })}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: settings.zuccaland_postponed_enabled === 'true' ? '#f59e0b' : 'var(--neutral-600)' }}
+                >
+                  {settings.zuccaland_postponed_enabled === 'true' ? <ToggleRight size={36} /> : <ToggleLeft size={36} />}
+                </button>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Titolo Avviso Rinvio
+                </label>
+                <input
+                  type="text"
+                  placeholder="AVVISO IMPORTANTE: RINVIO PER METEO AVVERSO"
+                  value={settings.zuccaland_postponed_title || 'AVVISO IMPORTANTE: RINVIO PER METEO AVVERSO'}
+                  onChange={e => setSettings({ ...settings, zuccaland_postponed_title: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Nuova Data dell&apos;Evento (Mostrata nel Banner)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Sabato 17 Ottobre 2026"
+                  value={settings.zuccaland_postponed_new_date || 'Sabato 17 Ottobre 2026'}
+                  onChange={e => setSettings({ ...settings, zuccaland_postponed_new_date: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Messaggio Dettagliato nel Popup
+                </label>
+                <textarea
+                  rows={3}
+                  value={settings.zuccaland_postponed_message || "Causa condizioni meteo avverse accertate, l'evento Zuccaland è rinviato alla nuova data di Sabato 17 Ottobre 2026. I biglietti già acquistati rimangono 100% validi per la nuova data di recupero."}
+                  onChange={e => setSettings({ ...settings, zuccaland_postponed_message: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.88rem', outline: 'none', fontFamily: 'monospace', lineHeight: 1.5, boxSizing: 'border-box' }}
+                />
               </div>
             </div>
           </div>
