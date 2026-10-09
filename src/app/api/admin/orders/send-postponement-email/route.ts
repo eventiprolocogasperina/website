@@ -60,24 +60,42 @@ export async function POST(request: Request) {
       }
       recipients = [{ name: 'Test Acquirente', email: testEmail.trim(), orderId: 'ORD-TEST-2026' }];
     } else {
-      // Fetch PAID orders for the event
+      // Fetch PAID orders for the event (by ticket eventId or order notes)
       const orders = await sql`
-        SELECT o.id, o."buyerName", o."buyerEmail", o.notes, t."eventId", t.type
+        SELECT o.id, o."buyerName", o."buyerEmail", o.notes
         FROM orders o
-        JOIN tickets t ON t."orderId" = o.id
-        WHERE o.status = 'PAID'
-        AND o."buyerEmail" IS NOT NULL
-        AND o."buyerEmail" != ''
-        AND t."eventId" LIKE ${'%' + eventId + '%'}
-        GROUP BY o.id, o."buyerName", o."buyerEmail", o.notes, t."eventId", t.type
+        WHERE (o.status = 'PAID' OR o.status = 'paid')
+          AND o."deletedAt" IS NULL
+          AND o."buyerEmail" IS NOT NULL
+          AND o."buyerEmail" != ''
+          AND (
+            o.id IN (SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" ILIKE '%zuccaland%')
+            OR o.notes ILIKE '%zuccaland%'
+          )
       `;
+
+      function parseDayKey(notes?: string | null): string {
+        if (!notes) return 'unspecified';
+        const notesLower = notes.toLowerCase();
+        const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
+        const eventDate = dateMatch ? dateMatch[1].trim() : '';
+
+        if (eventDate.includes('25') || notes.includes('25 Ottobre') || notes.includes('25/10')) {
+          return '25';
+        }
+        if (eventDate.includes('10') || notes.includes('10 Ottobre') || notes.includes('10/10') || notesLower.includes('sabato 10') || notesLower.includes('sabato')) {
+          return '10';
+        }
+        if (eventDate.includes('11') || notes.includes('11 Ottobre') || notes.includes('11/10') || notesLower.includes('domenica 11') || notesLower.includes('domenica')) {
+          return '11';
+        }
+        return 'unspecified';
+      }
 
       // Filter by target day if requested
       const filteredOrders = orders.filter((o: any) => {
         if (targetDay === 'all') return true;
-        const notesStr = (o.notes || '').toLowerCase();
-        const typeStr = (o.type || '').toLowerCase();
-        return notesStr.includes(`giorno ${targetDay}`) || notesStr.includes(`ottobre ${targetDay}`) || typeStr.includes(`giorno ${targetDay}`);
+        return parseDayKey(o.notes) === String(targetDay);
       });
 
       // Filter unique emails
