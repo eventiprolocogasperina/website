@@ -2289,8 +2289,13 @@ export default function OrderManager() {
                   placeholder="Se lasciato vuoto, verrà usato il testo predefinita salvata nelle Impostazioni CMS."
                   style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.6rem', color: 'white', fontSize: '0.85rem', fontFamily: 'monospace', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' }}
                 />
-                <div style={{ fontSize: '0.74rem', color: '#93c5fd', marginTop: '0.35rem' }}>
-                  Placeholder dinamici: <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nome}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{ordine_id}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nuova_data}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{evento}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{regolamento}}'}</code>
+                <div style={{ fontSize: '0.74rem', color: '#93c5fd', marginTop: '0.35rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div>
+                    ✨ <strong>Markdown supportato:</strong> <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>**grassetto**</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>*corsivo*</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>[Testo Link](https://...)</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>- elenchi</code>
+                  </div>
+                  <div>
+                    Segnaposto: <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nome}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{ordine_id}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nuova_data}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{evento}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{regolamento}}'}</code>
+                  </div>
                 </div>
               </div>
 

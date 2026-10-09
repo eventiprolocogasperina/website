@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {
-  Html, Head, Body, Container, Section, Text, Button, Img, Link, Hr
+  Html, Head, Body, Container, Section, Text, Button, Img, Link, Hr, Markdown
 } from '@react-email/components';
 
 interface PostponementEmailProps {
@@ -25,15 +25,14 @@ export const PostponementEmailDocument: React.FC<Readonly<PostponementEmailProps
   const cleanPhone = whatsappPhone.replace(/\D/g, '');
   const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Ciao, sono ${buyerName} (Prenotazione ${orderId}) e vorrei informazioni sul rinvio dell'evento ${eventName}.`)}`;
 
-  // Formatted paragraphs from message text
-  const paragraphs = messageBody
+  // Interpolate placeholders
+  const processedMessage = messageBody
     .replace(/\{\{nome\}\}/gi, buyerName)
     .replace(/\{\{ordine_id\}\}/gi, orderId)
     .replace(/\{\{nuova_data\}\}/gi, newDate)
     .replace(/\{\{evento\}\}/gi, eventName)
     .replace(/\{\{regolamento\}\}/gi, regulationUrl)
-    .replace(/\{\{supporto_whatsapp\}\}/gi, waUrl)
-    .split('\n\n');
+    .replace(/\{\{supporto_whatsapp\}\}/gi, waUrl);
 
   return (
     <Html>
@@ -59,12 +58,22 @@ export const PostponementEmailDocument: React.FC<Readonly<PostponementEmailProps
               Gentile <strong>{buyerName}</strong>,
             </Text>
 
-            {/* Custom Message Body Paragraphs */}
-            {paragraphs.map((p, idx) => (
-              <Text key={idx} style={paragraph}>
-                {p}
-              </Text>
-            ))}
+            {/* Markdown Rendered Custom Message Body */}
+            <Markdown
+              markdownCustomStyles={{
+                p: { fontSize: '15px', lineHeight: '1.65', color: '#334155', marginBottom: '16px' },
+                h1: { fontSize: '20px', fontWeight: '800', color: '#0f172a', marginBottom: '12px' },
+                h2: { fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '10px' },
+                h3: { fontSize: '16px', fontWeight: '700', color: '#0f172a', marginBottom: '8px' },
+                bold: { fontWeight: '700', color: '#0f172a' },
+                italic: { fontStyle: 'italic' },
+                link: { color: '#ea580c', textDecoration: 'underline', fontWeight: '600' },
+                li: { fontSize: '15px', lineHeight: '1.6', color: '#334155', marginBottom: '6px' },
+                codeInline: { backgroundColor: '#ffedd5', padding: '2px 6px', borderRadius: '4px', color: '#c2410c', fontWeight: '700' },
+              }}
+            >
+              {processedMessage}
+            </Markdown>
 
             {/* Order Reference Box */}
             <Section style={infoBox}>

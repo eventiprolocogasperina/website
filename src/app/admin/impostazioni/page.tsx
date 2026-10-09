@@ -389,13 +389,18 @@ export default function AdminImpostazioniPage() {
                   onChange={e => setSettings({ ...settings, email_postponement_body: e.target.value })}
                   style={{ width: '100%', padding: '0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.88rem', outline: 'none', fontFamily: 'monospace', lineHeight: 1.5, boxSizing: 'border-box' }}
                 />
-                <div style={{ marginTop: '0.5rem', background: 'var(--neutral-900)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neutral-800)', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
-                  <strong>Placeholder per Email:</strong>
-                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{nome}}'}</span>,
-                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{ordine_id}}'}</span>,
-                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{nuova_data}}'}</span>,
-                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{evento}}'}</span>,
-                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{regolamento}}'}</span>
+                <div style={{ marginTop: '0.5rem', background: 'var(--neutral-900)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neutral-800)', fontSize: '0.75rem', color: 'var(--neutral-400)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <div>
+                    <strong>Formatting Markdown:</strong> Puoi usare <code style={{ color: '#ea580c' }}>**grassetto**</code>, <code style={{ color: '#ea580c' }}>*corsivo*</code>, <code style={{ color: '#ea580c' }}>[Testo Link](https://...)</code> ed elenchi puntati <code style={{ color: '#ea580c' }}>- elemento</code>.
+                  </div>
+                  <div>
+                    <strong>Segnaposto:</strong>
+                    <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{nome}}'}</span>,
+                    <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{ordine_id}}'}</span>,
+                    <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{nuova_data}}'}</span>,
+                    <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{evento}}'}</span>,
+                    <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{regolamento}}'}</span>
+                  </div>
                 </div>
               </div>
             </div>
