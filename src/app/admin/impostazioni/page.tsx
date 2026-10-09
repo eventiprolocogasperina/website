@@ -31,7 +31,7 @@ export default function AdminImpostazioniPage() {
   useEffect(() => {
     fetch('/api/admin/settings')
       .then(r => r.json())
-      .then(d => { 
+      .then(d => {
         if (d.success) {
           setSettings(d.data);
           if (d.data.whatsapp_topics) {
@@ -104,7 +104,7 @@ export default function AdminImpostazioniPage() {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><Loader2 className="animate-spin" size={32} style={{ color: 'var(--neutral-500)' }} /></div>
       ) : settings ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '700px' }}>
-          
+
           {/* Evento */}
           <div className="card" style={{ padding: '1.5rem' }}>
             <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, marginBottom: '1.25rem', fontSize: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem' }}>
@@ -182,14 +182,14 @@ export default function AdminImpostazioniPage() {
               <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MessageCircle size={18} style={{ color: '#25D366' }} /> Argomenti Assistenza WhatsApp
               </h3>
-              <button 
+              <button
                 onClick={() => setTopics([...topics, { id: Date.now().toString(), label: '', phone: '' }])}
                 className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
               >
                 <Plus size={14} /> Aggiungi
               </button>
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {topics.map((topic, idx) => (
                 <div key={topic.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', background: 'var(--neutral-900)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--neutral-800)' }}>
@@ -223,7 +223,7 @@ export default function AdminImpostazioniPage() {
                       />
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       const newTopics = topics.filter((_, i) => i !== idx);
                       setTopics(newTopics);
@@ -306,6 +306,34 @@ export default function AdminImpostazioniPage() {
                 </div>
               </div>
 
+              {/* Webhook Configuration Details Box */}
+              <div style={{ background: 'var(--neutral-900)', border: '1px solid rgba(37,211,102,0.3)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ fontWeight: 700, color: '#4ade80', fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  🔗 Dati per Configurazione Webhook (Meta Developers)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--neutral-400)', marginBottom: '0.25rem' }}>
+                      URL di Callback (incolla su Meta Developer)
+                    </label>
+                    <code style={{ display: 'block', width: '100%', padding: '0.5rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-sm)', color: '#4ade80', fontSize: '0.8rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                      https://eventiprolocogasperina.it/api/webhooks/whatsapp
+                    </code>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--neutral-400)', marginBottom: '0.25rem' }}>
+                      Verifica il Token (incolla su Meta Developer)
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.wa_webhook_verify_token || 'proloco_whatsapp_webhook_secret_2026'}
+                      onChange={e => setSettings({ ...settings, wa_webhook_verify_token: e.target.value })}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-sm)', color: '#4ade80', fontSize: '0.85rem', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Editable Message Template with Placeholders */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
@@ -324,74 +352,6 @@ export default function AdminImpostazioniPage() {
                   <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{evento}}'}</span>,
                   <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{regolamento}}'}</span>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Banner & Modal Avviso Rinvio Meteo Zuccaland */}
-          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid rgba(234,88,12,0.4)' }}>
-            <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, marginBottom: '1.25rem', fontSize: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>🌧️🎃</span> Banner & Popup Avviso Rinvio Meteo (Sito Zuccaland)
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-              Personalizza qui i testi del <strong>Banner Sticky</strong> e del <strong>Popup Modal</strong> che appaiono sui dispositivi dei visitatori della pagina Zuccaland in caso di rinvio per maltempo.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Enable / Disable Banner toggle */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--neutral-800)', borderRadius: 'var(--radius-md)' }}>
-                <div>
-                  <div style={{ fontWeight: 600, color: 'var(--color-heading)', fontSize: '0.9rem' }}>Banner & Popup Rinvio Meteo Attivi</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', marginTop: '0.2rem' }}>
-                    {settings.zuccaland_postponed_enabled === 'true' ? '🟢 Il banner e il popup di avviso sono VISIBILI sul sito Zuccaland' : '🔴 L\'avviso sul sito è DISATTIVATO'}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSettings({ ...settings, zuccaland_postponed_enabled: settings.zuccaland_postponed_enabled === 'true' ? 'false' : 'true' })}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: settings.zuccaland_postponed_enabled === 'true' ? '#4ade80' : 'var(--neutral-500)' }}
-                >
-                  {settings.zuccaland_postponed_enabled === 'true' ? <ToggleRight size={36} /> : <ToggleLeft size={36} />}
-                </button>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
-                  Titolo Avviso (es. AVVISO METEO: Evento Rinviato per Pioggia)
-                </label>
-                <input
-                  type="text"
-                  placeholder="AVVISO IMPORTANTE: RINVIO PER METEO AVVERSO"
-                  value={settings.zuccaland_postponed_title || ''}
-                  onChange={e => setSettings({ ...settings, zuccaland_postponed_title: e.target.value })}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
-                  Nuova Data Stabilita (es. Domenica 25 Ottobre 2026)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Domenica 25 Ottobre 2026"
-                  value={settings.zuccaland_postponed_new_date || ''}
-                  onChange={e => setSettings({ ...settings, zuccaland_postponed_new_date: e.target.value })}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
-                  Messaggio Dettagliato Rinvio
-                </label>
-                <textarea
-                  rows={4}
-                  value={settings.zuccaland_postponed_message || ''}
-                  placeholder="Causa condizioni meteo avverse accertate, l'evento Zuccaland è rinviato alla nuova data stabilita. I biglietti già acquistati rimangono 100% validi per la data di recupero."
-                  onChange={e => setSettings({ ...settings, zuccaland_postponed_message: e.target.value })}
-                  style={{ width: '100%', padding: '0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.88rem', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' }}
-                />
               </div>
             </div>
           </div>
