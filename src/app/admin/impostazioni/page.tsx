@@ -317,7 +317,7 @@ export default function AdminImpostazioniPage() {
                       URL di Callback (incolla su Meta Developer)
                     </label>
                     <code style={{ display: 'block', width: '100%', padding: '0.5rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-sm)', color: '#4ade80', fontSize: '0.8rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                      https://eventiprolocogasperina.it/api/webhooks/whatsapp
+                      https://prolocogasperina.it/api/webhooks/whatsapp
                     </code>
                   </div>
                   <div>
