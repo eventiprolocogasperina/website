@@ -16,11 +16,12 @@ export async function POST(request: Request) {
     const {
       eventId = 'zuccaland-2026',
       targetDay = 'all', // '10', '11', '25', or 'all'
-      newDate = 'Domenica 25 Ottobre 2026',
+      newDate = 'Sabato 17 Ottobre 2026',
       subject = '📢 Comunicazione Ufficiale Meteo: Rinvio Zuccaland 2026',
       customMessage = '',
       sendMode = 'test', // 'test' or 'broadcast'
       testEmail = '',
+      onlyEmails = [], // optional array of email addresses to retry
     } = body;
 
     const sql = getDb();
@@ -92,8 +93,15 @@ export async function POST(request: Request) {
         return 'unspecified';
       }
 
+      const onlyEmailsSet = Array.isArray(onlyEmails) && onlyEmails.length > 0 
+        ? new Set(onlyEmails.map((e: string) => String(e).trim().toLowerCase()))
+        : null;
+
       // Filter by target day if requested
       const filteredOrders = orders.filter((o: any) => {
+        if (onlyEmailsSet && !onlyEmailsSet.has((o.buyerEmail || '').trim().toLowerCase())) {
+          return false;
+        }
         if (targetDay === 'all') return true;
         return parseDayKey(o.notes) === String(targetDay);
       });
@@ -121,12 +129,18 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // 3. Batch email sending
+    // 3. Batch email sending with Rate Limiting Throttle (max 4 req/sec to prevent Resend limits)
     const logs: Array<{ email: string; name: string; status: 'SENT' | 'FAILED'; error?: string; resendId?: string }> = [];
     let successCount = 0;
     let failCount = 0;
 
-    for (const recipient of recipients) {
+    for (let i = 0; i < recipients.length; i++) {
+      const recipient = recipients[i];
+      if (i > 0) {
+        // Wait 250ms between requests to maintain <= 4 req/sec rate
+        await new Promise(res => setTimeout(res, 250));
+      }
+
       try {
         const html = await render(
           createElement(PostponementEmailDocument, {
