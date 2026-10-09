@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Save, Check, X, ToggleLeft, ToggleRight, Plus, Trash2, MessageCircle } from 'lucide-react';
+import { Loader2, Save, Check, X, ToggleLeft, ToggleRight, Plus, Trash2, MessageCircle, Mail } from 'lucide-react';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 interface Settings {
@@ -351,6 +351,51 @@ export default function AdminImpostazioniPage() {
                   <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{nuova_data}}'}</span>,
                   <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{evento}}'}</span>,
                   <span style={{ color: '#25D366', marginLeft: '0.5rem', fontFamily: 'monospace' }}>{'{{regolamento}}'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Email Broadcast & Postponement Communication Template */}
+          <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid rgba(234,88,12,0.4)' }}>
+            <h3 style={{ color: 'var(--color-heading)', fontWeight: 600, marginBottom: '1.25rem', fontSize: '1rem', borderBottom: '1px solid var(--neutral-800)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Mail size={18} style={{ color: '#ea580c' }} /> Email Broadcast Rinvio Evento (Testo Personalizzabile)
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              Configura qui il modello di testo predefinito per le **email di comunicazione rinvio**. Il layout grafico e il pulsante per avviare la chat WhatsApp con l&apos;assistenza verranno generati automaticamente.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Oggetto Email Predefinito
+                </label>
+                <input
+                  type="text"
+                  placeholder="📢 Comunicazione Ufficiale Meteo: Rinvio Zuccaland 2026"
+                  value={settings.email_postponement_subject || '📢 Comunicazione Ufficiale Meteo: Rinvio Zuccaland 2026'}
+                  onChange={e => setSettings({ ...settings, email_postponement_subject: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.4rem', fontWeight: 500 }}>
+                  Corpo Testo Email (personalizzabile)
+                </label>
+                <textarea
+                  rows={5}
+                  value={settings.email_postponement_body || `Causa avverse condizioni meteorologiche accertate, l'evento {{evento}} è rinviato alla nuova data di {{nuova_data}}.\n\nTi rassicuriamo che tutti i biglietti e le attività già prenotate per il tuo ordine {{ordine_id}} rimangono 100% validi per la nuova data di recupero.\n\nPer qualsiasi necessità o chiarimento, il nostro team è a tua completa disposizione via WhatsApp.`}
+                  onChange={e => setSettings({ ...settings, email_postponement_body: e.target.value })}
+                  style={{ width: '100%', padding: '0.75rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-md)', color: 'var(--color-text)', fontSize: '0.88rem', outline: 'none', fontFamily: 'monospace', lineHeight: 1.5, boxSizing: 'border-box' }}
+                />
+                <div style={{ marginTop: '0.5rem', background: 'var(--neutral-900)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--neutral-800)', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                  <strong>Placeholder per Email:</strong>
+                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{nome}}'}</span>,
+                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{ordine_id}}'}</span>,
+                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{nuova_data}}'}</span>,
+                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{evento}}'}</span>,
+                  <span style={{ color: '#ea580c', marginLeft: '0.4rem', fontFamily: 'monospace' }}>{'{{regolamento}}'}</span>
                 </div>
               </div>
             </div>

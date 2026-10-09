@@ -70,6 +70,17 @@ export default function OrderManager() {
   const [waResult, setWaResult] = useState<any>(null);
   const [waSyncSiteBanner, setWaSyncSiteBanner] = useState(true);
 
+  // Email Postponement Broadcast Modal state
+  const [showEmailPostponementModal, setShowEmailPostponementModal] = useState(false);
+  const [emailTargetDay, setEmailTargetDay] = useState<'all' | '10' | '11' | '25'>('all');
+  const [emailNewDateText, setEmailNewDateText] = useState('Domenica 25 Ottobre 2026');
+  const [emailSubjectText, setEmailSubjectText] = useState('📢 Comunicazione Ufficiale Meteo: Rinvio Zuccaland 2026');
+  const [emailCustomMessage, setEmailCustomMessage] = useState('');
+  const [emailSendMode, setEmailSendMode] = useState<'test' | 'broadcast'>('test');
+  const [emailTestAddress, setEmailTestAddress] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailResult, setEmailResult] = useState<any>(null);
+
   // Pay-by-link modal state
   const [selectedOrderForPayLink, setSelectedOrderForPayLink] = useState<OrderWithTickets | null>(null);
   const [payLinkQuantities, setPayLinkQuantities] = useState<Record<string, number>>({});
@@ -1200,6 +1211,30 @@ export default function OrderManager() {
                 </button>
 
                 <button
+                  onClick={() => {
+                    setShowEmailPostponementModal(true);
+                    setEmailResult(null);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.45rem 1rem',
+                    borderRadius: '999px',
+                    border: '1.5px solid #3b82f6',
+                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                    color: 'white',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Mail size={13} /> ✉️ Avviso Rinvio Email
+                </button>
+
+                <button
                   onClick={async () => {
                     const currentAlert = await fetch('/api/zuccaland/alert').then(r => r.json());
                     const nextEnabled = !currentAlert.enabled;
@@ -2146,6 +2181,239 @@ export default function OrderManager() {
                   }}
                 >
                   {waSending ? <Loader2 size={16} className="animate-spin" /> : waSendMode === 'test' ? '🧪 Invia Prova WhatsApp' : '🚀 Avvia Broadcast WhatsApp'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          EMAIL POSTPONEMENT BROADCAST MODAL
+      ────────────────────────────────────────────────────────────────────────── */}
+      {showEmailPostponementModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: '1rem' }}>
+          <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', border: '1.5px solid rgba(59,130,246,0.5)', background: '#0b172a' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Email Broadcast System
+                </span>
+                <h2 style={{ fontSize: '1.25rem', color: '#ffffff', margin: '0.5rem 0 0.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  ✉️ Avviso Rinvio & Comunicazione Email
+                </h2>
+              </div>
+              <button 
+                onClick={() => setShowEmailPostponementModal(false)} 
+                style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: '#bfdbfe', lineHeight: 1.5 }}>
+                Invia un&apos;email ufficiale con grafica Pro Loco e pulsante diretto per la chat WhatsApp agli acquirenti per comunicare il rinvio.
+              </p>
+
+              {/* Target Date Selector */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'white', marginBottom: '0.4rem' }}>
+                  📅 Seleziona acquirenti della data:
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'Tutti gli acquirenti' },
+                    { id: '10', label: 'Sabato 10 Ottobre' },
+                    { id: '11', label: 'Domenica 11 Ottobre' },
+                    { id: '25', label: 'Domenica 25 Ottobre' },
+                  ].map(d => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => setEmailTargetDay(d.id as any)}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid ' + (emailTargetDay === d.id ? '#3b82f6' : 'rgba(255,255,255,0.15)'),
+                        background: emailTargetDay === d.id ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.05)',
+                        color: emailTargetDay === d.id ? '#60a5fa' : 'white',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Input for Email Subject */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'white', marginBottom: '0.4rem' }}>
+                  ✉️ Oggetto dell&apos;Email:
+                </label>
+                <input
+                  type="text"
+                  value={emailSubjectText}
+                  onChange={e => setEmailSubjectText(e.target.value)}
+                  placeholder="Es. 📢 Comunicazione Ufficiale Meteo: Rinvio Zuccaland 2026"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.6rem', color: 'white', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Input for New Date */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'white', marginBottom: '0.4rem' }}>
+                  📆 Nuova data stabilita per l&apos;evento:
+                </label>
+                <input
+                  type="text"
+                  value={emailNewDateText}
+                  onChange={e => setEmailNewDateText(e.target.value)}
+                  placeholder="Es. Domenica 25 Ottobre 2026"
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.6rem', color: 'white', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Custom Message Body Area */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'white', marginBottom: '0.4rem' }}>
+                  💬 Corpo del Messaggio Email (personalizzabile):
+                </label>
+                <textarea
+                  rows={5}
+                  value={emailCustomMessage}
+                  onChange={e => setEmailCustomMessage(e.target.value)}
+                  placeholder="Se lasciato vuoto, verrà usato il testo predefinita salvata nelle Impostazioni CMS."
+                  style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.6rem', color: 'white', fontSize: '0.85rem', fontFamily: 'monospace', outline: 'none', lineHeight: 1.5, boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '0.74rem', color: '#93c5fd', marginTop: '0.35rem' }}>
+                  Placeholder dinamici: <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nome}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{ordine_id}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{nuova_data}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{evento}}'}</code>, <code style={{ background: 'rgba(0,0,0,0.5)', padding: '0.1rem 0.3rem', borderRadius: 4 }}>{'{{regolamento}}'}</code>
+                </div>
+              </div>
+
+              {/* Mode Toggle: Test vs Broadcast */}
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(59,130,246,0.2)' }}>
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', color: 'white', fontSize: '0.85rem', fontWeight: 700 }}>
+                    <input
+                      type="radio"
+                      name="emailMode"
+                      checked={emailSendMode === 'test'}
+                      onChange={() => setEmailSendMode('test')}
+                    />
+                    🧪 Modalità Test (Invia solo ad un indirizzo email)
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', color: '#f87171', fontSize: '0.85rem', fontWeight: 700 }}>
+                    <input
+                      type="radio"
+                      name="emailMode"
+                      checked={emailSendMode === 'broadcast'}
+                      onChange={() => setEmailSendMode('broadcast')}
+                    />
+                    🚀 Invio Massivo Reale (A tutti gli acquirenti)
+                  </label>
+                </div>
+
+                {emailSendMode === 'test' ? (
+                  <div>
+                    <input
+                      type="email"
+                      placeholder="Email di prova (es. tuaemail@example.com)"
+                      value={emailTestAddress}
+                      onChange={e => setEmailTestAddress(e.target.value)}
+                      style={{ width: '100%', padding: '0.6rem 0.85rem', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '0.5rem', color: 'white', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ color: '#fca5a5', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                    ⚠️ Verrà inviata una mail a tutti gli acquirenti pagati della data selezionata via Resend API.
+                  </div>
+                )}
+              </div>
+
+              {/* Result logs */}
+              {emailResult && (
+                <div style={{ background: emailResult.success ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', border: '1px solid ' + (emailResult.success ? '#22c55e' : '#ef4444'), borderRadius: '0.65rem', padding: '0.85rem', color: 'white', fontSize: '0.82rem' }}>
+                  {emailResult.error ? (
+                    <div style={{ color: '#f87171', fontWeight: 700 }}>❌ {emailResult.error}</div>
+                  ) : (
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#4ade80', marginBottom: '0.35rem' }}>
+                        ✅ Operazione completata! Inviati: {emailResult.successCount} | Falliti: {emailResult.failCount || 0}
+                      </div>
+                      {emailResult.logs && emailResult.logs.length > 0 && (
+                        <div style={{ maxHeight: '120px', overflowY: 'auto', background: 'rgba(0,0,0,0.5)', padding: '0.5rem', borderRadius: 4, marginTop: '0.4rem', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {emailResult.logs.map((log: any, i: number) => (
+                            <div key={i} style={{ color: log.status === 'SENT' ? '#86efac' : '#fca5a5' }}>
+                              {log.email} ({log.name}): {log.status} {log.error ? `- ${log.error}` : ''}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailPostponementModal(false)}
+                  style={{ padding: '0.65rem 1.25rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                >
+                  Chiudi
+                </button>
+
+                <button
+                  type="button"
+                  disabled={emailSending}
+                  onClick={async () => {
+                    setEmailSending(true);
+                    setEmailResult(null);
+                    try {
+                      const res = await fetch('/api/admin/orders/send-postponement-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          eventId: 'zuccaland-2026',
+                          targetDay: emailTargetDay,
+                          newDate: emailNewDateText,
+                          subject: emailSubjectText,
+                          customMessage: emailCustomMessage,
+                          sendMode: emailSendMode,
+                          testEmail: emailTestAddress,
+                        }),
+                      });
+                      const data = await res.json();
+                      setEmailResult(data);
+                    } catch (e: any) {
+                      setEmailResult({ success: false, error: e.message || 'Errore di connessione' });
+                    } finally {
+                      setEmailSending(false);
+                    }
+                  }}
+                  style={{
+                    padding: '0.65rem 1.4rem',
+                    borderRadius: '0.65rem',
+                    border: 'none',
+                    background: emailSendMode === 'test' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'linear-gradient(135deg, #dc2626, #991b1b)',
+                    color: 'white',
+                    cursor: emailSending ? 'not-allowed' : 'pointer',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+                    opacity: emailSending ? 0.8 : 1,
+                  }}
+                >
+                  {emailSending ? <Loader2 size={16} className="animate-spin" /> : emailSendMode === 'test' ? '🧪 Invia Prova Email' : '🚀 Avvia Broadcast Email'}
                 </button>
               </div>
             </div>
