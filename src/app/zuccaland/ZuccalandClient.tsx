@@ -37,15 +37,31 @@ type EventPhase = 'pre-sale' | 'on-sale' | 'live' | 'concluded';
 
 function getEventPhase(event: ZuccalandContent['event']): EventPhase {
   const now = new Date();
-  const salesOpen = new Date(event.salesOpenDate);
-  const salesClose = new Date(event.salesCloseDate);
-  const start = new Date(event.startDate);
-  const end = new Date(event.endDate);
+  
+  // Valid active event days in 2026 (Month is 0-indexed: October = 9)
+  // Recovered postponed dates: Sabato 17, Domenica 18, Domenica 25 Ottobre 2026
+  const isEventDay = (
+    now.getFullYear() === 2026 &&
+    now.getMonth() === 9 &&
+    (now.getDate() === 17 || now.getDate() === 18 || now.getDate() === 25)
+  );
 
+  // Daily opening hours: 10:30 to 16:30 (4:30 PM)
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const openMinutes = 10 * 60 + 30; // 10:30
+  const closeMinutes = 16 * 60 + 30; // 16:30
+
+  if (isEventDay && currentMinutes >= openMinutes && currentMinutes <= closeMinutes) {
+    return 'live';
+  }
+
+  const finalEnd = new Date('2026-10-25T16:30:00+02:00');
+  if (now > finalEnd) return 'concluded';
+
+  const salesOpen = new Date(event.salesOpenDate || '2026-09-01T00:00:00+02:00');
   if (now < salesOpen) return 'pre-sale';
-  if (now >= salesOpen && now < salesClose) return 'on-sale';
-  if (now >= start && now <= end) return 'live';
-  return now > end ? 'concluded' : 'on-sale';
+
+  return 'on-sale';
 }
 
 // ─── Countdown Hook ───────────────────────────────────────────────────────────
@@ -854,7 +870,7 @@ function ZuccalandTicketBuyer({
                       TUTTO ESAURITO PER TUTTE LE DATE
                     </h3>
                     <p style={{ color: '#7f1d1d', fontSize: '0.95rem', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 1.5rem' }}>
-                      I biglietti per <strong>Zuccaland 2026</strong> sono ufficialmente <strong>SOLD OUT</strong> sia per Sabato 10 che per Domenica 11 Ottobre. Grazie di cuore per l&apos;incredibile entusiasmo e la straordinaria partecipazione!
+                      I biglietti per <strong>Zuccaland 2026</strong> sono ufficialmente <strong>SOLD OUT</strong> per tutte le giornate dell&apos;evento ({is25Active ? 'Sabato 10, Domenica 11 e Domenica 25 Ottobre' : 'Sabato 10 e Domenica 11 Ottobre'}). Grazie di cuore per l&apos;incredibile entusiasmo e la straordinaria partecipazione!
                     </p>
                     <div style={{
                       display: 'inline-flex',
@@ -1061,13 +1077,15 @@ function ZuccalandTicketBuyer({
                         }}>
                           <span>⚠️</span>
                           <span>
-                            {isSoldOut10 && isSoldOut11
+                            {isSoldOut10 && isSoldOut11 && is25Active && !isSoldOut25
                               ? 'I posti per il 10 e 11 Ottobre sono esauriti. Puoi ancora prenotare per Domenica 25 Ottobre!'
+                              : isSoldOut10 && isSoldOut11
+                              ? 'I posti per il 10 e 11 Ottobre sono esauriti!'
                               : isSoldOut10
-                              ? `I posti per Sabato 10 Ottobre sono esauriti. Puoi ancora prenotare per ${is25Active ? 'Domenica 11 o 25 Ottobre' : 'Domenica 11 Ottobre'}!`
+                              ? `I posti per Sabato 10 Ottobre sono esauriti. Puoi ancora prenotare per ${is25Active && !isSoldOut25 ? 'Domenica 11 o 25 Ottobre' : 'Domenica 11 Ottobre'}!`
                               : isSoldOut11
-                              ? `I posti per Domenica 11 Ottobre sono esauriti. Puoi ancora prenotare per ${is25Active ? 'Sabato 10 o Domenica 25 Ottobre' : 'Sabato 10 Ottobre'}!`
-                              : 'I posti per Domenica 25 Ottobre sono esauriti. Puoi ancora prenotare per Sabato 10 o Domenica 11 Ottobre!'}
+                              ? `I posti per Domenica 11 Ottobre sono esauriti. Puoi ancora prenotare per ${is25Active && !isSoldOut25 ? 'Sabato 10 o Domenica 25 Ottobre' : 'Sabato 10 Ottobre'}!`
+                              : 'I posti per Domenica 25 Ottobre sono esauriti!'}
                           </span>
                         </div>
                       )}
