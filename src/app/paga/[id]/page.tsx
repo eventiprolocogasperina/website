@@ -35,11 +35,12 @@ export default async function PayLinkPage({ params }: PageProps) {
                       parentOrder?.tickets.some(t => t.eventId?.includes('zuccaland')) || false;
   
   const parsedParentNotes = parentOrder ? parseOrderNotes(parentOrder.notes) : null;
+  const parsedSubNotes = parseOrderNotes(subOrder.notes);
   
   // Giorno evento
-  let dayLabel = parsedParentNotes?.eventDate || null;
+  let dayLabel = parsedParentNotes?.eventDate || parsedSubNotes?.eventDate || null;
   if (!dayLabel && isZuccaland) {
-    dayLabel = '10-11 Ottobre 2026';
+    dayLabel = '17, 18 o 25 Ottobre 2026';
   }
 
   // Raggruppa i ticket per tipologia

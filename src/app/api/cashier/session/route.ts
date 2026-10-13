@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCashierConfig } from '@/lib/data/cashier';
+import { getCashierConfig, DEFAULT_PRINTER_SETTINGS } from '@/lib/data/cashier';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +57,7 @@ export async function POST(request: Request) {
         startingNumber: matchedEvent.startingNumber || 1,
         items: matchedEvent.items,
         notes: matchedEvent.notes,
+        printerSettings: matchedEvent.printerSettings || config.defaultPrinterSettings || DEFAULT_PRINTER_SETTINGS,
       }
     });
   } catch (error: any) {

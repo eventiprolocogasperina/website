@@ -8,7 +8,9 @@ import {
   CashierEvent,
   CashierItem,
   CashierStats,
-  DEFAULT_CASHIER_CONFIG
+  CashierPrinterSettings,
+  DEFAULT_CASHIER_CONFIG,
+  DEFAULT_PRINTER_SETTINGS
 } from '@/lib/data/cashier';
 import {
   Save,
@@ -30,8 +32,15 @@ import {
   CheckSquare,
   Square,
   Package,
-  Settings
+  Settings,
+  Printer,
+  Bluetooth,
+  Sliders,
+  Check,
+  Play
 } from 'lucide-react';
+import { bluetoothPrinter, type PrinterState } from '@/lib/printer/bluetoothPrinter';
+import { generateTestTicketEscpos } from '@/lib/printer/escpos';
 
 const COMMON_EMOJIS = [
   '🍝', '🍲', '🍖', '🥩', '🥔', '🥪', '🥖', '🍕', '🍷', '🍾', '🍺', '💧', '🥤', '🍰', '☕',
@@ -47,9 +56,20 @@ export default function AdminCashierPage() {
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Tab: 'menu' | 'cassas' | 'report' | 'events'
-  const [activeTab, setActiveTab] = useState<'menu' | 'cassas' | 'report' | 'events'>('menu');
+  // Tab: 'menu' | 'cassas' | 'printer' | 'report' | 'events'
+  const [activeTab, setActiveTab] = useState<'menu' | 'cassas' | 'printer' | 'report' | 'events'>('menu');
   const [selectedCassaForConfig, setSelectedCassaForConfig] = useState<string>('Cassa 1');
+
+  // Bluetooth Printer Test State
+  const [printerState, setPrinterState] = useState<PrinterState>(bluetoothPrinter.getState());
+  const [testPrintLoading, setTestPrintLoading] = useState(false);
+  const [testPrintSuccess, setTestPrintSuccess] = useState<string | null>(null);
+  const [testPrintError, setTestPrintError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = bluetoothPrinter.subscribe(setPrinterState);
+    return () => unsub();
+  }, []);
 
   // Load config & stats
   const fetchConfig = async () => {
@@ -99,6 +119,80 @@ export default function AdminCashierPage() {
       setStatusMessage({ type: 'error', text: err.message || 'Errore di connessione' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ─── Printer Settings Management ──────────────────────────────────────────
+
+  const updatePrinterSettings = (updates: Partial<CashierPrinterSettings>) => {
+    if (!currentEvent) return;
+    const baseSettings = currentEvent.printerSettings || DEFAULT_PRINTER_SETTINGS;
+    const newPrinterSettings: CashierPrinterSettings = {
+      ...baseSettings,
+      ...updates
+    };
+
+    // Auto adjust characters per line if width changes without explicit characters count
+    if (updates.ticketWidthMm !== undefined && updates.charactersPerLine === undefined) {
+      newPrinterSettings.charactersPerLine = updates.ticketWidthMm >= 80 ? 48 : 32;
+    }
+
+    const updatedEvents = config.events.map(evt => {
+      if (evt.id !== currentEvent.id) return evt;
+      return {
+        ...evt,
+        printerSettings: newPrinterSettings,
+        updatedAt: new Date().toISOString()
+      };
+    });
+    setConfig({ ...config, events: updatedEvents });
+  };
+
+  const handleConnectBluetooth = async () => {
+    setTestPrintError(null);
+    try {
+      const name = await bluetoothPrinter.connectBluetooth();
+      setTestPrintSuccess(`Stampante "${name}" connessa via Bluetooth!`);
+      setTimeout(() => setTestPrintSuccess(null), 4000);
+    } catch (err: any) {
+      setTestPrintError(err.message || 'Errore connessione Bluetooth');
+    }
+  };
+
+  const handleConnectSerial = async () => {
+    setTestPrintError(null);
+    try {
+      const name = await bluetoothPrinter.connectSerial();
+      setTestPrintSuccess(`Stampante "${name}" connessa via Seriale/USB!`);
+      setTimeout(() => setTestPrintSuccess(null), 4000);
+    } catch (err: any) {
+      setTestPrintError(err.message || 'Errore connessione Seriale');
+    }
+  };
+
+  const handleDisconnectPrinter = async () => {
+    await bluetoothPrinter.disconnect();
+    setTestPrintSuccess('Stampante disconnessa');
+    setTimeout(() => setTestPrintSuccess(null), 2500);
+  };
+
+  const handleSendTestPrint = async () => {
+    if (!currentEvent) return;
+    const pSettings = currentEvent.printerSettings || DEFAULT_PRINTER_SETTINGS;
+    setTestPrintLoading(true);
+    setTestPrintError(null);
+    try {
+      if (!printerState.connected) {
+        await bluetoothPrinter.connectBluetooth();
+      }
+      const testBytes = generateTestTicketEscpos(pSettings);
+      await bluetoothPrinter.print(testBytes);
+      setTestPrintSuccess(`Stampa di prova (${pSettings.ticketWidthMm}mm) inviata con successo!`);
+      setTimeout(() => setTestPrintSuccess(null), 4000);
+    } catch (err: any) {
+      setTestPrintError(err.message || 'Errore durante la stampa di prova');
+    } finally {
+      setTestPrintLoading(false);
     }
   };
 
@@ -558,6 +652,25 @@ export default function AdminCashierPage() {
           }}
         >
           <Store size={16} /> Configura Singole Casse
+        </button>
+
+        <button
+          onClick={() => setActiveTab('printer')}
+          style={{
+            padding: '0.6rem 1.1rem',
+            borderRadius: 'var(--radius-md)',
+            border: 'none',
+            background: activeTab === 'printer' ? 'var(--blue-600)' : 'transparent',
+            color: activeTab === 'printer' ? '#fff' : 'var(--neutral-400)',
+            fontWeight: 750,
+            fontSize: '0.88rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem'
+          }}
+        >
+          <Printer size={16} /> Stampante & Ticket ({currentEvent?.printerSettings?.ticketWidthMm || 58}mm)
         </button>
 
         <button
@@ -1109,6 +1222,703 @@ export default function AdminCashierPage() {
           )}
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TAB: PRINTER & TICKET SETTINGS (BLUETOOTH & SIZES)
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {activeTab === 'printer' && currentEvent && (() => {
+        const pSettings = currentEvent.printerSettings || DEFAULT_PRINTER_SETTINGS;
+        const previewWidthPx = Math.min(420, Math.max(260, Math.round(pSettings.ticketWidthMm * 4.6)));
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Header bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-heading)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Printer size={22} style={{ color: '#38bdf8' }} />
+                  Configurazione Stampante Termica & Dimensioni Ticket
+                </h3>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--neutral-400)' }}>
+                  Imposta la larghezza in millimetri della carta per la stampa diretta dal browser su stampante Bluetooth o Seriale.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '999px',
+                  background: 'rgba(56,189,248,0.15)',
+                  border: '1px solid rgba(56,189,248,0.3)',
+                  color: '#38bdf8',
+                  fontSize: '0.8rem',
+                  fontWeight: 800
+                }}>
+                  📏 Larghezza: {pSettings.ticketWidthMm} mm ({pSettings.charactersPerLine} char/riga)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSaveConfig()}
+                  disabled={saving}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: 'none',
+                    background: 'var(--blue-600)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    boxShadow: '0 4px 12px rgba(37,99,235,0.3)'
+                  }}
+                >
+                  <Save size={16} /> {saving ? 'Salvataggio...' : 'Salva Impostazioni Stampante'}
+                </button>
+              </div>
+            </div>
+
+            {/* Main Layout: Settings on Left, Live Thermal Preview on Right */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+
+              {/* LEFT COLUMN: Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+                {/* 1. Dimensioni Larghezza Carta */}
+                <div className="card" style={{ padding: '1.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                    <Sliders size={18} style={{ color: '#38bdf8' }} />
+                    <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                      1. Dimensioni in Larghezza della Carta
+                    </h4>
+                  </div>
+
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--neutral-400)', lineHeight: 1.4 }}>
+                    Scegli un preset standard o imposta la larghezza esatta del rotolo montato sulla tua stampante (es. 58mm portatile, 80mm da banco).
+                  </p>
+
+                  {/* Preset Buttons */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => updatePrinterSettings({ ticketWidthMm: 58, charactersPerLine: 32 })}
+                      style={{
+                        padding: '0.75rem 0.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: pSettings.ticketWidthMm === 58 ? '2px solid #38bdf8' : '1px solid var(--neutral-700)',
+                        background: pSettings.ticketWidthMm === 58 ? 'rgba(56,189,248,0.15)' : 'var(--neutral-800)',
+                        color: pSettings.ticketWidthMm === 58 ? '#38bdf8' : 'var(--neutral-300)',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: '1.1rem', marginBottom: '0.15rem' }}>📱 58 mm</div>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>Portatile Bluetooth (32 col)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => updatePrinterSettings({ ticketWidthMm: 80, charactersPerLine: 48 })}
+                      style={{
+                        padding: '0.75rem 0.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: pSettings.ticketWidthMm === 80 ? '2px solid #38bdf8' : '1px solid var(--neutral-700)',
+                        background: pSettings.ticketWidthMm === 80 ? 'rgba(56,189,248,0.15)' : 'var(--neutral-800)',
+                        color: pSettings.ticketWidthMm === 80 ? '#38bdf8' : 'var(--neutral-300)',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: '1.1rem', marginBottom: '0.15rem' }}>🏪 80 mm</div>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>Cassa Fissa POS (48 col)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const custom = pSettings.ticketWidthMm !== 58 && pSettings.ticketWidthMm !== 80 ? pSettings.ticketWidthMm : 70;
+                        updatePrinterSettings({ ticketWidthMm: custom, charactersPerLine: Math.round(custom * 0.58) });
+                      }}
+                      style={{
+                        padding: '0.75rem 0.5rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: pSettings.ticketWidthMm !== 58 && pSettings.ticketWidthMm !== 80 ? '2px solid #38bdf8' : '1px solid var(--neutral-700)',
+                        background: pSettings.ticketWidthMm !== 58 && pSettings.ticketWidthMm !== 80 ? 'rgba(56,189,248,0.15)' : 'var(--neutral-800)',
+                        color: pSettings.ticketWidthMm !== 58 && pSettings.ticketWidthMm !== 80 ? '#38bdf8' : 'var(--neutral-300)',
+                        fontSize: '0.82rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ fontSize: '1.1rem', marginBottom: '0.15rem' }}>⚙️ Custom</div>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>Altra larghezza</span>
+                    </button>
+                  </div>
+
+                  {/* Manual Millimeter Slider & Number Input */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--neutral-300)', marginBottom: '0.35rem' }}>
+                        Larghezza Carta (mm)
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                          type="number"
+                          min="40"
+                          max="115"
+                          step="1"
+                          value={pSettings.ticketWidthMm}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 58;
+                            updatePrinterSettings({ ticketWidthMm: val });
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.55rem 0.75rem',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'var(--neutral-800)',
+                            border: '1px solid var(--neutral-700)',
+                            color: 'var(--color-heading)',
+                            fontSize: '0.95rem',
+                            fontWeight: 800,
+                            fontFamily: 'monospace'
+                          }}
+                        />
+                        <span style={{ fontSize: '0.85rem', color: 'var(--neutral-400)', fontWeight: 700 }}>mm</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="40"
+                        max="105"
+                        value={pSettings.ticketWidthMm}
+                        onChange={(e) => updatePrinterSettings({ ticketWidthMm: parseInt(e.target.value) })}
+                        style={{ width: '100%', marginTop: '0.4rem', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--neutral-300)', marginBottom: '0.35rem' }}>
+                        Caratteri per Riga (ESC/POS)
+                      </label>
+                      <input
+                        type="number"
+                        min="20"
+                        max="64"
+                        value={pSettings.charactersPerLine}
+                        onChange={(e) => updatePrinterSettings({ charactersPerLine: parseInt(e.target.value) || 32 })}
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--neutral-800)',
+                          border: '1px solid var(--neutral-700)',
+                          color: 'var(--color-heading)',
+                          fontSize: '0.95rem',
+                          fontWeight: 800,
+                          fontFamily: 'monospace',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.7rem', color: 'var(--neutral-400)', display: 'block', marginTop: '0.25rem' }}>
+                        {pSettings.ticketWidthMm <= 60 ? 'Consigliato: 32 per 58mm' : 'Consigliato: 42 o 48 per 80mm'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Opzioni di Stampa Diretta */}
+                <div className="card" style={{ padding: '1.4rem' }}>
+                  <h4 style={{ margin: '0 0 1rem', fontSize: '0.98rem', fontWeight: 800, color: 'var(--color-heading)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <CheckCircle2 size={18} style={{ color: '#4ade80' }} />
+                    2. Modalità di Stampa & Automatismi
+                  </h4>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+
+                    {/* Stampa Automatica */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--neutral-800)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                          ⚡ Stampa Automatica all&apos;emissione ordine
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          Invia direttamente la comanda alla stampante Bluetooth quando l&apos;operatore preme Conferma Ordine.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePrinterSettings({ autoPrintOnOrder: !pSettings.autoPrintOnOrder })}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: pSettings.autoPrintOnOrder ? '#4ade80' : 'var(--neutral-600)',
+                          display: 'flex', alignItems: 'center'
+                        }}
+                      >
+                        {pSettings.autoPrintOnOrder ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                      </button>
+                    </div>
+
+                    {/* Stampa Scontrino Cliente */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--neutral-800)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                          🧾 Stampa Scontrino Cassa per il Cliente
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          Include il numero progressivo grande, elenco piatti acquistati, totale e QR ricevuta.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePrinterSettings({ printCustomerReceipt: !pSettings.printCustomerReceipt })}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: pSettings.printCustomerReceipt ? '#4ade80' : 'var(--neutral-600)',
+                          display: 'flex', alignItems: 'center'
+                        }}
+                      >
+                        {pSettings.printCustomerReceipt ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                      </button>
+                    </div>
+
+                    {/* Stampa Talloncini Reparto */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--neutral-800)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                          🏷️ Stampa Talloncini Comande Reparto (Cucina/Bar)
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          Genera un talloncino separato per ogni stand (es. cucina, panini, bibite, dolci).
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePrinterSettings({ printDepartmentSlips: !pSettings.printDepartmentSlips })}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: pSettings.printDepartmentSlips ? '#4ade80' : 'var(--neutral-600)',
+                          display: 'flex', alignItems: 'center'
+                        }}
+                      >
+                        {pSettings.printDepartmentSlips ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                      </button>
+                    </div>
+
+                    {/* Taglio Carta */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0', borderBottom: '1px solid var(--neutral-800)' }}>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                          ✂️ Comando Taglio Carta Automatico (ESC/POS)
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          Invia il comando di taglio alla fine di ogni ticket (ignorato da stampanti con barra manuale).
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePrinterSettings({ autoCutPaper: !pSettings.autoCutPaper })}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: pSettings.autoCutPaper ? '#4ade80' : 'var(--neutral-600)',
+                          display: 'flex', alignItems: 'center'
+                        }}
+                      >
+                        {pSettings.autoCutPaper ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                      </button>
+                    </div>
+
+                    {/* QR Code */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 0' }}>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                          📱 Link / QR Code Ricevuta Digitale
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
+                          Stampa il codice QR e l&apos;URL per consultare la ricevuta online dal cellulare.
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updatePrinterSettings({ showQrCode: !pSettings.showQrCode })}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: pSettings.showQrCode ? '#4ade80' : 'var(--neutral-600)',
+                          display: 'flex', alignItems: 'center'
+                        }}
+                      >
+                        {pSettings.showQrCode ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* 3. Intestazione & Piè di Pagina */}
+                <div className="card" style={{ padding: '1.4rem' }}>
+                  <h4 style={{ margin: '0 0 1rem', fontSize: '0.98rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                    3. Personalizzazione Testi Scontrino
+                  </h4>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--neutral-300)', marginBottom: '0.35rem' }}>
+                        Intestazione Superiore
+                      </label>
+                      <input
+                        type="text"
+                        value={pSettings.headerTitle || ''}
+                        onChange={(e) => updatePrinterSettings({ headerTitle: e.target.value })}
+                        placeholder="Es. PRO LOCO GASPERINA APS"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--neutral-800)',
+                          border: '1px solid var(--neutral-700)',
+                          color: 'var(--color-heading)',
+                          fontSize: '0.9rem',
+                          fontWeight: 700,
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--neutral-300)', marginBottom: '0.35rem' }}>
+                        Messaggio di Chiusura (Piè di Pagina)
+                      </label>
+                      <input
+                        type="text"
+                        value={pSettings.footerText || ''}
+                        onChange={(e) => updatePrinterSettings({ footerText: e.target.value })}
+                        placeholder="Es. Grazie per il supporto alla Pro Loco!"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.75rem',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--neutral-800)',
+                          border: '1px solid var(--neutral-700)',
+                          color: 'var(--color-heading)',
+                          fontSize: '0.9rem',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Connessione Bluetooth & Test di Stampa dal CMS */}
+                <div className="card" style={{ padding: '1.4rem', border: '1px solid rgba(56,189,248,0.3)' }}>
+                  <h4 style={{ margin: '0 0 0.85rem', fontSize: '0.98rem', fontWeight: 800, color: 'var(--color-heading)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Bluetooth size={18} style={{ color: '#38bdf8' }} />
+                    4. Test Connessione Stampante dal Computer
+                  </h4>
+
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    background: printerState.connected ? 'rgba(74, 222, 128, 0.12)' : 'var(--neutral-800)',
+                    border: `1px solid ${printerState.connected ? 'rgba(74, 222, 128, 0.3)' : 'var(--neutral-700)'}`,
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: printerState.connected ? '#4ade80' : 'var(--neutral-300)' }}>
+                        {printerState.connected
+                          ? `🟢 Stampante Connessa: ${printerState.deviceName}`
+                          : '⚪ Nessuna stampante attualmente connessa'}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>
+                        {printerState.connected
+                          ? `Canale: ${printerState.connectionType === 'bluetooth' ? 'Bluetooth Low Energy' : 'Seriale / USB'}`
+                          : 'Collega la stampante al computer per inviare uno scontrino di prova.'}
+                      </div>
+                    </div>
+
+                    {printerState.connected && (
+                      <button
+                        type="button"
+                        onClick={handleDisconnectPrinter}
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#ef4444',
+                          fontSize: '0.75rem',
+                          fontWeight: 750,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Disconnetti
+                      </button>
+                    )}
+                  </div>
+
+                  {testPrintSuccess && (
+                    <div style={{ padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'rgba(74,222,128,0.15)', color: '#4ade80', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.85rem' }}>
+                      ✅ {testPrintSuccess}
+                    </div>
+                  )}
+
+                  {testPrintError && (
+                    <div style={{ padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.85rem' }}>
+                      ❌ {testPrintError}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    {!printerState.connected && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleConnectBluetooth}
+                          style={{
+                            padding: '0.6rem 1rem',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid rgba(56,189,248,0.4)',
+                            background: 'rgba(56,189,248,0.15)',
+                            color: '#38bdf8',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                          }}
+                        >
+                          <Bluetooth size={16} /> Connetti Bluetooth
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleConnectSerial}
+                          style={{
+                            padding: '0.6rem 1rem',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid var(--neutral-700)',
+                            background: 'var(--neutral-800)',
+                            color: 'var(--neutral-300)',
+                            fontSize: '0.82rem',
+                            fontWeight: 750,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem'
+                          }}
+                        >
+                          <Sliders size={15} /> Connetti Seriale / USB
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleSendTestPrint}
+                      disabled={testPrintLoading}
+                      style={{
+                        padding: '0.6rem 1.15rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                        color: '#fff',
+                        fontSize: '0.84rem',
+                        fontWeight: 850,
+                        cursor: testPrintLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        boxShadow: '0 4px 12px rgba(22,163,74,0.3)'
+                      }}
+                    >
+                      <Play size={15} />
+                      {testPrintLoading ? 'Invio in corso...' : `Invia Stampa di Prova (${pSettings.ticketWidthMm}mm)`}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* RIGHT COLUMN: Realistic Live Thermal Receipt Preview */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ marginBottom: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                    👁️ Anteprima in Scala Reale ({pSettings.ticketWidthMm} mm)
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>
+                    Simulazione dell&apos;impaginazione e spaziatura caratteri ({pSettings.charactersPerLine} caratteri/riga)
+                  </div>
+                </div>
+
+                {/* Ticket Paper Simulator */}
+                <div style={{
+                  width: `${previewWidthPx}px`,
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  borderRadius: '6px',
+                  boxShadow: '0 12px 36px rgba(0,0,0,0.45)',
+                  padding: '1.25rem 1.1rem',
+                  fontFamily: 'monospace',
+                  fontSize: pSettings.ticketWidthMm >= 80 ? '13px' : '11.5px',
+                  lineHeight: 1.3,
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  {/* Top dashed tear line */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+                    background: 'repeating-linear-gradient(90deg, #94a3b8 0px, #94a3b8 4px, transparent 4px, transparent 8px)'
+                  }} />
+
+                  {/* Header */}
+                  <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ fontWeight: 900, fontSize: '1.05em', letterSpacing: '0.5px' }}>
+                      {pSettings.headerTitle || 'PRO LOCO GASPERINA APS'}
+                    </div>
+                    <div style={{ fontSize: '0.85em', color: '#475569', marginTop: '2px' }}>
+                      {currentEvent.name}
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+                  </div>
+
+                  {/* Ticket Number */}
+                  <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
+                    <div style={{ fontSize: '0.78em', fontWeight: 800, letterSpacing: '1px' }}>TICKET ORDINE</div>
+                    <div style={{
+                      fontSize: '2.6em',
+                      fontWeight: 900,
+                      lineHeight: 1.05,
+                      letterSpacing: '1px',
+                      color: '#000'
+                    }}>
+                      #042
+                    </div>
+                    <div style={{ fontSize: '0.8em', color: '#334155', marginTop: '3px' }}>
+                      Cassa 1 · Operatore Cassa
+                    </div>
+                    <div style={{ fontSize: '0.75em', color: '#64748b' }}>
+                      {new Date().toLocaleDateString('it-IT')} ore {new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div style={{ borderTop: '2px solid #000', margin: '6px 0' }} />
+                  </div>
+
+                  {/* Sample Items */}
+                  <div style={{ marginBottom: '0.6rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span style={{ fontWeight: 700 }}>2x Fileja alla Silana</span>
+                      <span style={{ fontWeight: 900 }}>€14.00</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span style={{ fontWeight: 700 }}>1x Grigliata di Maiale</span>
+                      <span style={{ fontWeight: 900 }}>€8.50</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span style={{ fontWeight: 700 }}>2x Bicchiere Vino Rosso</span>
+                      <span style={{ fontWeight: 900 }}>€4.00</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span style={{ fontWeight: 700 }}>1x Pitta &apos;Mpigliata</span>
+                      <span style={{ fontWeight: 900 }}>€3.00</span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+
+                  {/* Totale */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '6px 0' }}>
+                    <span style={{ fontWeight: 900, fontSize: '1.2em' }}>TOTALE:</span>
+                    <span style={{ fontWeight: 900, fontSize: '1.45em' }}>€29.50</span>
+                  </div>
+
+                  <div style={{ fontSize: '0.85em', color: '#334155' }}>
+                    Pagamento: CONTANTI (Resto: €0.50)
+                  </div>
+
+                  {/* QR Code preview */}
+                  {pSettings.showQrCode && (
+                    <div style={{ textAlign: 'center', marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed #cbd5e1' }}>
+                      <div style={{
+                        display: 'inline-block',
+                        padding: '6px',
+                        background: '#000',
+                        color: '#fff',
+                        fontSize: '9px',
+                        borderRadius: '4px',
+                        fontWeight: 900
+                      }}>
+                        [ QR RICEVUTA ]
+                      </div>
+                      <div style={{ fontSize: '0.72em', color: '#64748b', marginTop: '3px' }}>
+                        prolocogasperina.it/ricevuta/csh_demo
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Footer message */}
+                  {pSettings.footerText && (
+                    <div style={{ textAlign: 'center', marginTop: '0.65rem', borderTop: '1px dashed #94a3b8', paddingTop: '0.5rem', fontSize: '0.8em', fontWeight: 700 }}>
+                      {pSettings.footerText}
+                    </div>
+                  )}
+
+                  {/* Bottom jagged tear line */}
+                  <div style={{
+                    marginTop: '0.75rem',
+                    height: '6px',
+                    background: 'repeating-linear-gradient(90deg, #94a3b8 0px, #94a3b8 4px, transparent 4px, transparent 8px)'
+                  }} />
+                </div>
+
+                {/* Department Slip Preview (if enabled) */}
+                {pSettings.printDepartmentSlips && (
+                  <div style={{
+                    width: `${previewWidthPx}px`,
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    borderRadius: '6px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                    padding: '1rem',
+                    fontFamily: 'monospace',
+                    fontSize: pSettings.ticketWidthMm >= 80 ? '12px' : '11px',
+                    marginTop: '1.25rem',
+                    border: '2px dashed #000'
+                  }}>
+                    <div style={{ textAlign: 'center', background: '#000', color: '#fff', padding: '3px', fontWeight: 900, fontSize: '0.85em', borderRadius: '3px' }}>
+                      STAND: PRIMI & CUCINA
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: '2em', fontWeight: 900, margin: '4px 0' }}>
+                      #042
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: '0.75em', color: '#475569' }}>
+                      {currentEvent.name} · Cassa 1
+                    </div>
+                    <div style={{ borderTop: '2px solid #000', margin: '4px 0' }} />
+                    <div style={{ fontSize: '1.15em', fontWeight: 900, margin: '4px 0' }}>
+                      2x Fileja alla Silana
+                    </div>
+                    <div style={{ borderTop: '1px dashed #000', margin: '4px 0' }} />
+                    <div style={{ textAlign: 'center', fontSize: '0.7em', fontWeight: 700, color: '#64748b' }}>
+                      PRO LOCO GASPERINA · COMANDA REPARTO
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           TAB 3: REPORT & STATISTICHE LIVE (Z-REPORT)

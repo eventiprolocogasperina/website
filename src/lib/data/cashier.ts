@@ -15,6 +15,30 @@ export interface CashierItem {
   description?: string;
 }
 
+export interface CashierPrinterSettings {
+  ticketWidthMm: number; // Larghezza carta in millimetri (es. 58 o 80, o personalizzata)
+  charactersPerLine: number; // Numero di caratteri stampabili per riga (es. 32 per 58mm, 42 o 48 per 80mm)
+  autoPrintOnOrder: boolean; // Stampa diretta automatica alla chiusura dell'ordine
+  printCustomerReceipt: boolean; // Stampa ricevuta/scontrino per il cliente
+  printDepartmentSlips: boolean; // Stampa talloncini/comande separati per ciascun reparto
+  headerTitle?: string; // Intestazione scontrino (default: "PRO LOCO GASPERINA APS")
+  footerText?: string; // Messaggio di chiusura scontrino
+  showQrCode: boolean; // Includi QR Code / link per la ricevuta digitale
+  autoCutPaper: boolean; // Comando di taglio carta ESC/POS
+}
+
+export const DEFAULT_PRINTER_SETTINGS: CashierPrinterSettings = {
+  ticketWidthMm: 58,
+  charactersPerLine: 32,
+  autoPrintOnOrder: false,
+  printCustomerReceipt: true,
+  printDepartmentSlips: true,
+  headerTitle: 'PRO LOCO GASPERINA APS',
+  footerText: 'Grazie per il supporto!',
+  showQrCode: true,
+  autoCutPaper: true,
+};
+
 export interface CashierEvent {
   id: string;
   name: string; // es. "Sagra dei Sapori Tradizionali 2026"
@@ -27,6 +51,7 @@ export interface CashierEvent {
   cassaAssignments?: Record<string, string[]>; // Mappatura cassa -> array di ID prodotti/servizi abilitati per quella cassa
   items: CashierItem[];
   startingNumber?: number; // Numero progressivo di partenza (default: 1)
+  printerSettings?: CashierPrinterSettings; // Impostazioni stampante Bluetooth & dimensioni ticket
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -35,6 +60,7 @@ export interface CashierEvent {
 export interface CashierConfig {
   events: CashierEvent[];
   activeEventId?: string;
+  defaultPrinterSettings?: CashierPrinterSettings;
 }
 
 export interface CashierOrderItem {
@@ -96,6 +122,7 @@ export const DEFAULT_CASHIER_CONFIG: CashierConfig = {
       categories: ['Primi', 'Secondi & Contorni', 'Panini', 'Bevande', 'Dolci'],
       departments: ['Primi & Cucina', 'Griglia & Panini', 'Bar & Bibite', 'Stand Dolci'],
       cassaAssignments: {},
+      printerSettings: { ...DEFAULT_PRINTER_SETTINGS },
       items: [
         { id: 'itm_1', name: 'Fileja alla Silana', category: 'Primi', department: 'Primi & Cucina', price: 7.00, isAvailable: true, stockQuantity: 80, icon: '🍝' },
         { id: 'itm_2', name: 'Pasta e Fagioli nei Cocci', category: 'Primi', department: 'Primi & Cucina', price: 6.00, isAvailable: true, stockQuantity: 60, icon: '🍲' },

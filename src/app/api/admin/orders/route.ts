@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getOrder, markOrderPaid } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
+import { sendTelegramNotification } from '@/lib/telegram';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
@@ -63,6 +64,66 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ success: true });
       }
       return NextResponse.json({ error: 'Order not found or not paid' }, { status: 400 });
+    }
+
+    if (action === 'CHANGE_EVENT_DATE') {
+      const { newDate, resendTickets } = body;
+      if (!newDate) {
+        return NextResponse.json({ error: 'Nuova data mancante' }, { status: 400 });
+      }
+
+      const sql = getDb();
+      const order = await getOrder(orderId);
+      if (!order) {
+        return NextResponse.json({ error: 'Ordine non trovato' }, { status: 404 });
+      }
+
+      let currentNotes = order.notes || '';
+      let updatedNotes = currentNotes;
+
+      // Sostituisci o anteponi il campo Data:
+      if (/Data:\s*[^|]+/i.test(updatedNotes)) {
+        updatedNotes = updatedNotes.replace(/Data:\s*[^|]+/i, `Data: ${newDate} `);
+      } else if (/Giorno:\s*[^|]+/i.test(updatedNotes)) {
+        updatedNotes = updatedNotes.replace(/Giorno:\s*[^|]+/i, `Data: ${newDate} `);
+      } else {
+        updatedNotes = `Data: ${newDate} | ${updatedNotes}`;
+      }
+
+      const auditEntry = `\n| [SPOSTAMENTO DATA: ${newDate} - Modificato il ${new Date().toLocaleDateString('it-IT')} alle ${new Date().toLocaleTimeString('it-IT')}]`;
+      updatedNotes = `${updatedNotes.trim()}${auditEntry}`;
+
+      await sql`
+        UPDATE orders
+        SET notes = ${updatedNotes}
+        WHERE id = ${orderId}
+      `;
+
+      let emailSent = false;
+      if (resendTickets && order.status === 'PAID') {
+        const updatedOrder = await getOrder(orderId);
+        if (updatedOrder) {
+          await sendTicketsEmail(updatedOrder);
+          emailSent = true;
+        }
+      }
+
+      sendTelegramNotification(
+        `📅 <b>Data Ordine Modificata</b>\n\n` +
+        `👤 <b>Cliente:</b> ${order.buyerName}\n` +
+        `📧 <b>Email:</b> ${order.buyerEmail}\n` +
+        `🗓 <b>Nuova Data:</b> ${newDate}\n` +
+        `🎟 <b>Biglietti:</b> ${order.tickets.length}\n` +
+        `✉️ <b>Email reinviata:</b> ${emailSent ? 'Sì (Nuovi Biglietti Emessi)' : 'No'}\n` +
+        `🆔 <b>Ordine:</b> #${orderId.substring(0, 8).toUpperCase()}`
+      ).catch(err => console.error('Telegram notification error:', err));
+
+      return NextResponse.json({ 
+        success: true, 
+        newDate, 
+        emailSent, 
+        message: `Data ordine modificata in "${newDate}"${emailSent ? ' e biglietti aggiornati inviati via email' : ''}.` 
+      });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

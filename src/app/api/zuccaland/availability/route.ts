@@ -12,58 +12,91 @@ export async function GET() {
       getPageContent<ZuccalandContent>('zuccaland', DEFAULT_ZUCCALAND_CONTENT)
     ]);
 
+    const defLimits = DEFAULT_ZUCCALAND_CONTENT.dateLimits!;
+    const pageLimits = pageContent.dateLimits || {};
+
     const dateLimits = {
-      '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(pageContent.dateLimits?.['10'] || {}) },
-      '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(pageContent.dateLimits?.['11'] || {}) },
-      '25': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['25']!, ...(pageContent.dateLimits?.['25'] || {}) },
+      '17': { ...defLimits['17']!, ...(pageLimits['17'] || {}) },
+      '18': { ...defLimits['18']!, ...(pageLimits['18'] || {}) },
+      '24': { ...defLimits['24']!, ...(pageLimits['24'] || {}) },
+      '25': { ...defLimits['25']!, ...(pageLimits['25'] || {}) },
+      '10': { ...defLimits['10']!, ...(pageLimits['10'] || {}) },
+      '11': { ...defLimits['11']!, ...(pageLimits['11'] || {}) },
     };
 
-    const isSoldOut10 = Boolean(
-      dateLimits['10'].manualSoldOut ||
-      (dateLimits['10'].enabled && counts['10'].admissionTickets >= dateLimits['10'].maxTickets)
+    // 17 e 18 sono date di recupero riservate ai biglietti del 10 e 11, NON acquistabili dal pubblico
+    const is17Active = Boolean(dateLimits['17'].active ?? true);
+    const isSoldOut17 = true; // Non acquistabile per il pubblico (capienza riservata al recupero del 10 Ottobre)
+
+    const is18Active = Boolean(dateLimits['18'].active ?? true);
+    const isSoldOut18 = true; // Non acquistabile per il pubblico (capienza riservata al recupero dell'11 Ottobre)
+
+    const is24Active = Boolean(dateLimits['24'].active); // Inattiva per ora, attivabile da CMS
+    const isSoldOut24 = Boolean(
+      !is24Active ||
+      dateLimits['24'].manualSoldOut ||
+      (dateLimits['24'].enabled && counts['24'].admissionTickets >= dateLimits['24'].maxTickets)
     );
 
-    const isSoldOut11 = Boolean(
-      dateLimits['11'].manualSoldOut ||
-      (dateLimits['11'].enabled && counts['11'].admissionTickets >= dateLimits['11'].maxTickets)
-    );
-
-    const is25Active = Boolean(dateLimits['25'].active);
+    const is25Active = Boolean(dateLimits['25'].active ?? true);
     const isSoldOut25 = Boolean(
       !is25Active ||
       dateLimits['25'].manualSoldOut ||
       (dateLimits['25'].enabled && counts['25'].admissionTickets >= dateLimits['25'].maxTickets)
     );
 
-    const remaining10 = dateLimits['10'].enabled
-      ? Math.max(0, dateLimits['10'].maxTickets - counts['10'].admissionTickets)
-      : null;
+    const is10Active = false;
+    const isSoldOut10 = true;
 
-    const remaining11 = dateLimits['11'].enabled
-      ? Math.max(0, dateLimits['11'].maxTickets - counts['11'].admissionTickets)
+    const is11Active = false;
+    const isSoldOut11 = true;
+
+    const remaining17 = 0;
+    const remaining18 = 0;
+
+    const remaining24 = (is24Active && dateLimits['24'].enabled)
+      ? Math.max(0, dateLimits['24'].maxTickets - counts['24'].admissionTickets)
       : null;
 
     const remaining25 = (is25Active && dateLimits['25'].enabled)
       ? Math.max(0, dateLimits['25'].maxTickets - counts['25'].admissionTickets)
       : null;
 
-    const allSoldOut = is25Active
-      ? (isSoldOut10 && isSoldOut11 && isSoldOut25)
-      : (isSoldOut10 && isSoldOut11);
+    // Date attualmente aperte all'acquisto pubblico: 25 (+ 24 se attivata)
+    const purchasableDatesList = [
+      ...(is24Active ? [{ key: '24', soldOut: isSoldOut24 }] : []),
+      { key: '25', active: is25Active, soldOut: isSoldOut25 },
+    ];
+
+    const allSoldOut = purchasableDatesList.length > 0 && purchasableDatesList.every(d => d.soldOut);
 
     return NextResponse.json({
       success: true,
       counts,
       limits: dateLimits,
+      active: {
+        '17': is17Active,
+        '18': is18Active,
+        '24': is24Active,
+        '25': is25Active,
+        '10': is10Active,
+        '11': is11Active,
+      },
       soldOut: {
+        '17': isSoldOut17,
+        '18': isSoldOut18,
+        '24': isSoldOut24,
+        '25': isSoldOut25,
         '10': isSoldOut10,
         '11': isSoldOut11,
-        '25': isSoldOut25,
       },
       remaining: {
-        '10': remaining10,
-        '11': remaining11,
+        '17': remaining17,
+        '18': remaining18,
+        '24': remaining24,
         '25': remaining25,
+        '10': null,
+        '11': null,
       },
       allSoldOut,
     });

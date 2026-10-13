@@ -102,7 +102,7 @@ export async function GET(request: Request) {
                 }
               }
 
-              const integrationRecord = `\n[INTEGRAZIONE NEXI PAGATA]: +€${Number(order.totalAmount).toFixed(2)} (${newTicketsList}) - Transazione: ${codTrans}`;
+              const integrationRecord = `\n| [INTEGRAZIONE NEXI PAGATA]: +€${Number(order.totalAmount).toFixed(2)} (${newTicketsList}) - Transazione: ${codTrans}`;
               updatedNotes += integrationRecord;
 
               // Aggiorna l'ordine principale

@@ -119,9 +119,12 @@ export interface ZuccalandDateLimit {
 }
 
 export interface ZuccalandDateLimits {
-  '10': ZuccalandDateLimit;  // Sabato 10 Ottobre
-  '11': ZuccalandDateLimit;  // Domenica 11 Ottobre
-  '25'?: ZuccalandDateLimit; // Domenica 25 Ottobre
+  '17'?: ZuccalandDateLimit; // Sabato 17 Ottobre (Nuova data attiva)
+  '18'?: ZuccalandDateLimit; // Domenica 18 Ottobre (Nuova data attiva)
+  '24'?: ZuccalandDateLimit; // Sabato 24 Ottobre (Nel CMS, MA NON ATTIVA per ora: active: false)
+  '25'?: ZuccalandDateLimit; // Domenica 25 Ottobre (Attiva)
+  '10'?: ZuccalandDateLimit; // Sabato 10 Ottobre (Storica / Recupero)
+  '11'?: ZuccalandDateLimit; // Domenica 11 Ottobre (Storica / Recupero)
 }
 
 export interface ZuccalandContent {
@@ -158,21 +161,24 @@ export interface ZuccalandContent {
 
 export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
   hero: {
-    badge: '10-11 Ottobre 2026 • Gasperina',
+    badge: '17-18 e 25 Ottobre 2026 • Gasperina',
     title: 'Zuccaland',
     subtitle: 'Il villaggio delle zucche di Gasperina',
     description: 'Un\'esperienza incantata tra colori autunnali, laboratori per grandi e piccini, e tante degustazioni da leccarsi i baffi.',
   },
   event: {
-    startDate: '2026-10-10T10:30:00+02:00',
-    endDate: '2026-10-11T23:59:00+02:00',
+    startDate: '2026-10-17T10:30:00+02:00',
+    endDate: '2026-10-25T23:59:00+02:00',
     salesOpenDate: '2026-09-01T00:00:00+02:00',
-    salesCloseDate: '2026-10-10T08:00:00+02:00',
+    salesCloseDate: '2026-10-25T18:00:00+02:00',
   },
   dateLimits: {
-    '10': { enabled: false, maxTickets: 300, manualSoldOut: false },
-    '11': { enabled: false, maxTickets: 300, manualSoldOut: false },
-    '25': { enabled: false, maxTickets: 300, manualSoldOut: false, active: false },
+    '17': { enabled: true, maxTickets: 300, manualSoldOut: true, active: true }, // Recupero del 10 - Non acquistabile
+    '18': { enabled: true, maxTickets: 300, manualSoldOut: true, active: true }, // Recupero dell'11 - Non acquistabile
+    '24': { enabled: false, maxTickets: 300, manualSoldOut: false, active: false }, // Sabato 24 Ottobre - SENZA RENDERLA ATTIVA
+    '25': { enabled: true, maxTickets: 300, manualSoldOut: true, active: true }, // Domenica 25 Ottobre - Sold Out
+    '10': { enabled: false, maxTickets: 300, manualSoldOut: true, active: false },
+    '11': { enabled: false, maxTickets: 300, manualSoldOut: true, active: false },
   },
   infoCards: [
     {

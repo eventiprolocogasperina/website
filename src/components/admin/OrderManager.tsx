@@ -29,24 +29,40 @@ export default function OrderManager() {
   // Navigation tabs: 'all' | 'zuccaland-2026' | 'assaggia-passeggia'
   const [activeTab, setActiveTab] = useState<'all' | 'zuccaland-2026' | 'assaggia-passeggia'>('all');
   
-  // Day filter for Zuccaland (multi-date: 10, 11, 25 Ottobre)
-  const [zuccalandDayFilter, setZuccalandDayFilter] = useState<'all' | '10' | '11' | '25'>('all');
+  // Day filter for Zuccaland (multi-date: 17, 18, 24, 25, 10, 11 Ottobre)
+  const [zuccalandDayFilter, setZuccalandDayFilter] = useState<'all' | '17' | '18' | '24' | '25' | '10' | '11'>('all');
 
   const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
   const [testingOrder, setTestingOrder] = useState(false);
   const [sendingEmails, setSendingEmails] = useState(false);
   
-  // Manual order modal (for Assaggia & Passeggia)
+  // Manual order modal (for Zuccaland & Assaggia & Passeggia with services & Pay-by-link)
   const [showManualOrderModal, setShowManualOrderModal] = useState(false);
   const [manualOrderForm, setManualOrderForm] = useState({
+    eventId: 'zuccaland-2026' as 'zuccaland-2026' | 'assaggia-passeggia',
+    eventDate: 'Sabato 17 Ottobre 2026',
     buyerName: '',
     buyerEmail: '',
     buyerPhone: '',
-    ticketsInteri: 0,
-    ticketsExtra: 0,
-    note: ''
+    admissionQty: 2,
+    youPickQty: 1,
+    apInteriQty: 2,
+    apExtraQty: 0,
+    customItemName: '',
+    customItemPrice: 0,
+    customItemQty: 0,
+    numChildren: 1,
+    selectedActivities: ['Zucca in Vaso'] as string[],
+    notes: '',
+    paymentMode: 'PAY_BY_LINK' as 'PAY_BY_LINK' | 'MARK_PAID'
   });
   const [creatingOrder, setCreatingOrder] = useState(false);
+
+  // Change Event Date modal state
+  const [changingDateOrder, setChangingDateOrder] = useState<OrderWithTickets | null>(null);
+  const [newSelectedDate, setNewSelectedDate] = useState<string>('Sabato 17 Ottobre 2026');
+  const [resendTicketsOnDateChange, setResendTicketsOnDateChange] = useState<boolean>(true);
+  const [submittingDateChange, setSubmittingDateChange] = useState<boolean>(false);
 
   // Edit order modal
   const [editingOrder, setEditingOrder] = useState<OrderWithTickets | null>(null);
@@ -94,6 +110,21 @@ export default function OrderManager() {
   const [sendingPayLinkEmail, setSendingPayLinkEmail] = useState(false);
   const [payLinkCopied, setPayLinkCopied] = useState(false);
   const [payLinkStatusMsg, setPayLinkStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const manualOrderTotal = useMemo(() => {
+    let sum = 0;
+    if (manualOrderForm.eventId === 'zuccaland-2026') {
+      sum += manualOrderForm.admissionQty * 5;
+      sum += manualOrderForm.youPickQty * 3;
+    } else {
+      sum += manualOrderForm.apInteriQty * 20;
+      sum += manualOrderForm.apExtraQty * 5;
+    }
+    if (manualOrderForm.customItemQty > 0 && manualOrderForm.customItemName.trim()) {
+      sum += (Number(manualOrderForm.customItemPrice) || 0) * manualOrderForm.customItemQty;
+    }
+    return sum;
+  }, [manualOrderForm]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -282,35 +313,135 @@ export default function OrderManager() {
     }
   };
 
+  const handleOpenManualOrder = (eventId: 'zuccaland-2026' | 'assaggia-passeggia' = 'zuccaland-2026') => {
+    setManualOrderForm({
+      eventId,
+      eventDate: 'Sabato 17 Ottobre 2026',
+      buyerName: '',
+      buyerEmail: '',
+      buyerPhone: '',
+      admissionQty: eventId === 'zuccaland-2026' ? 2 : 0,
+      youPickQty: eventId === 'zuccaland-2026' ? 1 : 0,
+      apInteriQty: eventId === 'assaggia-passeggia' ? 2 : 0,
+      apExtraQty: 0,
+      customItemName: '',
+      customItemPrice: 0,
+      customItemQty: 0,
+      numChildren: eventId === 'zuccaland-2026' ? 1 : 0,
+      selectedActivities: eventId === 'zuccaland-2026' ? ['Zucca in Vaso'] : [],
+      notes: '',
+      paymentMode: 'PAY_BY_LINK'
+    });
+    setShowManualOrderModal(true);
+  };
+
   const handleCreateManualOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreatingOrder(true);
     try {
-      const cart = [];
-      if (manualOrderForm.ticketsInteri > 0) cart.push({ type: 'Ticket Intero', price: 0, quantity: manualOrderForm.ticketsInteri });
-      if (manualOrderForm.ticketsExtra > 0) cart.push({ type: 'Extra wine', price: 0, quantity: manualOrderForm.ticketsExtra });
-      
+      const isZucc = manualOrderForm.eventId === 'zuccaland-2026';
+      const cart: Array<{ type: string; price: number; quantity: number }> = [];
+
+      if (isZucc) {
+        if (manualOrderForm.admissionQty > 0) {
+          cart.push({ type: 'Ingresso Ordinario', price: 5, quantity: manualOrderForm.admissionQty });
+        }
+        if (manualOrderForm.youPickQty > 0) {
+          cart.push({ type: 'You Pick Lab', price: 3, quantity: manualOrderForm.youPickQty });
+        }
+      } else {
+        if (manualOrderForm.apInteriQty > 0) {
+          cart.push({ type: 'Ticket Intero', price: 20, quantity: manualOrderForm.apInteriQty });
+        }
+        if (manualOrderForm.apExtraQty > 0) {
+          cart.push({ type: 'Extra wine', price: 5, quantity: manualOrderForm.apExtraQty });
+        }
+      }
+
+      if (manualOrderForm.customItemQty > 0 && manualOrderForm.customItemName.trim()) {
+        cart.push({
+          type: manualOrderForm.customItemName.trim(),
+          price: Number(manualOrderForm.customItemPrice) || 0,
+          quantity: manualOrderForm.customItemQty
+        });
+      }
+
+      if (cart.length === 0) {
+        alert('Seleziona almeno un biglietto o servizio per creare l\'ordine.');
+        setCreatingOrder(false);
+        return;
+      }
+
       const res = await fetch('/api/admin/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          eventId: manualOrderForm.eventId,
+          eventDate: isZucc ? manualOrderForm.eventDate : undefined,
           buyerName: manualOrderForm.buyerName,
           buyerEmail: manualOrderForm.buyerEmail,
           buyerPhone: manualOrderForm.buyerPhone,
-          totalAmount: 0,
-          note: manualOrderForm.note,
-          cart
+          cart,
+          numChildren: isZucc ? manualOrderForm.numChildren : 0,
+          activities: isZucc ? manualOrderForm.selectedActivities : [],
+          notes: manualOrderForm.notes,
+          paymentMode: manualOrderForm.paymentMode
         }),
       });
-      if (!res.ok) throw new Error('Errore creazione');
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore creazione ordine');
+
+      alert(data.message || (manualOrderForm.paymentMode === 'PAY_BY_LINK' ? 'Link di pagamento inviato al cliente via email!' : 'Ordine emesso e biglietti inviati con successo!'));
       setShowManualOrderModal(false);
-      setManualOrderForm({ buyerName: '', buyerEmail: '', buyerPhone: '', ticketsInteri: 0, ticketsExtra: 0, note: '' });
       fetchOrders();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Errore durante la creazione');
+      alert(err.message || 'Errore durante la creazione');
     } finally {
       setCreatingOrder(false);
+    }
+  };
+
+  const handleOpenChangeDateModal = (order: OrderWithTickets) => {
+    setChangingDateOrder(order);
+    const parsed = parseOrderNotes(order.notes);
+    if (parsed.dayKey === '11') {
+      setNewSelectedDate('Domenica 18 Ottobre 2026');
+    } else if (parsed.dayKey === '25') {
+      setNewSelectedDate('Domenica 25 Ottobre 2026');
+    } else if (parsed.dayKey === '24') {
+      setNewSelectedDate('Sabato 24 Ottobre 2026');
+    } else {
+      setNewSelectedDate('Sabato 17 Ottobre 2026');
+    }
+    setResendTicketsOnDateChange(order.status === 'PAID');
+  };
+
+  const handleConfirmDateChange = async () => {
+    if (!changingDateOrder || !newSelectedDate) return;
+    setSubmittingDateChange(true);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: changingDateOrder.id,
+          action: 'CHANGE_EVENT_DATE',
+          newDate: newSelectedDate,
+          resendTickets: resendTicketsOnDateChange
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore modifica data');
+      alert(data.message || 'Data aggiornata con successo!');
+      setChangingDateOrder(null);
+      fetchOrders();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Errore durante lo spostamento della data');
+    } finally {
+      setSubmittingDateChange(false);
     }
   };
 
@@ -445,11 +576,11 @@ export default function OrderManager() {
       if (activeTab === 'zuccaland-2026' && zuccalandDayFilter !== 'all') {
         const parsed = parseOrderNotes(o.notes);
         if (zuccalandDayFilter === '10') {
-          matchesDay = parsed.dayKey === '10' || (parsed.eventDate ? parsed.eventDate.includes('10') : false);
+          matchesDay = parsed.originalDayKey === '10' || parsed.dayKey === '10';
         } else if (zuccalandDayFilter === '11') {
-          matchesDay = parsed.dayKey === '11' || (parsed.eventDate ? parsed.eventDate.includes('11') : false);
-        } else if (zuccalandDayFilter === '25') {
-          matchesDay = parsed.dayKey === '25' || (parsed.eventDate ? parsed.eventDate.includes('25') : false);
+          matchesDay = parsed.originalDayKey === '11' || parsed.dayKey === '11';
+        } else {
+          matchesDay = parsed.dayKey === zuccalandDayFilter || (parsed.eventDate ? parsed.eventDate.includes(zuccalandDayFilter) : false);
         }
       }
 
@@ -519,10 +650,13 @@ export default function OrderManager() {
       if (o.status !== 'PAID' || getOrderEventId(o) !== 'zuccaland-2026') return false;
       if (zuccalandDayFilter === 'all') return true;
       const parsed = parseOrderNotes(o.notes);
-      if (zuccalandDayFilter === '10') return parsed.dayKey === '10' || (parsed.eventDate ? parsed.eventDate.includes('10') : false);
-      if (zuccalandDayFilter === '11') return parsed.dayKey === '11' || (parsed.eventDate ? parsed.eventDate.includes('11') : false);
-      if (zuccalandDayFilter === '25') return parsed.dayKey === '25' || (parsed.eventDate ? parsed.eventDate.includes('25') : false);
-      return true;
+      if (zuccalandDayFilter === '10') {
+        return parsed.originalDayKey === '10' || parsed.dayKey === '10';
+      } else if (zuccalandDayFilter === '11') {
+        return parsed.originalDayKey === '11' || parsed.dayKey === '11';
+      } else {
+        return parsed.dayKey === zuccalandDayFilter || (parsed.eventDate ? parsed.eventDate.includes(zuccalandDayFilter) : false);
+      }
     });
 
     const revenue = zuccalandPaid.reduce((s, o) => s + o.totalAmount, 0);
@@ -545,9 +679,19 @@ export default function OrderManager() {
 
     let kidsCount = 0;
     const activityStats: Record<string, number> = {};
+    let totalMovedOrders = 0;
+    let totalIntegrationsCount = 0;
+    let totalIntegrationsRevenue = 0;
 
     zuccalandPaid.forEach(o => {
       const parsed = parseOrderNotes(o.notes);
+      if (parsed.dateHistory.length > 0 || parsed.isExplicitlyMoved) {
+        totalMovedOrders++;
+      }
+      if (parsed.integrations.length > 0) {
+        totalIntegrationsCount += parsed.integrations.length;
+        totalIntegrationsRevenue += parsed.integrations.reduce((sum, ig) => sum + ig.amount, 0);
+      }
       if (parsed.children !== null) {
         kidsCount += parsed.children;
       }
@@ -579,7 +723,10 @@ export default function OrderManager() {
       ordersCount: zuccalandPaid.length,
       kidsCount,
       activityStats,
-      ticketTypes
+      ticketTypes,
+      totalMovedOrders,
+      totalIntegrationsCount,
+      totalIntegrationsRevenue
     };
   }, [orders, zuccalandDayFilter]);
 
@@ -1111,7 +1258,7 @@ export default function OrderManager() {
                   Tutte le Date
                 </button>
                 <button
-                  onClick={() => setZuccalandDayFilter('10')}
+                  onClick={() => setZuccalandDayFilter('17')}
                   style={{
                     padding: '0.45rem 0.85rem',
                     borderRadius: '999px',
@@ -1119,15 +1266,16 @@ export default function OrderManager() {
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    background: zuccalandDayFilter === '10' ? '#ea580c' : 'transparent',
-                    color: zuccalandDayFilter === '10' ? '#ffffff' : 'var(--color-heading)',
+                    background: zuccalandDayFilter === '17' ? '#ea580c' : 'transparent',
+                    color: zuccalandDayFilter === '17' ? '#ffffff' : 'var(--color-heading)',
                     transition: 'all 0.2s',
                   }}
+                  title="Include tutti i biglietti spostati dal 10 Ottobre a Sabato 17 Ottobre"
                 >
-                  🎃 Sab 10 Ott
+                  🎃 Sab 17 Ott (ex 10)
                 </button>
                 <button
-                  onClick={() => setZuccalandDayFilter('11')}
+                  onClick={() => setZuccalandDayFilter('18')}
                   style={{
                     padding: '0.45rem 0.85rem',
                     borderRadius: '999px',
@@ -1135,12 +1283,30 @@ export default function OrderManager() {
                     fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    background: zuccalandDayFilter === '11' ? '#ea580c' : 'transparent',
-                    color: zuccalandDayFilter === '11' ? '#ffffff' : 'var(--color-heading)',
+                    background: zuccalandDayFilter === '18' ? '#ea580c' : 'transparent',
+                    color: zuccalandDayFilter === '18' ? '#ffffff' : 'var(--color-heading)',
                     transition: 'all 0.2s',
                   }}
+                  title="Include tutti i biglietti spostati dall'11 Ottobre a Domenica 18 Ottobre"
                 >
-                  🎃 Dom 11 Ott
+                  🎃 Dom 18 Ott (ex 11)
+                </button>
+                <button
+                  onClick={() => setZuccalandDayFilter('24')}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: zuccalandDayFilter === '24' ? '#ea580c' : 'transparent',
+                    color: zuccalandDayFilter === '24' ? '#ffffff' : 'var(--neutral-400)',
+                    transition: 'all 0.2s',
+                  }}
+                  title="Data salvata nel CMS (prenotazione pubblica non attiva)"
+                >
+                  🎃 Sab 24 Ott (Bozza)
                 </button>
                 <button
                   onClick={() => setZuccalandDayFilter('25')}
@@ -1157,6 +1323,40 @@ export default function OrderManager() {
                   }}
                 >
                   🎃 Dom 25 Ott
+                </button>
+                <button
+                  onClick={() => setZuccalandDayFilter('10')}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: zuccalandDayFilter === '10' ? '#78350f' : 'transparent',
+                    color: zuccalandDayFilter === '10' ? '#ffffff' : 'var(--neutral-500)',
+                    transition: 'all 0.2s',
+                  }}
+                  title="Ordini originariamente acquistati per il 10 Ottobre"
+                >
+                  Sab 10 (Orig.)
+                </button>
+                <button
+                  onClick={() => setZuccalandDayFilter('11')}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: zuccalandDayFilter === '11' ? '#78350f' : 'transparent',
+                    color: zuccalandDayFilter === '11' ? '#ffffff' : 'var(--neutral-500)',
+                    transition: 'all 0.2s',
+                  }}
+                  title="Ordini originariamente acquistati per l'11 Ottobre"
+                >
+                  Dom 11 (Orig.)
                 </button>
               </div>
 
@@ -1330,7 +1530,7 @@ export default function OrderManager() {
                   🎨 Partecipazione Laboratori Gratuiti
                 </h4>
                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
-                  Iscrizioni registrate tramite checkout {zuccalandDayFilter !== 'all' ? `(${zuccalandDayFilter === '10' ? 'Sabato 10' : (zuccalandDayFilter === '11' ? 'Domenica 11' : 'Domenica 25')})` : 'sull\'intero evento'}
+                  Iscrizioni registrate tramite checkout {zuccalandDayFilter !== 'all' ? `(${zuccalandDayFilter === '17' ? 'Sabato 17' : (zuccalandDayFilter === '18' ? 'Domenica 18' : (zuccalandDayFilter === '24' ? 'Sabato 24' : (zuccalandDayFilter === '25' ? 'Domenica 25' : (zuccalandDayFilter === '10' ? 'Sabato 10' : 'Domenica 11'))))})` : 'sull\'intero evento'}
                 </p>
               </div>
               <span style={{ fontSize: '1.1rem' }}>🎃</span>
@@ -1354,10 +1554,49 @@ export default function OrderManager() {
                 ))}
               </div>
             )}
+
+            {/* Spostamenti & Integrazioni Summary Pills / Cards */}
+            {(zuccalandStats.totalMovedOrders > 0 || zuccalandStats.totalIntegrationsCount > 0) && (
+              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed var(--theme-orange-border)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                {zuccalandStats.totalMovedOrders > 0 && (
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.65rem', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ fontSize: '1.5rem' }}>🔄</div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Spostamenti Gestiti
+                      </div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1d4ed8' }}>
+                        {zuccalandStats.totalMovedOrders} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#60a5fa' }}>ordini riprogrammati</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {zuccalandStats.totalIntegrationsCount > 0 && (
+                  <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '0.65rem', padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ fontSize: '1.5rem' }}>💳</div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Integrazioni Pagate
+                      </div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#047857' }}>
+                        {zuccalandStats.totalIntegrationsCount} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#34d399' }}>(+€{zuccalandStats.totalIntegrationsRevenue.toFixed(2)})</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Quick Actions Bar for Zuccaland */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button 
+              className="btn btn-primary" 
+              style={{ fontSize: '0.85rem', background: 'linear-gradient(135deg, #ea580c, #c2410c)', borderColor: '#ea580c', color: 'white' }} 
+              onClick={() => handleOpenManualOrder('zuccaland-2026')}
+            >
+              <Plus size={16} /> Nuovo Ordine Zuccaland (Servizi / Pay-by-Link)
+            </button>
             <button 
               className="btn btn-outline" 
               style={{ fontSize: '0.85rem', color: '#ea580c', borderColor: '#fdba74' }} 
@@ -1500,8 +1739,8 @@ export default function OrderManager() {
 
           {/* Quick Actions Bar for A&P */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => setShowManualOrderModal(true)}>
-              <Plus size={16} /> Crea Ordine Manuale (Gratuito)
+            <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => handleOpenManualOrder('assaggia-passeggia')}>
+              <Plus size={16} /> Crea Ordine Manuale A&P
             </button>
             <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={exportCSV}>
               <Download size={16} /> Esporta CSV Assaggia & Passeggia
@@ -1552,6 +1791,13 @@ export default function OrderManager() {
           <span style={{ fontSize: '0.82rem', color: 'var(--neutral-400)' }}>
             Mostrando <b>{filteredOrders.length}</b> di {orders.length} ordini
           </span>
+          <button 
+            className="btn btn-primary" 
+            style={{ fontSize: '0.82rem', background: '#ea580c', borderColor: '#ea580c' }} 
+            onClick={() => handleOpenManualOrder(activeTab === 'assaggia-passeggia' ? 'assaggia-passeggia' : 'zuccaland-2026')}
+          >
+            <Plus size={15} /> Nuovo Ordine Manuale
+          </button>
           <button className="btn btn-outline" style={{ fontSize: '0.82rem' }} onClick={exportCSV}>
             <Download size={15} /> CSV
           </button>
@@ -1687,7 +1933,7 @@ export default function OrderManager() {
 
                       {/* Day of Event badge (Zuccaland) */}
                       {isZuccaland && parsed.eventDate && (
-                        <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
                           <span style={{
                             background: 'var(--theme-yellow-bg)',
                             color: 'var(--theme-yellow)',
@@ -1702,6 +1948,50 @@ export default function OrderManager() {
                           }}>
                             📅 {parsed.eventDate}
                           </span>
+
+                          {parsed.isPostponed && (
+                            <span style={{
+                              background: '#ffedd5',
+                              color: '#c2410c',
+                              border: '1px solid #fed7aa',
+                              padding: '0.1rem 0.45rem',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                            }}>
+                              ex {parsed.originalDayKey === '10' ? '10 Ott' : '11 Ott'}
+                            </span>
+                          )}
+
+                          {/* Spostamenti data da admin */}
+                          {parsed.dateHistory.length > 0 ? (
+                            <span style={{
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              padding: '0.12rem 0.5rem',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}>
+                              🔄 Spostato {parsed.dateHistory.length > 1 ? `(${parsed.dateHistory.length} volte)` : ''}
+                            </span>
+                          ) : parsed.isExplicitlyMoved ? (
+                            <span style={{
+                              background: '#eff6ff',
+                              color: '#1e40af',
+                              border: '1px solid #bfdbfe',
+                              padding: '0.12rem 0.45rem',
+                              borderRadius: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                            }}>
+                              🔄 Spostato da admin
+                            </span>
+                          ) : null}
                         </div>
                       )}
 
@@ -1739,6 +2029,55 @@ export default function OrderManager() {
                               fontWeight: 600
                             }}>
                               🎨 {act}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Cronologia Spostamenti Dettagliata */}
+                      {parsed.dateHistory.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.25rem' }}>
+                          {parsed.dateHistory.map((dh, i) => (
+                            <span key={i} style={{
+                              background: '#eff6ff',
+                              color: '#1e40af',
+                              border: '1px solid #dbeafe',
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '4px',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              width: 'fit-content'
+                            }}>
+                              🔄 Spostato al: <b>{dh.date}</b>
+                              {dh.timestamp ? <span style={{ opacity: 0.75, fontSize: '0.65rem' }}>({dh.timestamp})</span> : null}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Integrazioni Nexi Pagate Dettagliate */}
+                      {parsed.integrations.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.25rem' }}>
+                          {parsed.integrations.map((ig, i) => (
+                            <span key={i} style={{
+                              background: '#ecfdf5',
+                              color: '#065f46',
+                              border: '1px solid #a7f3d0',
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '4px',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                              width: 'fit-content'
+                            }}>
+                              💳 Integrazione: <b>+€{ig.amount.toFixed(2)}</b>
+                              {ig.description ? <span style={{ color: '#047857' }}>({ig.description})</span> : null}
+                              {ig.transactionId ? <span style={{ opacity: 0.65, fontFamily: 'monospace', fontSize: '0.62rem' }}>#{ig.transactionId.slice(-6)}</span> : null}
                             </span>
                           ))}
                         </div>
@@ -1783,16 +2122,32 @@ export default function OrderManager() {
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                       {o.status === 'PENDING' && (
-                        <button 
-                          onClick={() => handleMarkPaid(o.id)}
-                          style={{ color: 'var(--blue-400)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}
-                          title="Segna come pagato (invia email)"
-                        >
-                          <CheckCircle2 size={16} /> Conferma
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => handleMarkPaid(o.id)}
+                            style={{ color: 'var(--blue-400)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}
+                            title="Segna come pagato (invia email con biglietti)"
+                          >
+                            <CheckCircle2 size={16} /> Conferma
+                          </button>
+                          <button 
+                            onClick={() => handleOpenChangeDateModal(o)} 
+                            style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }} 
+                            title="Sposta Data Evento"
+                          >
+                            <Calendar size={16} />
+                          </button>
+                        </>
                       )}
                       {o.status === 'PAID' && (
                         <>
+                          <button 
+                            onClick={() => handleOpenChangeDateModal(o)} 
+                            style={{ color: '#38bdf8', background: 'none', border: 'none', cursor: 'pointer' }} 
+                            title="Sposta Data Evento / Re-invia Biglietti con nuova data"
+                          >
+                            <Calendar size={16} />
+                          </button>
                           <button 
                             onClick={() => handleOpenPayLinkModal(o)} 
                             style={{ color: '#fb923c', background: 'none', border: 'none', cursor: 'pointer' }} 
@@ -1841,46 +2196,436 @@ export default function OrderManager() {
       )}
 
       {/* ────────────────────────────────────────────────────────────────────────
-          MANUAL ORDER MODAL (FOR ASSAGGIA & PASSEGGIA)
+          MANUAL ORDER MODAL (WITH SERVICES, WORKSHOPS & PAY-BY-LINK)
       ────────────────────────────────────────────────────────────────────────── */}
       {showManualOrderModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Crea Ordine Manuale A&P (Gratuito)</h3>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflowY: 'auto' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', border: '1px solid var(--neutral-700)', background: 'var(--neutral-900)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={{ 
+                  background: manualOrderForm.eventId === 'zuccaland-2026' ? 'rgba(234,88,12,0.2)' : 'rgba(37,99,235,0.2)', 
+                  color: manualOrderForm.eventId === 'zuccaland-2026' ? '#ea580c' : '#60a5fa', 
+                  padding: '0.2rem 0.65rem', 
+                  borderRadius: '999px', 
+                  fontSize: '0.72rem', 
+                  fontWeight: 800, 
+                  textTransform: 'uppercase' 
+                }}>
+                  {manualOrderForm.eventId === 'zuccaland-2026' ? '🎃 Zuccaland 2026' : '🍷 Assaggia & Passeggia'}
+                </span>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-heading)', margin: '0.35rem 0 0' }}>
+                  Crea Ordine Manuale
+                </h3>
+              </div>
               <button onClick={() => setShowManualOrderModal(false)} style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>
                 <XCircle size={24} />
               </button>
             </div>
-            
-            <form onSubmit={handleCreateManualOrder} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label className="label">Nome e Cognome</label>
-                <input required type="text" className="input" value={manualOrderForm.buyerName} onChange={e => setManualOrderForm({...manualOrderForm, buyerName: e.target.value})} />
-              </div>
-              <div>
-                <label className="label">Email (per invio biglietti)</label>
-                <input required type="email" className="input" value={manualOrderForm.buyerEmail} onChange={e => setManualOrderForm({...manualOrderForm, buyerEmail: e.target.value})} />
-              </div>
-              <div>
-                <label className="label">Telefono</label>
-                <input required type="tel" className="input" value={manualOrderForm.buyerPhone} onChange={e => setManualOrderForm({...manualOrderForm, buyerPhone: e.target.value})} />
-              </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ flex: 1 }}>
-                  <label className="label">Ticket Interi (Gratuiti)</label>
-                  <input required type="number" min="0" className="input" value={manualOrderForm.ticketsInteri} onChange={e => setManualOrderForm({...manualOrderForm, ticketsInteri: parseInt(e.target.value) || 0})} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label className="label">Extra Wine (Gratuiti)</label>
-                  <input required type="number" min="0" className="input" value={manualOrderForm.ticketsExtra} onChange={e => setManualOrderForm({...manualOrderForm, ticketsExtra: parseInt(e.target.value) || 0})} />
-                </div>
-              </div>
-              
-              <button type="submit" disabled={creatingOrder || (manualOrderForm.ticketsInteri === 0 && manualOrderForm.ticketsExtra === 0)} className="btn btn-primary" style={{ marginTop: '1rem', justifyContent: 'center' }}>
-                {creatingOrder ? 'Creazione...' : 'Crea Ordine e Invia Biglietti'}
+
+            {/* Event Switcher */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'var(--neutral-800)', padding: '4px', borderRadius: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setManualOrderForm(f => ({ ...f, eventId: 'zuccaland-2026' }))}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: manualOrderForm.eventId === 'zuccaland-2026' ? '#ea580c' : 'transparent',
+                  color: manualOrderForm.eventId === 'zuccaland-2026' ? '#ffffff' : 'var(--neutral-400)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                🎃 Zuccaland
               </button>
+              <button
+                type="button"
+                onClick={() => setManualOrderForm(f => ({ ...f, eventId: 'assaggia-passeggia' }))}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: manualOrderForm.eventId === 'assaggia-passeggia' ? '#2563eb' : 'transparent',
+                  color: manualOrderForm.eventId === 'assaggia-passeggia' ? '#ffffff' : 'var(--neutral-400)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                🍷 Assaggia & Passeggia
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateManualOrder} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Dati Acquirente */}
+              <div style={{ background: 'var(--neutral-800)', padding: '1rem', borderRadius: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-heading)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  👤 Dati Acquirente
+                </div>
+                <div>
+                  <label className="label">Nome e Cognome *</label>
+                  <input required type="text" className="input" placeholder="Es. Mario Rossi" value={manualOrderForm.buyerName} onChange={e => setManualOrderForm({...manualOrderForm, buyerName: e.target.value})} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                  <div>
+                    <label className="label">Email * (per invio link / biglietti)</label>
+                    <input required type="email" className="input" placeholder="mario@example.com" value={manualOrderForm.buyerEmail} onChange={e => setManualOrderForm({...manualOrderForm, buyerEmail: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="label">Telefono</label>
+                    <input type="tel" className="input" placeholder="340 1234567" value={manualOrderForm.buyerPhone} onChange={e => setManualOrderForm({...manualOrderForm, buyerPhone: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Zuccaland specific: Data Evento */}
+              {manualOrderForm.eventId === 'zuccaland-2026' && (
+                <div style={{ background: 'var(--theme-orange-bg)', border: '1px solid var(--theme-orange-border)', padding: '1rem', borderRadius: '0.75rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
+                    🗓 Data Prenotazione Zuccaland
+                  </label>
+                  <select 
+                    className="input"
+                    value={manualOrderForm.eventDate}
+                    onChange={e => setManualOrderForm({ ...manualOrderForm, eventDate: e.target.value })}
+                  >
+                    <option value="Sabato 17 Ottobre 2026">Sabato 17 Ottobre 2026</option>
+                    <option value="Domenica 18 Ottobre 2026">Domenica 18 Ottobre 2026</option>
+                    <option value="Sabato 24 Ottobre 2026">Sabato 24 Ottobre 2026 (Disponibile CMS)</option>
+                    <option value="Domenica 25 Ottobre 2026">Domenica 25 Ottobre 2026</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Servizi & Biglietti */}
+              <div style={{ background: 'var(--neutral-800)', padding: '1rem', borderRadius: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-heading)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🎟 Servizi & Biglietti
+                </div>
+
+                {manualOrderForm.eventId === 'zuccaland-2026' ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--neutral-700)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>Ingresso Ordinario Zuccaland</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>€5.00 cad. (Ingresso parco)</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, admissionQty: Math.max(0, f.admissionQty - 1) }))}>-</button>
+                        <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 700 }}>{manualOrderForm.admissionQty}</span>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, admissionQty: f.admissionQty + 1 }))}>+</button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--neutral-700)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>You Pick Lab (Zucca da Intaglio)</div>
+                        <div style={{ fontSize: '0.75rem', color: '#ea580c' }}>€3.00 cad. (1 zucca inclusa)</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, youPickQty: Math.max(0, f.youPickQty - 1) }))}>-</button>
+                        <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 700 }}>{manualOrderForm.youPickQty}</span>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, youPickQty: f.youPickQty + 1 }))}>+</button>
+                      </div>
+                    </div>
+
+                    {/* Bambini e Attività */}
+                    <div style={{ paddingTop: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <label className="label" style={{ margin: 0 }}>Bambini partecipanti</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, numChildren: Math.max(0, f.numChildren - 1) }))}>-</button>
+                          <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 700 }}>{manualOrderForm.numChildren}</span>
+                          <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, numChildren: f.numChildren + 1 }))}>+</button>
+                        </div>
+                      </div>
+
+                      <label className="label" style={{ marginTop: '0.5rem' }}>Attività & Laboratori inclusi per bimbi:</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.35rem' }}>
+                        {(manualOrderForm.eventDate.includes('18') 
+                          ? ['Facepainting & Pittura Zucca', 'Baby Dance & Thriller Zuccaland', 'Spettacolo Teatrale', 'Corsa con i Sacchi']
+                          : manualOrderForm.eventDate.includes('25')
+                          ? ['Caccia alla Zucca d\'Oro', 'Mago & Bolle Giganti', 'Facepainting & Pittura Zucca', 'Baby Dance & Thriller Zuccaland']
+                          : ['Zucca in Vaso', 'Truccabimbi Spaventoso', 'Corsa con i Sacchi', 'Gioco della Mela']
+                        ).map(act => {
+                          const isSelected = manualOrderForm.selectedActivities.includes(act);
+                          return (
+                            <button
+                              key={act}
+                              type="button"
+                              onClick={() => {
+                                setManualOrderForm(f => ({
+                                  ...f,
+                                  selectedActivities: isSelected
+                                    ? f.selectedActivities.filter(a => a !== act)
+                                    : [...f.selectedActivities, act]
+                                }));
+                              }}
+                              style={{
+                                padding: '0.3rem 0.65rem',
+                                borderRadius: '999px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                border: '1px solid',
+                                borderColor: isSelected ? '#ea580c' : 'var(--neutral-600)',
+                                background: isSelected ? 'rgba(234,88,12,0.2)' : 'transparent',
+                                color: isSelected ? '#ea580c' : 'var(--neutral-300)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {act} {isSelected ? '✓' : '+'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--neutral-700)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>Ticket Intero A&P</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>€20.00 cad. (Percorso enogastronomico)</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, apInteriQty: Math.max(0, f.apInteriQty - 1) }))}>-</button>
+                        <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 700 }}>{manualOrderForm.apInteriQty}</span>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, apInteriQty: f.apInteriQty + 1 }))}>+</button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-heading)' }}>Extra Wine</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>€5.00 cad.</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, apExtraQty: Math.max(0, f.apExtraQty - 1) }))}>-</button>
+                        <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 700 }}>{manualOrderForm.apExtraQty}</span>
+                        <button type="button" className="btn btn-outline" style={{ padding: '0.2rem 0.6rem' }} onClick={() => setManualOrderForm(f => ({ ...f, apExtraQty: f.apExtraQty + 1 }))}>+</button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Voce Personalizzata Opzionale */}
+                <div style={{ borderTop: '1px solid var(--neutral-700)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                  <label className="label" style={{ fontSize: '0.78rem' }}>+ Voce / Servizio personalizzato (opzionale):</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.5rem' }}>
+                    <input type="text" className="input" placeholder="Es. Visita guidata" value={manualOrderForm.customItemName} onChange={e => setManualOrderForm({ ...manualOrderForm, customItemName: e.target.value })} />
+                    <input type="number" min="0" step="0.5" className="input" placeholder="Prezzo €" value={manualOrderForm.customItemPrice || ''} onChange={e => setManualOrderForm({ ...manualOrderForm, customItemPrice: parseFloat(e.target.value) || 0 })} />
+                    <input type="number" min="0" className="input" placeholder="Q.tà" value={manualOrderForm.customItemQty || ''} onChange={e => setManualOrderForm({ ...manualOrderForm, customItemQty: parseInt(e.target.value) || 0 })} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Note interne */}
+              <div>
+                <label className="label">Note aggiuntive per l'ordine</label>
+                <textarea 
+                  className="input" 
+                  rows={2} 
+                  placeholder="Es. Richiesta spostamento orario, concordato via telefono..."
+                  value={manualOrderForm.notes} 
+                  onChange={e => setManualOrderForm({...manualOrderForm, notes: e.target.value})} 
+                />
+              </div>
+
+              {/* Modalità di Pagamento & Emissione */}
+              <div style={{ background: 'var(--neutral-800)', padding: '1rem', borderRadius: '0.75rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-heading)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem' }}>
+                  💳 Modalità di Emissione e Pagamento
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: manualOrderForm.paymentMode === 'PAY_BY_LINK' ? 'rgba(234,88,12,0.15)' : 'transparent', border: manualOrderForm.paymentMode === 'PAY_BY_LINK' ? '1.5px solid #ea580c' : '1px solid var(--neutral-700)', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="paymentMode" 
+                      checked={manualOrderForm.paymentMode === 'PAY_BY_LINK'} 
+                      onChange={() => setManualOrderForm({ ...manualOrderForm, paymentMode: 'PAY_BY_LINK' })}
+                      style={{ marginTop: '0.2rem' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-heading)' }}>
+                        Invia Pay-by-Link Nexi via Email (In Attesa)
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.15rem' }}>
+                        Viene creata una prenotazione PENDING e inviata una mail al cliente con pulsante Nexi XPay. All'avvenuto pagamento riceverà in automatico i biglietti PDF con QR code.
+                      </div>
+                    </div>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.5rem', background: manualOrderForm.paymentMode === 'MARK_PAID' ? 'rgba(34,197,94,0.15)' : 'transparent', border: manualOrderForm.paymentMode === 'MARK_PAID' ? '1.5px solid #22c55e' : '1px solid var(--neutral-700)', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="paymentMode" 
+                      checked={manualOrderForm.paymentMode === 'MARK_PAID'} 
+                      onChange={() => setManualOrderForm({ ...manualOrderForm, paymentMode: 'MARK_PAID' })}
+                      style={{ marginTop: '0.2rem' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-heading)' }}>
+                        Segna come Già Pagato (Contanti / POS / Omaggio)
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.15rem' }}>
+                        L'ordine viene segnato subito come PAGATO e vengono emessi e inviati immediatamente via email i biglietti PDF ufficiali con QR code.
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Total Summary Banner */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--neutral-950)', border: '1.5px solid var(--neutral-700)', padding: '1rem', borderRadius: '0.75rem' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-heading)' }}>Totale Calcolato:</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: manualOrderForm.eventId === 'zuccaland-2026' ? '#ea580c' : 'var(--blue-400)' }}>
+                  €{manualOrderTotal.toFixed(2)}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowManualOrderModal(false)}>
+                  Annulla
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={creatingOrder} 
+                  className="btn btn-primary" 
+                  style={{ 
+                    flex: 2, 
+                    justifyContent: 'center', 
+                    background: manualOrderForm.paymentMode === 'PAY_BY_LINK' ? 'linear-gradient(135deg, #ea580c, #c2410c)' : '#16a34a',
+                    borderColor: manualOrderForm.paymentMode === 'PAY_BY_LINK' ? '#ea580c' : '#16a34a',
+                    color: 'white'
+                  }}
+                >
+                  {creatingOrder ? (
+                    <><Loader2 className="animate-spin" size={16} /> Creazione in corso...</>
+                  ) : manualOrderForm.paymentMode === 'PAY_BY_LINK' ? (
+                    <><Send size={16} /> Invia Pay-by-Link (€{manualOrderTotal.toFixed(2)})</>
+                  ) : (
+                    <><CheckCircle2 size={16} /> Emetti e Invia Biglietti (€{manualOrderTotal.toFixed(2)})</>
+                  )}
+                </button>
+              </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          CHANGE EVENT DATE MODAL
+      ────────────────────────────────────────────────────────────────────────── */}
+      {changingDateOrder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '520px', padding: '2rem', border: '1.5px solid #38bdf8', background: 'var(--neutral-900)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={{ background: 'rgba(56,189,248,0.2)', color: '#38bdf8', padding: '0.2rem 0.65rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Spostamento Data
+                </span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-heading)', margin: '0.35rem 0 0' }}>
+                  Modifica Data Ordine #{changingDateOrder.id.substring(0, 8).toUpperCase()}
+                </h3>
+              </div>
+              <button onClick={() => setChangingDateOrder(null)} style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            {/* Current Details */}
+            <div style={{ background: 'var(--neutral-800)', padding: '0.85rem 1rem', borderRadius: '0.75rem', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+              <div style={{ color: 'var(--neutral-300)', marginBottom: '0.25rem' }}>
+                👤 <b>Acquirente:</b> {changingDateOrder.buyerName} ({changingDateOrder.buyerEmail})
+              </div>
+              <div style={{ color: '#38bdf8', marginBottom: '0.25rem' }}>
+                🗓 <b>Data Attuale:</b> {parseOrderNotes(changingDateOrder.notes).eventDate || 'Non specificata'}
+              </div>
+              <div style={{ color: 'var(--neutral-400)' }}>
+                🎟 <b>Biglietti:</b> {changingDateOrder.tickets.length} inclusi
+              </div>
+            </div>
+
+            {/* Nuova Data Selection */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-heading)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
+                Seleziona la Nuova Data:
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {[
+                  { label: '🎃 Sabato 17 Ottobre 2026', value: 'Sabato 17 Ottobre 2026' },
+                  { label: '🎃 Domenica 18 Ottobre 2026', value: 'Domenica 18 Ottobre 2026' },
+                  { label: '🎃 Sabato 24 Ottobre 2026 (Prenotazione riservata)', value: 'Sabato 24 Ottobre 2026' },
+                  { label: '🎃 Domenica 25 Ottobre 2026', value: 'Domenica 25 Ottobre 2026' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setNewSelectedDate(opt.value)}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.5rem',
+                      border: newSelectedDate === opt.value ? '2px solid #38bdf8' : '1px solid var(--neutral-700)',
+                      background: newSelectedDate === opt.value ? 'rgba(56,189,248,0.15)' : 'var(--neutral-800)',
+                      color: newSelectedDate === opt.value ? '#ffffff' : 'var(--neutral-300)',
+                      fontWeight: newSelectedDate === opt.value ? 700 : 500,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {newSelectedDate === opt.value && <Check size={16} color="#38bdf8" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Toggle Re-invio Biglietti */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: 'var(--neutral-800)', padding: '0.75rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', marginBottom: '1.5rem' }}>
+              <input 
+                type="checkbox" 
+                checked={resendTicketsOnDateChange} 
+                onChange={e => setResendTicketsOnDateChange(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: '#38bdf8' }}
+              />
+              <span style={{ fontSize: '0.85rem', color: 'var(--neutral-200)' }}>
+                Emetti e reinvia subito via email i biglietti aggiornati con la nuova data ({changingDateOrder.buyerEmail})
+              </span>
+            </label>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                style={{ flex: 1 }} 
+                onClick={() => setChangingDateOrder(null)}
+              >
+                Annulla
+              </button>
+              <button 
+                type="button" 
+                disabled={submittingDateChange}
+                className="btn btn-primary" 
+                style={{ flex: 2, justifyContent: 'center', background: '#0284c7', borderColor: '#0284c7', color: 'white' }} 
+                onClick={handleConfirmDateChange}
+              >
+                {submittingDateChange ? (
+                  <><Loader2 className="animate-spin" size={16} /> Aggiornamento...</>
+                ) : (
+                  <><Calendar size={16} /> Conferma Spostamento</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1933,6 +2678,26 @@ export default function OrderManager() {
                   onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
                 />
               </div>
+
+              {/* Box cronologia spostamenti se presenti */}
+              {editingOrder && parseOrderNotes(editingOrder.notes).dateHistory.length > 0 && (
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.8rem', color: '#1e40af' }}>
+                  <div style={{ fontWeight: 700, marginBottom: '0.35rem' }}>🔄 Cronologia Spostamenti:</div>
+                  {parseOrderNotes(editingOrder.notes).dateHistory.map((dh, i) => (
+                    <div key={i}>• Spostato a: <b>{dh.date}</b> {dh.timestamp ? `(${dh.timestamp})` : ''}</div>
+                  ))}
+                </div>
+              )}
+
+              {/* Box integrazioni se presenti */}
+              {editingOrder && parseOrderNotes(editingOrder.notes).integrations.length > 0 && (
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.8rem', color: '#065f46' }}>
+                  <div style={{ fontWeight: 700, marginBottom: '0.35rem' }}>💳 Integrazioni Nexi Pagate:</div>
+                  {parseOrderNotes(editingOrder.notes).integrations.map((ig, i) => (
+                    <div key={i}>• <b>+€{ig.amount.toFixed(2)}</b> {ig.description ? `(${ig.description})` : ''} {ig.transactionId ? `[Transazione: ${ig.transactionId}]` : ''}</div>
+                  ))}
+                </div>
+              )}
               
               <button 
                 className="btn btn-primary" 

@@ -52,7 +52,11 @@ function parseOrderNotes(notes: string): ParsedNotes {
     } else if (part.startsWith('Attività')) {
       const partsAct = part.split(':');
       if (partsAct.length > 1) {
-        result.activities = partsAct[1].split(',').map(s => s.trim()).filter(Boolean);
+        const cleanActStr = partsAct[1].split('\n')[0];
+        result.activities = cleanActStr
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s && !s.startsWith('[') && !s.includes('Transazione'));
       }
     }
   });

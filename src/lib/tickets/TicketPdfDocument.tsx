@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import {
   Document, Page, Text, View, Image, StyleSheet, Font
 } from '@react-pdf/renderer';
-import type { OrderWithTickets } from '@/lib/data/tickets';
+import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 
 // Register an elegant italic/serif for the title
 Font.register({
@@ -235,54 +235,6 @@ interface TicketPdfProps {
   proLocoLogoBase64?: string;
 }
 
-function parseOrderNotes(notes?: string | null) {
-  if (!notes) return { activities: [], numChildren: 0, target: '', dayKey: 'unspecified', eventDate: '', fullDateWithTime: '10, 11 o 25 Ottobre 2026 - Ingresso dalle ore 10:30', raw: '' };
-  
-  let numChildren = 0;
-  let target = '';
-  let activities: string[] = [];
-  let dayKey: '10' | '11' | '25' | 'unspecified' = 'unspecified';
-  let eventDate = '';
-
-  const kidsMatch = notes.match(/Bambini:\s*(\d+)\/(\d+)/i);
-  if (kidsMatch) {
-    numChildren = parseInt(kidsMatch[1], 10);
-  }
-
-  const actMatch = notes.match(/Attività\s*(?:\[(.*?)\])?:\s*(.*)/i);
-  if (actMatch) {
-    target = actMatch[1]?.trim() || '';
-    const actsStr = actMatch[2]?.trim() || '';
-    activities = actsStr.split(',').map(s => s.trim()).filter(Boolean);
-  }
-
-  const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
-  if (dateMatch) {
-    eventDate = dateMatch[1].trim();
-  }
-
-  if (eventDate?.includes('25') || notes.includes('25 Ottobre')) {
-    dayKey = '25';
-    eventDate = 'Domenica 25 Ottobre 2026';
-  } else if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
-    dayKey = '10';
-    eventDate = 'Sabato 10 Ottobre 2026';
-  } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
-    dayKey = '11';
-    eventDate = 'Domenica 11 Ottobre 2026';
-  }
-
-  let fullDateWithTime = '10, 11 o 25 Ottobre 2026 - Ingresso dalle ore 10:30';
-  if (dayKey === '10') {
-    fullDateWithTime = 'Sabato 10 Ottobre 2026 - Ingresso dalle ore 10:30';
-  } else if (dayKey === '11') {
-    fullDateWithTime = 'Domenica 11 Ottobre 2026 - Ingresso dalle ore 10:30';
-  } else if (dayKey === '25') {
-    fullDateWithTime = 'Domenica 25 Ottobre 2026 - Ingresso dalle ore 10:30';
-  }
-
-  return { activities, numChildren, target, dayKey, eventDate, fullDateWithTime, raw: notes };
-}
 
 export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoLogoBase64 }: TicketPdfProps) {
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
@@ -305,7 +257,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
   const priceColor = isZuccaland ? '#f97316' : palette.primary;
   const eventTitle = isZuccaland ? 'Zuccaland 2026' : 'Assaggia & Passeggia';
   const eventSubtitle = isZuccaland 
-    ? (parsedNotes.dayKey !== 'unspecified' ? `Pro Loco Gasperina · ${parsedNotes.eventDate}` : 'Pro Loco Gasperina · 10, 11 o 25 Ottobre 2026') 
+    ? (parsedNotes.dayKey !== 'unspecified' ? `Pro Loco Gasperina · ${parsedNotes.eventDate}` : 'Pro Loco Gasperina · Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026') 
     : 'Pro Loco Gasperina · Gasperina (CZ)';
   const eventDate = isZuccaland ? parsedNotes.fullDateWithTime : '10 Agosto 2026 - Ritiro dalle ore 19:00';
 
@@ -360,8 +312,13 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                 <View style={styles.buyerField}>
                   <Text style={styles.buyerFieldLabel}>Giorno & Orario Ingresso</Text>
                   <Text style={[styles.buyerFieldValue, { color: '#ea580c' }]}>
-                    {parsedNotes.dayKey === '10' ? 'Sabato 10 Ottobre · Ore 10:30' : parsedNotes.dayKey === '11' ? 'Domenica 11 Ottobre · Ore 10:30' : parsedNotes.dayKey === '25' ? 'Domenica 25 Ottobre · Ore 10:30' : '10, 11 o 25 Ottobre · Ore 10:30'}
+                    {parsedNotes.fullDateWithTime || (parsedNotes.eventDate ? `${parsedNotes.eventDate} · Ore 10:30` : 'Sabato 17, Domenica 18 o Domenica 25 Ottobre · Ore 10:30')}
                   </Text>
+                  {parsedNotes.isPostponed && (
+                    <Text style={{ fontSize: 7, color: '#c2410c', marginTop: 2, fontFamily: 'Helvetica-Bold' }}>
+                      (Data di recupero dal {parsedNotes.originalDayKey === '10' ? '10' : '11'} Ottobre)
+                    </Text>
+                  )}
                 </View>
               )}
               <View style={styles.buyerField}>

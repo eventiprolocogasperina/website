@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { Resend } from 'resend';
-import type { OrderWithTickets } from '@/lib/data/tickets';
+import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 import { TicketPdfDocument, generateQrDataUri } from './TicketPdfDocument';
 import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';
 import fs from 'fs';
@@ -82,13 +82,19 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
     const youPickCount = extraTickets.length;
 
     const parsedNotes = parseOrderNotes(order.notes);
-    const dayLabel = parsedNotes.dayKey === '10' 
-      ? 'Sabato 10 Ottobre' 
-      : parsedNotes.dayKey === '11' 
-        ? 'Domenica 11 Ottobre' 
-        : parsedNotes.dayKey === '25'
-          ? 'Domenica 25 Ottobre'
-          : '10, 11 o 25 Ottobre';
+    const dayLabel = parsedNotes.dayKey === '17'
+      ? 'Sabato 17 Ottobre'
+      : parsedNotes.dayKey === '18'
+        ? 'Domenica 18 Ottobre'
+        : parsedNotes.dayKey === '24'
+          ? 'Sabato 24 Ottobre'
+          : parsedNotes.dayKey === '25'
+            ? 'Domenica 25 Ottobre'
+            : parsedNotes.dayKey === '10'
+              ? 'Sabato 10 Ottobre'
+              : parsedNotes.dayKey === '11'
+                ? 'Domenica 11 Ottobre'
+                : '17, 18 o 25 Ottobre';
 
     const { error } = await resend.emails.send({
       from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
@@ -162,64 +168,7 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
   console.log(`✅ Ticket email sent to ${order.buyerEmail} for order ${orderRef}`);
 }
 
-interface ParsedNotes {
-  activities: string[];
-  numChildren: number;
-  target: string;
-  dayKey: '10' | '11' | '25' | 'unspecified';
-  eventDate: string;
-  fullDateWithTime: string;
-  rawNotes: string;
-}
 
-function parseOrderNotes(notes?: string | null): ParsedNotes {
-  if (!notes) return { activities: [], numChildren: 0, target: '', dayKey: 'unspecified', eventDate: '', fullDateWithTime: '10, 11 o 25 Ottobre 2026 - Ingresso dalle ore 10:30', rawNotes: '' };
-  
-  let numChildren = 0;
-  let target = '';
-  let activities: string[] = [];
-  let dayKey: '10' | '11' | '25' | 'unspecified' = 'unspecified';
-  let eventDate = '';
-
-  const kidsMatch = notes.match(/Bambini:\s*(\d+)\/(\d+)/i);
-  if (kidsMatch) {
-    numChildren = parseInt(kidsMatch[1], 10);
-  }
-
-  const actMatch = notes.match(/Attività\s*(?:\[(.*?)\])?:\s*(.*)/i);
-  if (actMatch) {
-    target = actMatch[1]?.trim() || '';
-    const actsStr = actMatch[2]?.trim() || '';
-    activities = actsStr.split(',').map(s => s.trim()).filter(Boolean);
-  }
-
-  const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
-  if (dateMatch) {
-    eventDate = dateMatch[1].trim();
-  }
-
-  if (eventDate?.includes('25') || notes.includes('25 Ottobre')) {
-    dayKey = '25';
-    eventDate = 'Domenica 25 Ottobre 2026';
-  } else if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
-    dayKey = '10';
-    eventDate = 'Sabato 10 Ottobre 2026';
-  } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
-    dayKey = '11';
-    eventDate = 'Domenica 11 Ottobre 2026';
-  }
-
-  let fullDateWithTime = '10, 11 o 25 Ottobre 2026 - Ingresso dalle ore 10:30';
-  if (dayKey === '10') {
-    fullDateWithTime = 'Sabato 10 Ottobre 2026 - Ingresso dalle ore 10:30';
-  } else if (dayKey === '11') {
-    fullDateWithTime = 'Domenica 11 Ottobre 2026 - Ingresso dalle ore 10:30';
-  } else if (dayKey === '25') {
-    fullDateWithTime = 'Domenica 25 Ottobre 2026 - Ingresso dalle ore 10:30';
-  }
-
-  return { activities, numChildren, target, dayKey, eventDate, fullDateWithTime, rawNotes: notes };
-}
 
 function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: number, ticketsListHtml: string, hasMenu: boolean, qrCodeData: string): string {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';

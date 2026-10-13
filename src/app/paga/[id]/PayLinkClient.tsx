@@ -112,10 +112,10 @@ export default function PayLinkClient({
           )}
 
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.5rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-            {isAlreadyPaid ? 'Pagamento Completato' : 'Integrazione Prenotazione'}
+            {isAlreadyPaid ? 'Pagamento Completato' : (parentOrderId ? 'Integrazione Prenotazione' : 'Completa la tua Prenotazione')}
           </h1>
           <p style={{ color: 'rgba(255, 255, 255, 0.65)', fontSize: '0.92rem', margin: 0 }}>
-            {isAlreadyPaid ? 'I servizi sono stati aggiunti con successo.' : 'Completa il pagamento per confermare i servizi aggiuntivi.'}
+            {isAlreadyPaid ? 'I biglietti sono stati emessi con successo.' : (parentOrderId ? 'Completa il pagamento per confermare i servizi aggiuntivi.' : 'Completa il pagamento per ricevere immediatamente i tuoi biglietti.')}
           </p>
         </div>
 
@@ -139,32 +139,30 @@ export default function PayLinkClient({
 
             <p style={{ fontSize: '1rem', color: '#e2e8f0', marginBottom: '1.5rem', lineHeight: 1.5 }}>
               Questa transazione risulta già <b>saldata con successo</b>.<br/>
-              Tutti i biglietti e servizi aggiornati sono stati inviati all&apos;indirizzo <b>{buyerEmail}</b>.
+              Tutti i biglietti e servizi sono stati inviati all&apos;indirizzo <b>{buyerEmail}</b>.
             </p>
 
-            {parentOrderId && (
-              <a
-                href={`/api/tickets/download?orderId=${parentOrderId}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  background: accentColor,
-                  color: 'white',
-                  textDecoration: 'none',
-                  padding: '0.85rem 1.5rem',
-                  borderRadius: '0.75rem',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-                  transition: 'opacity 0.2s'
-                }}
-              >
-                <Download size={18} /> Scarica Biglietti PDF Aggiornati
-              </a>
-            )}
+            <a
+              href={`/api/tickets/download?orderId=${parentOrderId || orderId}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: accentColor,
+                color: 'white',
+                textDecoration: 'none',
+                padding: '0.85rem 1.5rem',
+                borderRadius: '0.75rem',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                transition: 'opacity 0.2s'
+              }}
+            >
+              <Download size={18} /> Scarica Biglietti PDF {parentOrderId ? 'Aggiornati' : ''}
+            </a>
           </div>
         ) : (
           /* Scheda Pagamento PENDING */

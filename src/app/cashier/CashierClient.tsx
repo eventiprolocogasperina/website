@@ -5,7 +5,9 @@ import Image from 'next/image';
 import {
   CashierItem,
   CashierOrder,
-  CashierStats
+  CashierStats,
+  CashierPrinterSettings,
+  DEFAULT_PRINTER_SETTINGS
 } from '@/lib/data/cashier';
 import {
   ShoppingCart,
@@ -36,8 +38,20 @@ import {
   FileText,
   ChevronRight,
   ChefHat,
-  Layers
+  Layers,
+  Bluetooth,
+  Sliders,
+  Play,
+  Check
 } from 'lucide-react';
+import { bluetoothPrinter, type PrinterState } from '@/lib/printer/bluetoothPrinter';
+import {
+  generateCustomerReceiptEscpos,
+  generateDepartmentSlipsEscpos,
+  generateAllTicketsEscpos,
+  generateTestTicketEscpos
+} from '@/lib/printer/escpos';
+import { printTicketViaBrowser } from '@/lib/printer/systemPrint';
 
 // ─── Sound Feedback ───────────────────────────────────────────────────────────
 
@@ -170,7 +184,68 @@ export default function CashierClient() {
     enableDepartments?: boolean;
     startingNumber?: number;
     notes?: string;
+    printerSettings?: CashierPrinterSettings;
   } | null>(null);
+
+  // Bluetooth Thermal Printer State
+  const [printerState, setPrinterState] = useState<PrinterState>(bluetoothPrinter.getState());
+  const [isPrinterModalOpen, setIsPrinterModalOpen] = useState(false);
+  const [isPrintingDirect, setIsPrintingDirect] = useState(false);
+  const [printerNotification, setPrinterNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  useEffect(() => {
+    const unsub = bluetoothPrinter.subscribe(setPrinterState);
+    return () => unsub();
+  }, []);
+
+  const activePrinterSettings: CashierPrinterSettings = useMemo(() => {
+    return session?.printerSettings || DEFAULT_PRINTER_SETTINGS;
+  }, [session?.printerSettings]);
+
+  const showPrinterToast = useCallback((type: 'success' | 'error' | 'info', message: string) => {
+    setPrinterNotification({ type, message });
+    setTimeout(() => setPrinterNotification(null), 4000);
+  }, []);
+
+  const handleDirectPrint = async (
+    order: CashierOrder,
+    type: 'customer' | 'department' | 'all' = 'all',
+    receiptUrl?: string
+  ) => {
+    if (!printerState.connected) {
+      setIsPrinterModalOpen(true);
+      return;
+    }
+
+    setIsPrintingDirect(true);
+    try {
+      let bytes: Uint8Array;
+      if (type === 'customer') {
+        bytes = generateCustomerReceiptEscpos(order, activePrinterSettings, receiptUrl);
+      } else if (type === 'department') {
+        bytes = generateDepartmentSlipsEscpos(order, activePrinterSettings);
+      } else {
+        bytes = generateAllTicketsEscpos(order, activePrinterSettings, receiptUrl);
+      }
+
+      await bluetoothPrinter.print(bytes);
+      playSound('beep');
+      showPrinterToast('success', `Stampa inviata alla stampante Bluetooth (${activePrinterSettings.ticketWidthMm}mm)!`);
+    } catch (err: any) {
+      console.error('Direct print failed:', err);
+      showPrinterToast('error', `Errore stampa: ${err.message || 'Verifica stampante Bluetooth'}`);
+    } finally {
+      setIsPrintingDirect(false);
+    }
+  };
+
+  const handleSystemPrint = (
+    order: CashierOrder,
+    type: 'customer' | 'department' | 'all' = 'all',
+    qrCodeDataUrl?: string
+  ) => {
+    printTicketViaBrowser(order, activePrinterSettings, type, qrCodeDataUrl);
+  };
 
   // UI
   const [loadingSession, setLoadingSession] = useState(false);
@@ -214,65 +289,11 @@ export default function CashierClient() {
   const T = useMemo(() => getThemeTokens(isLight), [isLight]);
 
   const handlePrintDepartmentSlips = (order: CashierOrder) => {
-    const deptsMap: Record<string, typeof order.items> = {};
-    order.items.forEach(it => {
-      const dept = it.department || it.category || 'Generale';
-      if (!deptsMap[dept]) deptsMap[dept] = [];
-      deptsMap[dept].push(it);
-    });
-
-    const printWindow = window.open('', '_blank', 'width=600,height=800');
-    if (!printWindow) return;
-
-    const orderNumStr = String(order.orderNumber).padStart(3, '0');
-    const dateStr = new Date(order.createdAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-
-    const slipsHtml = Object.entries(deptsMap).map(([dept, items]) => `
-      <div class="slip">
-        <div class="header">
-          <div class="dept-title">STAND / REPARTO: ${dept.toUpperCase()}</div>
-          <div class="order-num">#${orderNumStr}</div>
-          <div class="meta">${order.eventName} · ${order.cassaName} · ore ${dateStr}</div>
-          ${order.omaggioNote ? `<div class="note">NOTE: ${order.omaggioNote}</div>` : ''}
-        </div>
-        <table class="items">
-          ${items.map(it => `
-            <tr>
-              <td class="qty">${it.quantity}x</td>
-              <td class="name">${it.name}</td>
-            </tr>
-          `).join('')}
-        </table>
-        <div class="footer">PRO LOCO GASPERINA · COMANDA REPARTO</div>
-      </div>
-    `).join('<div class="page-break"></div>');
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Talloncini Comande Reparto #${orderNumStr}</title>
-        <style>
-          body { font-family: -apple-system, monospace, sans-serif; margin: 0; padding: 10px; color: #000; }
-          .slip { border: 2px dashed #000; padding: 15px; margin-bottom: 20px; page-break-inside: avoid; }
-          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
-          .dept-title { font-size: 16px; font-weight: 900; background: #000; color: #fff; padding: 6px; border-radius: 4px; margin-bottom: 5px; }
-          .order-num { font-size: 42px; font-weight: 900; margin: 4px 0; }
-          .meta { font-size: 11px; }
-          .note { font-size: 13px; font-weight: 800; color: #d97706; margin-top: 6px; background: #fef3c7; padding: 4px; }
-          .items { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          .items td { padding: 8px 4px; font-size: 18px; font-weight: 800; border-bottom: 1px solid #ddd; }
-          .items .qty { width: 40px; font-size: 24px; font-weight: 900; text-align: center; color: #ea580c; }
-          .footer { text-align: center; font-size: 10px; margin-top: 15px; border-top: 1px solid #000; padding-top: 5px; font-weight: 700; }
-          .page-break { page-break-after: always; }
-        </style>
-      </head>
-      <body onload="window.print(); window.close();">
-        ${slipsHtml}
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    if (printerState.connected) {
+      handleDirectPrint(order, 'department');
+      return;
+    }
+    handleSystemPrint(order, 'department');
   };
 
   // ─── Init ──────────────────────────────────────────────────────────────────
@@ -464,6 +485,18 @@ export default function CashierClient() {
         playSound('success');
         setCompletedOrder({ order: data.order, receiptUrl: data.receiptUrl, qrCodeDataUrl: data.qrCodeDataUrl });
         setIsCheckoutOpen(false); setCart({});
+
+        // Auto print to connected Bluetooth printer if enabled in CMS
+        if (activePrinterSettings.autoPrintOnOrder && bluetoothPrinter.getState().connected) {
+          try {
+            const bytes = generateAllTicketsEscpos(data.order, activePrinterSettings, data.receiptUrl);
+            bluetoothPrinter.print(bytes);
+            showPrinterToast('success', `Biglietto #${String(data.order.orderNumber).padStart(3, '0')} inviato alla stampante (${activePrinterSettings.ticketWidthMm}mm)!`);
+          } catch (pErr: any) {
+            console.error('Auto-print error:', pErr);
+            showPrinterToast('error', `Errore auto-stampa: ${pErr.message || 'Controlla stampante'}`);
+          }
+        }
       } else { alert(data.error || 'Errore nella registrazione dell\'ordine'); }
     } catch (err: any) { alert(err.message || 'Errore di connessione'); }
     finally { setSubmittingOrder(false); }
@@ -727,6 +760,29 @@ export default function CashierClient() {
           }}>
             <ShoppingCart size={15} />
             {totalItemsCount > 0 && <span>{totalItemsCount}</span>}
+          </button>
+
+          {/* Bluetooth Thermal Printer button */}
+          <button
+            onClick={() => setIsPrinterModalOpen(true)}
+            title={printerState.connected ? `Stampante connessa: ${printerState.deviceName}` : 'Configura / Connetti Stampante Bluetooth'}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+              padding: '0.45rem 0.65rem', borderRadius: '0.75rem',
+              background: printerState.connected ? 'rgba(74,222,128,0.15)' : T.bgCard,
+              border: `1px solid ${printerState.connected ? 'rgba(74,222,128,0.4)' : T.border}`,
+              color: printerState.connected ? '#4ade80' : T.textMuted,
+              fontSize: '0.8rem', fontWeight: 750, cursor: 'pointer'
+            }}
+          >
+            <Printer size={15} style={{ color: printerState.connected ? '#4ade80' : T.accentBright }} />
+            <span style={{
+              width: '7px', height: '7px', borderRadius: '50%',
+              background: printerState.connected ? '#4ade80' : '#94a3b8'
+            }} />
+            <span className="hide-mobile">
+              {printerState.connected ? (printerState.deviceName || 'Stampante') : `🖨️ ${activePrinterSettings.ticketWidthMm}mm`}
+            </span>
           </button>
 
           <a href="/cashier/stand" target="_blank" rel="noopener noreferrer" title="Monitor Stand & Reparti" style={{
@@ -1431,20 +1487,92 @@ export default function CashierClient() {
                   background: '#ffffff', borderRadius: '0 0 1.5rem 1.5rem',
                   padding: '0 1.75rem 1.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem'
                 }}>
-                  <button onClick={() => handlePrintDepartmentSlips(completedOrder.order)} style={{
-                    width: '100%', padding: '0.7rem', borderRadius: '0.85rem',
-                    background: '#f8fafc', border: '1.5px solid #e2e8f0',
-                    color: '#334155', fontWeight: 800, fontSize: '0.85rem',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
-                  }}>
-                    <Printer size={15} style={{ color: '#ea580c' }} /> Stampa Talloncini Reparto
+                  {/* Primary Direct Print Button */}
+                  <button
+                    onClick={() => {
+                      if (printerState.connected) {
+                        handleDirectPrint(completedOrder.order, 'all', completedOrder.receiptUrl);
+                      } else {
+                        setIsPrinterModalOpen(true);
+                      }
+                    }}
+                    disabled={isPrintingDirect}
+                    style={{
+                      width: '100%', padding: '0.85rem', borderRadius: '0.85rem',
+                      background: printerState.connected
+                        ? 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'
+                        : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: 'white', border: 'none', fontWeight: 900, fontSize: '0.92rem',
+                      cursor: isPrintingDirect ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.15)'
+                    }}
+                  >
+                    <Printer size={18} />
+                    {isPrintingDirect
+                      ? 'Stampa in corso...'
+                      : printerState.connected
+                        ? `⚡ Stampa Diretta (${activePrinterSettings.ticketWidthMm}mm)`
+                        : `Connetti Stampante Bluetooth (${activePrinterSettings.ticketWidthMm}mm)`}
                   </button>
+
+                  {/* Granular print buttons */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                    <button
+                      onClick={() => {
+                        if (printerState.connected) {
+                          handleDirectPrint(completedOrder.order, 'customer', completedOrder.receiptUrl);
+                        } else {
+                          handleSystemPrint(completedOrder.order, 'customer', completedOrder.qrCodeDataUrl);
+                        }
+                      }}
+                      style={{
+                        padding: '0.65rem 0.5rem', borderRadius: '0.75rem',
+                        background: '#f8fafc', border: '1.5px solid #e2e8f0',
+                        color: '#334155', fontWeight: 800, fontSize: '0.78rem',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
+                      }}
+                    >
+                      <Printer size={14} style={{ color: '#0284c7' }} /> Scontrino Cassa
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (printerState.connected) {
+                          handleDirectPrint(completedOrder.order, 'department');
+                        } else {
+                          handleSystemPrint(completedOrder.order, 'department');
+                        }
+                      }}
+                      style={{
+                        padding: '0.65rem 0.5rem', borderRadius: '0.75rem',
+                        background: '#f8fafc', border: '1.5px solid #e2e8f0',
+                        color: '#334155', fontWeight: 800, fontSize: '0.78rem',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
+                      }}
+                    >
+                      <ChefHat size={14} style={{ color: '#ea580c' }} /> Talloncini Reparto
+                    </button>
+                  </div>
+
+                  {/* Fallback browser print */}
+                  <button
+                    onClick={() => handleSystemPrint(completedOrder.order, 'all', completedOrder.qrCodeDataUrl)}
+                    style={{
+                      background: 'none', border: 'none', color: '#64748b', fontSize: '0.74rem',
+                      fontWeight: 700, cursor: 'pointer', padding: '0.2rem', textDecoration: 'underline'
+                    }}
+                  >
+                    Stampa da Browser / Spooler di Sistema ({activePrinterSettings.ticketWidthMm}mm)
+                  </button>
+
                   <button onClick={() => setCompletedOrder(null)} style={{
                     width: '100%', padding: '0.95rem', borderRadius: '1rem',
                     background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
                     color: 'white', border: 'none', fontWeight: 900, fontSize: '1.05rem',
                     cursor: 'pointer', boxShadow: '0 8px 24px rgba(37,99,235,0.35)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                    marginTop: '0.25rem'
                   }}>
                     PROSSIMO CLIENTE <ArrowRight size={18} />
                   </button>
@@ -1550,14 +1678,83 @@ export default function CashierClient() {
                   </div>
                 )}
 
-                <button onClick={() => handlePrintDepartmentSlips(completedOrder.order)} style={{
-                  width: '100%', padding: '0.65rem', borderRadius: '0.85rem',
-                  background: '#f8fafc', border: '1.5px solid #e2e8f0',
-                  color: '#334155', fontWeight: 800, fontSize: '0.82rem',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-                  marginBottom: '0.5rem'
-                }}>
-                  <Printer size={14} style={{ color: '#ea580c' }} /> Stampa Talloncini Reparto
+                {/* Primary Direct Print Button */}
+                <button
+                  onClick={() => {
+                    if (printerState.connected) {
+                      handleDirectPrint(completedOrder.order, 'all', completedOrder.receiptUrl);
+                    } else {
+                      setIsPrinterModalOpen(true);
+                    }
+                  }}
+                  disabled={isPrintingDirect}
+                  style={{
+                    width: '100%', padding: '0.85rem', borderRadius: '0.85rem',
+                    background: printerState.connected
+                      ? 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'
+                      : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    color: 'white', border: 'none', fontWeight: 900, fontSize: '0.92rem',
+                    cursor: isPrintingDirect ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.15)', marginBottom: '0.5rem'
+                  }}
+                >
+                  <Printer size={18} />
+                  {isPrintingDirect
+                    ? 'Stampa in corso...'
+                    : printerState.connected
+                      ? `⚡ Stampa Diretta (${activePrinterSettings.ticketWidthMm}mm)`
+                      : `Connetti Stampante Bluetooth (${activePrinterSettings.ticketWidthMm}mm)`}
+                </button>
+
+                {/* Granular print buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                  <button
+                    onClick={() => {
+                      if (printerState.connected) {
+                        handleDirectPrint(completedOrder.order, 'customer', completedOrder.receiptUrl);
+                      } else {
+                        handleSystemPrint(completedOrder.order, 'customer', completedOrder.qrCodeDataUrl);
+                      }
+                    }}
+                    style={{
+                      padding: '0.65rem 0.5rem', borderRadius: '0.75rem',
+                      background: '#f8fafc', border: '1.5px solid #e2e8f0',
+                      color: '#334155', fontWeight: 800, fontSize: '0.78rem',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
+                    }}
+                  >
+                    <Printer size={14} style={{ color: '#0284c7' }} /> Scontrino Cassa
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (printerState.connected) {
+                        handleDirectPrint(completedOrder.order, 'department');
+                      } else {
+                        handleSystemPrint(completedOrder.order, 'department');
+                      }
+                    }}
+                    style={{
+                      padding: '0.65rem 0.5rem', borderRadius: '0.75rem',
+                      background: '#f8fafc', border: '1.5px solid #e2e8f0',
+                      color: '#334155', fontWeight: 800, fontSize: '0.78rem',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
+                    }}
+                  >
+                    <ChefHat size={14} style={{ color: '#ea580c' }} /> Talloncini Reparto
+                  </button>
+                </div>
+
+                {/* Fallback browser print */}
+                <button
+                  onClick={() => handleSystemPrint(completedOrder.order, 'all', completedOrder.qrCodeDataUrl)}
+                  style={{
+                    background: 'none', border: 'none', color: '#64748b', fontSize: '0.74rem',
+                    fontWeight: 700, cursor: 'pointer', padding: '0.2rem', textDecoration: 'underline', marginBottom: '0.5rem'
+                  }}
+                >
+                  Stampa da Browser / Spooler di Sistema ({activePrinterSettings.ticketWidthMm}mm)
                 </button>
 
                 <button onClick={() => setCompletedOrder(null)} style={{
@@ -1781,6 +1978,277 @@ export default function CashierClient() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          7. BLUETOOTH THERMAL PRINTER MODAL
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {isPrinterModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)',
+          zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div className="cashier-modal-inner" style={{
+            maxWidth: '540px', width: '100%', background: T.modalBg,
+            borderRadius: '1.5rem', padding: '1.5rem',
+            border: `1px solid ${T.border}`,
+            boxShadow: T.shadowModal, maxHeight: '90vh', overflowY: 'auto'
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: `1px solid ${T.border}`, paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  background: 'rgba(56,189,248,0.15)', color: '#38bdf8',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Printer size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: T.text }}>
+                    Stampante Termica Cassa
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: T.textMuted }}>
+                    Stampa diretta da browser su stampante Bluetooth
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setIsPrinterModalOpen(false)} style={{
+                background: T.bgInput, border: 'none', borderRadius: '50%',
+                width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', color: T.textSubtle
+              }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* CMS Configured Specs Box */}
+            <div style={{
+              background: isLight ? '#f0f9ff' : 'rgba(2,132,199,0.12)',
+              border: '1.5px solid rgba(56,189,248,0.3)',
+              borderRadius: '1rem', padding: '0.9rem 1rem', marginBottom: '1.25rem'
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', color: '#0284c7', marginBottom: '0.35rem' }}>
+                ⚙️ Dimensioni Impostate da CMS
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.82rem' }}>
+                <div>
+                  <span style={{ color: T.textMuted }}>Larghezza ticket:</span>{' '}
+                  <strong style={{ color: T.text }}>{activePrinterSettings.ticketWidthMm} mm</strong>
+                </div>
+                <div>
+                  <span style={{ color: T.textMuted }}>Caratteri/riga:</span>{' '}
+                  <strong style={{ color: T.text }}>{activePrinterSettings.charactersPerLine}</strong>
+                </div>
+                <div>
+                  <span style={{ color: T.textMuted }}>Auto-stampa ordini:</span>{' '}
+                  <strong style={{ color: activePrinterSettings.autoPrintOnOrder ? '#16a34a' : T.textSubtle }}>
+                    {activePrinterSettings.autoPrintOnOrder ? 'Attiva ⚡' : 'Disattivata'}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: T.textMuted }}>Taglio carta:</span>{' '}
+                  <strong style={{ color: activePrinterSettings.autoCutPaper ? '#16a34a' : T.textSubtle }}>
+                    {activePrinterSettings.autoCutPaper ? 'Attivo ✂️' : 'No'}
+                  </strong>
+                </div>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: T.textMuted, marginTop: '0.4rem', borderTop: `1px solid ${T.border}`, paddingTop: '0.35rem' }}>
+                Per modificare le dimensioni in larghezza ({activePrinterSettings.ticketWidthMm}mm), accedi al pannello CMS su <code>/admin/cassa</code>.
+              </div>
+            </div>
+
+            {/* Current Device Status */}
+            <div style={{
+              background: printerState.connected ? (isLight ? '#f0fdf4' : 'rgba(22,163,74,0.15)') : T.bgInput,
+              border: `1.5px solid ${printerState.connected ? '#22c55e' : T.border}`,
+              borderRadius: '1rem', padding: '1rem', marginBottom: '1.25rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: printerState.connected ? '#16a34a' : T.text }}>
+                  {printerState.connected
+                    ? `🟢 Stampante Connessa: ${printerState.deviceName}`
+                    : '⚪ Nessuna stampante connessa al browser'}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: T.textMuted, marginTop: '0.2rem' }}>
+                  {printerState.connected
+                    ? `Canale attivo: ${printerState.connectionType === 'bluetooth' ? 'Bluetooth Low Energy (ESC/POS)' : 'Seriale / USB'}`
+                    : 'Collega la stampante Bluetooth del computer per abilitare la stampa diretta a 1 click.'}
+                </div>
+              </div>
+
+              {printerState.connected && (
+                <button
+                  onClick={async () => {
+                    await bluetoothPrinter.disconnect();
+                    showPrinterToast('info', 'Stampante disconnessa');
+                  }}
+                  style={{
+                    padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                    background: T.dangerMuted, border: `1px solid ${T.danger}40`,
+                    color: T.danger, fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer'
+                  }}
+                >
+                  Disconnetti
+                </button>
+              )}
+            </div>
+
+            {/* Connection Actions */}
+            {!printerState.connected && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '1.25rem' }}>
+                <button
+                  onClick={async () => {
+                    try {
+                      const name = await bluetoothPrinter.connectBluetooth();
+                      showPrinterToast('success', `Stampante "${name}" connessa via Bluetooth!`);
+                    } catch (err: any) {
+                      showPrinterToast('error', err.message || 'Errore connessione Bluetooth');
+                    }
+                  }}
+                  style={{
+                    padding: '0.85rem', borderRadius: '0.85rem',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    border: 'none', color: '#fff', fontSize: '0.85rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem',
+                    boxShadow: '0 4px 14px rgba(2,132,199,0.3)'
+                  }}
+                >
+                  <Bluetooth size={22} />
+                  <span>Connetti Bluetooth</span>
+                  <span style={{ fontSize: '0.68rem', opacity: 0.85 }}>Web Bluetooth (Chrome/Edge)</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    try {
+                      const name = await bluetoothPrinter.connectSerial();
+                      showPrinterToast('success', `Stampante "${name}" connessa via Seriale!`);
+                    } catch (err: any) {
+                      showPrinterToast('error', err.message || 'Errore connessione Seriale');
+                    }
+                  }}
+                  style={{
+                    padding: '0.85rem', borderRadius: '0.85rem',
+                    background: T.bgInput, border: `1.5px solid ${T.border}`,
+                    color: T.text, fontSize: '0.85rem', fontWeight: 800,
+                    cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem'
+                  }}
+                >
+                  <Sliders size={22} style={{ color: T.accentBright }} />
+                  <span>Connetti Seriale / USB</span>
+                  <span style={{ fontSize: '0.68rem', color: T.textMuted }}>Porta COM / SPP</span>
+                </button>
+              </div>
+            )}
+
+            {/* Test Print Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button
+                onClick={async () => {
+                  try {
+                    if (!printerState.connected) {
+                      await bluetoothPrinter.connectBluetooth();
+                    }
+                    const testBytes = generateTestTicketEscpos(activePrinterSettings);
+                    await bluetoothPrinter.print(testBytes);
+                    showPrinterToast('success', `Stampa di prova inviata (${activePrinterSettings.ticketWidthMm}mm)!`);
+                  } catch (err: any) {
+                    showPrinterToast('error', err.message || 'Errore durante la stampa di prova');
+                  }
+                }}
+                disabled={isPrintingDirect}
+                style={{
+                  width: '100%', padding: '0.75rem', borderRadius: '0.85rem',
+                  background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                  border: 'none', color: '#fff', fontSize: '0.85rem', fontWeight: 800,
+                  cursor: isPrintingDirect ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                  boxShadow: '0 4px 12px rgba(22,163,74,0.25)'
+                }}
+              >
+                <Play size={16} />
+                {isPrintingDirect ? 'Invio in corso...' : `Invia Stampa di Prova Diretta (${activePrinterSettings.ticketWidthMm}mm)`}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (completedOrder) {
+                    handleSystemPrint(completedOrder.order, 'all', completedOrder.qrCodeDataUrl);
+                  } else {
+                    const sampleOrder: CashierOrder = {
+                      id: 'demo_test',
+                      eventId: session?.eventId || 'test',
+                      eventName: session?.eventName || 'Test Pro Loco',
+                      orderNumber: 1,
+                      cassaName: cassaName || 'Cassa 1',
+                      totalAmount: 12.00,
+                      paymentMethod: 'CONTANTI',
+                      items: [
+                        { id: '1', name: 'Fileja alla Silana', category: 'Primi', price: 7.00, quantity: 1, subtotal: 7.00 },
+                        { id: '2', name: 'Vino Locale Rosso', category: 'Bevande', price: 5.00, quantity: 1, subtotal: 5.00 }
+                      ],
+                      status: 'COMPLETED',
+                      createdAt: new Date().toISOString()
+                    };
+                    handleSystemPrint(sampleOrder, 'all');
+                  }
+                }}
+                style={{
+                  width: '100%', padding: '0.65rem', borderRadius: '0.85rem',
+                  background: T.bgInput, border: `1px solid ${T.border}`,
+                  color: T.textMuted, fontSize: '0.8rem', fontWeight: 700,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem'
+                }}
+              >
+                <Printer size={15} /> Prova Stampa Finestra Browser ({activePrinterSettings.ticketWidthMm}mm)
+              </button>
+            </div>
+
+            {/* Quick Guide */}
+            <div style={{
+              background: isLight ? '#f8fafc' : 'rgba(15,23,42,0.6)',
+              borderRadius: '0.85rem', padding: '0.75rem 0.9rem',
+              fontSize: '0.72rem', color: T.textMuted, lineHeight: 1.45
+            }}>
+              <strong style={{ color: T.text, display: 'block', marginBottom: '0.2rem' }}>💡 Guida Rapida Stampante Bluetooth:</strong>
+              1. Accendi la stampante termica e verifica che il Bluetooth del computer sia attivo.<br />
+              2. Clicca &quot;Connetti Bluetooth&quot; e seleziona il dispositivo nel prompt del browser (es. <em>POS-58, MPT-II, Thermal Printer</em>).<br />
+              3. Una volta collegata, i biglietti verranno stampati all&apos;istante senza finestre di sistema!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Printer Notification Toast */}
+      {printerNotification && (
+        <div style={{
+          position: 'fixed',
+          bottom: '1.5rem',
+          right: '1.5rem',
+          zIndex: 200,
+          background: printerNotification.type === 'error'
+            ? '#ef4444'
+            : printerNotification.type === 'success'
+              ? '#15803d'
+              : '#0284c7',
+          color: '#ffffff',
+          borderRadius: '0.85rem',
+          padding: '0.75rem 1.15rem',
+          boxShadow: '0 10px 28px rgba(0,0,0,0.4)',
+          fontWeight: 800,
+          fontSize: '0.88rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          animation: 'slideUp 0.25s ease-out'
+        }}>
+          <Printer size={18} />
+          <span>{printerNotification.message}</span>
         </div>
       )}
 

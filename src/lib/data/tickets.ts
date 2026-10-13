@@ -266,17 +266,81 @@ export async function getAdvancedTicketingStats(eventId: string) {
   };
 }
 
-export function parseOrderNotes(notes?: string | null) {
+export interface DateHistoryEntry {
+  date: string;
+  timestamp?: string;
+  raw: string;
+}
+
+export interface IntegrationEntry {
+  amount: number;
+  description: string;
+  transactionId?: string;
+  raw: string;
+}
+
+export interface ParsedNotes {
+  children: number | null;
+  numChildren: number;
+  totalRegistered: number | null;
+  activities: string[];
+  target: string | null;
+  eventDate: string | null;
+  dayKey: '17' | '18' | '24' | '25' | '10' | '11' | 'unspecified';
+  originalDayKey: '10' | '11' | null;
+  isPostponed: boolean;
+  isExplicitlyMoved: boolean;
+  postponedFrom: string | null;
+  fullDateWithTime: string;
+  rawNotes: string;
+  dateHistory: DateHistoryEntry[];
+  integrations: IntegrationEntry[];
+}
+
+export function parseOrderNotes(notes?: string | null): ParsedNotes {
   if (!notes) {
     return { 
-      children: null as number | null, 
-      totalRegistered: null as number | null, 
-      activities: [] as string[], 
-      target: null as string | null, 
-      eventDate: null as string | null,
-      dayKey: 'unspecified' as '10' | '11' | 'unspecified',
-      rawNotes: '' 
+      children: null, 
+      totalRegistered: null, 
+      activities: [], 
+      target: null, 
+      eventDate: null,
+      dayKey: 'unspecified',
+      originalDayKey: null,
+      isPostponed: false,
+      isExplicitlyMoved: false,
+      postponedFrom: null,
+      numChildren: 0,
+      fullDateWithTime: 'Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026 · Ore 10:30',
+      rawNotes: '',
+      dateHistory: [],
+      integrations: []
     };
+  }
+
+  // 1. Estrai cronologia spostamenti data
+  const dateHistory: DateHistoryEntry[] = [];
+  const moveRegex = /\[SPOSTAMENTO DATA:\s*([^\]\-]+?)(?:\s*-\s*Modificato il\s*([^\]]+))?\]/gi;
+  let moveMatch;
+  while ((moveMatch = moveRegex.exec(notes)) !== null) {
+    dateHistory.push({
+      date: moveMatch[1].trim(),
+      timestamp: moveMatch[2]?.trim(),
+      raw: moveMatch[0]
+    });
+  }
+
+  // 2. Estrai integrazioni Nexi pagate
+  const integrations: IntegrationEntry[] = [];
+  const integRegex = /\[INTEGRAZIONE(?:[A-Z\s]+)?\]:\s*\+?\s*€?([0-9.,]+)\s*(?:\(([^)]+)\))?(?:\s*-\s*Transazione:\s*([a-zA-Z0-9]+))?/gi;
+  let integMatch;
+  while ((integMatch = integRegex.exec(notes)) !== null) {
+    integrations.push({
+      amount: parseFloat(integMatch[1].replace(',', '.')),
+      description: integMatch[2]?.trim() || '',
+      transactionId: integMatch[3]?.trim(),
+      raw: integMatch[0]
+    });
   }
 
   let children: number | null = null;
@@ -293,34 +357,128 @@ export function parseOrderNotes(notes?: string | null) {
     target = targetMatch[1];
   }
 
+  // 3. Estrai e sanitizza rigorosamente le attività/laboratori
+  // Rimuovi tag di audit prima del parsing per evitare che contaminino l'elenco
+  const sanitizedForActivities = notes
+    .replace(/\[SPOSTAMENTO DATA:[^\]]+\]/gi, ' ')
+    .replace(/\[INTEGRAZIONE[^\]]*\][^\n|]*/gi, ' ')
+    .replace(/Transazione:\s*[a-zA-Z0-9]+/gi, ' ')
+    .replace(/\+?\s*€\s*[0-9.,]+/gi, ' ');
+
   let activities: string[] = [];
-  const actMatch = notes.match(/Attività\s*(?:scelte)?(?:\s*\[[^\]]+\]|\s*\([^)]+\))?:\s*([^|]+)/i);
+  const actMatch = sanitizedForActivities.match(/Attività\s*(?:scelte)?(?:\s*\[[^\]]+\]|\s*\([^)]+\))?:\s*([^\n|]+)/i);
   if (actMatch) {
-    activities = actMatch[1]
+    const rawActs = actMatch[1]
       .split(',')
-      .map(s => s.trim())
+      .map(s => s.trim().replace(/^[-–—]\s*/, ''))
       .filter(Boolean);
+
+    for (const raw of rawActs) {
+      const lower = raw.toLowerCase();
+      if (lower.includes('zucca in vaso')) {
+        activities.push('Zucca in Vaso (3-7 anni)');
+      } else if (lower.includes('zuccart')) {
+        activities.push('Zuccart (3-7 anni)');
+      } else if (lower.includes('facepainting') || lower.includes('thriller')) {
+        activities.push('Facepainting & Thriller Dance (6+)');
+      } else if (lower.includes('altre') || lower.includes('annunciare')) {
+        activities.push('Altre attività da annunciare');
+      } else if (
+        !lower.includes('transazione') && 
+        !lower.includes('you pick') && 
+        !lower.includes('ingresso') && 
+        !lower.includes('spostamento') &&
+        !lower.includes('integrazione') &&
+        raw.length > 2
+      ) {
+        activities.push(raw);
+      }
+    }
   }
+  activities = Array.from(new Set(activities));
 
   let eventDate: string | null = null;
-  let dayKey: '10' | '11' | '25' | 'unspecified' = 'unspecified';
-  const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
-  if (dateMatch) {
-    eventDate = dateMatch[1].trim();
-  }
-  
-  if (eventDate?.includes('25') || notes.includes('25 Ottobre')) {
-    dayKey = '25';
-    if (!eventDate) eventDate = 'Domenica 25 Ottobre 2026';
-  } else if (eventDate?.includes('10') || notes.includes('10 Ottobre') || notes.toLowerCase().includes('sabato')) {
-    dayKey = '10';
-    if (!eventDate) eventDate = 'Sabato 10 Ottobre 2026';
-  } else if (eventDate?.includes('11') || notes.includes('11 Ottobre') || notes.toLowerCase().includes('domenica')) {
-    dayKey = '11';
-    if (!eventDate) eventDate = 'Domenica 11 Ottobre 2026';
+  let dayKey: '17' | '18' | '24' | '25' | '10' | '11' | 'unspecified' = 'unspecified';
+  let originalDayKey: '10' | '11' | null = null;
+  let isPostponed = false;
+  let isExplicitlyMoved = false;
+  let postponedFrom: string | null = null;
+
+  // 4. Data dell'evento:
+  // Se l'ordine ha spostamenti manuali eseguiti da admin, prendi l'ultimo spostamento (il più recente)
+  if (dateHistory.length > 0) {
+    isExplicitlyMoved = true;
+    const latestMove = dateHistory[dateHistory.length - 1];
+    const movedTo = latestMove.date;
+    if (movedTo.includes('25') || movedTo.includes('25 Ottobre')) {
+      dayKey = '25';
+      eventDate = 'Domenica 25 Ottobre 2026';
+    } else if (movedTo.includes('24') || movedTo.includes('24 Ottobre')) {
+      dayKey = '24';
+      eventDate = 'Sabato 24 Ottobre 2026';
+    } else if (movedTo.includes('18') || movedTo.includes('18 Ottobre')) {
+      dayKey = '18';
+      eventDate = 'Domenica 18 Ottobre 2026';
+    } else if (movedTo.includes('17') || movedTo.includes('17 Ottobre')) {
+      dayKey = '17';
+      eventDate = 'Sabato 17 Ottobre 2026';
+    }
   }
 
-  return { children, totalRegistered, activities, target, eventDate, dayKey, rawNotes: notes };
+  // 5. Se non spostato esplicitamente, controlla Data/Giorno con posticipo automatico (10->17, 11->18)
+  if (dayKey === 'unspecified') {
+    const dateMatch = notes.match(/Data:\s*([^|]+)/i) || notes.match(/Giorno:\s*([^|]+)/i);
+    const dStr = dateMatch ? dateMatch[1].trim() : notes;
+
+    if (dStr.includes('25 Ottobre') || dStr.includes('25')) {
+      dayKey = '25';
+      eventDate = 'Domenica 25 Ottobre 2026';
+    } else if (dStr.includes('24 Ottobre') || dStr.includes('24')) {
+      dayKey = '24';
+      eventDate = 'Sabato 24 Ottobre 2026';
+    } else if (dStr.includes('17 Ottobre')) {
+      dayKey = '17';
+      eventDate = 'Sabato 17 Ottobre 2026';
+    } else if (dStr.includes('18 Ottobre')) {
+      dayKey = '18';
+      eventDate = 'Domenica 18 Ottobre 2026';
+    } else if (dStr.includes('10 Ottobre') || dStr.includes('10') || dStr.toLowerCase().includes('sabato')) {
+      // POSTICIPO: Biglietti del 10 rimandati a Sabato 17 Ottobre
+      dayKey = '17';
+      eventDate = 'Sabato 17 Ottobre 2026';
+      originalDayKey = '10';
+      isPostponed = true;
+      postponedFrom = 'Sabato 10 Ottobre 2026';
+    } else if (dStr.includes('11 Ottobre') || dStr.includes('11') || dStr.toLowerCase().includes('domenica')) {
+      // POSTICIPO: Biglietti dell'11 rimandati a Domenica 18 Ottobre
+      dayKey = '18';
+      eventDate = 'Domenica 18 Ottobre 2026';
+      originalDayKey = '11';
+      isPostponed = true;
+      postponedFrom = 'Domenica 11 Ottobre 2026';
+    }
+  }
+
+  const numChildren = children || 0;
+  const fullDateWithTime = eventDate ? `${eventDate} · Ore 10:30` : 'Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026 · Ore 10:30';
+
+  return { 
+    children, 
+    numChildren,
+    totalRegistered, 
+    activities, 
+    target, 
+    eventDate, 
+    dayKey, 
+    originalDayKey,
+    isPostponed,
+    isExplicitlyMoved,
+    postponedFrom,
+    fullDateWithTime,
+    rawNotes: notes,
+    dateHistory,
+    integrations
+  };
 }
 
 export interface ZuccalandDayStats {
@@ -349,25 +507,34 @@ export interface ZuccalandStatsResult {
   ticketTypes: Record<string, number>;
   activityStats: Record<string, number>;
   perDay: {
+    '17': ZuccalandDayStats;
+    '18': ZuccalandDayStats;
+    '24': ZuccalandDayStats;
+    '25': ZuccalandDayStats;
     '10': ZuccalandDayStats;
     '11': ZuccalandDayStats;
-    '25': ZuccalandDayStats;
     'unspecified': ZuccalandDayStats;
   };
 }
 
 export interface ZuccalandDateCounts {
+  '17': { admissionTickets: number; totalTickets: number; orders: number };
+  '18': { admissionTickets: number; totalTickets: number; orders: number };
+  '24': { admissionTickets: number; totalTickets: number; orders: number };
+  '25': { admissionTickets: number; totalTickets: number; orders: number };
   '10': { admissionTickets: number; totalTickets: number; orders: number };
   '11': { admissionTickets: number; totalTickets: number; orders: number };
-  '25': { admissionTickets: number; totalTickets: number; orders: number };
 }
 
 export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
   const sql = getDb();
   const counts: ZuccalandDateCounts = {
+    '17': { admissionTickets: 0, totalTickets: 0, orders: 0 },
+    '18': { admissionTickets: 0, totalTickets: 0, orders: 0 },
+    '24': { admissionTickets: 0, totalTickets: 0, orders: 0 },
+    '25': { admissionTickets: 0, totalTickets: 0, orders: 0 },
     '10': { admissionTickets: 0, totalTickets: 0, orders: 0 },
     '11': { admissionTickets: 0, totalTickets: 0, orders: 0 },
-    '25': { admissionTickets: 0, totalTickets: 0, orders: 0 },
   };
 
   try {
@@ -393,14 +560,16 @@ export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
 
     for (const o of orders) {
       const parsed = parseOrderNotes(o.notes);
-      if (parsed.dayKey !== '10' && parsed.dayKey !== '11' && parsed.dayKey !== '25') continue;
+      if (parsed.dayKey === 'unspecified') continue;
 
       const oTickets = tickets.filter(t => t.orderId === o.id);
       const oAdmissionTix = oTickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length;
       
-      counts[parsed.dayKey].orders++;
-      counts[parsed.dayKey].totalTickets += oTickets.length;
-      counts[parsed.dayKey].admissionTickets += (oAdmissionTix || oTickets.length);
+      if (counts[parsed.dayKey]) {
+        counts[parsed.dayKey].orders++;
+        counts[parsed.dayKey].totalTickets += oTickets.length;
+        counts[parsed.dayKey].admissionTickets += (oAdmissionTix || oTickets.length);
+      }
     }
   } catch (error) {
     console.error('Failed to get Zuccaland date counts:', error);
@@ -413,9 +582,12 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
   const sql = getDb();
 
   const perDay: ZuccalandStatsResult['perDay'] = {
-    '10': { title: 'Sabato 10 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
-    '11': { title: 'Domenica 11 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '17': { title: 'Sabato 17 Ottobre 2026 (Recupero del 10 Ottobre)', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '18': { title: 'Domenica 18 Ottobre 2026 (Recupero dell\'11 Ottobre)', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '24': { title: 'Sabato 24 Ottobre 2026 (Bozza / Non attiva)', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
     '25': { title: 'Domenica 25 Ottobre 2026', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '10': { title: 'Sabato 10 Ottobre 2026 (Data originale posticipata al 17)', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
+    '11': { title: 'Domenica 11 Ottobre 2026 (Data originale posticipata al 18)', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} },
     'unspecified': { title: 'Altre date / Non specificata', orders: 0, revenue: 0, tickets: 0, admissionTickets: 0, youPickTickets: 0, kids: 0, adults: 0, ticketTypes: {}, activityStats: {} }
   };
 

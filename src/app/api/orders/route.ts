@@ -16,14 +16,28 @@ export async function POST(request: Request) {
     // Check Zuccaland date capacity and Sold Out status
     if (eventId === 'zuccaland-2026') {
       const parsed = parseOrderNotes(notes || '');
-      if (parsed.dayKey === '10' || parsed.dayKey === '11' || parsed.dayKey === '25') {
+      if (['17', '18', '24', '25', '10', '11'].includes(parsed.dayKey)) {
         const pageContent = await getPageContent<ZuccalandContent>('zuccaland', DEFAULT_ZUCCALAND_CONTENT);
-        const dayLimit = pageContent.dateLimits?.[parsed.dayKey];
-        const dayName = parsed.dayKey === '10' ? 'Sabato 10 Ottobre' : (parsed.dayKey === '11' ? 'Domenica 11 Ottobre' : 'Domenica 25 Ottobre');
+        const dayLimit = pageContent.dateLimits?.[parsed.dayKey as keyof typeof pageContent.dateLimits];
+        const dayNames: Record<string, string> = {
+          '17': 'Sabato 17 Ottobre',
+          '18': 'Domenica 18 Ottobre',
+          '24': 'Sabato 24 Ottobre',
+          '25': 'Domenica 25 Ottobre',
+          '10': 'Sabato 10 Ottobre',
+          '11': 'Domenica 11 Ottobre'
+        };
+        const dayName = dayNames[parsed.dayKey] || parsed.dayKey;
 
-        if (parsed.dayKey === '25' && !dayLimit?.active) {
+        if (parsed.dayKey === '17' || parsed.dayKey === '18') {
           return NextResponse.json({
-            error: 'Le prenotazioni per la data di Domenica 25 Ottobre non sono al momento aperte.'
+            error: `I biglietti per la data di ${dayName} non sono acquistabili sul sito in quanto riservati al recupero delle date del 10 e 11 Ottobre. Le nuove prenotazioni sono aperte per Domenica 25 Ottobre.`
+          }, { status: 400 });
+        }
+
+        if (dayLimit && dayLimit.active === false) {
+          return NextResponse.json({
+            error: `Le prenotazioni per la data di ${dayName} non sono al momento aperte.`
           }, { status: 400 });
         }
 
@@ -35,7 +49,7 @@ export async function POST(request: Request) {
 
         if (dayLimit?.enabled) {
           const counts = await getZuccalandDateCounts();
-          const currentSold = counts[parsed.dayKey].admissionTickets;
+          const currentSold = counts[parsed.dayKey as keyof typeof counts]?.admissionTickets || 0;
           const requestedAdmission = cart.reduce((sum: number, item: any) => {
             const isExtra = item.type.toLowerCase().includes('you pick') || item.type.toLowerCase().includes('laboratorio');
             return sum + (isExtra ? 0 : (item.quantity || 0));

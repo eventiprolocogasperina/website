@@ -42,9 +42,12 @@ export default function ZuccalandAdminPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [liveCounts, setLiveCounts] = useState<{
-    '10': { admissionTickets: number; totalTickets: number; orders: number };
-    '11': { admissionTickets: number; totalTickets: number; orders: number };
-    '25': { admissionTickets: number; totalTickets: number; orders: number };
+    '17'?: { admissionTickets: number; totalTickets: number; orders: number };
+    '18'?: { admissionTickets: number; totalTickets: number; orders: number };
+    '24'?: { admissionTickets: number; totalTickets: number; orders: number };
+    '25'?: { admissionTickets: number; totalTickets: number; orders: number };
+    '10'?: { admissionTickets: number; totalTickets: number; orders: number };
+    '11'?: { admissionTickets: number; totalTickets: number; orders: number };
   } | null>(null);
   const [loadingCounts, setLoadingCounts] = useState(false);
 
@@ -68,13 +71,18 @@ export default function ZuccalandAdminPage() {
       .then(res => res.json())
       .then(json => {
         if (json.success && json.data) {
+          const defLimits = DEFAULT_ZUCCALAND_CONTENT.dateLimits!;
+          const curLimits = json.data.dateLimits || {};
           setData({
             hero: { ...DEFAULT_ZUCCALAND_CONTENT.hero, ...(json.data.hero || {}) },
             event: { ...DEFAULT_ZUCCALAND_CONTENT.event, ...(json.data.event || {}) },
             dateLimits: {
-              '10': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['10'], ...(json.data.dateLimits?.['10'] || {}) },
-              '11': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['11'], ...(json.data.dateLimits?.['11'] || {}) },
-              '25': { ...DEFAULT_ZUCCALAND_CONTENT.dateLimits!['25']!, ...(json.data.dateLimits?.['25'] || {}) },
+              '17': { ...defLimits['17']!, ...(curLimits['17'] || {}) },
+              '18': { ...defLimits['18']!, ...(curLimits['18'] || {}) },
+              '24': { ...defLimits['24']!, ...(curLimits['24'] || {}) },
+              '25': { ...defLimits['25']!, ...(curLimits['25'] || {}) },
+              '10': { ...defLimits['10']!, ...(curLimits['10'] || {}) },
+              '11': { ...defLimits['11']!, ...(curLimits['11'] || {}) },
             },
             infoCards: json.data.infoCards || DEFAULT_ZUCCALAND_CONTENT.infoCards,
             ticketTypes: json.data.ticketTypes || DEFAULT_ZUCCALAND_CONTENT.ticketTypes,
@@ -134,7 +142,7 @@ export default function ZuccalandAdminPage() {
     data && setData({ ...data, program: { ...data.program, [field]: value } });
   const updateTickets = (field: string, value: string) =>
     data && setData({ ...data, tickets: { ...data.tickets, [field]: value } });
-  const updateDateLimit = (dayKey: '10' | '11' | '25', field: keyof ZuccalandDateLimit, value: any) => {
+  const updateDateLimit = (dayKey: '17' | '18' | '24' | '25' | '10' | '11', field: keyof ZuccalandDateLimit, value: any) => {
     if (!data) return;
     const currentLimits = data.dateLimits || DEFAULT_ZUCCALAND_CONTENT.dateLimits!;
     setData({
@@ -391,9 +399,18 @@ export default function ZuccalandAdminPage() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', marginTop: '1.25rem' }}>
-            {(['10', '11', '25'] as const).map(dayKey => {
-              const dayLabel = dayKey === '10' ? 'Sabato 10 Ottobre' : (dayKey === '11' ? 'Domenica 11 Ottobre' : 'Domenica 25 Ottobre');
-              const dayEmoji = dayKey === '10' ? '🟧' : (dayKey === '11' ? '🟨' : '🎃');
+            {(['17', '18', '24', '25', '10', '11'] as const).map(dayKey => {
+              const dayConfig = {
+                '17': { label: 'Sabato 17 Ottobre', emoji: '🎃', tag: 'Nuova data attiva', hasVisibilityToggle: false },
+                '18': { label: 'Domenica 18 Ottobre', emoji: '🎃', tag: 'Nuova data attiva', hasVisibilityToggle: false },
+                '24': { label: 'Sabato 24 Ottobre', emoji: '🎃', tag: 'In preparazione (Non attiva)', hasVisibilityToggle: true },
+                '25': { label: 'Domenica 25 Ottobre', emoji: '🎃', tag: 'Nuova data attiva', hasVisibilityToggle: true },
+                '10': { label: 'Sabato 10 Ottobre', emoji: '🌧️', tag: 'Data precedente (Rinviata)', hasVisibilityToggle: true },
+                '11': { label: 'Domenica 11 Ottobre', emoji: '🌧️', tag: 'Data precedente (Rinviata)', hasVisibilityToggle: true },
+              }[dayKey];
+
+              const dayLabel = dayConfig.label;
+              const dayEmoji = dayConfig.emoji;
               const limits = data.dateLimits?.[dayKey] || DEFAULT_ZUCCALAND_CONTENT.dateLimits![dayKey] || { enabled: false, maxTickets: 300, manualSoldOut: false, active: false };
               const counts = liveCounts?.[dayKey] || { admissionTickets: 0, totalTickets: 0, orders: 0 };
               
@@ -401,7 +418,9 @@ export default function ZuccalandAdminPage() {
               const isManualSoldOut = Boolean(limits.manualSoldOut);
               const isCapacityReached = isLimitActive && counts.admissionTickets >= limits.maxTickets;
               const isSoldOut = isManualSoldOut || isCapacityReached;
-              const isDateActive = dayKey === '25' ? Boolean(limits.active) : true;
+              const isDateActive = (dayKey === '17' || dayKey === '18') 
+                ? Boolean(limits.active ?? true)
+                : Boolean(limits.active);
 
               const percentUsed = isLimitActive && limits.maxTickets > 0
                 ? Math.min(100, Math.round((counts.admissionTickets / limits.maxTickets) * 100))
@@ -425,11 +444,9 @@ export default function ZuccalandAdminPage() {
                       <span style={{ fontSize: '1.2rem' }}>{dayEmoji}</span>
                       <div>
                         <strong style={{ fontSize: '1.05rem', color: 'var(--color-heading)' }}>{dayLabel}</strong>
-                        {dayKey === '25' && (
-                          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: limits.active ? '#4ade80' : '#ea580c' }}>
-                            {limits.active ? '● Attiva sul sito' : '○ Nascosta sul sito'}
-                          </div>
-                        )}
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, color: isDateActive ? '#4ade80' : '#ea580c' }}>
+                          {isDateActive ? '● Attiva sul sito' : '○ Nascosta sul sito'}
+                        </div>
                       </div>
                     </div>
 
@@ -459,8 +476,8 @@ export default function ZuccalandAdminPage() {
                     </span>
                   </div>
 
-                  {/* Toggle Attivazione Data sul Sito (Specifico per Domenica 25 Ottobre) */}
-                  {dayKey === '25' && (
+                  {/* Toggle Attivazione Data sul Sito (per 24, 25 e date gestite) */}
+                  {dayConfig.hasVisibilityToggle && (
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -477,14 +494,16 @@ export default function ZuccalandAdminPage() {
                           <span>{limits.active ? '🟢 Data Visibile e Prenotabile' : '⚪ Data Nascosta sul Sito'}</span>
                         </div>
                         <div style={{ fontSize: '0.74rem', color: 'var(--neutral-400)', marginTop: '0.15rem' }}>
-                          {limits.active ? 'La prenotazione per il 25 Ottobre è visibile al pubblico.' : 'Attiva questo toggle quando vuoi mostrare e aprire la prenotazione.'}
+                          {dayKey === '24'
+                            ? (limits.active ? 'La prenotazione per il 24 Ottobre è visibile al pubblico.' : 'NON ATTIVA per ora: attiva questo toggle quando vuoi renderla visibile al pubblico.')
+                            : (limits.active ? `La prenotazione per ${dayLabel} è visibile al pubblico.` : `Attiva questo toggle quando vuoi mostrare ${dayLabel} sul sito.`)}
                         </div>
                       </div>
                       <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', flexShrink: 0 }}>
                         <input
                           type="checkbox"
                           checked={Boolean(limits.active)}
-                          onChange={e => updateDateLimit('25', 'active', e.target.checked)}
+                          onChange={e => updateDateLimit(dayKey, 'active', e.target.checked)}
                           style={{ opacity: 0, width: 0, height: 0 }}
                         />
                         <span style={{
