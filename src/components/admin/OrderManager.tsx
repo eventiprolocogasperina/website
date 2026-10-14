@@ -6,7 +6,8 @@ import {
   Phone, Mail, FileText, Loader2, Plus, MailOpen, Trash2, Edit,
   TrendingUp, Users, Calendar, Ticket as TicketIcon, BarChart3,
   Sparkles, Wine, ArrowUpRight,
-  CreditCard, Link2, Copy, Check, ExternalLink, Send
+  CreditCard, Link2, Copy, Check, ExternalLink, Send,
+  Ban, ShieldCheck
 } from 'lucide-react';
 import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 
@@ -32,7 +33,7 @@ export default function OrderManager() {
   // Day filter for Zuccaland (multi-date: 17, 18, 24, 25, 10, 11 Ottobre)
   const [zuccalandDayFilter, setZuccalandDayFilter] = useState<'all' | '17' | '18' | '24' | '25' | '10' | '11'>('all');
 
-  const [viewMode, setViewMode] = useState<'active' | 'archived'>('active');
+  const [viewMode, setViewMode] = useState<'active' | 'archived' | 'blacklist'>('active');
   const [testingOrder, setTestingOrder] = useState(false);
   const [sendingEmails, setSendingEmails] = useState(false);
   
@@ -63,6 +64,11 @@ export default function OrderManager() {
   const [newSelectedDate, setNewSelectedDate] = useState<string>('Sabato 17 Ottobre 2026');
   const [resendTicketsOnDateChange, setResendTicketsOnDateChange] = useState<boolean>(true);
   const [submittingDateChange, setSubmittingDateChange] = useState<boolean>(false);
+
+  // Blacklist modal state
+  const [blacklistModalOrder, setBlacklistModalOrder] = useState<OrderWithTickets | null>(null);
+  const [blacklistReason, setBlacklistReason] = useState<string>('');
+  const [blacklisting, setBlacklisting] = useState<boolean>(false);
 
   // Edit order modal
   const [editingOrder, setEditingOrder] = useState<OrderWithTickets | null>(null);
@@ -445,6 +451,38 @@ export default function OrderManager() {
     }
   };
 
+  const handleOpenBlacklistModal = (order: OrderWithTickets) => {
+    setBlacklistModalOrder(order);
+    setBlacklistReason(order.blacklistReason || '');
+  };
+
+  const handleConfirmToggleBlacklist = async (isBlacklisted: boolean) => {
+    if (!blacklistModalOrder) return;
+    setBlacklisting(true);
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: blacklistModalOrder.id,
+          action: 'TOGGLE_BLACKLIST',
+          isBlacklisted,
+          reason: blacklistReason
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore durante l\'aggiornamento della blacklist');
+      alert(data.message || (isBlacklisted ? 'Ordine aggiunto alla Blacklist' : 'Ordine rimosso dalla Blacklist'));
+      setBlacklistModalOrder(null);
+      setBlacklistReason('');
+      fetchOrders();
+    } catch (err: any) {
+      alert(err.message || 'Errore');
+    } finally {
+      setBlacklisting(false);
+    }
+  };
+
   const handleOpenPayLinkModal = (order: OrderWithTickets) => {
     setSelectedOrderForPayLink(order);
     setPayLinkQuantities({});
@@ -558,6 +596,13 @@ export default function OrderManager() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
+      // Blacklist filter
+      if (viewMode === 'blacklist') {
+        if (!o.isBlacklisted) return false;
+      } else if (viewMode === 'active') {
+        if (o.isBlacklisted) return false;
+      }
+
       // Search filter
       const matchesSearch = 
         o.buyerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -586,7 +631,7 @@ export default function OrderManager() {
 
       return matchesSearch && matchesStatus && matchesTab && matchesDay;
     });
-  }, [orders, searchTerm, filterStatus, activeTab, zuccalandDayFilter]);
+  }, [orders, searchTerm, filterStatus, activeTab, zuccalandDayFilter, viewMode]);
 
   // ─── Global Stats Calculations ────────────────────────────────────────────
 
@@ -902,18 +947,34 @@ export default function OrderManager() {
           </button>
         </div>
 
-        {/* View Mode (Active / Bin) & Quick Export */}
+        {/* View Mode (Active / Blacklist / Bin) & Quick Export */}
         <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
           <button 
             className={`btn ${viewMode === 'active' ? 'btn-primary' : 'btn-outline'}`}
             style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }} 
             onClick={() => setViewMode('active')}
           >
-            Attivi
+            Attivi ({orders.filter(o => !o.isBlacklisted).length})
+          </button>
+          <button 
+            className={`btn ${viewMode === 'blacklist' ? 'btn-primary' : 'btn-outline'}`}
+            style={{ 
+              fontSize: '0.8rem', 
+              padding: '0.4rem 0.85rem',
+              borderColor: viewMode === 'blacklist' ? '#ef4444' : 'rgba(239, 68, 68, 0.5)',
+              color: viewMode === 'blacklist' ? '#fff' : '#ef4444',
+              backgroundColor: viewMode === 'blacklist' ? '#ef4444' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem'
+            }} 
+            onClick={() => setViewMode('blacklist')}
+          >
+            <Ban size={14} /> Blacklist ({orders.filter(o => o.isBlacklisted).length})
           </button>
           <button 
             className={`btn ${viewMode === 'archived' ? 'btn-primary' : 'btn-outline'}`}
-            style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }} 
+            style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }} 
             onClick={() => setViewMode('archived')}
           >
             <Trash2 size={14} /> Cestino
@@ -2103,14 +2164,25 @@ export default function OrderManager() {
                   </td>
 
                   <td>
-                    <span style={{ 
-                      padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
-                      background: o.status === 'PAID' ? 'var(--badge-paid-bg)' : o.status === 'PENDING' ? 'var(--badge-pending-bg)' : 'var(--badge-failed-bg)',
-                      color: o.status === 'PAID' ? 'var(--badge-paid-text)' : o.status === 'PENDING' ? 'var(--badge-pending-text)' : 'var(--badge-failed-text)',
-                      border: `1px solid ${o.status === 'PAID' ? 'var(--badge-paid-border)' : o.status === 'PENDING' ? 'var(--badge-pending-border)' : 'var(--badge-failed-border)'}`
-                    }}>
-                      {o.status}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                      <span style={{ 
+                        padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
+                        background: o.status === 'PAID' ? 'var(--badge-paid-bg)' : o.status === 'PENDING' ? 'var(--badge-pending-bg)' : 'var(--badge-failed-bg)',
+                        color: o.status === 'PAID' ? 'var(--badge-paid-text)' : o.status === 'PENDING' ? 'var(--badge-pending-text)' : 'var(--badge-failed-text)',
+                        border: `1px solid ${o.status === 'PAID' ? 'var(--badge-paid-border)' : o.status === 'PENDING' ? 'var(--badge-pending-border)' : 'var(--badge-failed-border)'}`
+                      }}>
+                        {o.status}
+                      </span>
+                      {o.isBlacklisted && (
+                        <span style={{
+                          padding: '0.18rem 0.45rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800,
+                          background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', border: '1px solid #ef4444',
+                          display: 'inline-flex', alignItems: 'center', gap: '0.25rem'
+                        }} title={o.blacklistReason ? `Motivo: ${o.blacklistReason}` : 'In Blacklist'}>
+                          ⛔ BLACKLIST
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   <td>
@@ -2173,6 +2245,13 @@ export default function OrderManager() {
                         </button>
                       ) : (
                         <>
+                          <button 
+                            onClick={() => handleOpenBlacklistModal(o)} 
+                            style={{ color: o.isBlacklisted ? '#22c55e' : '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }} 
+                            title={o.isBlacklisted ? "Rimuovi da Blacklist (Ripristina)" : "Sposta in Blacklist (Blocca accesso)"}
+                          >
+                            {o.isBlacklisted ? <ShieldCheck size={16} /> : <Ban size={16} />}
+                          </button>
                           <button onClick={() => handleEditClick(o)} style={{ color: 'var(--neutral-400)', background: 'none', border: 'none', cursor: 'pointer' }} title="Modifica Ordine">
                             <Edit size={16} />
                           </button>
@@ -2625,6 +2704,127 @@ export default function OrderManager() {
                   <><Calendar size={16} /> Conferma Spostamento</>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          BLACKLIST MODAL
+      ────────────────────────────────────────────────────────────────────────── */}
+      {blacklistModalOrder && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '520px', padding: '2rem', border: `1.5px solid ${blacklistModalOrder.isBlacklisted ? '#22c55e' : '#ef4444'}`, background: 'var(--neutral-900)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={{ 
+                  background: blacklistModalOrder.isBlacklisted ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)', 
+                  color: blacklistModalOrder.isBlacklisted ? '#22c55e' : '#ef4444', 
+                  padding: '0.2rem 0.65rem', 
+                  borderRadius: '999px', 
+                  fontSize: '0.72rem', 
+                  fontWeight: 800, 
+                  textTransform: 'uppercase',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}>
+                  {blacklistModalOrder.isBlacklisted ? <ShieldCheck size={13} /> : <Ban size={13} />}
+                  {blacklistModalOrder.isBlacklisted ? 'Gestione Blacklist (Attivo)' : 'Blocco / Blacklist Ordine'}
+                </span>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-heading)', margin: '0.35rem 0 0' }}>
+                  Ordine #{blacklistModalOrder.id.substring(0, 8).toUpperCase()}
+                </h3>
+              </div>
+              <button onClick={() => setBlacklistModalOrder(null)} style={{ background: 'none', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer' }}>
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            {/* Current Details */}
+            <div style={{ background: 'var(--neutral-800)', padding: '0.85rem 1rem', borderRadius: '0.75rem', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+              <div style={{ color: 'var(--neutral-300)', marginBottom: '0.25rem' }}>
+                👤 <b>Acquirente:</b> {blacklistModalOrder.buyerName} ({blacklistModalOrder.buyerEmail})
+              </div>
+              {blacklistModalOrder.buyerPhone && (
+                <div style={{ color: 'var(--neutral-400)', marginBottom: '0.25rem' }}>
+                  📞 <b>Telefono:</b> {blacklistModalOrder.buyerPhone}
+                </div>
+              )}
+              <div style={{ color: 'var(--neutral-400)', marginBottom: '0.25rem' }}>
+                🎟 <b>Biglietti:</b> {blacklistModalOrder.tickets?.length || 0} biglietti
+              </div>
+              <div style={{ color: blacklistModalOrder.isBlacklisted ? '#ef4444' : '#22c55e', fontWeight: 700 }}>
+                Stato attuale: {blacklistModalOrder.isBlacklisted ? '⛔ ATTUALMENTE IN BLACKLIST' : '✅ ATTIVO / NON IN BLACKLIST'}
+              </div>
+              {blacklistModalOrder.isBlacklisted && blacklistModalOrder.blacklistReason && (
+                <div style={{ marginTop: '0.4rem', color: '#fca5a5', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                  Motivo registrato: "{blacklistModalOrder.blacklistReason}"
+                </div>
+              )}
+            </div>
+
+            {/* Warning Info */}
+            <div style={{ background: blacklistModalOrder.isBlacklisted ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${blacklistModalOrder.isBlacklisted ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: '0.5rem', padding: '0.85rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: 'var(--neutral-300)' }}>
+              {blacklistModalOrder.isBlacklisted ? (
+                <span>
+                  🟢 <b>Rimuovendo questo ordine dalla blacklist</b>, i biglietti torneranno validi e lo scanner all'ingresso consentirà nuovamente l'accesso.
+                </span>
+              ) : (
+                <span>
+                  ⚠️ <b>Mettendo questo ordine in blacklist</b>, l'accesso verrà <b>immediatamente bloccato</b> allo scanner dei biglietti all'ingresso, segnalando l'ordine all'operatore di cassa/varchi.
+                </span>
+              )}
+            </div>
+
+            {/* Motivo Input */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-heading)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>
+                Motivo / Note per la Blacklist:
+              </label>
+              <textarea
+                value={blacklistReason}
+                onChange={(e) => setBlacklistReason(e.target.value)}
+                placeholder="Es. Richiesta rimborso / Chargeback bancario / Violazione regolamento / Comportamento non idoneo..."
+                rows={3}
+                className="input"
+                style={{ width: '100%', resize: 'vertical', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                onClick={() => setBlacklistModalOrder(null)}
+                disabled={blacklisting}
+              >
+                Annulla
+              </button>
+              {blacklistModalOrder.isBlacklisted ? (
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ background: '#22c55e', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  onClick={() => handleConfirmToggleBlacklist(false)}
+                  disabled={blacklisting}
+                >
+                  {blacklisting ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                  Rimuovi da Blacklist (Ripristina)
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ background: '#ef4444', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  onClick={() => handleConfirmToggleBlacklist(true)}
+                  disabled={blacklisting}
+                >
+                  {blacklisting ? <Loader2 size={16} className="animate-spin" /> : <Ban size={16} />}
+                  Conferma Blocco in Blacklist
+                </button>
+              )}
             </div>
           </div>
         </div>

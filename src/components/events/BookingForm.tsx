@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Send, CheckCircle, Download, Loader2, MessageCircle } from 'lucide-react';
 
 interface BookingFormProps {
@@ -147,7 +148,7 @@ info@prolocogasperina.it`;
         <input id="bf-gdpr" type="checkbox" checked={form.gdpr} onChange={e => setForm(f => ({ ...f, gdpr: e.target.checked }))}
           style={{ marginTop: '2px', accentColor: 'var(--blue-700)', flexShrink: 0 }} />
         <label htmlFor="bf-gdpr" style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', lineHeight: 1.5 }}>
-          Acconsento al trattamento dei dati personali ai sensi del GDPR (Regolamento UE 2016/679) per la gestione della prenotazione. *
+          Acconsento al trattamento dei dati personali ai sensi del GDPR (Regolamento UE 2016/679) secondo l&apos;<Link href="/privacy" target="_blank" style={{ color: 'var(--gold-400)', textDecoration: 'underline' }}>Informativa Privacy</Link> per la gestione della prenotazione. *
         </label>
       </div>
       {errors.gdpr && <p style={{ fontSize: '0.75rem', color: '#f87171', marginTop: '-0.4rem' }}>{errors.gdpr}</p>}

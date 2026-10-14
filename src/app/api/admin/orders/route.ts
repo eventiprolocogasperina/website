@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { getOrder, markOrderPaid } from '@/lib/data/tickets';
+import { getOrder, markOrderPaid, toggleOrderBlacklist } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
 
@@ -11,12 +11,22 @@ function getDb() {
 export async function GET() {
   try {
     const sql = getDb();
+    // Ensure blacklist columns exist
+    await sql`
+      ALTER TABLE orders 
+      ADD COLUMN IF NOT EXISTS "isBlacklisted" BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS "blacklistReason" TEXT,
+      ADD COLUMN IF NOT EXISTS "blacklistedAt" TIMESTAMP;
+    `;
     const orders = await sql`SELECT * FROM orders WHERE "deletedAt" IS NULL ORDER BY "createdAt" DESC`;
     const tickets = await sql`SELECT * FROM tickets`;
 
     const ordersWithTickets = orders.map(order => ({
       ...order,
       totalAmount: Number(order.totalAmount),
+      isBlacklisted: !!order.isBlacklisted,
+      blacklistReason: order.blacklistReason || undefined,
+      blacklistedAt: order.blacklistedAt || undefined,
       tickets: tickets.filter(t => t.orderId === order.id).map(t => ({
         ...t,
         price: Number(t.price)
@@ -34,6 +44,12 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { orderId, action } = body;
     
+    if (action === 'TOGGLE_BLACKLIST') {
+      const { isBlacklisted, reason } = body;
+      await toggleOrderBlacklist(orderId, !!isBlacklisted, reason);
+      return NextResponse.json({ success: true, isBlacklisted: !!isBlacklisted });
+    }
+
     if (action === 'UPDATE_DETAILS') {
       const sql = getDb();
       const { buyerName, buyerEmail, buyerPhone, notes } = body;

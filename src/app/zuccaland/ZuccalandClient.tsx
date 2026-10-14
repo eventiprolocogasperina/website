@@ -1919,6 +1919,14 @@ function ZuccalandTicketBuyer({
                     >
                       Regolamento Ufficiale (PDF)
                     </a>
+                    {' '}e l&apos;{' '}
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      style={{ color: '#ea580c', fontWeight: 800, textDecoration: 'underline' }}
+                    >
+                      Informativa Privacy
+                    </Link>.
                   </div>
                 </div>
               </motion.div>

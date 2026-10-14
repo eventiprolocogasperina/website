@@ -13,6 +13,10 @@ export interface Order {
   paidAt?: string;
   notes?: string;
   thankYouEmailSent?: boolean;
+  isBlacklisted?: boolean;
+  blacklistReason?: string;
+  blacklistedAt?: string;
+  deletedAt?: string;
 }
 
 export interface Ticket {
@@ -76,11 +80,32 @@ export async function getOrder(id: string): Promise<OrderWithTickets | null> {
     ...orders[0] as Order,
     totalAmount: Number(orders[0].totalAmount),
     thankYouEmailSent: !!orders[0].thankYouEmailSent,
+    isBlacklisted: !!orders[0].isBlacklisted,
+    blacklistReason: orders[0].blacklistReason || undefined,
+    blacklistedAt: orders[0].blacklistedAt || undefined,
+    deletedAt: orders[0].deletedAt || undefined,
     tickets: tickets.map(t => ({
       ...t,
       price: Number(t.price)
     })) as Ticket[]
   };
+}
+
+export async function toggleOrderBlacklist(orderId: string, isBlacklisted: boolean, reason?: string) {
+  const sql = getDb();
+  await sql`
+    ALTER TABLE orders 
+    ADD COLUMN IF NOT EXISTS "isBlacklisted" BOOLEAN DEFAULT false,
+    ADD COLUMN IF NOT EXISTS "blacklistReason" TEXT,
+    ADD COLUMN IF NOT EXISTS "blacklistedAt" TIMESTAMP;
+  `;
+  await sql`
+    UPDATE orders 
+    SET "isBlacklisted" = ${isBlacklisted},
+        "blacklistReason" = ${reason || null},
+        "blacklistedAt" = ${isBlacklisted ? new Date().toISOString() : null}
+    WHERE id = ${orderId}
+  `;
 }
 
 // Nexi returns the codTrans which is exactly the orderId we sent (max 30 alphanumeric characters)
@@ -159,6 +184,16 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{
       const eventId = orderTickets[0]?.eventId || 'assaggia-e-passeggia-2024';
       const stats = await getTicketingStats(eventId);
 
+      if (order.isBlacklisted) {
+        return { 
+          success: false, 
+          message: `⛔ ACCESSO BLOCCATO - ORDINE IN BLACKLIST!\n${order.blacklistReason ? `Motivo: ${order.blacklistReason}\n` : ''}Ingresso non consentito. Rivolgersi all'amministrazione.`, 
+          order: { ...order, thankYouEmailSent: !!order.thankYouEmailSent }, 
+          orderTickets: orderTickets as Ticket[], 
+          stats 
+        };
+      }
+
       if (allCheckedIn) {
         return { 
           success: false, 
@@ -189,6 +224,8 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{
           status: o.status,
           createdAt: o.createdAt,
           notes: o.notes,
+          isBlacklisted: !!o.isBlacklisted,
+          blacklistReason: o.blacklistReason || undefined,
           totalTickets: tList.length,
           checkedInTickets: checkedIn
         };
@@ -213,6 +250,18 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{
   const order = orders.length > 0 ? orders[0] : null;
   const orderTickets = await sql`SELECT * FROM tickets WHERE "orderId" = ${ticket.orderId}`;
   const allCheckedIn = orderTickets.every((t: any) => t.isCheckedIn);
+
+  if (order?.isBlacklisted) {
+    const stats = await getTicketingStats(ticket.eventId || 'assaggia-e-passeggia-2024');
+    return { 
+      success: false, 
+      message: `⛔ ACCESSO BLOCCATO - ORDINE IN BLACKLIST!\n${order.blacklistReason ? `Motivo: ${order.blacklistReason}\n` : ''}Ingresso non consentito. Rivolgersi all'amministrazione.`, 
+      ticket, 
+      order: order ? { ...order, thankYouEmailSent: !!order.thankYouEmailSent } : undefined, 
+      orderTickets: orderTickets as Ticket[], 
+      stats 
+    };
+  }
 
   if (allCheckedIn) {
     const stats = await getTicketingStats('assaggia-e-passeggia-2024');
