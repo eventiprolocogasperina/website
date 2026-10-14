@@ -841,6 +841,22 @@ export default function CashierClient() {
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
           </button>
 
+          <a
+            href="/manuali/guida-cassa.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Scarica Guida PDF Cassa"
+            style={{
+              padding: '0.45rem 0.75rem', borderRadius: '0.75rem',
+              background: T.bgCard, border: `1px solid ${T.border}`,
+              color: T.text, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
+              fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none'
+            }}
+          >
+            <FileText size={14} />
+            <span className="hide-mobile">Guida PDF</span>
+          </a>
+
           <button onClick={handleLogout} title="Esci" style={{
             padding: '0.45rem', borderRadius: '0.75rem',
             background: T.dangerMuted, border: `1px solid ${T.danger}40`,

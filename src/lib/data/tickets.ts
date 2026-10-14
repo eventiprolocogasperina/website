@@ -105,51 +105,106 @@ export async function markOrderPaidByCodTrans(codTrans: string) {
   await markOrderPaid(codTrans);
 }
 
-export async function verifyTicketByQR(qrCodeData: string): Promise<{ success: boolean; message: string; ticket?: Ticket; order?: any, orderTickets?: Ticket[], stats?: any }> {
+export async function verifyTicketByQR(qrCodeData: string): Promise<{ 
+  success: boolean; 
+  message: string; 
+  ticket?: Ticket; 
+  order?: any; 
+  orderTickets?: Ticket[]; 
+  multipleOrders?: any[]; 
+  stats?: any 
+}> {
   const sql = getDb();
+  const rawInput = qrCodeData.trim();
   
-  let tickets = await sql`SELECT * FROM tickets WHERE "qrCodeData" = ${qrCodeData} OR id = ${qrCodeData}`;
+  let tickets = await sql`SELECT * FROM tickets WHERE "qrCodeData" = ${rawInput} OR id = ${rawInput}`;
   
   if (tickets.length === 0) {
     // Prova una ricerca permissiva (sostituendo caratteri speciali con jolly) per aggirare problemi di layout tastiera dello scanner
-    const lenientSearch = qrCodeData.replace(/[^a-zA-Z0-9]/g, '%');
+    const lenientSearch = rawInput.replace(/[^a-zA-Z0-9]/g, '%');
     // Aggiungiamo i jolly anche all'inizio e alla fine nel caso in cui lo scanner perda il primo/ultimo carattere
     const wildcardSearch = `%${lenientSearch}%`;
     tickets = await sql`SELECT * FROM tickets WHERE "qrCodeData" ILIKE ${wildcardSearch}`;
   }
   if (tickets.length === 0) {
-    // If no ticket found, try searching by order ID
-    const orders = await sql`SELECT * FROM orders WHERE id = ${qrCodeData}`;
-    if (orders.length > 0) {
+    // Ricerca ordine per ID, Codice/Numero Ordine, oppure Nome/Email Ordinante
+    const cleanId = rawInput.replace(/^#/, '').replace(/[^a-zA-Z0-9-]/g, '');
+    let orders: any[] = [];
+
+    if (cleanId.length >= 4) {
+      orders = await sql`
+        SELECT * FROM orders 
+        WHERE (id = ${rawInput} OR id = ${cleanId} OR REPLACE(id, '-', '') ILIKE ${cleanId + '%'} OR id ILIKE ${cleanId + '%'})
+          AND "deletedAt" IS NULL
+        ORDER BY (status = 'PAID') DESC, "createdAt" DESC
+        LIMIT 10
+      `;
+    }
+
+    if (orders.length === 0 && rawInput.length >= 2) {
+      orders = await sql`
+        SELECT * FROM orders 
+        WHERE ("buyerName" ILIKE ${'%' + rawInput + '%'} OR "buyerEmail" ILIKE ${'%' + rawInput + '%'})
+          AND "deletedAt" IS NULL
+        ORDER BY (status = 'PAID') DESC, "createdAt" DESC
+        LIMIT 10
+      `;
+    }
+
+    if (orders.length === 1) {
       const order = orders[0];
       const orderTickets = await sql`SELECT * FROM tickets WHERE "orderId" = ${order.id}`;
-      const allCheckedIn = orderTickets.every((t: any) => t.isCheckedIn);
+      const checkedInCount = orderTickets.filter((t: any) => t.isCheckedIn).length;
+      const allCheckedIn = orderTickets.length > 0 && checkedInCount === orderTickets.length;
+      const eventId = orderTickets[0]?.eventId || 'assaggia-e-passeggia-2024';
+      const stats = await getTicketingStats(eventId);
 
       if (allCheckedIn) {
-        const stats = await getTicketingStats('assaggia-e-passeggia-2024'); // Note: eventId is currently hardcoded here
         return { 
           success: false, 
-          message: 'Tutti i biglietti di questo ordine sono già stati utilizzati.', 
+          message: `Tutti i biglietti di questo ordine sono già stati utilizzati.\n(${order.buyerName} - ${orderTickets.length} biglietti)`, 
           order: { ...order, thankYouEmailSent: !!order.thankYouEmailSent }, 
           orderTickets: orderTickets as Ticket[], 
           stats 
         };
       }
 
-      await sql`UPDATE tickets SET "isCheckedIn" = true, "checkInTime" = CURRENT_TIMESTAMP WHERE "orderId" = ${order.id}`;
-      const updatedOrderTickets = await sql`SELECT * FROM tickets WHERE "orderId" = ${order.id}`;
-      const stats = await getTicketingStats('assaggia-e-passeggia-2024');
-      
       return { 
-        success: true, 
-        message: `Intero ordine verificato! ${updatedOrderTickets.length} biglietti validati.`, 
+        success: false, 
+        message: `Ordine trovato: ${order.buyerName}\n(${checkedInCount}/${orderTickets.length} biglietti già convalidati)`, 
         order: { ...order, thankYouEmailSent: !!order.thankYouEmailSent }, 
-        orderTickets: updatedOrderTickets as Ticket[], 
+        orderTickets: orderTickets as Ticket[], 
         stats 
+      };
+    } else if (orders.length > 1) {
+      const enrichedOrders = await Promise.all(orders.map(async (o: any) => {
+        const tList = await sql`SELECT id, "isCheckedIn", type FROM tickets WHERE "orderId" = ${o.id}`;
+        const checkedIn = tList.filter((t: any) => t.isCheckedIn).length;
+        return {
+          id: o.id,
+          buyerName: o.buyerName,
+          buyerEmail: o.buyerEmail,
+          buyerPhone: o.buyerPhone,
+          totalAmount: Number(o.totalAmount || 0),
+          status: o.status,
+          createdAt: o.createdAt,
+          notes: o.notes,
+          totalTickets: tList.length,
+          checkedInTickets: checkedIn
+        };
+      }));
+
+      const stats = await getTicketingStats('assaggia-e-passeggia-2024');
+
+      return {
+        success: false,
+        message: `Ordine trovato: ${orders.length} ordini corrispondono alla ricerca. Seleziona quello desiderato:`,
+        multipleOrders: enrichedOrders,
+        stats
       };
     }
 
-    return { success: false, message: 'Biglietto non trovato.' };
+    return { success: false, message: `Nessun biglietto o ordine trovato per "${rawInput}".` };
   }
 
   const ticket = tickets[0] as Ticket;

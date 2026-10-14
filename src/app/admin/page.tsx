@@ -166,13 +166,46 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <QrCode size={22} style={{ color: 'var(--blue-400)' }} />
               <div>
-                <div style={{ fontWeight: 600, color: 'var(--color-heading)', fontSize: '0.9rem' }}>Scanner biglietti A&P</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Apri lo scanner per validare i biglietti all&apos;ingresso</div>
+                <div style={{ fontWeight: 600, color: 'var(--color-heading)', fontSize: '0.9rem' }}>Scanner biglietti A&P / Zuccaland</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Apri lo scanner per validare i biglietti all&apos;ingresso o cercare per nome/ordine</div>
               </div>
             </div>
             <Link href="/admin/scanner" target="_blank" className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.6rem 1.2rem' }}>
               Apri Scanner
             </Link>
+          </div>
+
+          {/* Manuali Operativi PDF */}
+          <div style={{ marginTop: '1.5rem', padding: '1.25rem 1.5rem', background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)', borderRadius: 'var(--radius-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
+              <FileText size={20} style={{ color: 'var(--blue-400)' }} />
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--color-heading)', fontSize: '0.95rem' }}>Manuali Operativi per Volontari &amp; Staff (PDF)</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Guide rapide e istruzioni da stampare o inviare agli operatori per l&apos;evento</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+              <a 
+                href="/manuali/guida-scanner-biglietti.pdf" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn btn-secondary" 
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', fontSize: '0.85rem', textDecoration: 'none' }}
+              >
+                <span>📱 Guida Scanner Biglietti (PDF)</span>
+                <ArrowRight size={16} />
+              </a>
+              <a 
+                href="/manuali/guida-cassa.pdf" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn btn-secondary" 
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', fontSize: '0.85rem', textDecoration: 'none' }}
+              >
+                <span>🧾 Guida Punto Cassa &amp; POS (PDF)</span>
+                <ArrowRight size={16} />
+              </a>
+            </div>
           </div>
         </>
       )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { QrCode, CheckCircle2, XCircle, AlertTriangle, User, Ticket, Clock, Users, Activity, Sparkles, Plus, Volume2, VolumeX, Camera, RotateCcw, WifiOff } from 'lucide-react';
+import { QrCode, CheckCircle2, XCircle, AlertTriangle, User, Ticket, Clock, Users, Activity, Sparkles, Plus, Volume2, VolumeX, Camera, RotateCcw, WifiOff, FileText, ChevronRight, Search } from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import type { Ticket as TicketType } from '@/lib/data/tickets';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ interface ScanResult {
   ticket?: TicketType;
   order?: any;
   orderTickets?: TicketType[];
+  multipleOrders?: any[];
 }
 
 interface RecentScan {
@@ -186,9 +187,11 @@ export default function ScannerPage() {
         setStats(data.stats);
       }
       
-      const newStatus = data.success ? 'success' : (
-        (data.message.includes('già stato utilizzato') || data.message.includes('già stati utilizzati') || data.message.includes('già utilizzato')) ? 'already_used' : 
-        data.message.includes('Ordine trovato') ? 'order_found' : 'error'
+      const newStatus = (data.multipleOrders && data.multipleOrders.length > 0) ? 'order_found' : (
+        data.success ? 'success' : (
+          (data.message?.includes('già stato utilizzato') || data.message?.includes('già stati utilizzati') || data.message?.includes('già utilizzato')) ? 'already_used' : 
+          data.message?.includes('Ordine trovato') ? 'order_found' : 'error'
+        )
       );
 
       setScanResult({ 
@@ -196,10 +199,11 @@ export default function ScannerPage() {
         message: data.message, 
         ticket: data.ticket, 
         order: data.order, 
-        orderTickets: data.orderTickets 
+        orderTickets: data.orderTickets,
+        multipleOrders: data.multipleOrders
       });
 
-      if (newStatus === 'success') {
+      if (newStatus === 'success' || newStatus === 'order_found') {
         playBeep('success');
       } else {
         playBeep('error');
@@ -207,12 +211,12 @@ export default function ScannerPage() {
 
       if (newStatus === 'success' || newStatus === 'already_used' || newStatus === 'order_found') {
         setRecentScans(prev => [{
-          id: data.ticket?.id || Math.random().toString(),
+          id: data.ticket?.id || data.order?.id || Math.random().toString(),
           timestamp: new Date().toLocaleTimeString(),
           status: newStatus as ScanStatus,
           message: data.message,
-          ticketType: data.ticket?.type || 'Ordine Multiplo',
-          buyerName: data.order?.buyerName
+          ticketType: data.ticket?.type || (data.multipleOrders ? `${data.multipleOrders.length} Ordini` : (data.orderTickets ? `${data.orderTickets.length} Biglietti` : 'Ordine Multiplo')),
+          buyerName: data.order?.buyerName || (data.multipleOrders ? `${data.multipleOrders.length} ordini trovati` : undefined)
         }, ...prev].slice(0, 10));
       }
     } catch (err) {
@@ -370,6 +374,28 @@ export default function ScannerPage() {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <a 
+            href="/manuali/guida-scanner-biglietti.pdf" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem', 
+              background: 'var(--neutral-800)', 
+              border: '1px solid var(--neutral-700)', 
+              color: 'var(--neutral-200)', 
+              padding: '0.45rem 0.85rem', 
+              borderRadius: '0.5rem', 
+              fontSize: '0.8rem', 
+              textDecoration: 'none', 
+              fontWeight: 600
+            }} 
+            title="Scarica Guida PDF dello Scanner"
+          >
+            <FileText size={15} />
+            <span>Guida PDF</span>
+          </a>
           <button onClick={() => setIsMuted(!isMuted)} style={{ background: 'var(--neutral-800)', border: 'none', color: 'var(--white)', padding: '0.4rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Silenzia Audio">
              {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
           </button>
@@ -406,21 +432,33 @@ export default function ScannerPage() {
           
           <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--neutral-900)', borderRadius: '1rem', border: '1px solid var(--neutral-800)' }}>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input 
-                ref={inputRef}
-                type="text" 
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--neutral-700)', background: 'var(--neutral-950)', color: 'white', fontFamily: 'monospace' }}
-                placeholder="Scannerizza QR o digita ID..."
-                autoComplete="off"
-              />
+              <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                <Search size={18} style={{ position: 'absolute', left: '0.75rem', color: 'var(--neutral-500)', pointerEvents: 'none' }} />
+                <input 
+                  ref={inputRef}
+                  type="text" 
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  style={{ width: '100%', padding: '0.75rem 2rem 0.75rem 2.4rem', borderRadius: '0.5rem', border: '1px solid var(--neutral-700)', background: 'var(--neutral-950)', color: 'white', fontFamily: 'monospace' }}
+                  placeholder="Scannerizza QR, digita N° Ordine o Nome..."
+                  autoComplete="off"
+                />
+                {inputValue && (
+                  <button 
+                    onClick={() => setInputValue('')}
+                    style={{ position: 'absolute', right: '0.75rem', background: 'transparent', border: 'none', color: 'var(--neutral-400)', cursor: 'pointer', fontSize: '1.1rem', padding: 0 }}
+                    title="Cancella testo"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <button 
                 onClick={() => { handleScan(inputValue); setInputValue(''); }}
                 style={{ padding: '0 1.5rem', borderRadius: '0.5rem', background: 'var(--blue-500)', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
               >
-                Verifica
+                Cerca
               </button>
             </div>
           </div>
@@ -467,207 +505,279 @@ export default function ScannerPage() {
                 </p>
               </div>
               
-              {/* === SMART PARSED BADGES === */}
-              {parsedNotes && (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
-                    {parsedNotes.date && (
-                      <div style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Data Prenotata</span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>{parsedNotes.date}</span>
-                      </div>
-                    )}
-                    
-                    <div style={{ background: 'rgba(59, 130, 246, 0.25)', border: '1px solid rgba(59, 130, 246, 0.4)', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
-                      <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.2rem', lineHeight: 1 }}>👨</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#bfdbfe', display: 'block', lineHeight: 1 }}>{totalAdults}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#93c5fd', textTransform: 'uppercase', fontWeight: 800 }}>Adulti</span>
-                    </div>
-
-                    <div style={{ background: 'rgba(236, 72, 153, 0.25)', border: '1px solid rgba(236, 72, 153, 0.4)', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
-                      <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.2rem', lineHeight: 1 }}>🧒</span>
-                      <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fbcfe8', display: 'block', lineHeight: 1 }}>{totalChildren}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#f9a8d4', textTransform: 'uppercase', fontWeight: 800 }}>Bambini</span>
-                    </div>
-
-                    {labCount > 0 && (
-                      <div style={{ background: 'rgba(245, 158, 11, 0.25)', border: '1px solid rgba(245, 158, 11, 0.4)', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
-                        <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.2rem', lineHeight: 1 }}>🎃</span>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fde68a', display: 'block', lineHeight: 1 }}>{labCount}</span>
-                        <span style={{ fontSize: '0.75rem', color: '#fcd34d', textTransform: 'uppercase', fontWeight: 800 }}>You-Pick Lab</span>
-                      </div>
-                    )}
+              {/* === MULTIPLE ORDERS SELECTION OR SINGLE ORDER DETAILS === */}
+              {scanResult.multipleOrders && scanResult.multipleOrders.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem', color: '#93c5fd', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Trovati {scanResult.multipleOrders.length} ordini per questa ricerca. Tocca per selezionare:
                   </div>
+                  {scanResult.multipleOrders.map((o) => (
+                    <div 
+                      key={o.id}
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.35)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div>
+                          <div style={{ color: 'white', fontWeight: 700, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            👤 {o.buyerName}
+                          </div>
+                          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                            #{o.id ? o.id.replace(/-/g, '').substring(0, 8).toUpperCase() : ''} {o.buyerEmail ? `• 📧 ${o.buyerEmail}` : ''} {o.buyerPhone ? `• 📱 ${o.buyerPhone}` : ''}
+                          </div>
+                        </div>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 800, 
+                          padding: '0.2rem 0.6rem', 
+                          borderRadius: '999px',
+                          background: o.status === 'PAID' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)',
+                          color: o.status === 'PAID' ? '#34d399' : '#f87171',
+                          border: `1px solid ${o.status === 'PAID' ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'}`
+                        }}>
+                          {o.status}
+                        </span>
+                      </div>
 
-                  {activities.length > 0 && (
-                    <div style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#6ee7b7', fontWeight: 800, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Activity size={14} /> Attività Confermate
-                      </span>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {activities.map((act, i) => (
-                          <span key={i} style={{ background: 'rgba(16, 185, 129, 0.3)', color: '#fff', padding: '0.4rem 0.85rem', borderRadius: '999px', fontSize: '0.9rem', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.5)' }}>
-                            {act}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                        <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}>
+                          🎟️ <strong>{o.totalTickets}</strong> {o.totalTickets === 1 ? 'biglietto' : 'biglietti'} <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>({o.checkedInTickets} già convalidati)</span>
+                        </div>
+                        <button
+                          onClick={() => handleScan(o.id)}
+                          style={{
+                            background: '#2563eb',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          Seleziona Ordine <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {/* === SMART PARSED BADGES === */}
+                  {parsedNotes && (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                        {parsedNotes.date && (
+                          <div style={{ gridColumn: '1 / -1', background: 'rgba(255,255,255,0.1)', padding: '0.75rem 1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>Data Prenotata</span>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>{parsedNotes.date}</span>
+                          </div>
+                        )}
+                        
+                        <div style={{ background: 'rgba(59, 130, 246, 0.25)', border: '1px solid rgba(59, 130, 246, 0.4)', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
+                          <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.2rem', lineHeight: 1 }}>👨</span>
+                          <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#bfdbfe', display: 'block', lineHeight: 1 }}>{totalAdults}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#93c5fd', textTransform: 'uppercase', fontWeight: 800 }}>Adulti</span>
+                        </div>
+
+                        <div style={{ background: 'rgba(236, 72, 153, 0.25)', border: '1px solid rgba(236, 72, 153, 0.4)', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
+                          <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.2rem', lineHeight: 1 }}>🧒</span>
+                          <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fbcfe8', display: 'block', lineHeight: 1 }}>{totalChildren}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#f9a8d4', textTransform: 'uppercase', fontWeight: 800 }}>Bambini</span>
+                        </div>
+
+                        {labCount > 0 && (
+                          <div style={{ background: 'rgba(245, 158, 11, 0.25)', border: '1px solid rgba(245, 158, 11, 0.4)', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
+                            <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.2rem', lineHeight: 1 }}>🎃</span>
+                            <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fde68a', display: 'block', lineHeight: 1 }}>{labCount}</span>
+                            <span style={{ fontSize: '0.75rem', color: '#fcd34d', textTransform: 'uppercase', fontWeight: 800 }}>You-Pick Lab</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {activities.length > 0 && (
+                        <div style={{ background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem' }}>
+                          <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#6ee7b7', fontWeight: 800, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Activity size={14} /> Attività Confermate
                           </span>
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {activities.map((act, i) => (
+                              <span key={i} style={{ background: 'rgba(16, 185, 129, 0.3)', color: '#fff', padding: '0.4rem 0.85rem', borderRadius: '999px', fontSize: '0.9rem', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.5)' }}>
+                                {act}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {/* === END SMART BADGES === */}
+
+                  {/* Collapsible Buyer Info */}
+                  {scanResult.order && (
+                    <details style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '0.75rem', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <summary style={{ padding: '1rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <User size={16} /> Mostra dettagli acquirente e pagamento
+                      </summary>
+                      <div style={{ padding: '0 1rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Ordine</span>
+                          <span style={{ background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.78rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', fontFamily: 'monospace' }}>
+                            #{scanResult.order.id ? scanResult.order.id.replace(/-/g, '').substring(0, 8).toUpperCase() : ''}
+                          </span>
+                        </div>
+                        <div style={{ color: 'white', fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {scanResult.order.buyerName}
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.35rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
+                          {scanResult.order.buyerEmail && <span>📧 {scanResult.order.buyerEmail}</span>}
+                          {scanResult.order.buyerPhone && <span>📱 {scanResult.order.buyerPhone}</span>}
+                        </div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', marginTop: '0.6rem' }}>
+                          Pagamento: <strong style={{ color: scanResult.order.status === 'PAID' ? '#4ade80' : '#f87171' }}>{scanResult.order.status}</strong>
+                        </div>
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Extra Services/Payments */}
+                  {scanResult.order && (
+                    <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '0.75rem', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+                      {showExtraForm ? (
+                        <div style={{ padding: '1rem' }}>
+                          <h4 style={{ color: 'white', margin: '0 0 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Sparkles size={16} color="#fbbf24" /> Aggiungi Servizio Extra
+                          </h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              {EXTRA_SUGGESTIONS.map(s => (
+                                <button 
+                                  key={s.label} 
+                                  type="button" 
+                                  onClick={() => { setExtraDesc(s.label); setExtraAmount(s.defaultPrice); }} 
+                                  style={{ 
+                                    background: extraDesc === s.label ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255,255,255,0.1)', 
+                                    color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px', padding: '0.3rem 0.6rem', fontSize: '0.75rem', cursor: 'pointer' 
+                                  }}
+                                >
+                                  {s.label}
+                                </button>
+                              ))}
+                            </div>
+                            <input 
+                              type="text" 
+                              placeholder="Descrizione (es: +1 Laboratorio Extra)"
+                              value={extraDesc}
+                              onChange={(e) => setExtraDesc(e.target.value)}
+                              style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }}
+                            />
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                              <span style={{ color: 'var(--neutral-400)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Importo (€):</span>
+                              <input 
+                                type="number" 
+                                min="0"
+                                step="0.5"
+                                value={extraAmount}
+                                onChange={(e) => setExtraAmount(e.target.value)}
+                                style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }}
+                              />
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.2rem' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'white', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                <input type="radio" name="paymethod" value="CONTANTI" checked={extraPaymentMethod === 'CONTANTI'} onChange={() => setExtraPaymentMethod('CONTANTI')} /> Contanti
+                              </label>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'white', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                <input type="radio" name="paymethod" value="POS" checked={extraPaymentMethod === 'POS'} onChange={() => setExtraPaymentMethod('POS')} /> POS / Carta
+                              </label>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                              <button onClick={() => setShowExtraForm(false)} style={{ flex: 1, padding: '0.6rem', background: 'transparent', color: 'var(--neutral-400)', border: '1px solid var(--neutral-600)', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>Annulla</button>
+                              <button onClick={handleAddExtra} disabled={addingExtra} style={{ flex: 2, padding: '0.6rem', background: 'var(--blue-600)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
+                                {addingExtra ? 'Salvataggio...' : 'Conferma & Salva'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => setShowExtraForm(true)} style={{ width: '100%', padding: '1rem', color: '#fbbf24', fontSize: '0.85rem', cursor: 'pointer', border: 'none', outline: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent' }}>
+                          <Plus size={16} /> Aggiungi Servizi Extra (Pagamento in loco)
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Order Tickets Validation */}
+                  {scanResult.orderTickets && scanResult.orderTickets.length > 0 && (
+                    <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '0.75rem', padding: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700, fontSize: '0.9rem' }}>
+                          Biglietti Ordine ({scanResult.orderTickets.filter(t => t.isCheckedIn).length}/{scanResult.orderTickets.length} validati)
+                        </span>
+                        
+                        {scanResult.orderTickets.filter(t => !t.isCheckedIn).length > 0 && (
+                          <button 
+                            onClick={() => handleValidateAll(scanResult.orderTickets!)}
+                            disabled={validatingAll}
+                            style={{ 
+                              background: 'white', color: '#064e3b', border: 'none', 
+                              padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.85rem', 
+                              fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                              boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
+                            }}
+                          >
+                            {validatingAll ? (
+                              <span className="animate-spin" style={{ width: 14, height: 14, border: '2px solid #064e3b', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                            ) : (
+                              <Sparkles size={16} />
+                            )}
+                            Valida tutti i rimanenti
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {scanResult.orderTickets.map(t => (
+                          <div key={t.id} style={{ 
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                            color: 'white', fontSize: '0.85rem', 
+                            background: t.isCheckedIn ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)', 
+                            border: t.id === scanResult.ticket?.id ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
+                            padding: '0.6rem 0.8rem', borderRadius: '0.5rem' 
+                          }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: t.id === scanResult.ticket?.id ? 700 : 500 }}>
+                              <Ticket size={14} style={{ color: t.isCheckedIn ? '#34d399' : 'rgba(255,255,255,0.4)' }} />
+                              {t.type} {t.id === scanResult.ticket?.id && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem' }}>Scansionato ora</span>}
+                            </span>
+                            {t.isCheckedIn ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: '#34d399', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Entrato</span>
+                                <button onClick={() => handleUnverifySingle(t.id)} title="Annulla Validazione" style={{ background: 'transparent', color: '#f87171', border: '1px solid #f87171', padding: '0.2rem 0.4rem', borderRadius: '0.35rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                   <RotateCcw size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button onClick={() => handleValidateSingle(t.id)} style={{ background: '#059669', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.35rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+                                Valida
+                              </button>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
                   )}
                 </>
-              )}
-              {/* === END SMART BADGES === */}
-
-              {/* Collapsible Buyer Info */}
-              {scanResult.order && (
-                <details style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '0.75rem', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <summary style={{ padding: '1rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem', cursor: 'pointer', outline: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <User size={16} /> Mostra dettagli acquirente e pagamento
-                  </summary>
-                  <div style={{ padding: '0 1rem 1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Ordine</span>
-                      <span style={{ background: 'rgba(255,255,255,0.1)', color: 'white', fontSize: '0.78rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', fontFamily: 'monospace' }}>
-                        #{scanResult.order.id ? scanResult.order.id.replace(/-/g, '').substring(0, 8).toUpperCase() : ''}
-                      </span>
-                    </div>
-                    <div style={{ color: 'white', fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {scanResult.order.buyerName}
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.35rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)' }}>
-                      {scanResult.order.buyerEmail && <span>📧 {scanResult.order.buyerEmail}</span>}
-                      {scanResult.order.buyerPhone && <span>📱 {scanResult.order.buyerPhone}</span>}
-                    </div>
-                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', marginTop: '0.6rem' }}>
-                      Pagamento: <strong style={{ color: scanResult.order.status === 'PAID' ? '#4ade80' : '#f87171' }}>{scanResult.order.status}</strong>
-                    </div>
-                  </div>
-                </details>
-              )}
-
-              {/* Extra Services/Payments */}
-              {scanResult.order && (
-                <div style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '0.75rem', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-                  {showExtraForm ? (
-                    <div style={{ padding: '1rem' }}>
-                      <h4 style={{ color: 'white', margin: '0 0 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Sparkles size={16} color="#fbbf24" /> Aggiungi Servizio Extra
-                      </h4>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                          {EXTRA_SUGGESTIONS.map(s => (
-                            <button 
-                              key={s.label} 
-                              type="button" 
-                              onClick={() => { setExtraDesc(s.label); setExtraAmount(s.defaultPrice); }} 
-                              style={{ 
-                                background: extraDesc === s.label ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255,255,255,0.1)', 
-                                color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '999px', padding: '0.3rem 0.6rem', fontSize: '0.75rem', cursor: 'pointer' 
-                              }}
-                            >
-                              {s.label}
-                            </button>
-                          ))}
-                        </div>
-                        <input 
-                          type="text" 
-                          placeholder="Descrizione (es: +1 Laboratorio Extra)"
-                          value={extraDesc}
-                          onChange={(e) => setExtraDesc(e.target.value)}
-                          style={{ width: '100%', padding: '0.6rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }}
-                        />
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <span style={{ color: 'var(--neutral-400)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Importo (€):</span>
-                          <input 
-                            type="number" 
-                            min="0"
-                            step="0.5"
-                            value={extraAmount}
-                            onChange={(e) => setExtraAmount(e.target.value)}
-                            style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.9rem' }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.2rem' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'white', fontSize: '0.85rem', cursor: 'pointer' }}>
-                            <input type="radio" name="paymethod" value="CONTANTI" checked={extraPaymentMethod === 'CONTANTI'} onChange={() => setExtraPaymentMethod('CONTANTI')} /> Contanti
-                          </label>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'white', fontSize: '0.85rem', cursor: 'pointer' }}>
-                            <input type="radio" name="paymethod" value="POS" checked={extraPaymentMethod === 'POS'} onChange={() => setExtraPaymentMethod('POS')} /> POS / Carta
-                          </label>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                          <button onClick={() => setShowExtraForm(false)} style={{ flex: 1, padding: '0.6rem', background: 'transparent', color: 'var(--neutral-400)', border: '1px solid var(--neutral-600)', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>Annulla</button>
-                          <button onClick={handleAddExtra} disabled={addingExtra} style={{ flex: 2, padding: '0.6rem', background: 'var(--blue-600)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
-                            {addingExtra ? 'Salvataggio...' : 'Conferma & Salva'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <button onClick={() => setShowExtraForm(true)} style={{ width: '100%', padding: '1rem', color: '#fbbf24', fontSize: '0.85rem', cursor: 'pointer', border: 'none', outline: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent' }}>
-                      <Plus size={16} /> Aggiungi Servizi Extra (Pagamento in loco)
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Order Tickets Validation */}
-              {scanResult.orderTickets && scanResult.orderTickets.length > 0 && (
-                <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '0.75rem', padding: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700, fontSize: '0.9rem' }}>
-                      Biglietti Ordine ({scanResult.orderTickets.filter(t => t.isCheckedIn).length}/{scanResult.orderTickets.length} validati)
-                    </span>
-                    
-                    {scanResult.orderTickets.filter(t => !t.isCheckedIn).length > 0 && (
-                      <button 
-                        onClick={() => handleValidateAll(scanResult.orderTickets!)}
-                        disabled={validatingAll}
-                        style={{ 
-                          background: 'white', color: '#064e3b', border: 'none', 
-                          padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.85rem', 
-                          fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem',
-                          boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
-                        }}
-                      >
-                        {validatingAll ? (
-                          <span className="animate-spin" style={{ width: 14, height: 14, border: '2px solid #064e3b', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                        ) : (
-                          <Sparkles size={16} />
-                        )}
-                        Valida tutti i rimanenti
-                      </button>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {scanResult.orderTickets.map(t => (
-                      <div key={t.id} style={{ 
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                        color: 'white', fontSize: '0.85rem', 
-                        background: t.isCheckedIn ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)', 
-                        border: t.id === scanResult.ticket?.id ? '1px solid rgba(255,255,255,0.4)' : '1px solid transparent',
-                        padding: '0.6rem 0.8rem', borderRadius: '0.5rem' 
-                      }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: t.id === scanResult.ticket?.id ? 700 : 500 }}>
-                          <Ticket size={14} style={{ color: t.isCheckedIn ? '#34d399' : 'rgba(255,255,255,0.4)' }} />
-                          {t.type} {t.id === scanResult.ticket?.id && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem' }}>Scansionato ora</span>}
-                        </span>
-                        {t.isCheckedIn ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ color: '#34d399', fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>Entrato</span>
-                            <button onClick={() => handleUnverifySingle(t.id)} title="Annulla Validazione" style={{ background: 'transparent', color: '#f87171', border: '1px solid #f87171', padding: '0.2rem 0.4rem', borderRadius: '0.35rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                               <RotateCcw size={12} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button onClick={() => handleValidateSingle(t.id)} style={{ background: '#059669', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '0.35rem', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                            Valida
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               )}
             </div>
           )}
