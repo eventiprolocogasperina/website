@@ -7,7 +7,7 @@ import {
   TrendingUp, Users, Calendar, Ticket as TicketIcon, BarChart3,
   Sparkles, Wine, ArrowUpRight,
   CreditCard, Link2, Copy, Check, ExternalLink, Send,
-  Ban, ShieldCheck
+  Ban, ShieldCheck, Printer, FileSpreadsheet
 } from 'lucide-react';
 import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 
@@ -69,6 +69,9 @@ export default function OrderManager() {
   const [blacklistModalOrder, setBlacklistModalOrder] = useState<OrderWithTickets | null>(null);
   const [blacklistReason, setBlacklistReason] = useState<string>('');
   const [blacklisting, setBlacklisting] = useState<boolean>(false);
+
+  // PDF Export state
+  const [exportingPdf, setExportingPdf] = useState<boolean>(false);
 
   // Edit order modal
   const [editingOrder, setEditingOrder] = useState<OrderWithTickets | null>(null);
@@ -817,40 +820,153 @@ export default function OrderManager() {
     };
   }, [orders]);
 
-  // ─── CSV Export ───────────────────────────────────────────────────────────
+  // ─── CSV & PDF Manifest Export ──────────────────────────────────────────
 
   const exportCSV = () => {
-    const headers = ['ID', 'Evento', 'Data Evento', 'Nome', 'Email', 'Telefono', 'Biglietti/Ingressi', 'Totale', 'Stato', 'Data Ordine', 'Note/Attività'];
-    const rows = filteredOrders.map(o => {
+    const headers = [
+      'Titolare Prenotazione',
+      'Telefono',
+      'Email',
+      'N. Prenotazione',
+      'Evento',
+      'Data Evento',
+      'Numero Persone (Ingressi)',
+      'Di cui Bambini',
+      'You Pick Quanti',
+      'Attivita Iscritti Bambini',
+      'Stato / Importo',
+      'Data Creazione Ordine',
+      'Note Aggiuntive a Penna'
+    ];
+
+    const dayPriority: Record<string, number> = {
+      '10': 1,
+      '17': 2,
+      '11': 3,
+      '18': 4,
+      '24': 5,
+      '25': 6,
+      'unspecified': 99
+    };
+
+    const extractSurname = (fullName: string) => {
+      const parts = fullName.trim().split(/\s+/);
+      if (parts.length <= 1) return fullName.trim().toLowerCase();
+      const particles = ['de', 'di', 'da', 'della', 'del', 'delle', 'lo', 'la', 'li', 'san', 'sant'];
+      if (parts.length >= 3) {
+        const secondToLast = parts[parts.length - 2].toLowerCase();
+        if (particles.includes(secondToLast)) {
+          return `${parts[parts.length - 2]} ${parts[parts.length - 1]}`.toLowerCase();
+        }
+      }
+      return parts[parts.length - 1].toLowerCase();
+    };
+
+    // Ordina per giorno evento e poi in ordine alfabetico di cognome (A-Z)
+    const sortedOrders = [...filteredOrders].sort((a, b) => {
+      const parsedA = parseOrderNotes(a.notes);
+      const parsedB = parseOrderNotes(b.notes);
+      const prioA = dayPriority[parsedA.dayKey || 'unspecified'] ?? 50;
+      const prioB = dayPriority[parsedB.dayKey || 'unspecified'] ?? 50;
+      if (prioA !== prioB) return prioA - prioB;
+      const dateCmp = (parsedA.eventDate || '').localeCompare(parsedB.eventDate || '', 'it');
+      if (dateCmp !== 0) return dateCmp;
+      const surA = extractSurname(a.buyerName);
+      const surB = extractSurname(b.buyerName);
+      const surCmp = surA.localeCompare(surB, 'it');
+      if (surCmp !== 0) return surCmp;
+      return a.buyerName.localeCompare(b.buyerName, 'it');
+    });
+
+    const rows = sortedOrders.map(o => {
       const parsed = parseOrderNotes(o.notes);
-      const ev = getOrderEventId(o) === 'zuccaland-2026' ? 'Zuccaland' : 'Assaggia & Passeggia';
-      const isZucc = ev === 'Zuccaland';
+      const isZucc = getOrderEventId(o) === 'zuccaland-2026';
+      const ev = isZucc ? 'Zuccaland 2026' : 'Assaggia & Passeggia';
       const admTix = isZucc ? o.tickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length : o.tickets.length;
       const youPickTix = isZucc ? o.tickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio')).length : 0;
-      const ticketsStr = isZucc
-        ? `${admTix} Ingressi${youPickTix > 0 ? ` + ${youPickTix} You Pick Lab` : ''} (${o.tickets.map(t => t.type).join('; ')})`
-        : o.tickets.map(t => t.type).join('; ');
+      const numPersone = admTix || o.tickets.length;
+      const numBambini = parsed.children ?? 0;
+      const shortId = `#${o.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+
+      const isPaid = o.status === 'PAID';
+      const isOmaggio = isPaid && o.totalAmount === 0;
+      const statoImporto = isOmaggio 
+        ? 'OMAGGIO (€0.00)' 
+        : isPaid 
+          ? `PAGATO (€${o.totalAmount.toFixed(2)})` 
+          : `${o.status} (€${o.totalAmount.toFixed(2)})`;
+      const attivitaStr = parsed.activities.length > 0 ? parsed.activities.join('; ') : 'Nessuna attività registrata';
+
       return [
-        o.id,
-        ev,
-        parsed.eventDate || 'N/D',
         `"${o.buyerName.replace(/"/g, '""')}"`,
-        o.buyerEmail,
-        o.buyerPhone || '',
-        `"${ticketsStr}"`,
-        o.totalAmount.toFixed(2),
-        o.status,
-        new Date(o.createdAt).toLocaleString(),
-        `"${(o.notes || '').replace(/"/g, '""')}"`
+        `"${(o.buyerPhone || '').replace(/"/g, '""')}"`,
+        `"${(o.buyerEmail || '').replace(/"/g, '""')}"`,
+        `"${shortId}"`,
+        `"${ev}"`,
+        `"${parsed.eventDate || 'Non specificata'}"`,
+        numPersone,
+        numBambini,
+        youPickTix,
+        `"${attivitaStr.replace(/"/g, '""')}"`,
+        `"${statoImporto}"`,
+        `"${new Date(o.createdAt).toLocaleString('it-IT')}"`,
+        '""' // Colonna vuota per note a penna
       ];
     });
+
     const csvContent = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     const label = activeTab === 'all' ? 'tutti_gli_eventi' : activeTab;
-    link.download = `ordini_${label}_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `registro_prenotazioni_${label}_${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
+  };
+
+  const handleExportPdf = async () => {
+    if (filteredOrders.length === 0) {
+      alert('Nessuna prenotazione trovata nei filtri correnti.');
+      return;
+    }
+    setExportingPdf(true);
+    try {
+      let subtitle = activeTab === 'zuccaland-2026' ? 'Zuccaland 2026' : activeTab === 'assaggia-passeggia' ? 'Assaggia & Passeggia' : 'Tutti gli Eventi';
+      if (activeTab === 'zuccaland-2026' && zuccalandDayFilter !== 'all') {
+        subtitle += ` • Data: ${zuccalandDayFilter} Ottobre 2026`;
+      }
+      if (viewMode === 'blacklist') {
+        subtitle += ' • (Registro Blacklist)';
+      }
+
+      const res = await fetch('/api/admin/orders/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orders: filteredOrders,
+          title: 'REGISTRO PRENOTAZIONI & FOGLIO PRESENZE',
+          subtitle
+        })
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Errore durante la creazione del PDF');
+      }
+
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, '_blank');
+      if (!printWindow) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `foglio_presenze_A4_${new Date().toISOString().slice(0, 10)}.pdf`;
+        link.click();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Errore durante la generazione del foglio A4.');
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   return (
@@ -1685,6 +1801,16 @@ export default function OrderManager() {
               {testingOrder ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />} 
               Invia Ordine Test Zuccaland
             </button>
+            <button 
+              className="btn btn-outline" 
+              style={{ fontSize: '0.85rem', borderColor: '#38bdf8', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }} 
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+              title="Stampa foglio presenze A4 pronto con spazio per note a penna"
+            >
+              {exportingPdf ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />} 
+              Stampa Scheda A4 (PDF)
+            </button>
             <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={exportCSV}>
               <Download size={16} /> Esporta CSV Zuccaland
             </button>
@@ -1821,6 +1947,16 @@ export default function OrderManager() {
             <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={() => handleOpenManualOrder('assaggia-passeggia')}>
               <Plus size={16} /> Crea Ordine Manuale A&P
             </button>
+            <button 
+              className="btn btn-outline" 
+              style={{ fontSize: '0.85rem', borderColor: '#38bdf8', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }} 
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+              title="Stampa foglio presenze A4 pronto con spazio per note a penna"
+            >
+              {exportingPdf ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />} 
+              Stampa Scheda A4 (PDF)
+            </button>
             <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={exportCSV}>
               <Download size={16} /> Esporta CSV Assaggia & Passeggia
             </button>
@@ -1877,7 +2013,17 @@ export default function OrderManager() {
           >
             <Plus size={15} /> Nuovo Ordine Manuale
           </button>
-          <button className="btn btn-outline" style={{ fontSize: '0.82rem' }} onClick={exportCSV}>
+          <button 
+            className="btn btn-outline" 
+            style={{ fontSize: '0.82rem', borderColor: '#38bdf8', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }} 
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            title="Stampa foglio presenze A4 pronto con spazio per note a penna"
+          >
+            {exportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Printer size={15} />}
+            Stampa Scheda A4 (PDF)
+          </button>
+          <button className="btn btn-outline" style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={exportCSV} title="Esporta file CSV">
             <Download size={15} /> CSV
           </button>
         </div>
