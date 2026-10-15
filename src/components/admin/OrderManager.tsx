@@ -636,15 +636,19 @@ export default function OrderManager() {
   // ─── Global Stats Calculations ────────────────────────────────────────────
 
   const globalStats = useMemo(() => {
-    const paid = orders.filter(o => o.status === 'PAID');
+    // Escludi ordini in blacklist dalle statistiche e dai totali attivi
+    const activeOrders = orders.filter(o => !o.isBlacklisted);
+    const blacklistedOrders = orders.filter(o => o.isBlacklisted);
+
+    const paid = activeOrders.filter(o => o.status === 'PAID');
     const totalRev = paid.reduce((s, o) => s + o.totalAmount, 0);
     const totalTix = paid.reduce((s, o) => s + o.tickets.length, 0);
     const paidCount = paid.length;
-    const pendingCount = orders.filter(o => o.status === 'PENDING').length;
-    const failedCount = orders.filter(o => o.status === 'FAILED').length;
+    const pendingCount = activeOrders.filter(o => o.status === 'PENDING').length;
+    const failedCount = activeOrders.filter(o => o.status === 'FAILED').length;
     const freeCount = paid.filter(o => o.totalAmount === 0).length;
 
-    // Per-event breakdown
+    // Per-event breakdown (solo ordini attivi non in blacklist)
     const zuccalandOrders = paid.filter(o => getOrderEventId(o) === 'zuccaland-2026');
     const assaggiaOrders = paid.filter(o => getOrderEventId(o) === 'assaggia-passeggia');
 
@@ -664,7 +668,13 @@ export default function OrderManager() {
       });
     });
 
+    // Statistiche ordini in blacklist (isolate per consultazione)
+    const blacklistedPaid = blacklistedOrders.filter(o => o.status === 'PAID');
+    const blacklistedRev = blacklistedPaid.reduce((s, o) => s + o.totalAmount, 0);
+    const blacklistedTix = blacklistedPaid.reduce((s, o) => s + o.tickets.length, 0);
+
     return {
+      activeOrdersCount: activeOrders.length,
       totalRevenue: totalRev,
       totalTickets: totalTix,
       paidOrdersCount: paidCount,
@@ -684,6 +694,12 @@ export default function OrderManager() {
         tickets: assaggiaTix,
         orders: assaggiaOrders.length,
       },
+      blacklist: {
+        totalOrders: blacklistedOrders.length,
+        paidOrders: blacklistedPaid.length,
+        revenue: blacklistedRev,
+        tickets: blacklistedTix
+      },
       ticketTypesCount,
     };
   }, [orders]);
@@ -691,8 +707,9 @@ export default function OrderManager() {
   // ─── Zuccaland-Specific Stats ─────────────────────────────────────────────
 
   const zuccalandStats = useMemo(() => {
+    // Escludi ordini in blacklist da Zuccaland stats (persone, bambini, attività, importo)
     const zuccalandPaid = orders.filter(o => {
-      if (o.status !== 'PAID' || getOrderEventId(o) !== 'zuccaland-2026') return false;
+      if (o.status !== 'PAID' || o.isBlacklisted || getOrderEventId(o) !== 'zuccaland-2026') return false;
       if (zuccalandDayFilter === 'all') return true;
       const parsed = parseOrderNotes(o.notes);
       if (zuccalandDayFilter === '10') {
@@ -778,7 +795,8 @@ export default function OrderManager() {
   // ─── Assaggia & Passeggia Specific Stats ───────────────────────────────────
 
   const assaggiaStats = useMemo(() => {
-    const apPaid = orders.filter(o => o.status === 'PAID' && getOrderEventId(o) === 'assaggia-passeggia');
+    // Escludi ordini in blacklist da A&P stats
+    const apPaid = orders.filter(o => o.status === 'PAID' && !o.isBlacklisted && getOrderEventId(o) === 'assaggia-passeggia');
     const revenue = apPaid.reduce((s, o) => s + o.totalAmount, 0);
     const totalTickets = apPaid.reduce((s, o) => s + o.tickets.length, 0);
     const freeOrders = apPaid.filter(o => o.totalAmount === 0).length;
@@ -1180,23 +1198,23 @@ export default function OrderManager() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', gap: '0.5rem', height: '10px', borderRadius: '999px', overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--neutral-700)' }}>
-                  <div style={{ width: `${(globalStats.paidOrdersCount / Math.max(1, orders.length)) * 100}%`, background: '#16a34a' }} title="Pagati" />
-                  <div style={{ width: `${(globalStats.pendingCount / Math.max(1, orders.length)) * 100}%`, background: '#d97706' }} title="In attesa" />
-                  <div style={{ width: `${(globalStats.failedCount / Math.max(1, orders.length)) * 100}%`, background: '#dc2626' }} title="Falliti" />
+                  <div style={{ width: `${(globalStats.paidOrdersCount / Math.max(1, globalStats.activeOrdersCount)) * 100}%`, background: '#16a34a' }} title="Pagati" />
+                  <div style={{ width: `${(globalStats.pendingCount / Math.max(1, globalStats.activeOrdersCount)) * 100}%`, background: '#d97706' }} title="In attesa" />
+                  <div style={{ width: `${(globalStats.failedCount / Math.max(1, globalStats.activeOrdersCount)) * 100}%`, background: '#dc2626' }} title="Falliti" />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginTop: '0.5rem' }}>
                   <div style={{ textAlign: 'center', padding: '0.6rem', background: 'var(--badge-paid-bg)', borderRadius: '0.6rem', border: '1px solid var(--badge-paid-border)' }}>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--badge-paid-text)' }}>{globalStats.paidOrdersCount}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>Pagati ({Math.round((globalStats.paidOrdersCount / Math.max(1, orders.length)) * 100)}%)</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>Pagati ({Math.round((globalStats.paidOrdersCount / Math.max(1, globalStats.activeOrdersCount)) * 100)}%)</div>
                   </div>
                   <div style={{ textAlign: 'center', padding: '0.6rem', background: 'var(--badge-pending-bg)', borderRadius: '0.6rem', border: '1px solid var(--badge-pending-border)' }}>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--badge-pending-text)' }}>{globalStats.pendingCount}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>In attesa ({Math.round((globalStats.pendingCount / Math.max(1, orders.length)) * 100)}%)</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>In attesa ({Math.round((globalStats.pendingCount / Math.max(1, globalStats.activeOrdersCount)) * 100)}%)</div>
                   </div>
                   <div style={{ textAlign: 'center', padding: '0.6rem', background: 'var(--badge-failed-bg)', borderRadius: '0.6rem', border: '1px solid var(--badge-failed-border)' }}>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--badge-failed-text)' }}>{globalStats.failedCount}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>Falliti ({Math.round((globalStats.failedCount / Math.max(1, orders.length)) * 100)}%)</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--neutral-400)' }}>Falliti ({Math.round((globalStats.failedCount / Math.max(1, globalStats.activeOrdersCount)) * 100)}%)</div>
                   </div>
                 </div>
               </div>
@@ -1864,6 +1882,28 @@ export default function OrderManager() {
           </button>
         </div>
       </div>
+
+      {viewMode === 'blacklist' && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderRadius: '0.85rem',
+          padding: '0.85rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+        }}>
+          <Ban size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontWeight: 700, color: '#f87171', fontSize: '0.88rem' }}>
+              Visualizzazione Blacklist ({filteredOrders.length} {filteredOrders.length === 1 ? 'ordine' : 'ordini'})
+            </div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.1rem' }}>
+              Gli ordini in blacklist sono <b>completamente esclusi</b> dai conteggi attivi (persone, bambini, attività, incassi) e bloccati allo scanner all&apos;ingresso.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ────────────────────────────────────────────────────────────────────────
           ORDERS TABLE

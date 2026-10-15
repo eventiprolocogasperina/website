@@ -302,14 +302,21 @@ export async function getTicketingStats(eventId: string) {
     SELECT COUNT(*) as count, SUM(price) as revenue 
     FROM tickets t
     JOIN orders o ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND o."deletedAt" IS NULL
+    WHERE t."eventId" = ${eventId} 
+      AND o.status = 'PAID' 
+      AND o."deletedAt" IS NULL
+      AND (o."isBlacklisted" IS NULL OR o."isBlacklisted" = false)
   `;
   
   const checkedInRes = await sql`
     SELECT COUNT(*) as count 
     FROM tickets t
     JOIN orders o ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND t."isCheckedIn" = true AND o."deletedAt" IS NULL
+    WHERE t."eventId" = ${eventId} 
+      AND o.status = 'PAID' 
+      AND t."isCheckedIn" = true 
+      AND o."deletedAt" IS NULL
+      AND (o."isBlacklisted" IS NULL OR o."isBlacklisted" = false)
   `;
 
   return {
@@ -330,7 +337,10 @@ export async function getAdvancedTicketingStats(eventId: string) {
       COUNT(DISTINCT CASE WHEN o."totalAmount" = 0 THEN o.id END) as free_orders
     FROM orders o
     LEFT JOIN tickets t ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND o."deletedAt" IS NULL
+    WHERE t."eventId" = ${eventId} 
+      AND o.status = 'PAID' 
+      AND o."deletedAt" IS NULL
+      AND (o."isBlacklisted" IS NULL OR o."isBlacklisted" = false)
   `;
 
   // Suddivisione per Tipologia Biglietto
@@ -338,7 +348,10 @@ export async function getAdvancedTicketingStats(eventId: string) {
     SELECT t.type, COUNT(t.id) as count
     FROM tickets t
     JOIN orders o ON t."orderId" = o.id
-    WHERE t."eventId" = ${eventId} AND o.status = 'PAID' AND o."deletedAt" IS NULL
+    WHERE t."eventId" = ${eventId} 
+      AND o.status = 'PAID' 
+      AND o."deletedAt" IS NULL
+      AND (o."isBlacklisted" IS NULL OR o."isBlacklisted" = false)
     GROUP BY t.type
     ORDER BY count DESC
   `;
@@ -351,7 +364,10 @@ export async function getAdvancedTicketingStats(eventId: string) {
     FROM orders
     WHERE id IN (
       SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
-    ) AND status = 'PAID' AND "deletedAt" IS NULL
+    ) 
+      AND status = 'PAID' 
+      AND "deletedAt" IS NULL 
+      AND ("isBlacklisted" IS NULL OR "isBlacklisted" = false)
   `;
   
   const freeOrdersRes = await sql`
@@ -359,7 +375,11 @@ export async function getAdvancedTicketingStats(eventId: string) {
     FROM orders
     WHERE id IN (
       SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" = ${eventId}
-    ) AND status = 'PAID' AND "totalAmount" = 0 AND "deletedAt" IS NULL
+    ) 
+      AND status = 'PAID' 
+      AND "totalAmount" = 0 
+      AND "deletedAt" IS NULL 
+      AND ("isBlacklisted" IS NULL OR "isBlacklisted" = false)
   `;
 
   return {
@@ -647,6 +667,7 @@ export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
       FROM orders o
       WHERE o.status = 'PAID' 
         AND o."deletedAt" IS NULL
+        AND (o."isBlacklisted" IS NULL OR o."isBlacklisted" = false)
         AND (
           o.id IN (SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" ILIKE '%zuccaland%')
           OR o.notes ILIKE '%zuccaland%'
@@ -700,6 +721,7 @@ export async function getZuccalandStats(): Promise<ZuccalandStatsResult> {
     FROM orders o
     WHERE o.status = 'PAID' 
       AND o."deletedAt" IS NULL
+      AND (o."isBlacklisted" IS NULL OR o."isBlacklisted" = false)
       AND (
         o.id IN (SELECT DISTINCT "orderId" FROM tickets WHERE "eventId" ILIKE '%zuccaland%')
         OR o.notes ILIKE '%zuccaland%'
