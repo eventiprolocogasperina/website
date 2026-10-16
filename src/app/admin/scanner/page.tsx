@@ -21,6 +21,8 @@ interface ScanResult {
 interface RecentScan {
   id: string;
   timestamp: string;
+  date?: string;
+  time?: string;
   status: ScanStatus;
   message: string;
   ticketType?: string;
@@ -210,14 +212,19 @@ export default function ScannerPage() {
       }
 
       if (newStatus === 'success' || newStatus === 'already_used' || newStatus === 'order_found') {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setRecentScans(prev => [{
           id: data.ticket?.id || data.order?.id || Math.random().toString(),
-          timestamp: new Date().toLocaleTimeString(),
+          date: dateStr,
+          time: timeStr,
+          timestamp: `${dateStr} ${timeStr}`,
           status: newStatus as ScanStatus,
           message: data.message,
           ticketType: data.ticket?.type || (data.multipleOrders ? `${data.multipleOrders.length} Ordini` : (data.orderTickets ? `${data.orderTickets.length} Biglietti` : 'Ordine Multiplo')),
           buyerName: data.order?.buyerName || (data.multipleOrders ? `${data.multipleOrders.length} ordini trovati` : undefined)
-        }, ...prev].slice(0, 10));
+        }, ...prev].slice(0, 15));
       }
     } catch (err) {
       playBeep('error');
@@ -244,6 +251,19 @@ export default function ScannerPage() {
               orderTickets: prev.orderTickets.map(t => t.id === ticketId ? { ...t, isCheckedIn: true } : t)
             };
           });
+          const now = new Date();
+          const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          setRecentScans(prev => [{
+            id: ticketId,
+            date: dateStr,
+            time: timeStr,
+            timestamp: `${dateStr} ${timeStr}`,
+            status: 'success' as ScanStatus,
+            message: 'Biglietto convalidato',
+            ticketType: data.ticket?.type || 'Biglietto',
+            buyerName: data.order?.buyerName || scanResult.order?.buyerName
+          }, ...prev].slice(0, 15));
           if (data.stats) setStats(data.stats);
         } else {
           playBeep('error');
@@ -811,8 +831,13 @@ export default function ScannerPage() {
                   background: 'var(--neutral-900)', borderRadius: '0.75rem', 
                   borderLeft: `4px solid ${scan.status === 'success' ? 'var(--green-500)' : scan.status === 'order_found' ? 'var(--blue-500)' : 'var(--yellow-500)'}` 
                 }}>
-                  <div style={{ color: 'var(--neutral-500)', fontSize: '0.75rem', fontFamily: 'monospace', minWidth: '65px' }}>
-                    {scan.timestamp}
+                  <div style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', fontFamily: 'monospace', minWidth: '85px', lineHeight: 1.3 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--neutral-300)' }}>
+                      {scan.date || (scan.timestamp?.includes(' ') ? scan.timestamp.split(' ')[0] : '')}
+                    </div>
+                    <div style={{ color: 'var(--neutral-500)', fontSize: '0.7rem' }}>
+                      {scan.time || (scan.timestamp?.includes(' ') ? scan.timestamp.split(' ')[1] : scan.timestamp)}
+                    </div>
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: 'white', fontSize: '0.9rem', fontWeight: 600 }}>
