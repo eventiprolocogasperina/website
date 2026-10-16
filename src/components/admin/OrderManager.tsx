@@ -938,12 +938,13 @@ export default function OrderManager() {
         subtitle += ' • (Registro Blacklist)';
       }
 
+      const eventTitle = activeTab === 'zuccaland-2026' ? 'Zuccaland 2026' : (activeTab === 'assaggia-passeggia' ? 'Assaggia & Passeggia' : 'Tutti gli Eventi');
       const res = await fetch('/api/admin/orders/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orders: filteredOrders,
-          title: 'REGISTRO PRENOTAZIONI & FOGLIO PRESENZE',
+          title: eventTitle,
           subtitle
         })
       });
@@ -956,11 +957,13 @@ export default function OrderManager() {
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const printWindow = window.open(blobUrl, '_blank');
-      if (!printWindow) {
+      if (!printWindow || printWindow.closed || typeof printWindow.closed === 'undefined') {
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = `foglio_presenze_A4_${new Date().toISOString().slice(0, 10)}.pdf`;
+        link.download = `registro_prenotazioni_${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
       }
     } catch (err: any) {
       alert(err.message || 'Errore durante la generazione del foglio A4.');
