@@ -8,6 +8,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
     const cassaName = searchParams.get('cassaName') || undefined;
+    const date = searchParams.get('date') || undefined;
 
     if (!eventId) {
       return NextResponse.json(
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const stats = await getCashierStats(eventId, cassaName);
+    const stats = await getCashierStats(eventId, { cassaName, date });
     return NextResponse.json({ success: true, stats });
   } catch (error: any) {
     console.error('Failed to get cashier stats:', error);

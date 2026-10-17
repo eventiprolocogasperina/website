@@ -37,7 +37,9 @@ import {
   Bluetooth,
   Sliders,
   Check,
-  Play
+  Play,
+  Calendar,
+  Sun
 } from 'lucide-react';
 import { bluetoothPrinter, type PrinterState } from '@/lib/printer/bluetoothPrinter';
 import { generateTestTicketEscpos } from '@/lib/printer/escpos';
@@ -51,6 +53,7 @@ const COMMON_EMOJIS = [
 export default function AdminCashierPage() {
   const [config, setConfig] = useState<CashierConfig>(DEFAULT_CASHIER_CONFIG);
   const [stats, setStats] = useState<CashierStats | null>(null);
+  const [selectedStatsDate, setSelectedStatsDate] = useState<string>('all');
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +73,22 @@ export default function AdminCashierPage() {
     const unsub = bluetoothPrinter.subscribe(setPrinterState);
     return () => unsub();
   }, []);
+
+  const fetchStats = async (date?: string, eventId?: string) => {
+    try {
+      const evId = eventId || selectedEventId;
+      if (!evId) return;
+      const targetDate = date !== undefined ? date : selectedStatsDate;
+      const url = `/api/admin/cashier?eventId=${evId}${targetDate && targetDate !== 'all' ? `&date=${targetDate}` : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
+  };
 
   // Load config & stats
   const fetchConfig = async () => {
@@ -95,6 +114,12 @@ export default function AdminCashierPage() {
   useEffect(() => {
     fetchConfig();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'report' && selectedEventId) {
+      fetchStats(selectedStatsDate);
+    }
+  }, [activeTab, selectedEventId]);
 
   const currentEvent = config.events.find(e => e.id === selectedEventId) || config.events[0];
 
@@ -417,6 +442,42 @@ export default function AdminCashierPage() {
     handleSaveConfig(newConfig);
   };
 
+  const handleStartNewDay = async () => {
+    if (!currentEvent) return;
+    const confirmAction = confirm(
+      `🌅 AVVIO NUOVA GIORNATA / AZZERAMENTO NUMERAZIONE\n\n` +
+      `Questa operazione preparerà la cassa per la nuova giornata:\n` +
+      `✓ Salva e mantiene intatti tutti gli incassi e gli ordini precedenti (visibili filtrando per data)\n` +
+      `✓ Azzera la numerazione progressiva dei biglietti riportandola a 1\n` +
+      `✓ MANTIENE le attuali giacenze di magazzino (scorte e porzioni rimaste)\n\n` +
+      `Vuoi procedere con l'azzeramento della sola numerazione per la nuova data?`
+    );
+    if (!confirmAction) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch('/api/admin/cashier/reset-sequence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId: currentEvent.id,
+          startingNumber: 1
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ Numerazione cassa azzerata con successo a 1!\nGli ordini di oggi sono salvati e le scorte sono state mantenute intatte.');
+        fetchStats(selectedStatsDate);
+      } else {
+        alert(`❌ Errore: ${data.error || 'Impossibile azzerare la numerazione'}`);
+      }
+    } catch (e: any) {
+      alert('❌ Errore di connessione.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResetReport = async () => {
     if (!currentEvent) return;
     const input = prompt(
@@ -460,11 +521,27 @@ export default function AdminCashierPage() {
 
   const exportCSV = () => {
     if (!stats) return;
-    let csv = 'Tipo;Elemento;Quantita;Totale Contributo (€)\n';
+    const dateLabel = selectedStatsDate === 'all' 
+      ? 'Tutti i Giorni (Complessivo)' 
+      : (stats.dailyBreakdown?.[selectedStatsDate]?.displayDate || selectedStatsDate);
+
+    let csv = `Report Incassi Cassa - ${currentEvent?.name || 'Evento'}\n`;
+    csv += `Filtro Data:;${dateLabel}\n`;
+    csv += `Data Estrazione:;${new Date().toLocaleString('it-IT')}\n\n`;
+
+    csv += 'Tipo;Elemento;Quantita;Totale Contributo (€)\n';
     csv += `Riepilogo;Totale Generale;${stats.completedOrders} ordini;${stats.totalAmount.toFixed(2)}\n`;
     csv += `Riepilogo;Contanti;-;${stats.cashAmount.toFixed(2)}\n`;
     csv += `Riepilogo;POS Carta;-;${stats.posAmount.toFixed(2)}\n`;
     csv += `Riepilogo;Omaggi;-;${stats.omaggioAmount.toFixed(2)}\n\n`;
+
+    if (stats.dailyBreakdown && Object.keys(stats.dailyBreakdown).length > 0) {
+      csv += 'Rendiconto per Giornata;Data;Ordini;Contanti (€);POS (€);Omaggio (€);Totale (€)\n';
+      Object.values(stats.dailyBreakdown).forEach(d => {
+        csv += `Giornata;${d.displayDate};${d.completedOrders};${d.cash.toFixed(2)};${d.pos.toFixed(2)};${d.omaggio.toFixed(2)};${d.total.toFixed(2)}\n`;
+      });
+      csv += '\n';
+    }
 
     csv += 'Cassa;Ordini;-;Totale (€)\n';
     Object.entries(stats.cassaBreakdown).forEach(([cassa, dat]) => {
@@ -476,11 +553,12 @@ export default function AdminCashierPage() {
       csv += `${item.category};"${item.name.replace(/"/g, '""')}";${item.quantity};${item.totalAmount.toFixed(2)}\n`;
     });
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `report_cassa_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}.csv`);
+    const fileDateSlug = selectedStatsDate === 'all' ? 'tutti_i_giorni' : selectedStatsDate;
+    link.setAttribute('download', `report_cassa_${currentEvent?.name.replace(/\s+/g, '_') || 'evento'}_${fileDateSlug}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1936,10 +2014,61 @@ export default function AdminCashierPage() {
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Filtro Data */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--neutral-850)', border: '1px solid var(--neutral-700)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-md)' }}>
+                <Calendar size={15} style={{ color: '#38bdf8' }} />
+                <span style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', fontWeight: 600 }}>Data:</span>
+                <select
+                  value={selectedStatsDate}
+                  onChange={(e) => {
+                    setSelectedStatsDate(e.target.value);
+                    fetchStats(e.target.value);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--color-heading)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">📊 Tutti i Giorni (Complessivo)</option>
+                  {stats?.availableDates?.map(d => (
+                    <option key={d} value={d}>
+                      📅 {stats.dailyBreakdown?.[d]?.displayDate || d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 type="button"
-                onClick={fetchConfig}
+                onClick={handleStartNewDay}
+                title="Azzera la numerazione progressiva a 1 per la nuova giornata mantenendo intatte le scorte e gli incassi precedenti"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                  color: 'white',
+                  border: 'none',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+              >
+                <Sun size={14} /> Nuova Giornata (Azzera Num. a 1)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fetchStats(selectedStatsDate)}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1954,7 +2083,7 @@ export default function AdminCashierPage() {
                   cursor: 'pointer'
                 }}
               >
-                <RefreshCw size={14} /> Aggiorna Dati
+                <RefreshCw size={14} /> Aggiorna
               </button>
 
               <button
@@ -1995,7 +2124,7 @@ export default function AdminCashierPage() {
                   cursor: 'pointer'
                 }}
               >
-                <Trash2 size={14} /> Azzera Report Incassi ⚠️
+                <Trash2 size={14} /> Azzera Tutto ⚠️
               </button>
             </div>
           </div>
@@ -2006,11 +2135,28 @@ export default function AdminCashierPage() {
             </div>
           ) : (
             <>
+              {/* Badge Filtro Attivo */}
+              {selectedStatsDate !== 'all' && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: 'var(--radius-md)', padding: '0.6rem 1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#38bdf8', fontWeight: 600 }}>
+                    <Calendar size={16} />
+                    <span>Visualizzazione filtrata per: <strong>{stats.dailyBreakdown?.[selectedStatsDate]?.displayDate || selectedStatsDate}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedStatsDate('all'); fetchStats('all'); }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--neutral-400)', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Mostra tutti i giorni
+                  </button>
+                </div>
+              )}
+
               {/* 4 Cards Summary */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                 <div className="card" style={{ padding: '1.25rem' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--neutral-400)', textTransform: 'uppercase' }}>
-                    TOTALE CONTRIBUTI
+                    TOTALE CONTRIBUTI {selectedStatsDate !== 'all' ? `(${selectedStatsDate})` : ''}
                   </span>
                   <div style={{ fontSize: '2rem', fontWeight: 900, color: '#38bdf8', fontFamily: 'monospace', margin: '0.3rem 0' }}>
                     €{stats.totalAmount.toFixed(2)}
@@ -2056,6 +2202,92 @@ export default function AdminCashierPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Rendiconto Incassi Diviso per Giornata (Table) */}
+              {stats.dailyBreakdown && Object.keys(stats.dailyBreakdown).length > 0 && (
+                <div className="card" style={{ padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                      📅 Rendiconto Incassi Diviso per Giornata
+                    </h4>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--neutral-400)' }}>
+                      Tutti gli incassi rimangono storicizzati per data
+                    </span>
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--neutral-850)', color: 'var(--neutral-400)', textAlign: 'left' }}>
+                          <th style={{ padding: '0.65rem 0.85rem' }}>Data Giornata</th>
+                          <th style={{ padding: '0.65rem 0.85rem', textAlign: 'center' }}>Ordini Emessi</th>
+                          <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>Contanti</th>
+                          <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>POS / Carte</th>
+                          <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>Omaggi</th>
+                          <th style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>Totale Incasso</th>
+                          <th style={{ padding: '0.65rem 0.85rem', textAlign: 'center' }}>Filtro</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.values(stats.dailyBreakdown).map((d) => {
+                          const isSelected = selectedStatsDate === d.date;
+                          return (
+                            <tr
+                              key={d.date}
+                              style={{
+                                borderTop: '1px solid var(--neutral-800)',
+                                background: isSelected ? 'rgba(56, 189, 248, 0.08)' : 'transparent'
+                              }}
+                            >
+                              <td style={{ padding: '0.65rem 0.85rem', fontWeight: 800, color: 'var(--color-heading)' }}>
+                                {d.displayDate}
+                                {isSelected && (
+                                  <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.15rem 0.4rem', borderRadius: '4px', background: '#38bdf8', color: '#000', fontWeight: 700 }}>
+                                    Attivo
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '0.65rem 0.85rem', textAlign: 'center', fontWeight: 700 }}>
+                                {d.completedOrders} {d.voidedOrders > 0 ? `(${d.voidedOrders} stornati)` : ''}
+                              </td>
+                              <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', color: '#34d399', fontWeight: 700, fontFamily: 'monospace' }}>
+                                €{d.cash.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', color: '#38bdf8', fontWeight: 700, fontFamily: 'monospace' }}>
+                                €{d.pos.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', color: '#fb923c', fontWeight: 700, fontFamily: 'monospace' }}>
+                                €{d.omaggio.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right', fontWeight: 900, color: 'var(--color-heading)', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                                €{d.total.toFixed(2)}
+                              </td>
+                              <td style={{ padding: '0.65rem 0.85rem', textAlign: 'center' }}>
+                                {isSelected ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setSelectedStatsDate('all'); fetchStats('all'); }}
+                                    style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', borderRadius: '4px', background: 'var(--neutral-700)', color: 'white', border: 'none', cursor: 'pointer' }}
+                                  >
+                                    Reset
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setSelectedStatsDate(d.date); fetchStats(d.date); }}
+                                    style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', cursor: 'pointer', fontWeight: 600 }}
+                                  >
+                                    Visualizza
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Breakdown By Cassa */}
               <div className="card" style={{ padding: '1.25rem' }}>

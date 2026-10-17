@@ -8,10 +8,11 @@ export async function GET(request: Request) {
     const config = await getCashierConfig();
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId') || config.activeEventId || config.events[0]?.id;
+    const date = searchParams.get('date') || undefined;
 
     let stats = null;
     if (eventId) {
-      stats = await getCashierStats(eventId);
+      stats = await getCashierStats(eventId, { date });
     }
 
     return NextResponse.json({

@@ -93,6 +93,17 @@ export interface CashierOrder {
   createdAt: string;
 }
 
+export interface DailyCashierStats {
+  date: string;
+  displayDate: string;
+  total: number;
+  cash: number;
+  pos: number;
+  omaggio: number;
+  completedOrders: number;
+  voidedOrders: number;
+}
+
 export interface CashierStats {
   totalAmount: number;
   cashAmount: number;
@@ -103,6 +114,9 @@ export interface CashierStats {
   voidedOrders: number;
   cassaBreakdown: Record<string, { total: number; cash: number; pos: number; omaggio: number; count: number }>;
   itemsBreakdown: Record<string, { name: string; category: string; quantity: number; totalAmount: number }>;
+  dailyBreakdown: Record<string, DailyCashierStats>;
+  availableDates: string[];
+  selectedDate?: string;
 }
 
 // ─── Default Sample Config ───────────────────────────────────────────────────
@@ -410,6 +424,7 @@ export async function getCashierOrderById(orderId: string): Promise<CashierOrder
 export async function getCashierOrders(eventId: string, options?: {
   cassaName?: string;
   department?: string;
+  date?: string;
   limit?: number;
 }): Promise<CashierOrder[]> {
   await ensureCashierOrdersTable();
@@ -433,7 +448,7 @@ export async function getCashierOrders(eventId: string, options?: {
     `;
   }
 
-  const result: CashierOrder[] = rows.map(row => ({
+  let result: CashierOrder[] = rows.map(row => ({
     id: row.id,
     eventId: row.eventId,
     eventName: row.eventName,
@@ -450,6 +465,14 @@ export async function getCashierOrders(eventId: string, options?: {
     status: row.status,
     createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString()
   }));
+
+  // Se richiesto un filtro per data specifica
+  if (options?.date && options.date !== 'all') {
+    result = result.filter(o => {
+      const d = new Date(o.createdAt).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+      return d === options.date;
+    });
+  }
 
   // Se richiesto un filtro per reparto/stand specifico
   if (options?.department && options.department !== 'all') {
@@ -499,13 +522,72 @@ export async function voidCashierOrder(orderId: string): Promise<boolean> {
 
 // ─── Stats / Chiusura Cassa (Z-Report) ────────────────────────────────────────
 
-export async function getCashierStats(eventId: string, cassaName?: string): Promise<CashierStats> {
+export async function getCashierStats(
+  eventId: string,
+  cassaNameOrOptions?: string | { cassaName?: string; date?: string },
+  legacyDate?: string
+): Promise<CashierStats> {
   await ensureCashierOrdersTable();
   const sql = getDb();
 
+  const cassaName = typeof cassaNameOrOptions === 'string' ? cassaNameOrOptions : cassaNameOrOptions?.cassaName;
+  const dateFilter = typeof cassaNameOrOptions === 'object' && cassaNameOrOptions?.date ? cassaNameOrOptions.date : legacyDate;
+
   const rows = cassaName && cassaName !== 'all'
-    ? await sql`SELECT * FROM cashier_orders WHERE "eventId" = ${eventId} AND "cassaName" = ${cassaName}`
-    : await sql`SELECT * FROM cashier_orders WHERE "eventId" = ${eventId}`;
+    ? await sql`SELECT * FROM cashier_orders WHERE "eventId" = ${eventId} AND "cassaName" = ${cassaName} ORDER BY "createdAt" DESC`
+    : await sql`SELECT * FROM cashier_orders WHERE "eventId" = ${eventId} ORDER BY "createdAt" DESC`;
+
+  // 1. Calcolo del breakdown per data (tutte le date registrate per questo evento)
+  const dailyBreakdown: Record<string, DailyCashierStats> = {};
+
+  for (const r of rows) {
+    const createdDate = new Date(r.createdAt);
+    const dateKey = createdDate.toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+    const displayDate = createdDate.toLocaleDateString('it-IT', {
+      timeZone: 'Europe/Rome',
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+
+    if (!dailyBreakdown[dateKey]) {
+      dailyBreakdown[dateKey] = {
+        date: dateKey,
+        displayDate,
+        total: 0,
+        cash: 0,
+        pos: 0,
+        omaggio: 0,
+        completedOrders: 0,
+        voidedOrders: 0
+      };
+    }
+
+    const isCompleted = r.status === 'COMPLETED';
+    const amount = Number(r.totalAmount || 0);
+    const method = r.paymentMethod as 'CONTANTI' | 'POS' | 'OMAGGIO';
+
+    if (isCompleted) {
+      dailyBreakdown[dateKey].completedOrders++;
+      dailyBreakdown[dateKey].total += amount;
+      if (method === 'CONTANTI') dailyBreakdown[dateKey].cash += amount;
+      else if (method === 'POS') dailyBreakdown[dateKey].pos += amount;
+      else if (method === 'OMAGGIO') dailyBreakdown[dateKey].omaggio += amount;
+    } else {
+      dailyBreakdown[dateKey].voidedOrders++;
+    }
+  }
+
+  const availableDates = Object.keys(dailyBreakdown).sort((a, b) => b.localeCompare(a));
+
+  // 2. Se è richiesto un filtro per data specifica, limita le righe del riepilogo
+  const activeRows = dateFilter && dateFilter !== 'all'
+    ? rows.filter(r => {
+        const d = new Date(r.createdAt).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+        return d === dateFilter;
+      })
+    : rows;
 
   let totalAmount = 0;
   let cashAmount = 0;
@@ -517,7 +599,7 @@ export async function getCashierStats(eventId: string, cassaName?: string): Prom
   const cassaBreakdown: Record<string, { total: number; cash: number; pos: number; omaggio: number; count: number }> = {};
   const itemsBreakdown: Record<string, { name: string; category: string; quantity: number; totalAmount: number }> = {};
 
-  for (const r of rows) {
+  for (const r of activeRows) {
     const isCompleted = r.status === 'COMPLETED';
     const amount = Number(r.totalAmount || 0);
     const method = r.paymentMethod as 'CONTANTI' | 'POS' | 'OMAGGIO';
@@ -568,10 +650,13 @@ export async function getCashierStats(eventId: string, cassaName?: string): Prom
     cashAmount,
     posAmount,
     omaggioAmount,
-    totalOrders: rows.length,
+    totalOrders: activeRows.length,
     completedOrders,
     voidedOrders,
     cassaBreakdown,
-    itemsBreakdown
+    itemsBreakdown,
+    dailyBreakdown,
+    availableDates,
+    selectedDate: dateFilter || 'all'
   };
 }
