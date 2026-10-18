@@ -128,12 +128,10 @@ export async function POST(request: Request) {
     const ticketsSummary = priced.lines.map((line) => `${line.quantity}x ${line.type}`).join(', ');
     const notesSummary = notes ? `\n📝 <b>Note / Attività:</b> ${notes}` : '';
 
+    // Telegram: solo codice ordine, biglietti e importi, nessun dato personale del cliente.
     if (isFree) {
       await sendTelegramNotification(
         `🎉 <b>Nuovo Ordine (OMAGGIO)</b>\n\n` +
-        `👤 <b>Nome:</b> ${buyerName}\n` +
-        `📧 <b>Email:</b> ${buyerEmail}\n` +
-        `📞 <b>Tel:</b> ${buyerPhone}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
         notesSummary + '\n' +
         `💰 <b>Totale:</b> €0.00\n` +
@@ -149,9 +147,6 @@ export async function POST(request: Request) {
     } else {
       await sendTelegramNotification(
         `⏳ <b>Ordine Creato (In attesa di pagamento)</b>\n\n` +
-        `👤 <b>Nome:</b> ${buyerName}\n` +
-        `📧 <b>Email:</b> ${buyerEmail}\n` +
-        `📞 <b>Tel:</b> ${buyerPhone}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
         notesSummary + '\n' +
         `💰 <b>Totale:</b> €${totalAmount.toFixed(2)}\n` +

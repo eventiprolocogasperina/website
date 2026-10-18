@@ -89,9 +89,6 @@ export async function POST(req: Request) {
     sendTelegramNotification(
       `🔗 <b>Nuova Integrazione Creata (Pay-by-Link)</b>\n\n` +
       `🎪 <b>Evento:</b> ${isZuccaland ? '🎃 Zuccaland' : '🍷 Assaggia & Passeggia'}\n` +
-      `👤 <b>Cliente:</b> ${parentOrder.buyerName}\n` +
-      `📧 <b>Email:</b> ${parentOrder.buyerEmail}\n` +
-      `📞 <b>Tel:</b> ${parentOrder.buyerPhone || 'N/D'}\n` +
       `🎟 <b>Servizi Aggiunti:</b> ${itemsSummary}\n` +
       (isZuccaland && addedChildren > 0 ? `👶 <b>Bambini Aggiunti:</b> +${addedChildren}\n` : '') +
       (isZuccaland && selectedActivities.length > 0 ? `🎨 <b>Laboratori Gratuiti:</b> ${selectedActivities.join(', ')}\n` : '') +

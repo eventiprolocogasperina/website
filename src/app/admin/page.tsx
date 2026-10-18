@@ -26,7 +26,7 @@ const quickLinks = [
   { href: '/admin/sconti', label: 'Sconti', icon: Tag, desc: 'Codici promozionali' },
   { href: '/admin/prenotazioni', label: 'Prenotazioni', icon: CalendarCheck, desc: 'Prenotazioni eventi' },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart2, desc: 'Statistiche e dati' },
-  { href: '/admin/pagine/assaggia', label: 'CMS: A&P', icon: Globe, desc: 'Contenuto pagina evento' },
+  { href: '/admin/pagine/archiviate/assaggia-2026', label: 'CMS: A&P', icon: Globe, desc: 'Contenuto pagina evento' },
   { href: '/admin/pagine/sponsor', label: 'Sponsor', icon: Globe, desc: 'Sponsor e partner' },
   { href: '/admin/impostazioni', label: 'Impostazioni', icon: Wrench, desc: 'Configurazioni globali' },
 ];

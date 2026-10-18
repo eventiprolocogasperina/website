@@ -46,7 +46,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     '@type': 'Event',
     name: event.title,
     startDate: event.date,
-    eventStatus: isPast ? 'https://schema.org/EventScheduled' : 'https://schema.org/EventScheduled',
+    // Schema.org non ha uno stato "concluso": per gli eventi passati il campo si omette.
+    ...(isPast ? {} : { eventStatus: 'https://schema.org/EventScheduled' }),
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     location: {
       '@type': 'Place',

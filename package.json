@@ -10,7 +10,8 @@
     "generate:manuals": "tsx scripts/generate-manuals.tsx",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "hash-password": "node scripts/hash-password.mjs"
+    "hash-password": "node scripts/hash-password.mjs",
+    "check-links": "node --experimental-strip-types scripts/check-links.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

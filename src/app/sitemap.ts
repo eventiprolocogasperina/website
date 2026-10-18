@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getAllEvents } from '@/lib/data/events';
+import { getAllNews } from '@/lib/data/news';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://prolocogasperina.it';
@@ -8,12 +9,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes = [
     '',
     '/eventi',
-    '/soci',
+    '/zuccaland',
+    '/assaggia-e-passeggia',
+    '/notizie',
+    '/sponsor',
     '/media',
     '/associazione',
     '/scopri-gasperina',
     '/contatti',
     '/iscriviti',
+    '/privacy',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date().toISOString(),
@@ -30,5 +35,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...routes, ...eventRoutes];
+  const news = await getAllNews();
+  const newsRoutes = news.map((article) => ({
+    url: `${baseUrl}/notizie/${article.slug}`,
+    lastModified: article.publishedAt ? new Date(article.publishedAt).toISOString() : undefined,
+    changeFrequency: 'monthly' as const,
+    priority: 0.5,
+  }));
+
+  return [...routes, ...eventRoutes, ...newsRoutes];
 }

@@ -407,7 +407,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
         {/* Navigazione */}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexDirection: 'row', alignItems: 'center' }}>
           {prevTappa ? (
-            <Link href={`/assaggia-e-passeggia/tappa/${prevTappa.id}`} className="nav-link prev-link" style={{
+            <Link href={`/assaggia-e-passeggia/edizione-2026/tappa/${prevTappa.id}`} className="nav-link prev-link" style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem',
               background: 'white', color: '#283983', textDecoration: 'none', borderRadius: '1.5rem',
               fontWeight: 700, fontSize: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', flex: 1, justifyContent: 'center',
@@ -418,7 +418,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
           ) : <div style={{ flex: 1 }} />}
           
           {nextTappa ? (
-            <Link href={`/assaggia-e-passeggia/tappa/${nextTappa.id}`} className="nav-link next-link" style={{
+            <Link href={`/assaggia-e-passeggia/edizione-2026/tappa/${nextTappa.id}`} className="nav-link next-link" style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem',
               background: '#283983', color: 'white', textDecoration: 'none', borderRadius: '1.5rem',
               fontWeight: 700, fontSize: '1rem', boxShadow: '0 15px 35px rgba(40,57,131,0.25)', flex: 1, justifyContent: 'center',
@@ -427,7 +427,7 @@ export default async function TappaPage({ params }: { params: Promise<{ id: stri
               Prossima Tappa <ArrowRight size={20} />
             </Link>
           ) : (
-            <Link href="/assaggia-e-passeggia" className="nav-link home-link" style={{
+            <Link href="/assaggia-e-passeggia/edizione-2026" className="nav-link home-link" style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem',
               background: '#E8C042', color: '#283983', textDecoration: 'none', borderRadius: '1.5rem',
               fontWeight: 800, fontSize: '1rem', boxShadow: '0 15px 35px rgba(232,192,66,0.3)', flex: 1, justifyContent: 'center',

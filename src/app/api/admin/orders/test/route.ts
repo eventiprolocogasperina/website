@@ -71,9 +71,6 @@ export async function POST(req: Request) {
 
       await sendTelegramNotification(
         `🎃 <b>[TEST] Ordine Zuccaland CREATO & INVIATO</b>\n\n` +
-        `👤 <b>Nome:</b> ${paidOrder.buyerName}\n` +
-        `📧 <b>Email:</b> ${paidOrder.buyerEmail}\n` +
-        `📞 <b>Tel:</b> ${paidOrder.buyerPhone || 'N/D'}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsList}\n` +
         `🎨 <b>Note & Attività:</b> ${paidOrder.notes || 'N/D'}\n` +
         `💰 <b>Totale:</b> €${paidOrder.totalAmount.toFixed(2)}\n` +

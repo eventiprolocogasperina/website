@@ -131,8 +131,6 @@ export async function PATCH(req: Request) {
 
       sendTelegramNotification(
         `📅 <b>Data Ordine Modificata</b>\n\n` +
-        `👤 <b>Cliente:</b> ${order.buyerName}\n` +
-        `📧 <b>Email:</b> ${order.buyerEmail}\n` +
         `🗓 <b>Nuova Data:</b> ${newDate}\n` +
         `🎟 <b>Biglietti:</b> ${order.tickets.length}\n` +
         `✉️ <b>Email reinviata:</b> ${emailSent ? 'Sì (Nuovi Biglietti Emessi)' : 'No'}\n` +

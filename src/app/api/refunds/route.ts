@@ -100,16 +100,11 @@ export async function POST(request: Request) {
       )
     `;
 
-    // Notifica Telegram in tempo reale all'amministrazione
+    // Notifica Telegram all'amministrazione: niente dati personali (nome, contatti, IBAN, note),
+    // che restano solo nel pannello admin.
     const telegramMsg = `⚠️ <b>NUOVA RICHIESTA DI RIMBORSO ZUCCALAND</b>\n\n` +
       `🆔 <b>ID Pratica:</b> <code>${id}</code>\n` +
-      `👤 <b>Intestatario Prenotazione:</b> ${fullName.trim()}\n` +
-      `📧 <b>Email:</b> ${email.trim()}\n` +
-      `📞 <b>Telefono:</b> ${phone ? phone.trim() : 'Non indicato'}\n` +
       `🎫 <b>Numero/i Prenotazione:</b> <code>${bookingNumbers.trim()}</code>${matchedOrderSummary}\n` +
-      `👤 <b>Intestatario Conto:</b> <b>${accountHolder.trim()}</b>\n` +
-      `🏦 <b>IBAN (Bonifico):</b> <code>${cleanIban}</code>\n` +
-      (reason ? `📝 <b>Note richiedente:</b> ${reason.trim()}\n` : '') +
       `\n🔗 Gestisci la richiesta nel pannello: https://prolocogasperina.it/admin/rimborsi`;
 
     sendTelegramNotification(telegramMsg).catch(err => console.error('Telegram notification error:', err));

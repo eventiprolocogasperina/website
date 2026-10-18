@@ -290,7 +290,7 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
                 <tr>
                   <td align="center" style="padding-bottom:10px;">
-                    <a href="${baseUrl}/assaggia-e-passeggia/success?order=${order.id}" style="display:inline-block;background:#1B4BAA;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:999px;">
+                    <a href="${baseUrl}/assaggia-e-passeggia/edizione-2026/success?order=${order.id}" style="display:inline-block;background:#1B4BAA;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:999px;">
                       Visualizza Ricevuta Online
                     </a>
                   </td>

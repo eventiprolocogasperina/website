@@ -29,7 +29,11 @@ export async function GET(request: Request) {
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
     const url = `${baseUrl}/api/nexi/callback`;
-    const url_back = `${baseUrl}/assaggia-e-passeggia/ticket`;
+    // Se il cliente annulla su Nexi torna alla pagina dell'evento del suo ordine.
+    const isZuccaland = order.tickets?.some(t => t.eventId?.includes('zuccaland'));
+    const url_back = isZuccaland
+      ? `${baseUrl}/zuccaland`
+      : `${baseUrl}/assaggia-e-passeggia/edizione-2026/ticket`;
 
     // Official Nexi XPAY MAC formula (Pagamento Semplice):
     // SHA1(codTrans=<val>divisa=<val>importo=<val><SecretKey>)

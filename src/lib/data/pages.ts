@@ -266,7 +266,7 @@ export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
     logoUrl: '/img/LogoAP_GA_nero.png',
     heroVideoUrl: '', // Default vuoto
     ctaText: 'Acquista il tuo Biglietto',
-    ctaLink: '/assaggia-e-passeggia/ticket',
+    ctaLink: '/assaggia-e-passeggia/edizione-2026/ticket',
   },
   story: {
     title: 'La nostra Storia',
@@ -301,7 +301,7 @@ export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
     subtitle: 'Acquista ora il tuo ticket in prevendita. I posti sono limitati per garantire la migliore esperienza.',
     priceInfo: '17€',
     ctaText: "Procedi all'Acquisto",
-    ctaLink: '/assaggia-e-passeggia/ticket',
+    ctaLink: '/assaggia-e-passeggia/edizione-2026/ticket',
   },
   faqs: [
     {

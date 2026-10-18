@@ -82,9 +82,6 @@ export async function POST(req: Request) {
       sendTelegramNotification(
         `✅ <b>Nuovo Ordine Manuale EMESSO & PAGATO</b>\n\n` +
         `🎪 <b>Evento:</b> ${isZuccaland ? '🎃 Zuccaland 2026' : '🍷 Assaggia & Passeggia'}\n` +
-        `👤 <b>Cliente:</b> ${buyerName}\n` +
-        `📧 <b>Email:</b> ${buyerEmail}\n` +
-        `📞 <b>Tel:</b> ${buyerPhone || 'N/D'}\n` +
         `🗓 <b>Data:</b> ${chosenDate}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsToCreate.length}\n` +
         `💰 <b>Totale:</b> €${totalAmount.toFixed(2)}\n` +

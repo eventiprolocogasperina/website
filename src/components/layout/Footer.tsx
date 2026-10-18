@@ -11,7 +11,6 @@ const footerLinks = {
   associazione: [
     { href: '/associazione', label: 'Chi Siamo' },
     { href: '/associazione#missione', label: 'Missione e Valori' },
-    { href: '/trasparenza', label: 'Trasparenza' },
     { href: '/privacy', label: 'Informativa Privacy' },
     { href: '/iscriviti', label: 'Diventa Socio' },
   ],
@@ -23,8 +22,6 @@ const footerLinks = {
   ],
   partecipa: [
     { href: '/eventi', label: 'Tutti gli Eventi' },
-    { href: '/volontari', label: 'Diventa Volontario' },
-    { href: '/sostienici', label: 'Sostienici' },
     { href: '/contatti', label: 'Contattaci' },
     { href: '/admin', label: 'Admin' },
   ],

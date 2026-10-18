@@ -172,7 +172,7 @@ export async function POST(request: Request) {
             
             const date = new Date(o.createdAt).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             
-            reply += `<b>${i+1}. ${eventEmoji} ${o.buyerName}</b>\n`;
+            reply += `<b>${i+1}. ${eventEmoji} #${String(o.id).substring(0, 8).toUpperCase()}</b>\n`;
             reply += `📅 ${date} - €${o.totalAmount.toFixed(2)}\n`;
             reply += `🎟 ${ticketStr}\n\n`;
           });
