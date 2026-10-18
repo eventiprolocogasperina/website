@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireCassaOrAdmin } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,8 @@ export function broadcastCashierEvent(eventType: string, data: any) {
 }
 
 export async function GET(request: Request) {
+  const { denied } = await requireCassaOrAdmin();
+  if (denied) return denied;
   const encoder = new TextEncoder();
 
   const customStream = new ReadableStream({

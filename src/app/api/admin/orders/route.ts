@@ -3,12 +3,15 @@ import { neon } from '@neondatabase/serverless';
 import { getOrder, markOrderPaid, toggleOrderBlacklist } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
+import { requireAdmin } from '@/server/auth/session';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
 }
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const sql = getDb();
     // Ensure blacklist columns exist
@@ -40,6 +43,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { orderId, action } = body;
@@ -149,6 +154,8 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const orderId = searchParams.get('id');

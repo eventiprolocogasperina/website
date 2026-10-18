@@ -69,7 +69,7 @@ export default function AdminHeader({ title, subtitle, actions }: AdminHeaderPro
               </button>
               <div style={{ height: 1, background: 'var(--neutral-800)', margin: '0.5rem 0' }} />
               <button
-                onClick={() => { sessionStorage.removeItem('admin_auth'); window.location.reload(); }}
+                onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; }}
                 style={{ width: '100%', textAlign: 'left', padding: '0.5rem 0.75rem', background: 'transparent', border: 'none', color: 'var(--red-400)', fontSize: '0.85rem', cursor: 'pointer', borderRadius: 'var(--radius-md)' }}
               >
                 Log out

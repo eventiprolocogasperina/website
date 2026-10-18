@@ -13,10 +13,17 @@ Legenda classificazione:
 
 "Chiamata da" riporta i percorsi relativi a `src/`.
 
+## Protezione (prompt 02)
+
+- `src/proxy.ts`: senza sessione admin, `/admin/**` va a `/login` e `/api/admin/**` risponde 401 (eccetto `GET /api/admin/sponsors`, usata dal sito pubblico).
+- Dentro ogni rotta protetta c'è anche `requireAdmin()` (difesa a due livelli).
+- Scanner (`/api/tickets/verify`, `unverify`, `/api/orders/add-extra`, `/api/admin/stats`): la pagina scanner è nell'admin, quindi serve la sessione admin, come prima serviva la password.
+- Cassa e monitor stand: il codice evento si verifica sul server in `/api/cashier/session`, che apre una sessione di cassa valida 16 ore e solo per quell'evento.
+
 ## Riepilogo
 
 | Classificazione | Rotte |
-|---|---|
+|---|---|---|
 | pubblica | 13 |
 | cassa/scanner (codice evento) | 11 |
 | da proteggere | 33 |
@@ -27,84 +34,84 @@ Legenda classificazione:
 
 ### `/api/admin/*`
 
-| Rotta | Metodi | Scopo | Chiamata da (pagina/componente) | Dati personali (legge/scrive/no) | Autenticazione oggi | Classificazione |
-|---|---|---|---|---|---|---|
-| `/api/admin/cashier` | GET, POST | Legge/salva configurazione cassa e statistiche incassi | `app/admin/cassa/page.tsx` | no | nessuna | da proteggere |
-| `/api/admin/cashier/reset-report` | POST | Azzera report incassi e ordini cassa di un evento | `app/admin/cassa/page.tsx` | no (cancella ordini cassa) | nessuna (controlla solo che il body contenga `confirmation: "conferma"`, non è un'autenticazione) | da proteggere |
-| `/api/admin/cashier/reset-sequence` | POST | Reimposta la numerazione progressiva degli ordini cassa | `app/admin/cassa/page.tsx` | no | nessuna | da proteggere |
-| `/api/admin/discounts` | GET, POST | Elenca e crea codici sconto | `components/admin/DiscountManager.tsx` | no | nessuna | da proteggere |
-| `/api/admin/discounts/[id]` | PUT, DELETE | Modifica / elimina un codice sconto | `components/admin/DiscountManager.tsx` | no | nessuna | da proteggere |
-| `/api/admin/orders` | GET, PATCH, DELETE | Lista ordini con biglietti; blacklist, modifica dati, segna pagato, reinvio email, cambio data; archiviazione | `components/admin/OrderManager.tsx` | legge/scrive (nome, email, telefono, note) | nessuna | da proteggere |
-| `/api/admin/orders/archived` | GET, PATCH | Lista ordini archiviati; ripristino | `components/admin/OrderManager.tsx` | legge (nome, email, telefono) | nessuna | da proteggere |
-| `/api/admin/orders/create` | POST | Crea ordine manuale (pay-by-link o già saldato) e invia email | `components/admin/OrderManager.tsx` | scrive (nome, email, telefono) | nessuna | da proteggere |
-| `/api/admin/orders/export-pdf` | POST | Genera PDF registro presenze dagli ordini passati nel body | `components/admin/OrderManager.tsx` | legge (nominativi ricevuti nel body e stampati nel PDF) | nessuna | da proteggere |
-| `/api/admin/orders/pay-by-link` | POST | Crea sotto-ordine di integrazione con link di pagamento Nexi | `components/admin/OrderManager.tsx` | legge/scrive (copia nome, email, telefono dell'ordine padre) | nessuna | da proteggere |
-| `/api/admin/orders/pay-by-link/send-email` | POST | Invia via email il link di pagamento di un ordine | `components/admin/OrderManager.tsx` | legge (nome, email) | nessuna | da proteggere |
-| `/api/admin/orders/send-postponement-email` | POST | Invio massivo (o di test) email di rinvio evento Zuccaland | `components/admin/OrderManager.tsx` | legge (nome, email di tutti gli acquirenti) | nessuna | da proteggere |
-| `/api/admin/orders/test` | GET, POST | Debug: GET risponde `ok`; POST crea un ordine di test PAGATO, invia email e Telegram | `components/admin/OrderManager.tsx` | scrive (email e telefono hardcoded o dal body) | nessuna | da proteggere |
-| `/api/admin/orders/thankyou` | POST | Invio massivo email di ringraziamento post-evento | `components/admin/OrderManager.tsx` | legge (nome, email) | nessuna | da proteggere |
-| `/api/admin/orders/thankyou-preview` | GET | Anteprima HTML dell'email di ringraziamento | `app/admin/email-preview/page.tsx` | no (dati fittizi) | nessuna | da proteggere |
-| `/api/admin/orders/zuccaland-time-update` | GET, POST | Riepilogo ordini Zuccaland; reinvio massivo biglietti con orario aggiornato | `components/admin/OrderManager.tsx` | legge (nome, email, telefono) | nessuna | da proteggere |
-| `/api/admin/pages` | GET, POST | Legge / salva il contenuto CMS di una pagina (`slug`) | `app/admin/pagine/zuccaland/page.tsx`, `app/admin/pagine/associazione/page.tsx`, `app/admin/pagine/archiviate/assaggia-2026/page.tsx` | no | nessuna | mista: **GET pubblica** (contenuto pubblico, oggi letto solo dall'admin), **POST da proteggere** |
-| `/api/admin/refunds` | GET, PATCH, DELETE | Lista, aggiornamento stato e cancellazione richieste di rimborso | `components/admin/RefundManager.tsx` | legge/scrive (nome, email, telefono, intestatario, IBAN) | nessuna | da proteggere |
-| `/api/admin/settings` | GET, POST | Legge / salva tutte le `site_settings` | `app/admin/impostazioni/page.tsx` | no (ma restituisce segreti: `wa_access_token`, `wa_webhook_verify_token`) | nessuna | da proteggere |
-| `/api/admin/sponsors` | GET, POST, PUT, DELETE | CRUD sponsor | `app/admin/pagine/sponsor/page.tsx`, `components/ui/SponsorsMarquee.tsx` | no | nessuna | mista: **GET pubblica** (usata dal marquee pubblico), **POST/PUT/DELETE da proteggere** |
-| `/api/admin/stats` | GET | Statistiche biglietti per evento | `app/admin/scanner/page.tsx` | no (aggregati) | nessuna | cassa/scanner (codice evento) |
-| `/api/admin/upload` | POST | Upload file (immagini/PDF) su Cloudinary | `components/admin/ImageUpload.tsx`, `app/admin/pagine/archiviate/assaggia-2026/page.tsx` | no | nessuna | da proteggere |
-| `/api/admin/whatsapp/send-broadcast` | POST | Invio massivo (o di test) messaggi WhatsApp via Meta Graph API | `components/admin/OrderManager.tsx` | legge (nome, telefono) | nessuna | da proteggere |
-| `/api/admin/zuccaland-photos` | GET | Lista di tutte le foto Zuccaland (anche in attesa/rifiutate) | `app/admin/zuccaland-photos/AdminZuccalandPhotos.tsx` | no | nessuna | da proteggere |
-| `/api/admin/zuccaland-photos/[id]` | PUT | Approva / rifiuta una foto | `app/admin/zuccaland-photos/AdminZuccalandPhotos.tsx` | no | nessuna | da proteggere |
-| `/api/admin/zuccaland/invites` | GET, POST, PUT, DELETE | Crea inviti omaggio con email e QR, lista, reinvio, cancellazione | `app/admin/zuccaland-inviti/page.tsx` | legge/scrive (nome, email, telefono) | nessuna | da proteggere |
+| Rotta | Metodi | Scopo | Chiamata da (pagina/componente) | Dati personali (legge/scrive/no) | Autenticazione oggi | Classificazione | Protezione (dopo prompt 02) |
+|---|---|---|---|---|---|---|---|
+| `/api/admin/cashier` | GET, POST | Legge/salva configurazione cassa e statistiche incassi | `app/admin/cassa/page.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/cashier/reset-report` | POST | Azzera report incassi e ordini cassa di un evento | `app/admin/cassa/page.tsx` | no (cancella ordini cassa) | nessuna (controlla solo che il body contenga `confirmation: "conferma"`, non è un'autenticazione) | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/cashier/reset-sequence` | POST | Reimposta la numerazione progressiva degli ordini cassa | `app/admin/cassa/page.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/discounts` | GET, POST | Elenca e crea codici sconto | `components/admin/DiscountManager.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/discounts/[id]` | PUT, DELETE | Modifica / elimina un codice sconto | `components/admin/DiscountManager.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders` | GET, PATCH, DELETE | Lista ordini con biglietti; blacklist, modifica dati, segna pagato, reinvio email, cambio data; archiviazione | `components/admin/OrderManager.tsx` | legge/scrive (nome, email, telefono, note) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/archived` | GET, PATCH | Lista ordini archiviati; ripristino | `components/admin/OrderManager.tsx` | legge (nome, email, telefono) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/create` | POST | Crea ordine manuale (pay-by-link o già saldato) e invia email | `components/admin/OrderManager.tsx` | scrive (nome, email, telefono) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/export-pdf` | POST | Genera PDF registro presenze dagli ordini passati nel body | `components/admin/OrderManager.tsx` | legge (nominativi ricevuti nel body e stampati nel PDF) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/pay-by-link` | POST | Crea sotto-ordine di integrazione con link di pagamento Nexi | `components/admin/OrderManager.tsx` | legge/scrive (copia nome, email, telefono dell'ordine padre) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/pay-by-link/send-email` | POST | Invia via email il link di pagamento di un ordine | `components/admin/OrderManager.tsx` | legge (nome, email) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/send-postponement-email` | POST | Invio massivo (o di test) email di rinvio evento Zuccaland | `components/admin/OrderManager.tsx` | legge (nome, email di tutti gli acquirenti) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/test` | GET, POST | Debug: GET risponde `ok`; POST crea un ordine di test PAGATO, invia email e Telegram | `components/admin/OrderManager.tsx` | scrive (email e telefono hardcoded o dal body) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/thankyou` | POST | Invio massivo email di ringraziamento post-evento | `components/admin/OrderManager.tsx` | legge (nome, email) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/thankyou-preview` | GET | Anteprima HTML dell'email di ringraziamento | `app/admin/email-preview/page.tsx` | no (dati fittizi) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/orders/zuccaland-time-update` | GET, POST | Riepilogo ordini Zuccaland; reinvio massivo biglietti con orario aggiornato | `components/admin/OrderManager.tsx` | legge (nome, email, telefono) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/pages` | GET, POST | Legge / salva il contenuto CMS di una pagina (`slug`) | `app/admin/pagine/zuccaland/page.tsx`, `app/admin/pagine/associazione/page.tsx`, `app/admin/pagine/archiviate/assaggia-2026/page.tsx` | no | nessuna | mista: **GET pubblica** (contenuto pubblico, oggi letto solo dall'admin), **POST da proteggere** | admin (proxy + requireAdmin) |
+| `/api/admin/refunds` | GET, PATCH, DELETE | Lista, aggiornamento stato e cancellazione richieste di rimborso | `components/admin/RefundManager.tsx` | legge/scrive (nome, email, telefono, intestatario, IBAN) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/settings` | GET, POST | Legge / salva tutte le `site_settings` | `app/admin/impostazioni/page.tsx` | no (ma restituisce segreti: `wa_access_token`, `wa_webhook_verify_token`) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/sponsors` | GET, POST, PUT, DELETE | CRUD sponsor | `app/admin/pagine/sponsor/page.tsx`, `components/ui/SponsorsMarquee.tsx` | no | nessuna | mista: **GET pubblica** (usata dal marquee pubblico), **POST/PUT/DELETE da proteggere** | GET pubblica; POST/PUT/DELETE admin (proxy + requireAdmin) |
+| `/api/admin/stats` | GET | Statistiche biglietti per evento | `app/admin/scanner/page.tsx` | no (aggregati) | nessuna | cassa/scanner (codice evento) | admin (proxy + requireAdmin) |
+| `/api/admin/upload` | POST | Upload file (immagini/PDF) su Cloudinary | `components/admin/ImageUpload.tsx`, `app/admin/pagine/archiviate/assaggia-2026/page.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/whatsapp/send-broadcast` | POST | Invio massivo (o di test) messaggi WhatsApp via Meta Graph API | `components/admin/OrderManager.tsx` | legge (nome, telefono) | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/zuccaland-photos` | GET | Lista di tutte le foto Zuccaland (anche in attesa/rifiutate) | `app/admin/zuccaland-photos/AdminZuccalandPhotos.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/zuccaland-photos/[id]` | PUT | Approva / rifiuta una foto | `app/admin/zuccaland-photos/AdminZuccalandPhotos.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/zuccaland/invites` | GET, POST, PUT, DELETE | Crea inviti omaggio con email e QR, lista, reinvio, cancellazione | `app/admin/zuccaland-inviti/page.tsx` | legge/scrive (nome, email, telefono) | nessuna | da proteggere | admin (proxy + requireAdmin) |
 
 ### Rotte pubbliche, contenuti e operazioni
 
-| Rotta | Metodi | Scopo | Chiamata da (pagina/componente) | Dati personali (legge/scrive/no) | Autenticazione oggi | Classificazione |
-|---|---|---|---|---|---|---|
-| `/api/bookings` | GET, POST | GET lista prenotazioni; POST nuova prenotazione evento | `components/events/BookingForm.tsx` (POST), `components/admin/BookingManager.tsx` (GET) | GET legge, POST scrive (nome, cognome, email, telefono) | nessuna | mista: **POST pubblica**, **GET da proteggere** |
-| `/api/bookings/[id]` | PUT, DELETE | Check-in/stato prenotazione; cancellazione | `components/admin/BookingManager.tsx` | scrive (modifica/cancella prenotazioni nominative) | nessuna | da proteggere |
-| `/api/discounts/apply` | POST | Verifica un codice sconto e ne restituisce i dati | `app/zuccaland/ZuccalandClient.tsx` | no | nessuna | pubblica |
-| `/api/events` | GET, POST | Lista eventi (anche `?filter=upcoming`); creazione evento | `app/admin/eventi/page.tsx`, `app/admin/page.tsx`, `app/admin/analytics/page.tsx` +1 | no | nessuna | mista: **GET pubblica** (oggi chiamata solo dall'admin), **POST da proteggere** |
-| `/api/events/[id]` | GET, PUT, DELETE | Dettaglio evento per id o slug; modifica; cancellazione | `components/admin/EventForm.tsx`, `app/admin/eventi/page.tsx` | no | nessuna | mista: **GET pubblica**, **PUT/DELETE da proteggere** |
-| `/api/gallery` | GET, POST | Lista galleria (seed automatico se vuota); aggiunta immagine | `app/media/page.tsx`, `app/assaggia-e-passeggia/page.tsx`, `app/eventi/la-baguette-da-record-2026/page.tsx` +2 | no | nessuna | mista: **GET pubblica**, **POST da proteggere** |
-| `/api/gallery/[id]` | PUT, DELETE | Modifica / elimina immagine galleria | `app/admin/media/page.tsx`, `components/admin/GalleryForm.tsx` | no | nessuna | da proteggere |
-| `/api/manuals/[type]` | GET | Genera PDF guida scanner o cassa | nessuno trovato | no | nessuna | da proteggere |
-| `/api/members` | GET, POST | Lista soci; creazione socio dal pannello | `app/admin/soci/page.tsx`, `components/admin/MemberForm.tsx`, `app/admin/page.tsx` +1 | legge/scrive (nome, cognome, email) | nessuna | da proteggere (la POST è chiamata solo da `MemberForm` admin; l'iscrizione pubblica passa da `/api/subscriptions`) |
-| `/api/members/[id]` | PUT, DELETE | Modifica / elimina socio | `components/admin/MemberForm.tsx`, `app/admin/soci/page.tsx` | scrive (nome, cognome, email) | nessuna | da proteggere |
-| `/api/news` | GET, POST | Lista news; creazione news | `app/admin/notizie/page.tsx`, `components/admin/NewsForm.tsx` | no | nessuna | mista: **GET pubblica** (oggi chiamata solo dall'admin), **POST da proteggere** |
-| `/api/news/[id]` | PUT, DELETE | Modifica / elimina news | `components/admin/NewsForm.tsx`, `app/admin/notizie/page.tsx` | no | nessuna | da proteggere |
-| `/api/nexi/callback` | GET | Ritorno da Nexi: segna l'ordine pagato, unisce le integrazioni, invia biglietti e Telegram, redirect | nessuno trovato nel frontend (URL passato a Nexi da `app/api/nexi/checkout/route.ts`) | legge (nome, email, telefono, inviati via email e Telegram) | verifica MAC SHA1 sui parametri (`codTrans`, `esito`, `importo`, `divisa`, `data`, `orario`, `codAut`) con `NEXI_MAC_KEY`; fallback hardcoded `'YOUR_SECRET_MAC_KEY'` se la variabile manca | pubblica |
-| `/api/nexi/checkout` | GET | Pagina HTML auto-submit verso Nexi con MAC calcolato | `app/zuccaland/ZuccalandClient.tsx`, `app/paga/[id]/PayLinkClient.tsx` | legge l'ordine ma espone solo importo e ID | nessuna (basta `orderId`) | pubblica |
-| `/api/orders` | POST | Creazione ordine pubblico (controllo capienza Zuccaland, Telegram, email se gratuito) | `app/zuccaland/ZuccalandClient.tsx` | scrive (nome, email, telefono) | nessuna | pubblica |
-| `/api/orders/add-extra` | POST | Aggiunge un extra pagato all'ingresso (importo e note) a un ordine | `app/admin/scanner/page.tsx` | no (modifica importo e note di un ordine) | nessuna | cassa/scanner (codice evento) |
-| `/api/refunds` | POST | Richiesta pubblica di rimborso con IBAN, con notifica Telegram | `app/zuccaland/rimborso/RefundClient.tsx` | scrive (nome, email, telefono, intestatario, IBAN) | nessuna (solo validazione campi e IBAN) | pubblica |
-| `/api/reviews` | GET, POST | POST nuova recensione; GET tutte le recensioni (filtro opzionale `eventId`) | `app/assaggia-e-passeggia/page.tsx` (POST), `app/admin/recensioni/page.tsx` (GET) | POST scrive, GET legge (nome facoltativo) | nessuna | mista: **POST pubblica**, **GET da proteggere** (oggi restituisce tutte le recensioni: non esiste uno stato "approvata", quindi non c'è una GET pubblica di sole recensioni approvate) |
-| `/api/setup` | GET | DDL: crea tabelle e colonne, seed `site_settings` | `app/admin/page.tsx` (chiamata a ogni caricamento della dashboard) | no | nessuna | da proteggere |
-| `/api/subscriptions` | POST | Iscrizione socio: genera PDF e invia 2 email via Resend (associazione + richiedente) | `app/iscriviti/page.tsx` | legge dal body e invia via email (nome, cognome, luogo/data di nascita, residenza, indirizzo, codice fiscale, cellulare, email); non salva su DB | nessuna | pubblica |
-| `/api/support-topics` | GET | Argomenti e numero WhatsApp per il widget di supporto (riscrive `site_settings` se il numero è diverso) | `components/ui/WhatsAppWidget.tsx` | no | nessuna | pubblica |
-| `/api/telegram/setup` | GET | Registra il webhook Telegram via API `setWebhook` | nessuno trovato | no | nessuna | da proteggere |
-| `/api/telegram/webhook` | POST | Bot Telegram: comandi statistiche e ultimi ordini | nessuno trovato (chiamata da Telegram, URL registrato da `app/api/telegram/setup/route.ts`) | legge (nomi acquirenti e importi nel comando `/ordini`) | nessuna firma: l'header `X-Telegram-Bot-Api-Secret-Token` non è verificato; risponde solo se `message.chat.id === TELEGRAM_CHAT_ID` (valore nel body, falsificabile) | pubblica (deve richiedere l'header segreto) |
-| `/api/tickets/download` | GET | PDF dei biglietti di un ordine pagato | `app/zuccaland/success/ZuccalandSuccessClient.tsx`, `app/paga/[id]/PayLinkClient.tsx`, `app/assaggia-e-passeggia/edizione-2026/success/SuccessClient.tsx` +1 | legge (nome, email e QR nel PDF) | nessuna (basta `orderId`; controlla solo `status === 'PAID'`) | pubblica |
-| `/api/tickets/qr` | GET | Genera un PNG QR da qualsiasi stringa `data`/`code` | nessuno trovato | no | nessuna | da proteggere |
-| `/api/tickets/stats` | GET | Statistiche biglietti per `eventId` | `app/admin/page.tsx`, `app/admin/analytics/page.tsx` | no (aggregati) | nessuna | da proteggere |
-| `/api/tickets/unverify` | POST | Annulla il check-in di un biglietto | `app/admin/scanner/page.tsx` | no | nessuna | cassa/scanner (codice evento) |
-| `/api/tickets/verify` | POST | Convalida biglietto da QR / ID; ricerca anche per nome o email | `app/admin/scanner/page.tsx` | legge (restituisce nome, email, telefono degli ordini trovati) | nessuna | cassa/scanner (codice evento) |
-| `/api/webhooks/whatsapp` | GET, POST | GET: verifica del webhook Meta; POST: riceve eventi e li logga | nessuno trovato (chiamata da Meta; URL mostrato in `app/admin/impostazioni/page.tsx`) | POST: possibile (logga l'intero payload Meta, che può contenere numeri e messaggi) | GET: verifica `hub.mode === 'subscribe'` e `hub.verify_token` (da DB, `WHATSAPP_VERIFY_TOKEN` o fallback hardcoded `'proloco_whatsapp_webhook_secret_2026'`); POST: nessuna firma (`X-Hub-Signature-256` non verificata) | pubblica (la POST deve richiedere la firma Meta) |
-| `/api/zuccaland/alert` | GET, POST | GET: stato del banner di rinvio meteo; POST: aggiorna il banner | `app/zuccaland/ZuccalandClient.tsx` (GET), `components/admin/OrderManager.tsx` (GET, POST) | no | nessuna | mista: **GET pubblica**, **POST da proteggere** |
-| `/api/zuccaland/availability` | GET | Disponibilità e sold-out per data Zuccaland | `app/admin/pagine/zuccaland/page.tsx` | no | nessuna | pubblica |
-| `/api/zuccaland/photos` | GET | Foto Zuccaland approvate (galleria pubblica) | `app/zuccaland/galleria/ZuccalandGalleryClient.tsx` | no | nessuna | pubblica |
-| `/api/zuccaland/upload` | POST | Upload pubblico di una foto su Cloudinary, salvata come `pending` | `app/zuccaland/photo/ZuccalandPhotoClient.tsx` | no (immagine caricata dall'utente) | nessuna (solo controllo tipo immagine e limite di 15 MB) | pubblica |
+| Rotta | Metodi | Scopo | Chiamata da (pagina/componente) | Dati personali (legge/scrive/no) | Autenticazione oggi | Classificazione | Protezione (dopo prompt 02) |
+|---|---|---|---|---|---|---|---|
+| `/api/bookings` | GET, POST | GET lista prenotazioni; POST nuova prenotazione evento | `components/events/BookingForm.tsx` (POST), `components/admin/BookingManager.tsx` (GET) | GET legge, POST scrive (nome, cognome, email, telefono) | nessuna | mista: **POST pubblica**, **GET da proteggere** | POST pubblica; GET admin (requireAdmin) |
+| `/api/bookings/[id]` | PUT, DELETE | Check-in/stato prenotazione; cancellazione | `components/admin/BookingManager.tsx` | scrive (modifica/cancella prenotazioni nominative) | nessuna | da proteggere | admin (requireAdmin) |
+| `/api/discounts/apply` | POST | Verifica un codice sconto e ne restituisce i dati | `app/zuccaland/ZuccalandClient.tsx` | no | nessuna | pubblica | pubblica |
+| `/api/events` | GET, POST | Lista eventi (anche `?filter=upcoming`); creazione evento | `app/admin/eventi/page.tsx`, `app/admin/page.tsx`, `app/admin/analytics/page.tsx` +1 | no | nessuna | mista: **GET pubblica** (oggi chiamata solo dall'admin), **POST da proteggere** | GET pubblica; POST admin (requireAdmin) |
+| `/api/events/[id]` | GET, PUT, DELETE | Dettaglio evento per id o slug; modifica; cancellazione | `components/admin/EventForm.tsx`, `app/admin/eventi/page.tsx` | no | nessuna | mista: **GET pubblica**, **PUT/DELETE da proteggere** | GET pubblica; PUT/DELETE admin (requireAdmin) |
+| `/api/gallery` | GET, POST | Lista galleria (seed automatico se vuota); aggiunta immagine | `app/media/page.tsx`, `app/assaggia-e-passeggia/page.tsx`, `app/eventi/la-baguette-da-record-2026/page.tsx` +2 | no | nessuna | mista: **GET pubblica**, **POST da proteggere** | GET pubblica; POST admin (requireAdmin) |
+| `/api/gallery/[id]` | PUT, DELETE | Modifica / elimina immagine galleria | `app/admin/media/page.tsx`, `components/admin/GalleryForm.tsx` | no | nessuna | da proteggere | admin (requireAdmin) |
+| `/api/manuals/[type]` | GET | Genera PDF guida scanner o cassa | nessuno trovato | no | nessuna | da proteggere | admin (requireAdmin) |
+| `/api/members` | GET, POST | Lista soci; creazione socio dal pannello | `app/admin/soci/page.tsx`, `components/admin/MemberForm.tsx`, `app/admin/page.tsx` +1 | legge/scrive (nome, cognome, email) | nessuna | da proteggere (la POST è chiamata solo da `MemberForm` admin; l'iscrizione pubblica passa da `/api/subscriptions`) | admin (requireAdmin) |
+| `/api/members/[id]` | PUT, DELETE | Modifica / elimina socio | `components/admin/MemberForm.tsx`, `app/admin/soci/page.tsx` | scrive (nome, cognome, email) | nessuna | da proteggere | admin (requireAdmin) |
+| `/api/news` | GET, POST | Lista news; creazione news | `app/admin/notizie/page.tsx`, `components/admin/NewsForm.tsx` | no | nessuna | mista: **GET pubblica** (oggi chiamata solo dall'admin), **POST da proteggere** | GET pubblica; POST admin (requireAdmin) |
+| `/api/news/[id]` | PUT, DELETE | Modifica / elimina news | `components/admin/NewsForm.tsx`, `app/admin/notizie/page.tsx` | no | nessuna | da proteggere | admin (requireAdmin) |
+| `/api/nexi/callback` | GET | Ritorno da Nexi: segna l'ordine pagato, unisce le integrazioni, invia biglietti e Telegram, redirect | nessuno trovato nel frontend (URL passato a Nexi da `app/api/nexi/checkout/route.ts`) | legge (nome, email, telefono, inviati via email e Telegram) | verifica MAC SHA1 sui parametri (`codTrans`, `esito`, `importo`, `divisa`, `data`, `orario`, `codAut`) con `NEXI_MAC_KEY`; fallback hardcoded `'YOUR_SECRET_MAC_KEY'` se la variabile manca | pubblica | MAC SHA1 con NEXI_MAC_KEY, senza chiave di ripiego |
+| `/api/nexi/checkout` | GET | Pagina HTML auto-submit verso Nexi con MAC calcolato | `app/zuccaland/ZuccalandClient.tsx`, `app/paga/[id]/PayLinkClient.tsx` | legge l'ordine ma espone solo importo e ID | nessuna (basta `orderId`) | pubblica | pubblica |
+| `/api/orders` | POST | Creazione ordine pubblico (controllo capienza Zuccaland, Telegram, email se gratuito) | `app/zuccaland/ZuccalandClient.tsx` | scrive (nome, email, telefono) | nessuna | pubblica | pubblica |
+| `/api/orders/add-extra` | POST | Aggiunge un extra pagato all'ingresso (importo e note) a un ordine | `app/admin/scanner/page.tsx` | no (modifica importo e note di un ordine) | nessuna | cassa/scanner (codice evento) | admin (requireAdmin) |
+| `/api/refunds` | POST | Richiesta pubblica di rimborso con IBAN, con notifica Telegram | `app/zuccaland/rimborso/RefundClient.tsx` | scrive (nome, email, telefono, intestatario, IBAN) | nessuna (solo validazione campi e IBAN) | pubblica | pubblica |
+| `/api/reviews` | GET, POST | POST nuova recensione; GET tutte le recensioni (filtro opzionale `eventId`) | `app/assaggia-e-passeggia/page.tsx` (POST), `app/admin/recensioni/page.tsx` (GET) | POST scrive, GET legge (nome facoltativo) | nessuna | mista: **POST pubblica**, **GET da proteggere** (oggi restituisce tutte le recensioni: non esiste uno stato "approvata", quindi non c'è una GET pubblica di sole recensioni approvate) | POST pubblica; GET admin (requireAdmin) |
+| `/api/setup` | GET | DDL: crea tabelle e colonne, seed `site_settings` | `app/admin/page.tsx` (chiamata a ogni caricamento della dashboard) | no | nessuna | da proteggere | admin (requireAdmin); 404 in produzione |
+| `/api/subscriptions` | POST | Iscrizione socio: genera PDF e invia 2 email via Resend (associazione + richiedente) | `app/iscriviti/page.tsx` | legge dal body e invia via email (nome, cognome, luogo/data di nascita, residenza, indirizzo, codice fiscale, cellulare, email); non salva su DB | nessuna | pubblica | pubblica |
+| `/api/support-topics` | GET | Argomenti e numero WhatsApp per il widget di supporto (riscrive `site_settings` se il numero è diverso) | `components/ui/WhatsAppWidget.tsx` | no | nessuna | pubblica | pubblica |
+| `/api/telegram/setup` | GET | Registra il webhook Telegram via API `setWebhook` | nessuno trovato | no | nessuna | da proteggere | admin (requireAdmin); solo in produzione (VERCEL_ENV); registra secret_token |
+| `/api/telegram/webhook` | POST | Bot Telegram: comandi statistiche e ultimi ordini | nessuno trovato (chiamata da Telegram, URL registrato da `app/api/telegram/setup/route.ts`) | legge (nomi acquirenti e importi nel comando `/ordini`) | nessuna firma: l'header `X-Telegram-Bot-Api-Secret-Token` non è verificato; risponde solo se `message.chat.id === TELEGRAM_CHAT_ID` (valore nel body, falsificabile) | pubblica (deve richiedere l'header segreto) | header X-Telegram-Bot-Api-Secret-Token = TELEGRAM_WEBHOOK_SECRET |
+| `/api/tickets/download` | GET | PDF dei biglietti di un ordine pagato | `app/zuccaland/success/ZuccalandSuccessClient.tsx`, `app/paga/[id]/PayLinkClient.tsx`, `app/assaggia-e-passeggia/edizione-2026/success/SuccessClient.tsx` +1 | legge (nome, email e QR nel PDF) | nessuna (basta `orderId`; controlla solo `status === 'PAID'`) | pubblica | pubblica |
+| `/api/tickets/qr` | GET | Genera un PNG QR da qualsiasi stringa `data`/`code` | nessuno trovato | no | nessuna | da proteggere | admin (requireAdmin) |
+| `/api/tickets/stats` | GET | Statistiche biglietti per `eventId` | `app/admin/page.tsx`, `app/admin/analytics/page.tsx` | no (aggregati) | nessuna | da proteggere | admin (requireAdmin) |
+| `/api/tickets/unverify` | POST | Annulla il check-in di un biglietto | `app/admin/scanner/page.tsx` | no | nessuna | cassa/scanner (codice evento) | admin (requireAdmin) |
+| `/api/tickets/verify` | POST | Convalida biglietto da QR / ID; ricerca anche per nome o email | `app/admin/scanner/page.tsx` | legge (restituisce nome, email, telefono degli ordini trovati) | nessuna | cassa/scanner (codice evento) | admin (requireAdmin) |
+| `/api/webhooks/whatsapp` | GET, POST | GET: verifica del webhook Meta; POST: riceve eventi e li logga | nessuno trovato (chiamata da Meta; URL mostrato in `app/admin/impostazioni/page.tsx`) | POST: possibile (logga l'intero payload Meta, che può contenere numeri e messaggi) | GET: verifica `hub.mode === 'subscribe'` e `hub.verify_token` (da DB, `WHATSAPP_VERIFY_TOKEN` o fallback hardcoded `'proloco_whatsapp_webhook_secret_2026'`); POST: nessuna firma (`X-Hub-Signature-256` non verificata) | pubblica (la POST deve richiedere la firma Meta) | GET: verify token senza valore di ripiego; POST: firma X-Hub-Signature-256 con WHATSAPP_APP_SECRET |
+| `/api/zuccaland/alert` | GET, POST | GET: stato del banner di rinvio meteo; POST: aggiorna il banner | `app/zuccaland/ZuccalandClient.tsx` (GET), `components/admin/OrderManager.tsx` (GET, POST) | no | nessuna | mista: **GET pubblica**, **POST da proteggere** | GET pubblica; POST admin (requireAdmin) |
+| `/api/zuccaland/availability` | GET | Disponibilità e sold-out per data Zuccaland | `app/admin/pagine/zuccaland/page.tsx` | no | nessuna | pubblica | pubblica |
+| `/api/zuccaland/photos` | GET | Foto Zuccaland approvate (galleria pubblica) | `app/zuccaland/galleria/ZuccalandGalleryClient.tsx` | no | nessuna | pubblica | pubblica |
+| `/api/zuccaland/upload` | POST | Upload pubblico di una foto su Cloudinary, salvata come `pending` | `app/zuccaland/photo/ZuccalandPhotoClient.tsx` | no (immagine caricata dall'utente) | nessuna (solo controllo tipo immagine e limite di 15 MB) | pubblica | pubblica |
 
 ### `/api/cashier/*` (cassa e stand)
 
-| Rotta | Metodi | Scopo | Chiamata da (pagina/componente) | Dati personali (legge/scrive/no) | Autenticazione oggi | Classificazione |
-|---|---|---|---|---|---|---|
-| `/api/cashier/session` | POST | Login cassa: trova l'evento dal codice e ne restituisce la configurazione | `app/cashier/CashierClient.tsx` | no | confronta `eventCode` nel body con `config.events[].eventCode` e richiede `active`; nessun token di sessione restituito | cassa/scanner (codice evento) |
-| `/api/cashier/item-status` | PATCH | Segna un piatto come disponibile o esaurito | `app/cashier/CashierClient.tsx` | no | nessuna (solo `eventId` nel body) | cassa/scanner (codice evento) |
-| `/api/cashier/orders` | GET, POST, PATCH | Crea ordine cassa con QR della ricevuta; lista ultimi 50; storno | `app/cashier/CashierClient.tsx`, `app/cashier/stand/StandClient.tsx` | no (nome operatore) | nessuna | cassa/scanner (codice evento) |
-| `/api/cashier/orders/[id]` | GET | Dettaglio ricevuta cassa | nessuno trovato (la pagina `app/ricevuta/[id]` legge direttamente dal DB) | no | nessuna | cassa/scanner (codice evento) |
-| `/api/cashier/realtime` | GET | Stream SSE degli eventi cassa (ordini, stati, reset) | `app/cashier/stand/StandClient.tsx` | no (contenuto degli ordini cassa) | nessuna | cassa/scanner (codice evento) |
-| `/api/cashier/stand` | GET, PATCH | Comande per reparto; aggiornamento stato di preparazione | `app/cashier/stand/StandClient.tsx` | no | nessuna | cassa/scanner (codice evento) |
-| `/api/cashier/stats` | GET | Statistiche incassi per evento, cassa e data | `app/cashier/CashierClient.tsx` | no | nessuna | cassa/scanner (codice evento) |
+| Rotta | Metodi | Scopo | Chiamata da (pagina/componente) | Dati personali (legge/scrive/no) | Autenticazione oggi | Classificazione | Protezione (dopo prompt 02) |
+|---|---|---|---|---|---|---|---|
+| `/api/cashier/session` | POST | Login cassa: trova l'evento dal codice e ne restituisce la configurazione | `app/cashier/CashierClient.tsx` | no | confronta `eventCode` nel body con `config.events[].eventCode` e richiede `active`; nessun token di sessione restituito | cassa/scanner (codice evento) | pubblica: verifica il codice evento sul server e apre la sessione di cassa (cookie pl_cassa) |
+| `/api/cashier/item-status` | PATCH | Segna un piatto come disponibile o esaurito | `app/cashier/CashierClient.tsx` | no | nessuna (solo `eventId` nel body) | cassa/scanner (codice evento) | sessione di cassa dello stesso evento o admin |
+| `/api/cashier/orders` | GET, POST, PATCH | Crea ordine cassa con QR della ricevuta; lista ultimi 50; storno | `app/cashier/CashierClient.tsx`, `app/cashier/stand/StandClient.tsx` | no (nome operatore) | nessuna | cassa/scanner (codice evento) | sessione di cassa dello stesso evento o admin |
+| `/api/cashier/orders/[id]` | GET | Dettaglio ricevuta cassa | nessuno trovato (la pagina `app/ricevuta/[id]` legge direttamente dal DB) | no | nessuna | cassa/scanner (codice evento) | sessione di cassa dello stesso evento o admin |
+| `/api/cashier/realtime` | GET | Stream SSE degli eventi cassa (ordini, stati, reset) | `app/cashier/stand/StandClient.tsx` | no (contenuto degli ordini cassa) | nessuna | cassa/scanner (codice evento) | sessione di cassa dello stesso evento o admin |
+| `/api/cashier/stand` | GET, PATCH | Comande per reparto; aggiornamento stato di preparazione | `app/cashier/stand/StandClient.tsx` | no | nessuna | cassa/scanner (codice evento) | sessione di cassa dello stesso evento o admin |
+| `/api/cashier/stats` | GET | Statistiche incassi per evento, cassa e data | `app/cashier/CashierClient.tsx` | no | nessuna | cassa/scanner (codice evento) | sessione di cassa dello stesso evento o admin |
 
 ## Note
 

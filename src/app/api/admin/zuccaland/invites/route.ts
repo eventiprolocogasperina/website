@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createOrderWithTickets, getOrder } from '@/lib/data/tickets';
 import { sendZuccalandInviteEmail } from '@/lib/tickets/sendZuccalandInviteEmail';
 import { neon } from '@neondatabase/serverless';
+import { requireAdmin } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,8 @@ function getDb() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await request.json();
     const {
@@ -99,6 +102,8 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const sql = getDb();
     const rows = await sql`
@@ -131,6 +136,8 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { orderId } = await request.json();
     if (!orderId) {
@@ -184,6 +191,8 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { orderId } = await request.json();
     if (!orderId) {

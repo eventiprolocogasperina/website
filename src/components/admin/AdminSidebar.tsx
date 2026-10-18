@@ -197,7 +197,7 @@ export default function AdminSidebar({ isOpen = false, onClose }: AdminSidebarPr
           <Eye size={14} /> Visualizza sito
         </Link>
         <button
-          onClick={() => { sessionStorage.removeItem('admin_auth'); window.location.reload(); }}
+          onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; }}
           style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem',
             padding: '0.6rem 0.85rem', borderRadius: 'var(--radius-md)',

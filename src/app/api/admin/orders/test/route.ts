@@ -3,12 +3,17 @@ import { createOrderWithTickets, markOrderPaid, getOrder } from '@/lib/data/tick
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
 import crypto from 'crypto';
+import { requireAdmin } from '@/server/auth/session';
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   return NextResponse.json({ ok: true, timestamp: Date.now() });
 }
 
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     let body: any = {};
     try {

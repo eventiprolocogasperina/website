@@ -3,11 +3,14 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { ScannerGuideDocument } from '@/lib/manuals/ScannerGuidePdf';
 import { CashierGuideDocument } from '@/lib/manuals/CashierGuidePdf';
 import { createElement } from 'react';
+import { requireAdmin } from '@/server/auth/session';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ type: string }> }
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { type } = await params;
 

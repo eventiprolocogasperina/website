@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { resetCashierReport } from '@/lib/data/cashier';
+import { requireAdmin } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { eventId, confirmation } = await request.json();
 

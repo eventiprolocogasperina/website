@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCashierOrderById } from '@/lib/data/cashier';
+import { requireCassaOrAdmin } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,6 +8,8 @@ export async function GET(
   request: Request,
   props: { params: Promise<{ id: string }> }
 ) {
+  const { denied } = await requireCassaOrAdmin();
+  if (denied) return denied;
   try {
     const { id } = await props.params;
 

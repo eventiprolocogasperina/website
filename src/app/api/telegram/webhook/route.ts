@@ -7,6 +7,16 @@ import {
   ZuccalandDayStats
 } from '@/lib/data/tickets';
 import { sendTelegramNotification } from '@/lib/telegram';
+import { timingSafeEqual } from 'node:crypto';
+
+/** Telegram invia il secret_token scelto in /api/telegram/setup in questo header. */
+function hasValidTelegramSecret(request: Request): boolean {
+  const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const given = request.headers.get('x-telegram-bot-api-secret-token');
+  if (!expected || !given) return false;
+  const a = Buffer.from(given), b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 function formatZuccalandStats(stats: ZuccalandStatsResult): string {
   const typeBreakdown = Object.entries(stats.ticketTypes)
@@ -73,6 +83,9 @@ function formatZuccalandPerData(stats: ZuccalandStatsResult): string {
 }
 
 export async function POST(request: Request) {
+  if (!hasValidTelegramSecret(request)) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
   try {
     const data = await request.json();
 

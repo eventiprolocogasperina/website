@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requireAdmin } from '@/server/auth/session';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) {
@@ -9,6 +10,8 @@ function getDb() {
 }
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const sql = getDb();
     const members = await sql`SELECT * FROM members ORDER BY "createdAt" DESC`;
@@ -20,6 +23,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const sql = getDb();
     const body = await request.json();

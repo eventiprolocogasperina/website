@@ -3,8 +3,11 @@ import { neon } from '@neondatabase/serverless';
 import { getOrder, createOrderWithTickets } from '@/lib/data/tickets';
 import { sendTelegramNotification } from '@/lib/telegram';
 import crypto from 'crypto';
+import { requireAdmin } from '@/server/auth/session';
 
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const data = await req.json();
     const { 

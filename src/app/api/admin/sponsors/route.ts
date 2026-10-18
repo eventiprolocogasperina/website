@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requireAdmin } from '@/server/auth/session';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -30,6 +31,8 @@ export async function GET() {
 
 // POST /api/admin/sponsors — create a new sponsor
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { name, logo_url, website_url, tier, active, sort_order } = body;
@@ -52,6 +55,8 @@ export async function POST(request: Request) {
 
 // PUT /api/admin/sponsors — update a sponsor
 export async function PUT(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { id, name, logo_url, website_url, tier, active, sort_order } = body;
@@ -73,6 +78,8 @@ export async function PUT(request: Request) {
 
 // DELETE /api/admin/sponsors?id=... — delete a sponsor
 export async function DELETE(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

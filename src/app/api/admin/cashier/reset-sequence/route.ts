@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { resetCashierOrderSequence, getCashierConfig } from '@/lib/data/cashier';
 import { broadcastCashierEvent } from '@/app/api/cashier/realtime/route';
+import { requireAdmin } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { eventId, startingNumber = 1 } = await request.json();
     

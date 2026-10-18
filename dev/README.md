@@ -49,7 +49,12 @@ LOCAL_DB=1
 POSTGRES_URL="postgres://postgres:postgres@localhost:5432/main"
 DATABASE_URI="postgres://postgres:postgres@localhost:5432/main"
 RESEND_API_KEY="re_finta_locale"   # chiave finta: nessuna email parte davvero
+AUTH_SECRET="..."                  # una stringa casuale, solo per il locale
+ADMIN_PASSWORD_HASH="scrypt...."   # npm run hash-password -- "password-locale"
 ```
+
+L'admin locale si apre da http://localhost:3000/login con la password di cui hai messo l'hash.
+La cassa di prova (http://localhost:3000/cashier) usa il codice evento `FESTA2026`.
 
 ## Quando si passa al sito vero
 

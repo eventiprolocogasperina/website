@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { getOrder, type OrderWithTickets } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
+import { requireAdmin } from '@/server/auth/session';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
@@ -11,6 +12,8 @@ function getDb() {
  * GET: Ritorna il riepilogo dei 40 ordini pagati di Zuccaland per la rettifica orari.
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const sql = getDb();
     const orders = await sql`
@@ -54,6 +57,8 @@ export async function GET() {
  * POST: Invia email di test a un indirizzo oppure invia a tutti i 40 clienti.
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { testEmail, confirmBroadcast } = body;

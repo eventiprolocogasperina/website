@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getTicketingStats } from '@/lib/data/tickets';
+import { requireAdmin } from '@/server/auth/session';
 
 export async function GET(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const eventId = searchParams.get('eventId');
 

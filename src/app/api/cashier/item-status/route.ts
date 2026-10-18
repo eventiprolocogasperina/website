@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getCashierConfig, saveCashierConfig } from '@/lib/data/cashier';
+import { requireCassaOrAdmin } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request) {
+  const { denied, cassaEventId } = await requireCassaOrAdmin();
+  if (denied) return denied;
   try {
     const { eventId, itemId, isAvailable } = await request.json();
+    if (cassaEventId && eventId !== cassaEventId) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    }
 
     if (!eventId || !itemId || typeof isAvailable !== 'boolean') {
       return NextResponse.json(

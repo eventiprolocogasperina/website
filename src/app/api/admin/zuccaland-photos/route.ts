@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getAllPhotos } from '@/lib/data/zuccaland_photos';
+import { requireAdmin } from '@/server/auth/session';
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const photos = await getAllPhotos();
     return NextResponse.json(photos);

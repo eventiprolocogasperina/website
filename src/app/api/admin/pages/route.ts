@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getPageContent, savePageContent, DEFAULT_ASSAGGIA_CONTENT, DEFAULT_ZUCCALAND_CONTENT } from '@/lib/data/pages';
+import { requireAdmin } from '@/server/auth/session';
 
 /**
  * GET /api/admin/pages?slug=...
  * Fetch content for a specific page slug.
  */
 export async function GET(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug');
 
@@ -35,6 +38,8 @@ export async function GET(request: Request) {
  * Save content for a specific page.
  */
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { slug, content } = body;

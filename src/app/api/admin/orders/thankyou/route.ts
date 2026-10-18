@@ -3,10 +3,13 @@ import React from 'react';
 import { neon } from '@neondatabase/serverless';
 import { Resend } from 'resend';
 import { ThankYouEmailDocument } from '@/lib/tickets/ThankYouEmailDocument';
+import { requireAdmin } from '@/server/auth/session';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const data = await request.json();
     const { eventId } = data;

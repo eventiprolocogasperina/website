@@ -9,7 +9,8 @@
     "lint": "eslint",
     "generate:manuals": "tsx scripts/generate-manuals.tsx",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "hash-password": "node scripts/hash-password.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

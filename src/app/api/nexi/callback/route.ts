@@ -5,7 +5,6 @@ import { markOrderPaidByCodTrans, getOrder } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
 
-const NEXI_MAC_KEY = process.env.NEXI_MAC_KEY || 'YOUR_SECRET_MAC_KEY';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,6 +17,13 @@ export async function GET(request: Request) {
   const data = searchParams.get('data');
   const orario = searchParams.get('orario');
   const codAut = searchParams.get('codAut');
+
+  // Nessuna chiave di ripiego: senza NEXI_MAC_KEY nessun pagamento può essere confermato.
+  const NEXI_MAC_KEY = process.env.NEXI_MAC_KEY;
+  if (!NEXI_MAC_KEY) {
+    console.error('nexi/callback: NEXI_MAC_KEY non impostata');
+    return NextResponse.json({ error: 'Pagamenti non configurati' }, { status: 500 });
+  }
 
   if (!codTrans) {
     return NextResponse.json({ error: 'Missing codTrans' }, { status: 400 });

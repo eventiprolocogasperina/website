@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { verifyTicketByQR } from '@/lib/data/tickets';
+import { requireAdmin } from '@/server/auth/session';
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { qrCodeData } = await request.json();
 

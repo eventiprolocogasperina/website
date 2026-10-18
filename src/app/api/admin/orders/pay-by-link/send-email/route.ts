@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getOrder } from '@/lib/data/tickets';
 import { sendPayLinkEmail } from '@/lib/tickets/sendPayLinkEmail';
+import { requireAdmin } from '@/server/auth/session';
 
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { subOrderId, orderId: rawOrderId } = await req.json();
     const targetId = subOrderId || rawOrderId;

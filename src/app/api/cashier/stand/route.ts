@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
 import { getCashierOrders, updateCashierDepartmentStatus, getCashierConfig } from '@/lib/data/cashier';
 import { broadcastCashierEvent } from '../realtime/route';
+import { requireCassaOrAdmin } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const { denied, cassaEventId } = await requireCassaOrAdmin();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
     const department = searchParams.get('department') || undefined;
 
     const config = await getCashierConfig();
-    const targetEventId = eventId || config.activeEventId || config.events[0]?.id;
+    const targetEventId = eventId || cassaEventId || config.activeEventId || config.events[0]?.id;
+    if (cassaEventId && targetEventId !== cassaEventId) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    }
 
     if (!targetEventId) {
       return NextResponse.json({ success: false, error: 'Evento non trovato' }, { status: 400 });
@@ -38,6 +44,8 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const { denied } = await requireCassaOrAdmin();
+  if (denied) return denied;
   try {
     const { orderId, department, status } = await request.json();
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCashierConfig, DEFAULT_PRINTER_SETTINGS } from '@/lib/data/cashier';
+import { createSession } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
       ? matchedEvent.casses
       : ['Cassa 1'];
     const masterCassa = cassasList[0];
+
+    // Il codice è stato verificato qui sul server: apre una sessione di cassa (cookie httpOnly)
+    // valida solo per questo evento, richiesta dalle altre rotte /api/cashier.
+    await createSession({ sub: 'cassa', role: 'cassa', eventId: matchedEvent.id });
 
     return NextResponse.json({
       success: true,

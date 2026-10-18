@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requireAdmin } from '@/server/auth/session';
 
 /**
  * GET /api/setup
@@ -12,6 +13,13 @@ import { neon } from '@neondatabase/serverless';
  *   curl http://localhost:3000/api/setup
  */
 export async function GET() {
+  // Crea tabelle e colonne: serve solo in sviluppo. Online le modifiche allo schema
+  // si fanno con le migrazioni (prompt 04).
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse(null, { status: 404 });
+  }
+  const denied = await requireAdmin();
+  if (denied) return denied;
   if (!process.env.POSTGRES_URL) {
     return NextResponse.json({ error: 'Missing POSTGRES_URL' }, { status: 500 });
   }
