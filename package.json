@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "generate:manuals": "tsx scripts/generate-manuals.tsx"
+    "generate:manuals": "tsx scripts/generate-manuals.tsx",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -33,6 +35,7 @@
     "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "resend": "^6.12.3",
+    "server-only": "^0.0.1",
     "yet-another-react-lightbox": "^3.32.0",
     "zod": "^4.4.3"
   },
@@ -45,6 +48,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }
