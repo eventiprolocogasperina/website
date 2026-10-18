@@ -113,16 +113,17 @@ export async function markOrderPaid(orderId: string, nexiMac?: string) {
   const sql = getDb();
   const paidAt = new Date().toISOString();
   
-  await sql`
+  // Solo il passaggio a PAID conta l'utilizzo dello sconto: un callback Nexi ripetuto
+  // (o un ordine già pagato) non lo incrementa una seconda volta.
+  const updated = await sql`
     UPDATE orders 
     SET status = 'PAID', "paidAt" = ${paidAt}, "nexiMac" = COALESCE("nexiMac", ${nexiMac || null})
-    WHERE id = ${orderId}
+    WHERE id = ${orderId} AND status IS DISTINCT FROM 'PAID'
+    RETURNING "discountId"
   `;
-  
-  // Increment discount uses if a discount was applied
-  const orders = await sql`SELECT "discountId" FROM orders WHERE id = ${orderId}`;
-  if (orders.length > 0 && orders[0].discountId) {
-    await incrementDiscountUses(orders[0].discountId);
+
+  if (updated.length > 0 && updated[0].discountId) {
+    await incrementDiscountUses(updated[0].discountId);
   }
 }
 
@@ -901,6 +902,6 @@ export async function incrementDiscountUses(id: string) {
   await sql`
     UPDATE discounts 
     SET current_uses = current_uses + 1 
-    WHERE id = ${id}
+    WHERE id = ${id} AND (COALESCE(max_uses, 0) = 0 OR current_uses < max_uses)
   `;
 }

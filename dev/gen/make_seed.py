@@ -119,6 +119,11 @@ ins("refund_requests", dict(id="rf_prova_1", event_slug="zuccaland-2026", full_n
 for k, v in [("ticket_sales_enabled", "true"), ("event_date", "2026-10-25"), ("contact_email", "prolocogasperina@gmail.com"),
              ("social_instagram", "https://www.instagram.com/prolocogasperina"), ("social_facebook", "https://www.facebook.com/prolocogasperina")]:
     ins("site_settings", dict(key=k, value=v))
+# Contenuto della pagina Zuccaland: copia dei valori predefiniti del codice con le date
+# del 24 e 25 ottobre aperte, così il checkout si può provare. Rigenerare se cambiano i default.
+import os
+content = json.load(open(os.path.join(os.path.dirname(__file__), "zuccaland-content.json")))
+ins("pages_content", {"slug": "zuccaland", "content": content})
 out.append("COMMIT;")
 import sys
 open(sys.argv[1], "w").write("\n".join(out) + "\n")
