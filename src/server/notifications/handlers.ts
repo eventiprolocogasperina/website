@@ -16,4 +16,8 @@ registerOnce('notifications', () => {
     const [o] = await getDb().select({ channel: ordersV2.channel }).from(ordersV2).where(eq(ordersV2.id, event.orderId));
     if (o && EMAIL_ON_PAID.includes(o.channel)) await sendOrderTickets(event.orderId, { reason: 'paid' });
   });
+  // "Reinvia biglietti" dall'admin (resendTickets, anche in massa): stessa email, motivo "resent".
+  on('order.tickets_resent', async (event) => {
+    await sendOrderTickets(event.orderId, { reason: 'resent' });
+  });
 });

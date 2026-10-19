@@ -136,5 +136,7 @@ export const auditLog = pgTable(
     index('audit_log_actor_idx').on(t.actorUserId),
     index('audit_log_action_idx').on(t.action),
     index('audit_log_edition_idx').on(t.editionSlug),
+    // Cronologia di un ordine o di un rimborso (prompt 12).
+    index('audit_log_entity_idx').on(t.entityType, t.entityId),
   ],
 );

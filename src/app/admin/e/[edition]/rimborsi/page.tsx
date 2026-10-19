@@ -1,11 +1,13 @@
+import { RefundsPage } from '@/components/admin/refunds/RefundsPage';
 import { pageDenied } from '@/server/auth/guard';
-import type { EditionParams } from '@/server/domain/editions/page-params';
-import { ComingSoon } from '@/components/admin/shell/ComingSoon';
 
 export const metadata = { title: 'Rimborsi' };
 
-export default async function Page({ params }: EditionParams) {
-  const denied = await pageDenied('orders.read', { edition: (await params).edition });
+type Props = { params: Promise<{ edition: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function Page({ params, searchParams }: Props) {
+  const { edition } = await params;
+  const denied = await pageDenied('orders.read', { edition });
   if (denied) return denied;
-  return <ComingSoon title="Rimborsi" description="Le richieste di rimborso di questa sola edizione." when="con la fase 2" meanwhile={{ href: "/admin/rimborsi", label: "Vai a tutti i rimborsi" }} />;
+  return <RefundsPage edition={edition} searchParams={await searchParams} />;
 }

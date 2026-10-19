@@ -44,6 +44,8 @@ vuoto (in quel caso basta `db:migrate`).
 
 | Migrazione | Cosa aggiunge | Come tornare indietro |
 |---|---|---|
+| `0009_admin_ordini` | `order_notes`, `admin_saved_views`, `customers.merged_into_id`, indici `orders_v2_created_idx`, `orders_v2_edition_created_idx`, `orders_v2_session_idx`, `audit_log_entity_idx` | Solo aggiunte: `DROP TABLE order_notes, admin_saved_views`, `ALTER TABLE customers DROP COLUMN merged_into_id`, `DROP INDEX` dei quattro indici. |
+| `0010_admin_ordini_dati` | riga `orders_v2 = false` in `site_settings` | `DELETE FROM site_settings WHERE key = 'orders_v2'` (il codice la tratta come spenta se manca). |
 | `0004_edizioni_catalogo` | `series`, `editions`, `sessions`, `products`, `quotas`, `quota_products`, `discounts_v2`, `legacy_id_map` e i loro enum | Tabelle solo nuove, nessuna colonna esistente cambia: `DROP TABLE` delle otto tabelle (nell'ordine inverso) e dei cinque enum. Le tabelle di oggi continuano a funzionare. |
 
 ## Backfill delle edizioni (prompt 08)

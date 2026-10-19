@@ -35,6 +35,8 @@ export const customers = pgTable(
     marketingConsent: boolean('marketing_consent').default(false).notNull(),
     consentAt: timestamp('consent_at', { withTimezone: true }),
     notes: text('notes'),
+    /** Cliente doppione unito a un altro (prompt 12): resta cancellato in modo logico e punta a quello buono. */
+    mergedIntoId: uuid('merged_into_id').references((): AnyPgColumn => customers.id),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
@@ -88,6 +90,10 @@ export const ordersV2 = pgTable(
     uniqueIndex('orders_v2_idempotency_unique').on(t.idempotencyKey),
     index('orders_v2_edition_status_idx').on(t.editionId, t.status),
     index('orders_v2_customer_idx').on(t.customerId),
+    // Elenco ordini dell'admin (prompt 12): pagine da 50 ordinate per data, globali e per edizione.
+    index('orders_v2_created_idx').on(t.createdAt.desc(), t.id),
+    index('orders_v2_edition_created_idx').on(t.editionId, t.createdAt.desc()),
+    index('orders_v2_session_idx').on(t.sessionId),
     index('orders_v2_expiry_idx').on(t.expiresAt).where(sql`${t.status} = 'pending'`),
     check('orders_v2_total', sql`${t.totalCents} = ${t.subtotalCents} - ${t.discountCents} AND ${t.totalCents} >= 0 AND ${t.discountCents} >= 0`),
   ],

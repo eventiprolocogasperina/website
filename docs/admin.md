@@ -34,7 +34,7 @@ I redirect permanenti sono in `next.config.ts`:
 | `/admin/zuccaland-inviti` | `/admin/e/zuccaland-2026/m/invites` |
 | `/admin/zuccaland-photos` | `/admin/e/zuccaland-2026/m/visitor-photos` |
 | `/admin/cassa` | `/admin/vai/cassa` |
-| `/admin/prenotazioni` | `/admin/vai/partecipanti` |
+| `/admin/prenotazioni` | pagina di prima finché il flag `orders_v2` è spento, poi `/admin/vai/partecipanti` (vedi docs/admin-ordini.md) |
 | `/admin/analytics` | `/admin/vai/statistiche` |
 | `/admin/pagine/zuccaland` | `/admin/e/zuccaland-2026/pagina` |
 | `/admin/pagine/sponsor` | `/admin/sito/sponsor` |
