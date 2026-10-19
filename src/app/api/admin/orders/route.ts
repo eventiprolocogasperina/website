@@ -14,13 +14,6 @@ export async function GET() {
   if (denied) return denied;
   try {
     const sql = getDb();
-    // Ensure blacklist columns exist
-    await sql`
-      ALTER TABLE orders 
-      ADD COLUMN IF NOT EXISTS "isBlacklisted" BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS "blacklistReason" TEXT,
-      ADD COLUMN IF NOT EXISTS "blacklistedAt" TIMESTAMP;
-    `;
     const orders = await sql`SELECT * FROM orders WHERE "deletedAt" IS NULL ORDER BY "createdAt" DESC`;
     const tickets = await sql`SELECT * FROM tickets`;
 
@@ -99,7 +92,7 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: 'Ordine non trovato' }, { status: 404 });
       }
 
-      let currentNotes = order.notes || '';
+      const currentNotes = order.notes || '';
       let updatedNotes = currentNotes;
 
       // Sostituisci o anteponi il campo Data:

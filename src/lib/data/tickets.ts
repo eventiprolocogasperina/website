@@ -1,3 +1,4 @@
+import { log } from '@/server/log';
 import { neon } from '@neondatabase/serverless';
 
 export interface Order {
@@ -93,12 +94,6 @@ export async function getOrder(id: string): Promise<OrderWithTickets | null> {
 
 export async function toggleOrderBlacklist(orderId: string, isBlacklisted: boolean, reason?: string) {
   const sql = getDb();
-  await sql`
-    ALTER TABLE orders 
-    ADD COLUMN IF NOT EXISTS "isBlacklisted" BOOLEAN DEFAULT false,
-    ADD COLUMN IF NOT EXISTS "blacklistReason" TEXT,
-    ADD COLUMN IF NOT EXISTS "blacklistedAt" TIMESTAMP;
-  `;
   await sql`
     UPDATE orders 
     SET "isBlacklisted" = ${isBlacklisted},
@@ -271,7 +266,7 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{
 
   if (ticket.isCheckedIn) {
     const stats = await getTicketingStats(ticket.eventId || 'assaggia-e-passeggia-2024');
-    let dateStr = ticket.checkInTime ? new Date(ticket.checkInTime).toLocaleString('it-IT') : 'in precedenza';
+    const dateStr = ticket.checkInTime ? new Date(ticket.checkInTime).toLocaleString('it-IT') : 'in precedenza';
     return { 
       success: false, 
       message: `Questo biglietto è già stato utilizzato.\n(Validato il: ${dateStr})`, 
@@ -698,7 +693,9 @@ export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
       }
     }
   } catch (error) {
-    console.error('Failed to get Zuccaland date counts:', error);
+    // Contatori a zero farebbero vendere oltre la capienza: meglio fallire.
+    log.error('Failed to get Zuccaland date counts', { error });
+    throw error;
   }
 
   return counts;

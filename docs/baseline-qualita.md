@@ -28,3 +28,15 @@ importando direttamente `eslint-config-next/core-web-vitals` e `eslint-config-ne
 ## Test
 
 Nessun test esistente. `npm run test` (Vitest) è pronto per i test dei prompt successivi.
+
+## Dopo il prompt 04
+
+- `npm run typecheck`: 0 errori.
+- `npm run lint`: **0 errori, circa 495 avvisi**. ESLint ora parte (configurazione flat diretta).
+  Sistemati gli errori veri: hook chiamati dopo un `return` in `WhatsAppWidget`, `require()`,
+  `@ts-ignore`, `<a href="/">` al posto di `<Link>`, `let` mai riassegnati.
+  Nel codice precedente al rifacimento cinque regole (`no-explicit-any`, `no-unescaped-entities`,
+  `set-state-in-effect`, `immutability`, `purity`) sono declassate ad avviso: si sistemano quando
+  quei file vengono riscritti. Il codice nuovo (`src/server/`, `src/lib/{money,dates,codes}.ts`) le
+  ha come errori.
+- `npm test`: 43 test.

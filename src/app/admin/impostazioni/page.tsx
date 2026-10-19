@@ -473,7 +473,7 @@ export default function AdminImpostazioniPage() {
         </div>
       ) : (
         <div style={{ color: 'var(--neutral-500)', textAlign: 'center', padding: '2rem' }}>
-          Errore nel caricamento. Assicurati di aver eseguito /api/setup.
+          Errore nel caricamento delle impostazioni. Riprova tra poco.
         </div>
       )}
     </div>

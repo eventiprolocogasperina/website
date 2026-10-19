@@ -1,3 +1,4 @@
+import { log } from '@/server/log';
 import { neon } from '@neondatabase/serverless';
 
 export interface Booking {
@@ -34,8 +35,8 @@ export async function getAllBookings(): Promise<Booking[]> {
     `;
     return bookings as Booking[];
   } catch (error) {
-    console.error('Failed to get all bookings:', error);
-    return [];
+    log.error('Failed to get all bookings', { error });
+    throw error;
   }
 }
 
@@ -49,7 +50,7 @@ export async function getBookingsByEvent(eventId: string): Promise<Booking[]> {
     `;
     return bookings as Booking[];
   } catch (error) {
-    console.error('Failed to get bookings by event:', error);
-    return [];
+    log.error('Failed to get bookings by event', { error });
+    throw error;
   }
 }

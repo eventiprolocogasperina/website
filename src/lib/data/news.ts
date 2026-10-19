@@ -1,3 +1,4 @@
+import { log } from '@/server/log';
 import { neon } from '@neondatabase/serverless';
 
 export interface NewsArticle {
@@ -25,8 +26,8 @@ export async function getAllNews(): Promise<NewsArticle[]> {
     const news = await sql`SELECT * FROM news ORDER BY "publishedAt" DESC`;
     return news as NewsArticle[];
   } catch (error) {
-    console.error('Failed to get all news:', error);
-    return [];
+    log.error('Failed to get all news', { error });
+    throw error;
   }
 }
 
@@ -36,7 +37,7 @@ export async function getNewsBySlug(slug: string): Promise<NewsArticle | undefin
     const news = await sql`SELECT * FROM news WHERE slug = ${slug} LIMIT 1`;
     return news.length > 0 ? (news[0] as NewsArticle) : undefined;
   } catch (error) {
-    console.error('Failed to get news by slug:', error);
-    return undefined;
+    log.error('Failed to get news by slug', { error });
+    throw error;
   }
 }

@@ -2,6 +2,9 @@ import { MetadataRoute } from 'next';
 import { getAllEvents } from '@/lib/data/events';
 import { getAllNews } from '@/lib/data/news';
 
+// Generata a ogni richiesta: così non dipende dal database durante la build e resta aggiornata.
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://prolocogasperina.it';
   

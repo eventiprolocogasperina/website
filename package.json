@@ -11,7 +11,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "hash-password": "node scripts/hash-password.mjs",
-    "check-links": "node --experimental-strip-types scripts/check-links.ts"
+    "check-links": "node --experimental-strip-types scripts/check-links.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:mark-baseline": "node scripts/db/mark-baseline.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -23,6 +27,7 @@
     "cloudinary": "^2.10.0",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.44.7",
     "framer-motion": "^12.38.0",
     "jspdf": "^4.2.1",
     "leaflet": "^1.9.4",
@@ -45,10 +50,13 @@
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "pg": "^8.23.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"

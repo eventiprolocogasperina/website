@@ -19,7 +19,12 @@ const DEFAULT_TOPICS: SupportTopic[] = [
 
 export default function WhatsAppWidget() {
   const pathname = usePathname();
+  // Il widget non serve in cassa. Il ritorno anticipato sta qui, prima degli hook del pannello.
   if (pathname?.startsWith('/cashier')) return null;
+  return <WhatsAppPanel pathname={pathname} />;
+}
+
+function WhatsAppPanel({ pathname }: { pathname: string | null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [topics, setTopics] = useState<SupportTopic[]>(DEFAULT_TOPICS);
   const [loading, setLoading] = useState(false);

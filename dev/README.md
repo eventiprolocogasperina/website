@@ -21,7 +21,17 @@ Serve Docker Desktop acceso e Node 22 o più recente.
 ```bash
 cd "/Users/niccolovono/Projects/Pro Loco/Website_TEST"
 docker compose -f dev/docker-compose.yml up -d --build   # avvia il database
+npm run db:migrate                                       # applica le migrazioni nuove (drizzle/)
 npm run dev                                              # avvia il sito su http://localhost:3000
+```
+
+Dopo un azzeramento (`down -v`) il database riparte da `sql/01-schema.sql`, che corrisponde alla
+migrazione `0000_baseline`. Prima di `db:migrate` va quindi segnata come già applicata, esattamente
+come si farà in produzione:
+
+```bash
+npm run db:mark-baseline -- --conferma
+npm run db:migrate
 ```
 
 Nel terminale di `npm run dev` deve comparire la riga
@@ -59,4 +69,5 @@ La cassa di prova (http://localhost:3000/cashier) usa il codice evento `FESTA202
 ## Quando si passa al sito vero
 
 Il database di produzione **non si sostituisce** con questo. Le modifiche alla struttura
-(nuove tabelle o colonne) andranno applicate a Neon come migrazioni, una volta approvate.
+(nuove tabelle o colonne) si applicano a Neon come migrazioni, una volta approvate:
+la procedura è in `docs/database.md`.

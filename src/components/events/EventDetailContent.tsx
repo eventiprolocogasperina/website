@@ -93,10 +93,9 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
         window.document.body.appendChild(script);
       } else {
         // If already loaded, trigger processing again (e.g. for client-side navigation)
-        // @ts-ignore
-        if (window.instgrm) {
-          // @ts-ignore
-          window.instgrm.Embeds.process();
+        const { instgrm } = window as Window & { instgrm?: { Embeds: { process: () => void } } };
+        if (instgrm) {
+          instgrm.Embeds.process();
         }
       }
     }

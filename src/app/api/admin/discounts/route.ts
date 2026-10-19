@@ -35,8 +35,7 @@ export async function POST(req: Request) {
     }
 
     const sql = getDb();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const id = require('crypto').randomUUID();
+    const id = crypto.randomUUID();
 
     await sql`
       INSERT INTO discounts (id, code, type, value, max_uses, max_tickets, current_uses, expiry_date, active, applies_to)

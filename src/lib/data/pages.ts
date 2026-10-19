@@ -1,3 +1,4 @@
+import { log } from '@/server/log';
 import { neon } from '@neondatabase/serverless';
 
 export interface TappaRecipe {
@@ -333,8 +334,10 @@ export async function getPageContent<T>(slug: string, defaultData: T): Promise<T
     
     return defaultData;
   } catch (error) {
-    console.error(`Failed to get page content for ${slug}:`, error);
-    return defaultData; // Fallback in caso di errore (o se la tabella non esiste ancora)
+    // Niente fallback silenzioso: con i valori predefiniti (date, limiti, prezzi) il sito
+    // mostrerebbe disponibilità sbagliate. La pagina mostra error.tsx.
+    log.error('Failed to get page content', { slug, error });
+    throw error;
   }
 }
 
@@ -353,7 +356,7 @@ export async function savePageContent<T>(slug: string, content: T): Promise<bool
     
     return true;
   } catch (error) {
-    console.error(`Failed to save page content for ${slug}:`, error);
+    log.error('Failed to save page content', { slug, error });
     return false;
   }
 }

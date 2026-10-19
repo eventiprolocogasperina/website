@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const eventSlug = searchParams.get('eventSlug');
     const sql = getDb();
 
-    let query = eventSlug
+    const query = eventSlug
       ? sql`SELECT * FROM refund_requests WHERE event_slug = ${eventSlug} ORDER BY created_at DESC`
       : sql`SELECT * FROM refund_requests ORDER BY created_at DESC`;
 

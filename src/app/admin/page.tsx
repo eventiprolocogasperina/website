@@ -38,8 +38,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Run setup silently to ensure tables exist
-    fetch('/api/setup').catch(() => {});
 
     Promise.all([
       fetch('/api/events').then(r => r.json()),

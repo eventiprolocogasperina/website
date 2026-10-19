@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, X, Loader2, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -186,13 +187,13 @@ export default function AssaggiaGraziePage() {
              transition={{ duration: 1, delay: 1.5 }}
              style={{ marginTop: '3.5rem', pointerEvents: 'auto', display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}
           >
-            <a 
+            <Link 
               href="/" 
               className="btn btn-outline" 
               style={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', padding: '0.8rem 2rem' }}
             >
               Torna alla Home
-            </a>
+            </Link>
             <button 
               onClick={() => {
                 document.getElementById('gallery-section')?.scrollIntoView({ behavior: 'smooth' });
