@@ -2,9 +2,12 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { verifyToken } from '@/server/auth/token';
 
 // Primo livello di protezione dell'admin (il secondo è requireAdmin() dentro ogni rotta).
-// Senza una sessione admin valida: /admin/** va al login, /api/admin/** risponde 401.
+// Senza una sessione admin valida: /admin/** e /scanner vanno al login, /api/admin/** risponde 401.
 
 const ADMIN_COOKIE = 'pl_admin';
+// Ultima edizione aperta nell'admin: la usano il selettore e i vecchi indirizzi senza edizione (/admin/vai/…).
+const EDITION_COOKIE = 'pl_edition';
+const EDITION_PATH = /^\/admin\/e\/([a-z0-9-]{1,80})(?:\/|$)/;
 
 // Rotte sotto /api/admin che il sito pubblico usa in sola lettura.
 const PUBLIC_ADMIN_API: Array<{ method: string; path: string }> = [
@@ -19,7 +22,20 @@ export function proxy(request: NextRequest) {
   }
 
   const session = verifyToken(request.cookies.get(ADMIN_COOKIE)?.value, process.env.AUTH_SECRET || '');
-  if (session?.role === 'admin') return NextResponse.next();
+  if (session?.role === 'admin') {
+    const res = NextResponse.next();
+    const edition = pathname.match(EDITION_PATH)?.[1];
+    if (edition && request.cookies.get(EDITION_COOKIE)?.value !== edition) {
+      res.cookies.set(EDITION_COOKIE, edition, {
+        path: '/admin',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 180,
+      });
+    }
+    return res;
+  }
 
   if (pathname.startsWith('/api/')) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
@@ -31,5 +47,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: ['/admin/:path*', '/api/admin/:path*', '/scanner/:path*'],
 };

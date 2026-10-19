@@ -1,38 +1,35 @@
-'use client';
+import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import type { ReactNode } from 'react';
+import { AdminShell } from '@/components/admin/shell/AdminShell';
+import { log } from '@/server/log';
+import { getTodoCounts, type TodoCounts } from '@/server/admin/todo';
+import { EDITION_COOKIE, listEditions, type EditionSummary } from '@/server/domain/editions';
 
-import { useState } from 'react';
-import { Menu } from 'lucide-react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
+export const metadata: Metadata = {
+  title: { default: 'Admin', template: '%s · Admin Pro Loco Gasperina' },
+  robots: { index: false, follow: false },
+};
 
-// L'accesso è verificato sul server (src/proxy.ts e requireAdmin nelle rotte API):
-// qui arriva solo chi ha già una sessione admin valida.
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const NO_COUNTS: TodoCounts = { refunds: 0, photos: 0, stalePending: 0 };
 
+// L'accesso è verificato prima di arrivare qui (src/proxy.ts) e di nuovo da requireAdmin nelle rotte API.
+// Se il database non risponde la shell resta in piedi: le pagine mostrano il loro errore.
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const [editions, counts] = await Promise.all([
+    listEditions().catch((error: unknown): EditionSummary[] => {
+      log.error('admin.shell.editions_failed', { error });
+      return [];
+    }),
+    getTodoCounts().catch((error: unknown) => {
+      log.error('admin.shell.counts_failed', { error });
+      return NO_COUNTS;
+    }),
+  ]);
+  const cookieEdition = (await cookies()).get(EDITION_COOKIE)?.value ?? null;
   return (
-    <div className="admin-layout">
-      {/* Mobile Top Bar */}
-      <div className="admin-topbar">
-        <button 
-          onClick={() => setIsMobileMenuOpen(true)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--color-heading)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-        >
-          <Menu size={24} />
-          <span style={{ fontSize: '1rem', fontWeight: 500, fontFamily: 'var(--font-display)' }}>Admin Panel</span>
-        </button>
-      </div>
-
-      <AdminSidebar 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
-      />
-      
-      <main 
-        className="admin-main"
-        onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)} // Close if user clicks main area while open
-      >
-        {children}
-      </main>
-    </div>
+    <AdminShell editions={editions} counts={counts} cookieEdition={cookieEdition}>
+      {children}
+    </AdminShell>
   );
 }

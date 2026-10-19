@@ -41,6 +41,7 @@ Legenda classificazione:
 | `/api/admin/cashier/reset-sequence` | POST | Reimposta la numerazione progressiva degli ordini cassa | `app/admin/cassa/page.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
 | `/api/admin/discounts` | GET, POST | Elenca e crea codici sconto | `components/admin/DiscountManager.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
 | `/api/admin/discounts/[id]` | PUT, DELETE | Modifica / elimina un codice sconto | `components/admin/DiscountManager.tsx` | no | nessuna | da proteggere | admin (proxy + requireAdmin) |
+| `/api/admin/search` | GET | Ricerca ordini per la palette ⌘K (codice, nome, email, telefono; max 10) | `components/admin/shell/CommandPalette.tsx` | legge (nome, email) | — (nuova, prompt 06) | da proteggere | admin (proxy + requireAdmin) |
 | `/api/admin/orders` | GET, PATCH, DELETE | Lista ordini con biglietti; blacklist, modifica dati, segna pagato, reinvio email, cambio data; archiviazione | `components/admin/OrderManager.tsx` | legge/scrive (nome, email, telefono, note) | nessuna | da proteggere | admin (proxy + requireAdmin) |
 | `/api/admin/orders/archived` | GET, PATCH | Lista ordini archiviati; ripristino | `components/admin/OrderManager.tsx` | legge (nome, email, telefono) | nessuna | da proteggere | admin (proxy + requireAdmin) |
 | `/api/admin/orders/create` | POST | Crea ordine manuale (pay-by-link o già saldato) e invia email | `components/admin/OrderManager.tsx` | scrive (nome, email, telefono) | nessuna | da proteggere | admin (proxy + requireAdmin) |

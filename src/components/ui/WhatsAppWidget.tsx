@@ -20,7 +20,7 @@ const DEFAULT_TOPICS: SupportTopic[] = [
 export default function WhatsAppWidget() {
   const pathname = usePathname();
   // Il widget non serve in cassa. Il ritorno anticipato sta qui, prima degli hook del pannello.
-  if (pathname?.startsWith('/cashier')) return null;
+  if (pathname?.startsWith('/cashier') || pathname?.startsWith('/admin') || pathname?.startsWith('/scanner')) return null;
   return <WhatsAppPanel pathname={pathname} />;
 }
 

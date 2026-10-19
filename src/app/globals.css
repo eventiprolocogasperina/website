@@ -556,45 +556,36 @@ a:where(:not(.ui-root *)) { color: inherit; text-decoration: none; }
   }
 }
 
-/* ─── Admin Responsive Layout ────────────────────────────────── */
+/* ─── Admin (pagine precedenti al rifacimento) ─────────────────
+   La struttura (sidebar, barra in alto) è in AdminShell; qui restano solo i colori su cui
+   contano le pagine in src/components/admin/legacy. */
 .admin-layout {
-  display: flex;
-  min-height: 100vh;
-  background: var(--neutral-950);
+  color: var(--color-text);
 }
 
-.admin-sidebar {
-  width: 240px;
-  flex-shrink: 0;
-  background: var(--neutral-900);
-  border-right: 1px solid var(--neutral-800);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 50;
-  overflow-y: auto;
-  transition: transform 0.3s var(--ease-smooth);
-}
-
-.admin-sidebar-mobile-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 40;
-  display: none;
+/* Spazi della shell scritti qui e non con le utility: il reset qui sopra azzera padding e margini
+   di tutto ciò che sta fuori da .ui-root, e il contenuto dell'admin per ora ne resta fuori. */
+@media (min-width: 1024px) {
+  .admin-layout {
+    padding-left: 16rem;
+  }
 }
 
 .admin-main {
-  margin-left: 240px;
-  flex: 1;
-  padding: 2rem;
-  min-height: 100vh;
-  transition: margin-left 0.3s var(--ease-smooth);
-  width: calc(100% - 240px);
+  min-width: 0;
+  padding: 1rem 1rem 3rem;
+}
+
+@media (min-width: 640px) {
+  .admin-main {
+    padding: 1rem 1.5rem 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-main {
+    padding: 1rem 2rem 3rem;
+  }
 }
 
 /* ─── Admin Tables ───────────────────────────────────────────── */
@@ -604,63 +595,7 @@ a:where(:not(.ui-root *)) { color: inherit; text-decoration: none; }
   margin-bottom: 1rem;
 }
 
-@media (max-width: 768px) {
-  .admin-sidebar {
-    transform: translateX(-100%);
-  }
-  .admin-sidebar.open {
-    transform: translateX(0);
-  }
-  .admin-sidebar-mobile-overlay.open {
-    display: block;
-  }
-  .admin-main {
-    margin-left: 0;
-    width: 100%;
-    padding: 1rem;
-    padding-top: 4.5rem; /* Space for top bar */
-  }
-}
-
-.admin-topbar {
-  display: flex;
-  align-items: center;
-  padding: 1rem;
-  background: var(--neutral-900);
-  border-bottom: 1px solid var(--neutral-800);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 45;
-}
-
-@media (min-width: 769px) {
-  .admin-topbar {
-    display: none !important;
-  }
-}
-
 /* ─── Admin Light Mode High-Contrast Rules ───────────────────── */
-[data-theme="light"] .admin-layout {
-  background-color: var(--neutral-950);
-  color: var(--color-text);
-}
-
-[data-theme="light"] .admin-sidebar {
-  background-color: #ffffff;
-  border-right: 1px solid var(--neutral-700);
-}
-
-[data-theme="light"] .admin-sidebar div {
-  border-color: var(--neutral-700);
-}
-
-[data-theme="light"] .admin-topbar {
-  background-color: #ffffff;
-  border-bottom: 1px solid var(--neutral-700);
-}
-
 [data-theme="light"] .card {
   background-color: #ffffff;
   border-color: var(--neutral-700);

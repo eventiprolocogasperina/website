@@ -10,6 +10,25 @@ const nextConfig: NextConfig = {
       { source: '/assaggia-e-passeggia/tappa/:id', destination: '/assaggia-e-passeggia/edizione-2026/tappa/:id', permanent: true },
       { source: '/assaggia-e-passeggia/ticket', destination: '/assaggia-e-passeggia/edizione-2026/ticket', permanent: true },
       { source: '/assaggia-e-passeggia/success', destination: '/assaggia-e-passeggia/edizione-2026/success', permanent: true },
+      // Vecchia mappa dell'admin → nuova shell a due livelli (§10.4). /admin/vai/… sceglie l'edizione corrente.
+      ...[
+        ['/admin/eventi', '/admin/edizioni'],
+        ['/admin/notizie', '/admin/sito/notizie'],
+        ['/admin/media', '/admin/sito/galleria'],
+        ['/admin/recensioni', '/admin/e/zuccaland-2026/m/reviews'],
+        ['/admin/zuccaland-inviti', '/admin/e/zuccaland-2026/m/invites'],
+        ['/admin/zuccaland-photos', '/admin/e/zuccaland-2026/m/visitor-photos'],
+        ['/admin/cassa', '/admin/vai/cassa'],
+        ['/admin/prenotazioni', '/admin/vai/partecipanti'],
+        ['/admin/analytics', '/admin/vai/statistiche'],
+        ['/admin/pagine/zuccaland', '/admin/e/zuccaland-2026/pagina'],
+        ['/admin/pagine/sponsor', '/admin/sito/sponsor'],
+        ['/admin/pagine/associazione', '/admin/sito/pagine'],
+        ['/admin/pagine/archiviate/assaggia-2026', '/admin/e/assaggia-e-passeggia-2026/pagina'],
+        ['/admin/impostazioni', '/admin/sistema/impostazioni'],
+        ['/admin/email-preview', '/admin/sistema/email'],
+        ['/admin/scanner', '/scanner'],
+      ].map(([source, destination]) => ({ source, destination, permanent: true })),
     ];
   },
   images: {

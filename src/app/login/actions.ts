@@ -10,7 +10,8 @@ export type LoginState = { error?: string };
 
 /** Solo percorsi interni dell'admin, per evitare redirect verso altri siti. */
 function safeNext(next: unknown): string {
-  return typeof next === 'string' && next.startsWith('/admin') && !next.startsWith('//') ? next : '/admin';
+  if (typeof next !== 'string' || next.startsWith('//')) return '/admin';
+  return /^\/(admin|scanner)(\/|\?|$)/.test(next) ? next : '/admin';
 }
 
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
