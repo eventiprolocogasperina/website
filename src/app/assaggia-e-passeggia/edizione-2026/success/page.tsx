@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { getOrder } from '@/lib/data/tickets';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { legacySuccessRedirect } from '@/server/public/legacy-redirect';
 import SuccessClient from './SuccessClient';
 
 export const metadata: Metadata = {
@@ -13,6 +15,8 @@ export default async function SuccessPage({
   searchParams: Promise<{ order?: string }>;
 }) {
   const { order: orderId } = await searchParams;
+  const moved = await legacySuccessRedirect(orderId);
+  if (moved) redirect(moved);
 
   if (!orderId) {
     return (

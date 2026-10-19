@@ -10,6 +10,8 @@ import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
 import { lockOrder, reserveSeats } from '@/server/domain/orders/shared';
 import { derivePaymentStatus } from './status';
+// Email dei biglietti quando l'ordine è pagato.
+import '@/server/notifications/handlers';
 
 export { derivePaymentStatus, summarizePayments } from './status';
 

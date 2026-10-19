@@ -889,6 +889,11 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 11: i moduli generici "Domande ai partecipanti" e "Rinvio date" diventano "Attività e laboratori" (`activities`) e "Rinvio per maltempo", con le regole di Zuccaland (giorni e posti delle attività, data di recupero, rimborso al secondo rinvio) | Niccolo, dopo la demo della fase 2 |
 | 2026-10-19 | Zuccaland 2026: 10 e 11 ottobre sono date rinviate, recuperate il 17 e il 18 (`sessions.rescheduled_to_session_id`); ogni ordine ricorda la data scelta all'acquisto (`orders_v2.original_session_id`) | Niccolo |
 | 2026-10-19 | Prompt 11: `zuccaland_photos` diventa `mod_visitor_photos_items` con il prompt 19; rinominarla ora romperebbe il caricamento pubblico di un'edizione in vendita | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 13: codTrans di Nexi = codice ordine senza trattino + 8 caratteri del tentativo; ogni "Riprova" è un tentativo nuovo, `payments.provider_ref` = `nexi:<codTrans>` | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 13: un esito con importo diverso dal totale lascia l'ordine in attesa, salva il pagamento "in attesa" e manda un solo allarme Telegram (codice e importi) | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 13: il checkout nuovo resta chiuso per le edizioni che vendono ancora dalle pagine di oggi (vendite non migrate), e sostituisce i pulsanti d'acquisto di Zuccaland solo con `NUOVO_CHECKOUT=1` (§18.10) | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 13: richiesta di rimborso da "I miei biglietti" solo quando il modulo Rinvio la concede (secondo rinvio); in tutti gli altri casi il rimborso lo crea lo staff | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 13: test end-to-end con Playwright su un database locale `proloco_e2e` e un simulatore di Nexi (`NEXI_MODE=simulatore`, mai in produzione) | Claude, esecuzione fase 3 |
 
 ---
 

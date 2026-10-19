@@ -2,7 +2,7 @@ import 'server-only';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/server/db/client';
 import { editions } from '@/server/db/schema';
-import { on, type DomainEvent, type DomainEventType } from '@/server/domain/events';
+import { on, registerOnce, type DomainEvent, type DomainEventType } from '@/server/domain/events';
 import { getModule, moduleSettings } from './registry';
 import type { ModuleKey } from './types';
 import { postponementHandlers } from './postponement/handlers';
@@ -40,8 +40,4 @@ export function registerModuleHandlers(key: ModuleKey, handlers: ModuleHandlers)
   }
 }
 
-const g = globalThis as { __moduleHandlers?: boolean };
-if (!g.__moduleHandlers) {
-  g.__moduleHandlers = true;
-  registerModuleHandlers('postponement', postponementHandlers);
-}
+registerOnce('modules', () => registerModuleHandlers('postponement', postponementHandlers));

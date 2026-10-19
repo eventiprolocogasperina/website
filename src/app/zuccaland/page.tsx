@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getPageContent, DEFAULT_ZUCCALAND_CONTENT, type ZuccalandContent } from '@/lib/data/pages';
 import { getZuccalandDateCounts } from '@/lib/data/tickets';
+import { newCheckoutEnabled } from '@/server/public/flags';
 import ZuccalandClient from './ZuccalandClient';
 
 export const metadata: Metadata = {
@@ -15,6 +16,6 @@ export default async function ZuccalandPage() {
     getPageContent<ZuccalandContent>('zuccaland', DEFAULT_ZUCCALAND_CONTENT),
     getZuccalandDateCounts()
   ]);
-  return <ZuccalandClient content={data} initialDateCounts={dateCounts} />;
+  return <ZuccalandClient content={data} initialDateCounts={dateCounts} checkoutEdition={newCheckoutEnabled() ? 'zuccaland-2026' : undefined} />;
 }
 

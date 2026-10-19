@@ -43,3 +43,7 @@ next-env.d.ts
 
 # email scritte in locale (EMAIL_DEV_OUTBOX=1)
 /dev/outbox/
+
+# Playwright
+/test-results/
+/playwright-report/

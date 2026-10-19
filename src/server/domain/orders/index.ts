@@ -13,8 +13,11 @@ import { summarizePayments } from '@/server/domain/payments/status';
 import { ORDER_CHANNELS, priceCart, type OrderChannel } from '@/server/domain/pricing/cart';
 // Collega gli handler dei moduli agli eventi pubblicati da qui (es. email del modulo rinvio).
 import '@/modules/handlers';
+import '@/server/notifications/handlers';
 import { validateActivities } from '@/modules/activities/server';
 import { newOrderCode, randomToken } from './code';
+import { moduleSettings } from '@/modules/registry';
+import { publicCtx } from '@/server/auth/context-shared';
 import { actorColumns, isUniqueViolation, lockEdition, lockOrder, pendingTtlMs, releaseDiscountUse, requireModule, reserveSeats, type EditionRow, type OrderRow } from './shared';
 
 export type { OrderChannel } from '@/server/domain/pricing/cart';
@@ -403,37 +406,68 @@ export async function moveSession(ctx: Ctx, input: z.input<typeof MoveSessionInp
   const moved = await withTransaction(async (tx) => {
     const { order, edition } = await lockOrder(tx, data.orderId);
     assertCanOn(ctx, 'orders.edit', edition.slug);
-    requireModule(edition, 'postponement');
-    if (!['pending', 'paid', 'partially_refunded'].includes(order.status)) throw new DomainError('CONFLICT', { message: 'Questo ordine non ha più posti da spostare.' });
-    const from = data.fromSessionId ?? order.sessionId;
-    if (!from) throw new DomainError('VALIDATION', { message: 'L’ordine non ha una data.' });
-    if (from === data.toSessionId) return 0;
-    const [target] = await tx.select().from(sessions).where(and(eq(sessions.id, data.toSessionId), eq(sessions.editionId, edition.id)));
-    if (!target) throw new DomainError('VALIDATION', { message: 'La nuova data non è di questa edizione.' });
-    if (target.status === 'cancelled') throw new DomainError('VALIDATION', { message: 'La nuova data è annullata.' });
-
-    const lines = await tx.select().from(orderLines).where(eq(orderLines.orderId, order.id));
-    const moving = lines.filter((l) => l.sessionId === from);
-    if (!moving.length) return 0;
-    const after = lines.map((l) => ({ productId: l.productId, quantity: l.quantity, sessionId: l.sessionId === from ? data.toSessionId : l.sessionId }));
-    await reserveSeats(tx, edition.id, after, { now, excludeOrderId: order.id });
-
-    const ids = moving.map((l) => l.id);
-    await tx.update(orderLines).set({ sessionId: data.toSessionId, updatedAt: now }).where(inArray(orderLines.id, ids));
-    await tx.update(ticketsV2).set({ sessionId: data.toSessionId, updatedAt: now }).where(inArray(ticketsV2.orderLineId, ids));
-    if (order.sessionId === from) await tx.update(ordersV2).set({ sessionId: data.toSessionId, updatedAt: now }).where(eq(ordersV2.id, order.id));
-    await audit(tx, ctx, 'order.session_moved', {
-      entityType: 'order',
-      entityId: order.id,
-      edition: edition.slug,
-      before: { sessionId: from },
-      after: { sessionId: data.toSessionId, lines: ids.length },
-      reason: data.reason ?? null,
-    });
-    events.push({ type: 'order.session_moved', orderId: order.id, code: order.code, edition: edition.slug, fromSessionId: from, toSessionId: data.toSessionId });
-    return ids.length;
+    return moveSessionTx(tx, ctx, order, edition, data, now, events);
   });
   await publish(events);
   return { moved };
+}
+
+/**
+ * Cambio data chiesto dal cliente da "I miei biglietti" (solo con il token dell'ordine), se il modulo
+ * Rinvio lo consente. Solo verso una data ancora in vendita e futura, solo per ordini pagati.
+ */
+export async function customerMoveSession(ip: string | null, input: { accessToken: string; toSessionId: string }, opts: { now?: Date } = {}): Promise<{ moved: number }> {
+  const token = z.string().trim().min(16).max(100).parse(input.accessToken);
+  const toSessionId = uuid.parse(input.toSessionId);
+  const now = opts.now ?? new Date();
+  const ctx = publicCtx(ip);
+  const events: DomainEvent[] = [];
+  const moved = await withTransaction(async (tx) => {
+    const [found] = await tx.select({ id: ordersV2.id }).from(ordersV2).where(eq(ordersV2.accessToken, token));
+    if (!found) throw new DomainError('NOT_FOUND');
+    const { order, edition } = await lockOrder(tx, found.id);
+    requireModule(edition, 'postponement');
+    if (!(moduleSettings('postponement', edition.moduleSettings) as { allowCustomerChange: boolean }).allowCustomerChange) {
+      throw new DomainError('FORBIDDEN', { message: 'Per cambiare data scrivici: da qui non si può.' });
+    }
+    if (order.status !== 'paid') throw new DomainError('CONFLICT', { message: 'Si può cambiare data solo a un ordine pagato.' });
+    const [target] = await tx.select().from(sessions).where(and(eq(sessions.id, toSessionId), eq(sessions.editionId, edition.id)));
+    if (!target || target.status !== 'open' || target.startsAt.getTime() <= now.getTime()) throw new DomainError('VALIDATION', { message: 'La nuova data non è disponibile.' });
+    return moveSessionTx(tx, ctx, order, edition, { orderId: order.id, toSessionId, fromSessionId: null, reason: 'Cambio data dal cliente' }, now, events);
+  });
+  await publish(events);
+  return { moved };
+}
+
+async function moveSessionTx(tx: Tx, ctx: Ctx, order: OrderRow, edition: EditionRow, data: z.output<typeof MoveSessionInput>, now: Date, events: DomainEvent[]): Promise<number> {
+  requireModule(edition, 'postponement');
+  if (!['pending', 'paid', 'partially_refunded'].includes(order.status)) throw new DomainError('CONFLICT', { message: 'Questo ordine non ha più posti da spostare.' });
+  const from = data.fromSessionId ?? order.sessionId;
+  if (!from) throw new DomainError('VALIDATION', { message: 'L’ordine non ha una data.' });
+  if (from === data.toSessionId) return 0;
+  const [target] = await tx.select().from(sessions).where(and(eq(sessions.id, data.toSessionId), eq(sessions.editionId, edition.id)));
+  if (!target) throw new DomainError('VALIDATION', { message: 'La nuova data non è di questa edizione.' });
+  if (target.status === 'cancelled') throw new DomainError('VALIDATION', { message: 'La nuova data è annullata.' });
+
+  const lines = await tx.select().from(orderLines).where(eq(orderLines.orderId, order.id));
+  const moving = lines.filter((l) => l.sessionId === from);
+  if (!moving.length) return 0;
+  const after = lines.map((l) => ({ productId: l.productId, quantity: l.quantity, sessionId: l.sessionId === from ? data.toSessionId : l.sessionId }));
+  await reserveSeats(tx, edition.id, after, { now, excludeOrderId: order.id });
+
+  const ids = moving.map((l) => l.id);
+  await tx.update(orderLines).set({ sessionId: data.toSessionId, updatedAt: now }).where(inArray(orderLines.id, ids));
+  await tx.update(ticketsV2).set({ sessionId: data.toSessionId, updatedAt: now }).where(inArray(ticketsV2.orderLineId, ids));
+  if (order.sessionId === from) await tx.update(ordersV2).set({ sessionId: data.toSessionId, updatedAt: now }).where(eq(ordersV2.id, order.id));
+  await audit(tx, ctx, 'order.session_moved', {
+    entityType: 'order',
+    entityId: order.id,
+    edition: edition.slug,
+    before: { sessionId: from },
+    after: { sessionId: data.toSessionId, lines: ids.length },
+    reason: data.reason ?? null,
+  });
+  events.push({ type: 'order.session_moved', orderId: order.id, code: order.code, edition: edition.slug, fromSessionId: from, toSessionId: data.toSessionId });
+  return ids.length;
 }
 

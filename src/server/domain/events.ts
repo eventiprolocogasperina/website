@@ -44,5 +44,17 @@ export async function publish(events: DomainEvent[]): Promise<void> {
   }
 }
 
+const registered = new Set<string>();
+
+/**
+ * Iscrive un gruppo di handler una volta sola per questa copia del modulo. Non si usa globalThis:
+ * Next può caricare più copie di questo file (una per rotta) e ognuna deve avere i suoi handler.
+ */
+export function registerOnce(key: string, register: () => void): void {
+  if (registered.has(key)) return;
+  registered.add(key);
+  register();
+}
+
 /** Per ora l'unico handler collegato: una riga di log per evento. */
 on('*', (event) => log.info(`evento ${event.type}`, { ...event }));

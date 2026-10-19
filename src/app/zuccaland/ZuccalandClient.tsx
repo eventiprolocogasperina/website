@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { CTAAcquisto } from '@/components/public/blocks/CTAAcquisto';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Minus, Plus, Loader2, CheckCircle, AlertCircle, Tag, X, ArrowRight, ArrowLeft, ShieldCheck, Ticket, Calendar, Clock, MapPin, Music, ShoppingBag, Coffee, Image as ImageIcon, PartyPopper, Sparkles, Check, ChevronDown, ChevronUp, ChevronRight, FileText, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
@@ -2859,9 +2860,12 @@ function ZuccalandFaqSection({ faqs }: { faqs?: Array<{ question: string; answer
 
 export default function ZuccalandClient({
   content: rawContent,
-  initialDateCounts
+  initialDateCounts,
+  checkoutEdition,
 }: {
   content: ZuccalandContent;
+  /** Con il checkout nuovo attivo (NUOVO_CHECKOUT=1) il riquadro d'acquisto diventa un link a /acquista/[edition]. */
+  checkoutEdition?: string;
   initialDateCounts?: {
     '17'?: { admissionTickets: number; totalTickets: number; orders: number };
     '18'?: { admissionTickets: number; totalTickets: number; orders: number };
@@ -3547,7 +3551,7 @@ export default function ZuccalandClient({
       </section>
 
       {/* ── Ticket Buyer (only on-sale) ── */}
-      {showTickets && <ZuccalandTicketBuyer content={content} initialDateCounts={initialDateCounts} />}
+      {showTickets && (checkoutEdition ? <CTAAcquisto edition={checkoutEdition} text="Scegli il giorno, i biglietti e le attività: ricevi subito i biglietti per email." /> : <ZuccalandTicketBuyer content={content} initialDateCounts={initialDateCounts} />)}
 
       {/* ── Concluded Section ── */}
       {showConcluded && <ConcludedSection />}

@@ -20,7 +20,8 @@
     "backfill:editions": "tsx scripts/backfill-editions.ts",
     "test:db": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --project db",
     "test:coverage": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --coverage",
-    "migrate:orders": "tsx scripts/migrate-orders.ts"
+    "migrate:orders": "tsx scripts/migrate-orders.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -65,6 +66,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",

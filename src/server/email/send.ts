@@ -11,7 +11,7 @@ export function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it').replace(/\/$/, '');
 }
 
-export type Email = { to: string; subject: string; html: string; text: string };
+export type Email = { to: string; subject: string; html: string; text: string; attachments?: Array<{ filename: string; content: Buffer }> };
 
 /**
  * Invia un'email con Resend. In sviluppo, con EMAIL_DEV_OUTBOX=1, la scrive invece in dev/outbox/
@@ -23,6 +23,7 @@ export async function sendEmail(email: Email): Promise<boolean> {
     await mkdir(dir, { recursive: true });
     const file = path.join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}.html`);
     await writeFile(file, `<!-- A: ${email.to} | Oggetto: ${email.subject} -->\n${email.html}`);
+    for (const a of email.attachments ?? []) await writeFile(file.replace(/\.html$/, `-${a.filename}`), a.content);
     log.info('Email scritta nella cartella dev/outbox', { file: path.basename(file) });
     return true;
   }
