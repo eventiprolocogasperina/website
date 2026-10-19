@@ -8,3 +8,6 @@ process.env.REFUND_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
 
 // Le righe di log degli eventi di dominio non servono nell'output dei test.
 vi.spyOn(console, 'log').mockImplementation(() => {});
+
+// Nessuna email vera dai test: l'invio riesce senza uscire (i test che le controllano hanno il loro mock).
+vi.mock('@/server/email/send', async (orig) => ({ ...(await orig<typeof import('@/server/email/send')>()), sendEmail: async () => true }));

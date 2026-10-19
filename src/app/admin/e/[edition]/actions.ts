@@ -16,6 +16,7 @@ import {
   type SessionInput,
 } from '@/server/domain/catalog';
 import { changeEditionStatus, updateEdition, type UpdateEditionInput } from '@/server/domain/editions';
+import { saveModuleSettings, setModuleEnabled } from '@/server/domain/editions/modules';
 import type { EditionStatus } from '@/server/domain/editions/types';
 
 const paths = (edition: string) => [`/admin/e/${edition}`];
@@ -53,4 +54,11 @@ export async function updateEditionAction(edition: string, input: UpdateEditionI
 }
 export async function changeStatusAction(edition: string, to: EditionStatus, reason: string | null) {
   return runAction(['/admin'], (ctx) => changeEditionStatus(ctx, edition, { to, reason }));
+}
+
+export async function setModuleEnabledAction(edition: string, module: string, enabled: boolean) {
+  return runAction(paths(edition), (ctx) => setModuleEnabled(ctx, edition, { module, enabled }));
+}
+export async function saveModuleSettingsAction(edition: string, module: string, settings: unknown) {
+  return runAction(paths(edition), (ctx) => saveModuleSettings(ctx, edition, { module, settings }));
 }

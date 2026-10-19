@@ -11,8 +11,10 @@ import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
 import { summarizePayments } from '@/server/domain/payments/status';
 import { ORDER_CHANNELS, priceCart, type OrderChannel } from '@/server/domain/pricing/cart';
+// Collega gli handler dei moduli agli eventi pubblicati da qui (es. email del modulo rinvio).
+import '@/modules/handlers';
 import { newOrderCode, randomToken } from './code';
-import { actorColumns, isUniqueViolation, lockEdition, lockOrder, PENDING_TTL_MS, releaseDiscountUse, reserveSeats, type EditionRow, type OrderRow } from './shared';
+import { actorColumns, isUniqueViolation, lockEdition, lockOrder, pendingTtlMs, releaseDiscountUse, requireModule, reserveSeats, type EditionRow, type OrderRow } from './shared';
 
 export type { OrderChannel } from '@/server/domain/pricing/cart';
 
@@ -141,6 +143,8 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
   const edition = await lockEdition(tx, data.editionId);
   const permission = CHANNEL_PERMISSION[data.channel];
   if (permission) assertCanOn(ctx, permission, edition.slug);
+  if (data.channel === 'invite') requireModule(edition, 'invites');
+  if (data.channel === 'paylink') requireModule(edition, 'paylink');
   if (!SELLING_STATUSES[data.channel].includes(edition.status)) {
     throw new DomainError(edition.status === 'sold_out' ? 'SOLD_OUT' : 'SALES_CLOSED');
   }
@@ -174,7 +178,7 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
   const customer = data.customer ? await upsertByEmail(tx, data.customer) : null;
   const payNow = data.channel === 'pos' ? (data.payNow ?? 'cash') : data.payNow;
   const paidNow = priced.totalCents === 0 || !!payNow;
-  const ttl = PENDING_TTL_MS[data.channel];
+  const ttl = pendingTtlMs(edition, data.channel);
   const sessionId = data.sessionId ?? priced.lines.find((l) => l.sessionId)?.sessionId ?? null;
 
   const [order] = await tx
@@ -393,6 +397,7 @@ export async function moveSession(ctx: Ctx, input: z.input<typeof MoveSessionInp
   const moved = await withTransaction(async (tx) => {
     const { order, edition } = await lockOrder(tx, data.orderId);
     assertCanOn(ctx, 'orders.edit', edition.slug);
+    requireModule(edition, 'postponement');
     if (!['pending', 'paid', 'partially_refunded'].includes(order.status)) throw new DomainError('CONFLICT', { message: 'Questo ordine non ha più posti da spostare.' });
     const from = data.fromSessionId ?? order.sessionId;
     if (!from) throw new DomainError('VALIDATION', { message: 'L’ordine non ha una data.' });

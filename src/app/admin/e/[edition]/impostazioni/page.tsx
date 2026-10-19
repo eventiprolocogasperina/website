@@ -4,7 +4,8 @@ import { romeDateKey, romeTime } from '@/lib/dates';
 import { getAdminCtx } from '@/server/auth/context';
 import { pageDenied } from '@/server/auth/guard';
 import { can } from '@/server/auth/permissions';
-import { describeModules, getEditionDetail } from '@/server/domain/editions';
+import { getEditionDetail } from '@/server/domain/editions';
+import { describeEditionModules } from '@/server/domain/editions/modules';
 import { TRANSITIONS } from '@/server/domain/editions/lifecycle';
 import type { EditionParams } from '@/server/domain/editions/page-params';
 import { listSeries } from '@/server/domain/editions/series';
@@ -47,7 +48,8 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
         }}
         formats={formats.map((f) => ({ id: f.id, name: f.name, landingPath: f.landingPath }))}
         transitions={transitions}
-        modules={describeModules(e.enabledModules)}
+        modules={describeEditionModules(e)}
+        canManageModules={can(ctx, 'modules.manage', { edition: slug })}
       />
     </AdminPage>
   );

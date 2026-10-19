@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { ArchivedNotice, Notice } from '@/components/admin/edition/common';
 import {
   AnnotatedSection,
-  Badge,
   Button,
   Card,
   ConfirmDialog,
@@ -22,7 +21,9 @@ import {
 } from '@/components/ui';
 import { formatDateTime } from '@/lib/dates';
 import type { EditionStatus } from '@/server/domain/editions/types';
+import type { ModuleView } from '@/server/domain/editions/modules';
 import { changeStatusAction, updateEditionAction } from '../actions';
+import { ModulesSection } from './ModulesSection';
 
 type Form = {
   title: string;
@@ -37,7 +38,6 @@ type Form = {
   publicPageMode: 'generic' | 'landing';
 };
 type Transition = { to: EditionStatus; label: string; description: string; typeToConfirm: boolean };
-type ModuleInfo = { key: string; name: string; description: string; enabled: boolean };
 type EditionInfo = { slug: string; title: string; status: EditionStatus; readOnly: boolean; concludedAt: string | null; archivedAt: string | null };
 
 const NONE = '__nessuno';
@@ -48,12 +48,14 @@ export function SettingsClient({
   formats,
   transitions,
   modules,
+  canManageModules,
 }: {
   edition: EditionInfo;
   initial: Form;
   formats: Array<{ id: string; name: string; landingPath: string | null }>;
   transitions: Transition[];
-  modules: ModuleInfo[];
+  modules: ModuleView[];
+  canManageModules: boolean;
 }) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
@@ -194,18 +196,8 @@ export function SettingsClient({
           </div>
         </AnnotatedSection>
 
-        <AnnotatedSection title="Moduli" description="Funzioni in più per questa edizione. Si attivano e disattivano dalla fase 2, prompt 11: per ora vedi quali sono previsti.">
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {modules.map((m) => (
-              <li key={m.key} className="flex items-start justify-between gap-3 px-3 py-2.5">
-                <div>
-                  <p className="text-body font-medium text-fg">{m.name}</p>
-                  <p className="text-label text-muted">{m.description}</p>
-                </div>
-                {m.enabled ? <Badge tone="success">Attivo</Badge> : <Badge>Spento</Badge>}
-              </li>
-            ))}
-          </ul>
+        <AnnotatedSection title="Moduli" description="Funzioni in più per questa edizione. Spegnere un modulo non cancella niente: dati e impostazioni tornano quando lo riaccendi.">
+          <ModulesSection edition={edition.slug} modules={modules} disabled={ro || !canManageModules} />
         </AnnotatedSection>
       </Card>
 

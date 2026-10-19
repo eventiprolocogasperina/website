@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import type { Ctx } from '@/server/auth/context-shared';
 import type { RoleGrant } from '@/server/auth/permissions';
 import { checkinLists, editions, products, quotaProducts, quotas, sessions, discountsV2 } from '@/server/db/schema';
+import { MODULE_KEYS } from '@/modules/registry';
+import type { ModuleKey } from '@/modules/types';
 import { getDb } from './pg-client';
 
 export const ctxWith = (grants: RoleGrant[]): Ctx => ({ user: null, device: null, legacy: false, grants, ip: null });
@@ -17,14 +19,15 @@ export type Fixture = Awaited<ReturnType<typeof createEdition>>;
  * Edizione "in vendita" con:
  * - due date (capienza 2 e 1000), un biglietto con data, un extra con data, un prodotto di cassa;
  * - una quota "Laboratorio" da 1 posto sull'extra;
- * - una lista di check-in per l'ingresso.
+ * - una lista di check-in per l'ingresso;
+ * - tutti i moduli attivi, salvo `modules` diverso.
  */
-export async function createEdition(opts: { status?: (typeof editions.$inferSelect)['status'] } = {}) {
+export async function createEdition(opts: { status?: (typeof editions.$inferSelect)['status']; modules?: ModuleKey[] } = {}) {
   const db = getDb();
   const slug = `test-${randomUUID().slice(0, 8)}`;
   const [edition] = await db
     .insert(editions)
-    .values({ slug, title: `Test ${slug}`, year: 2026, status: opts.status ?? 'on_sale' })
+    .values({ slug, title: `Test ${slug}`, year: 2026, status: opts.status ?? 'on_sale', enabledModules: opts.modules ?? MODULE_KEYS })
     .returning();
   const [day1, day2] = await db
     .insert(sessions)

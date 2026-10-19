@@ -11,7 +11,7 @@ import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { bumpYear, shiftInstant, shiftSession, weekdayPreservingShift } from './duplicate';
 import { isReadOnly, transitionFor } from './lifecycle';
-import { ACTIVE_STATUSES, EDITION_STATUSES, MODULE_CATALOG, NAV_MODULES, type EditionDot, type EditionSummary, type ModuleKey } from './types';
+import { ACTIVE_STATUSES, EDITION_STATUSES, NAV_MODULES, type EditionDot, type EditionSummary } from './types';
 
 export type { EditionModule, EditionStatus, EditionSummary } from './types';
 
@@ -382,9 +382,4 @@ export async function listEditionsWithCounts(ctx: Ctx): Promise<EditionListRow[]
     products: pCount.find((r) => r.id === e.id)?.n ?? 0,
     location: loc.find((r) => r.id === e.id)?.location ?? null,
   }));
-}
-
-/** I moduli attivi di un'edizione, con il nome del catalogo (sezione Impostazioni → Moduli). */
-export function describeModules(enabled: string[]) {
-  return MODULE_CATALOG.map((m) => ({ ...m, enabled: enabled.includes(m.key as ModuleKey) }));
 }

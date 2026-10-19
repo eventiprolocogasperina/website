@@ -3,6 +3,8 @@ import { and, asc, eq, inArray, isNull, gt, ne, or, sql } from 'drizzle-orm';
 import type { Ctx } from '@/server/auth/context-shared';
 import type { getDb, Tx } from '@/server/db/client';
 import { discountsV2, editions, orderLines, ordersV2, products, quotaProducts, quotas, sessions } from '@/server/db/schema';
+import { getModule, moduleSettings } from '@/modules/registry';
+import type { ModuleKey } from '@/modules/types';
 import { isReadOnly } from '@/server/domain/editions/lifecycle';
 import { DomainError } from '@/server/domain/errors';
 import { computeAvailability, countsTowardCapacity, sessionQuotaId, soldKey, type SoldCounts } from '@/server/domain/quotas/availability';
@@ -10,10 +12,9 @@ import { computeAvailability, countsTowardCapacity, sessionQuotaId, soldKey, typ
 export type EditionRow = typeof editions.$inferSelect;
 export type OrderRow = typeof ordersV2.$inferSelect;
 
-/** Durata di un ordine in attesa di pagamento, per canale (§5.4: 15 minuti online). */
+/** Durata di un ordine in attesa di pagamento, per canale (§5.4: 15 minuti online). Il pay-link: vedi pendingTtlMs. */
 export const PENDING_TTL_MS: Partial<Record<OrderRow['channel'], number>> = {
   online: 15 * 60_000,
-  paylink: 48 * 60 * 60_000,
 };
 
 /**
@@ -25,6 +26,17 @@ export async function lockEdition(tx: Tx, editionId: string): Promise<EditionRow
   if (!row) throw new DomainError('NOT_FOUND');
   if (isReadOnly(row.status)) throw new DomainError('EDITION_ARCHIVED');
   return row;
+}
+
+/** Rifiuta le funzioni di un modulo spento per l'edizione (§7: senza modulo la funzione non esiste). */
+export function requireModule(edition: Pick<EditionRow, 'enabledModules'>, key: ModuleKey): void {
+  if (!edition.enabledModules.includes(key)) throw new DomainError('CONFLICT', { message: `Il modulo “${getModule(key)!.name}” non è attivo per questa edizione.` });
+}
+
+/** Durata dell'attesa di pagamento: per il pay-link la decide il modulo (validityHours). */
+export function pendingTtlMs(edition: Pick<EditionRow, 'moduleSettings'>, channel: OrderRow['channel']): number | undefined {
+  if (channel === 'paylink') return (moduleSettings('paylink', edition.moduleSettings) as { validityHours: number }).validityHours * 60 * 60_000;
+  return PENDING_TTL_MS[channel];
 }
 
 /** Ordine da modificare, bloccato, con la sua edizione. */

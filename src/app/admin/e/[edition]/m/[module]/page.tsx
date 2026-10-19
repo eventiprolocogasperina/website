@@ -9,7 +9,7 @@ import type { EditionModule } from '@/server/domain/editions/types';
 
 type Props = { params: Promise<{ edition: string; module: string }> };
 
-const PAGES: Record<EditionModule, () => React.ReactNode> = {
+const PAGES: Partial<Record<EditionModule, () => React.ReactNode>> = {
   invites: () => <ZuccalandInvitesPage />,
   'visitor-photos': () => <ZuccalandPhotosPage />,
   reviews: () => <ReviewsPage />,
@@ -18,7 +18,7 @@ const PAGES: Record<EditionModule, () => React.ReactNode> = {
 async function resolve({ params }: Props) {
   const { edition: slug, module } = await params;
   const edition = await getEdition(slug);
-  if (!edition || !edition.modules.includes(module as EditionModule)) notFound();
+  if (!edition || !edition.modules.includes(module as EditionModule) || !PAGES[module as EditionModule]) notFound();
   return module as EditionModule;
 }
 
@@ -31,5 +31,5 @@ export default async function EditionModulePage(props: Props) {
   const mod = await resolve(props);
   const denied = await pageDenied(MODULE_PERMISSIONS[mod], { edition: (await props.params).edition });
   if (denied) return denied;
-  return PAGES[mod]();
+  return PAGES[mod]!();
 }

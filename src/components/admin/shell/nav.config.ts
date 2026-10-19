@@ -3,6 +3,10 @@ import {
   Bell,
   CalendarDays,
   Camera,
+  ChefHat,
+  Link2,
+  Map as MapIcon,
+  Megaphone,
   ClipboardList,
   CreditCard,
   FileText,
@@ -31,6 +35,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { Permission } from '@/server/auth/permissions';
+import { MODULES } from '@/modules/registry';
+import type { EditionModule as EditionModuleDef } from '@/modules/types';
 import type { EditionModule } from '@/server/domain/editions/types';
 
 /** Conteggi che possono comparire accanto a una voce (dalla campanella). */
@@ -98,18 +104,24 @@ export const ORG_NAV: NavGroup[] = [
   },
 ];
 
-const MODULE_NAV: Record<EditionModule, { label: string; icon: LucideIcon; badge?: NavBadgeKey; permission: Permission }> = {
-  invites: { label: 'Inviti', icon: Send, permission: 'orders.edit' },
-  'visitor-photos': { label: 'Foto dei visitatori', icon: Camera, badge: 'photos', permission: 'photos.moderate' },
-  reviews: { label: 'Recensioni', icon: Star, permission: 'reviews.moderate' },
+const MODULE_ICONS: Record<NonNullable<NonNullable<EditionModuleDef['admin']>['nav']>['icon'], LucideIcon> = {
+  send: Send,
+  camera: Camera,
+  star: Star,
+  link: Link2,
+  megaphone: Megaphone,
+  map: MapIcon,
+  chef: ChefHat,
 };
 
-/** Permesso per aprire la pagina di un modulo. */
-export const MODULE_PERMISSIONS: Record<EditionModule, Permission> = { invites: 'orders.edit', 'visitor-photos': 'photos.moderate', reviews: 'reviews.moderate' };
+const MODULE_NAV = Object.fromEntries(
+  MODULES.flatMap((m) => (m.admin?.nav ? [[m.key, { label: m.admin.nav.label, icon: MODULE_ICONS[m.admin.nav.icon], badge: m.admin.nav.badge as NavBadgeKey | undefined, permission: m.admin.nav.permission }]] : [])),
+) as Record<EditionModule, { label: string; icon: LucideIcon; badge?: NavBadgeKey; permission: Permission }>;
 
-export const MODULE_LABELS: Record<EditionModule, string> = Object.fromEntries(
-  Object.entries(MODULE_NAV).map(([k, v]) => [k, v.label]),
-) as Record<EditionModule, string>;
+/** Permesso per aprire la pagina di un modulo. */
+export const MODULE_PERMISSIONS = Object.fromEntries(Object.entries(MODULE_NAV).map(([k, v]) => [k, v.permission])) as Record<EditionModule, Permission>;
+
+export const MODULE_LABELS: Record<EditionModule, string> = Object.fromEntries(Object.entries(MODULE_NAV).map(([k, v]) => [k, v.label])) as Record<EditionModule, string>;
 
 /** Sidebar del livello Edizione (§10.3), con una voce per ogni modulo attivo. */
 export function editionNav(slug: string, modules: EditionModule[]): NavGroup[] {
@@ -138,7 +150,7 @@ export function editionNav(slug: string, modules: EditionModule[]): NavGroup[] {
   if (modules.length > 0) {
     groups.push({
       label: 'Moduli',
-      items: modules.map((m) => ({ ...MODULE_NAV[m], href: `${base}/m/${m}` })),
+      items: modules.filter((m) => MODULE_NAV[m]).map((m) => ({ ...MODULE_NAV[m], href: `${base}/m/${m}` })),
     });
   }
   groups.push({ items: [{ label: 'Impostazioni', href: `${base}/impostazioni`, permission: 'editions.edit', icon: Settings }] });

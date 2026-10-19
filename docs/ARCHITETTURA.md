@@ -885,6 +885,8 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 09: i test sul database usano un Postgres locale (`proloco_test`), mai un branch Neon | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 10: la migrazione scrive anche nelle edizioni archiviate (è storico importato, non una modifica) e salta quelle non concluse | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 10: un'edizione con ordini migrati conta i posti solo dal nucleo nuovo; le altre sommano tabelle attuali e ordini nuovi | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 11: i servizi del nucleo rifiutano le funzioni di un modulo spento (canali `invite` e `paylink`, cambio data), non solo l'interfaccia | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 11: `zuccaland_photos` diventa `mod_visitor_photos_items` con il prompt 19; rinominarla ora romperebbe il caricamento pubblico di un'edizione in vendita | Claude, esecuzione fase 2 |
 
 ---
 
