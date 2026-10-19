@@ -23,9 +23,11 @@ describe('money', () => {
   it('formatta in it-IT', () => {
     expect(plain(formatMoney(1170))).toBe('11,70 €');
     expect(plain(formatMoney(0))).toBe('0,00 €');
-    // In it-IT le migliaia si separano da 5 cifre in su (regola CLDR).
-    expect(plain(formatMoney(123456))).toBe('1234,56 €');
-    expect(plain(formatMoney(1234567))).toBe('12.345,67 €');
+    expect(plain(formatMoney(123456))).toBe('1.234,56 €');
+    expect(plain(formatMoney(123456789))).toBe('1.234.567,89 €');
+    expect(plain(formatMoney(-1170))).toBe('-11,70 €');
+    expect(plain(formatMoney(5))).toBe('0,05 €');
+    expect(() => formatMoney(10.5)).toThrow(RangeError);
   });
 });
 

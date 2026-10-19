@@ -13,6 +13,7 @@ const eslintConfig = defineConfig([
     // Il codice nuovo (src/server, src/lib/{money,dates,codes}.ts, ecc.) non rientra qui.
     files: ["src/app/**", "src/components/**", "src/lib/data/**", "src/lib/tickets/**", "src/lib/pdf/**",
       "src/lib/printer/**", "src/lib/manuals/**", "src/lib/telegram.ts", "src/lib/generatePDF.ts", "src/lib/cropImage.ts"],
+    ignores: ["src/components/ui/*.ts", "src/components/ui/{Avatar,Badge,BulkActionBar,Button,Card,Checkbox,Combobox,ConfirmDialog,ContextualSaveBar,DataTable,DatePicker,Dialog,DropdownMenu,EmptyState,Field,FilterBar,IconButton,Input,Kbd,KeyValue,Layouts,MoneyInput,PageHeader,Popover,RadioGroup,Select,Sheet,Skeleton,Stat,StatusBadge,Switch,Tabs,Timeline,Toast,Tooltip}.tsx", "src/app/admin/%5Fui/**", "src/components/errors/**"],
     rules: {
       "@typescript-eslint/no-explicit-any": "warn",
       "react/no-unescaped-entities": "warn",
