@@ -19,7 +19,6 @@ const nextConfig: NextConfig = {
         ['/admin/zuccaland-inviti', '/admin/e/zuccaland-2026/m/invites'],
         ['/admin/zuccaland-photos', '/admin/e/zuccaland-2026/m/visitor-photos'],
         ['/admin/cassa', '/admin/vai/cassa'],
-        ['/admin/prenotazioni', '/admin/vai/partecipanti'],
         ['/admin/analytics', '/admin/vai/statistiche'],
         ['/admin/pagine/zuccaland', '/admin/e/zuccaland-2026/pagina'],
         ['/admin/pagine/sponsor', '/admin/sito/sponsor'],

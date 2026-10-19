@@ -548,7 +548,7 @@ L'admin ha **due livelli**, come Shopify (negozio) e Pretix (organizzatore ed ev
 | `/admin/zuccaland-photos` | `/admin/e/zuccaland-2026/m/visitor-photos` |
 | `/admin/cassa` | `/admin/e/[edition]/cassa` |
 | `/admin/rimborsi` | `/admin/rimborsi` |
-| `/admin/prenotazioni` | `/admin/e/[edition]/partecipanti` |
+| `/admin/prenotazioni` | `/admin/e/[edition]/partecipanti` (con il flag `orders_v2`; prima resta la pagina di oggi) |
 | `/admin/sconti` | `/admin/sconti` |
 | `/admin/pagine/zuccaland` | `/admin/e/zuccaland-2026/pagina` |
 | `/admin/pagine/sponsor` | `/admin/sito/sponsor` |
@@ -894,6 +894,12 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 13: il checkout nuovo resta chiuso per le edizioni che vendono ancora dalle pagine di oggi (vendite non migrate), e sostituisce i pulsanti d'acquisto di Zuccaland solo con `NUOVO_CHECKOUT=1` (§18.10) | Claude, esecuzione fase 3 |
 | 2026-10-19 | Prompt 13: richiesta di rimborso da "I miei biglietti" solo quando il modulo Rinvio la concede (secondo rinvio); in tutti gli altri casi il rimborso lo crea lo staff | Claude, esecuzione fase 3 |
 | 2026-10-19 | Prompt 13: test end-to-end con Playwright su un database locale `proloco_e2e` e un simulatore di Nexi (`NEXI_MODE=simulatore`, mai in produzione) | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 12: le pagine nuove di ordini, partecipanti e rimborsi esistono sempre nella sidebar dell'edizione; il flag `orders_v2` (site_settings, spento) decide solo se `/admin/ordini`, `/admin/rimborsi` e `/admin/prenotazioni` mostrano le pagine nuove o quelle di prima | Prompt 12 |
+| 2026-10-19 | Prompt 12: viste salvate = tab fissi nel codice (Tutti, Da pagare, Pagati, Rimborsati, Blacklist) più quelle dell'utente in `admin_saved_views`, per utente e non per browser, così si ritrovano su ogni dispositivo | Prompt 12 |
+| 2026-10-19 | Prompt 12: l'unione di due clienti non riscrive gli ordini (possono stare in edizioni archiviate, §18.7): il doppione prende `merged_into_id` e `deleted_at`, la scheda del cliente buono legge gli ordini di entrambi | Prompt 12 |
+| 2026-10-19 | Prompt 12: note interne dell'ordine in una tabella a parte (`order_notes`), solo aggiunte e mai modificate, come un registro; le note del sistema di prima restano in `legacy_notes` | Prompt 12 |
+| 2026-10-19 | Prompt 12: CSV con separatore ";" e BOM per Excel in italiano; le celle che iniziano con = + - @ prendono un apostrofo (anche i telefoni "+39") per non diventare formule | Prompt 12 |
+| 2026-10-19 | Prompt 12: esportazioni (ordini, partecipanti, bonifici) con `reports.export`; l'IBAN intero nel CSV solo con `refunds.view_iban` su tutte le edizioni esportate, e l'esportazione resta nel registro | Prompt 12 |
 
 ---
 

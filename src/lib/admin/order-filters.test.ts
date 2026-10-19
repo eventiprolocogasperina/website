@@ -27,7 +27,7 @@ describe('filtri dell’elenco ordini', () => {
 });
 
 describe('registro presenze', () => {
-  const row = (name: string, over: Partial<ManifestRow> = {}) => ({
+  const row = (name: string, over: Partial<ManifestRow & { shortDate: string; sortKey: string }> = {}) => ({
     id: name, name, phone: null, code: name, persons: 2, children: 1, labs: 0, activities: [], activityKeys: [], detail: '', paid: true, free: false, statusLabel: '', amountCents: 1000,
     shortDate: 'dom 25/10/2026', sortKey: '2026-10-25', ...over,
   });
