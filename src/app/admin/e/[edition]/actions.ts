@@ -16,6 +16,8 @@ import {
   type SessionInput,
 } from '@/server/domain/catalog';
 import { changeEditionStatus, updateEdition, type UpdateEditionInput } from '@/server/domain/editions';
+import { skipClosingCheck, unskipClosingCheck } from '@/server/domain/editions/closing';
+import { generateFinalReport } from '@/server/domain/editions/final-report';
 import { saveModuleSettings, setModuleEnabled } from '@/server/domain/editions/modules';
 import type { EditionStatus } from '@/server/domain/editions/types';
 
@@ -61,4 +63,14 @@ export async function setModuleEnabledAction(edition: string, module: string, en
 }
 export async function saveModuleSettingsAction(edition: string, module: string, settings: unknown) {
   return runAction(paths(edition), (ctx) => saveModuleSettings(ctx, edition, { module, settings }));
+}
+
+export async function skipClosingCheckAction(edition: string, key: string, reason: string) {
+  return runAction(paths(edition), (ctx) => skipClosingCheck(ctx, edition, { key, reason }));
+}
+export async function unskipClosingCheckAction(edition: string, key: string) {
+  return runAction(paths(edition), (ctx) => unskipClosingCheck(ctx, edition, key));
+}
+export async function generateFinalReportAction(edition: string) {
+  return runAction(paths(edition), (ctx) => generateFinalReport(ctx, edition));
 }

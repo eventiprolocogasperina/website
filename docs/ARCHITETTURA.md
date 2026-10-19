@@ -894,6 +894,10 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 13: il checkout nuovo resta chiuso per le edizioni che vendono ancora dalle pagine di oggi (vendite non migrate), e sostituisce i pulsanti d'acquisto di Zuccaland solo con `NUOVO_CHECKOUT=1` (§18.10) | Claude, esecuzione fase 3 |
 | 2026-10-19 | Prompt 13: richiesta di rimborso da "I miei biglietti" solo quando il modulo Rinvio la concede (secondo rinvio); in tutti gli altri casi il rimborso lo crea lo staff | Claude, esecuzione fase 3 |
 | 2026-10-19 | Prompt 13: test end-to-end con Playwright su un database locale `proloco_e2e` e un simulatore di Nexi (`NEXI_MODE=simulatore`, mai in produzione) | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 16: "Esaurita" automatica solo tra `on_sale` e `sold_out`, calcolata sui biglietti d'ingresso online nelle date future; non tocca mai `live` né una scelta fatta a mano su altri stati | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 16: per archiviare ogni controllo della checklist dev'essere a posto o saltato con motivo (owner/admin); `blocking` di un controllo vuol dire "non si può saltare" | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 16: il rendiconto finale (PDF e CSV) sta nel database (`edition_reports`) e non su Cloudinary, perché i link di Cloudinary sono pubblici e il rendiconto contiene gli incassi | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 16: il modulo Recensioni non ha ancora un controllo di chiusura: l'email di ringraziamento non esiste ancora | Claude, esecuzione fase 3 |
 
 ---
 

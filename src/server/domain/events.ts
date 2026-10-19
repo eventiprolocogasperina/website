@@ -1,6 +1,7 @@
 // Eventi di dominio (§6): i servizi li raccolgono durante la transazione e li pubblicano solo dopo il
 // commit, così un handler non vede mai una modifica poi annullata. I moduli e le notifiche si
 // iscrivono qui invece di essere chiamati dai servizi. Nei payload solo ID e codici, mai dati personali.
+import type { EditionStatus } from '@/server/domain/editions/types';
 import { log } from '@/server/log';
 
 export type DomainEvent =
@@ -13,7 +14,11 @@ export type DomainEvent =
   | { type: 'order.tickets_resent'; orderId: string; code: string; edition: string }
   | { type: 'order.session_moved'; orderId: string; code: string; edition: string; fromSessionId: string | null; toSessionId: string }
   | { type: 'refund.requested'; refundId: string; orderId: string; code: string; edition: string; amountCents: number }
-  | { type: 'ticket.checked_in'; ticketId: string; checkinListId: string; edition: string };
+  | { type: 'ticket.checked_in'; ticketId: string; checkinListId: string; edition: string }
+  | { type: EditionEventType; editionId: string; edition: string; from: EditionStatus; automatic: boolean };
+
+/** Un evento per ogni stato d'arrivo (§9): edition.published, edition.concluded, edition.archived… */
+export type EditionEventType = `edition.${EditionStatus}`;
 
 export type DomainEventType = DomainEvent['type'];
 type Handler<T extends DomainEventType> = (event: Extract<DomainEvent, { type: T }>) => void | Promise<void>;

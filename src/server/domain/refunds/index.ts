@@ -13,6 +13,7 @@ import { publish, type DomainEvent } from '@/server/domain/events';
 import { lockOrder, type EditionRow, type OrderRow } from '@/server/domain/orders/shared';
 import { derivePaymentStatus, summarizePayments } from '@/server/domain/payments/status';
 import { decryptIban, encryptIban, maskIban } from './crypto';
+import '@/server/domain/editions/handlers';
 
 type RefundRow = typeof refundsV2.$inferSelect;
 

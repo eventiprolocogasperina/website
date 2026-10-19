@@ -3,12 +3,14 @@ import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { cache } from 'react';
 import { z } from 'zod';
 import { romeDateKey, romeDateTime } from '@/lib/dates';
-import type { Ctx } from '@/server/auth/context-shared';
+import { systemCtx, type Ctx } from '@/server/auth/context-shared';
 import { can, type Permission } from '@/server/auth/permissions';
 import { getDb, withTransaction, type Tx } from '@/server/db/client';
 import { editions, legacyIdMap, products, quotaProducts, quotas, series, sessions } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
+import { publish, type DomainEvent } from '@/server/domain/events';
+import { assertClosingComplete } from './closing';
 import { bumpYear, shiftInstant, shiftSession, weekdayPreservingShift } from './duplicate';
 import { isReadOnly, transitionFor } from './lifecycle';
 import { ACTIVE_STATUSES, EDITION_STATUSES, NAV_MODULES, type EditionDot, type EditionSummary } from './types';
@@ -343,11 +345,12 @@ export const ChangeStatusInput = z.object({ to: z.enum(EDITION_STATUSES), reason
 
 export async function changeEditionStatus(ctx: Ctx, slug: string, input: z.input<typeof ChangeStatusInput>): Promise<void> {
   const data = ChangeStatusInput.parse(input);
-  await withTransaction(async (tx) => {
+  const event = await withTransaction(async (tx) => {
     const before = await editionForWrite(tx, slug);
     const transition = transitionFor(before.status, data.to);
     if (!transition) throw new DomainError('CONFLICT', { message: 'Questo passaggio di stato non è possibile.' });
     assertCan(ctx, transition.permission, slug);
+    if (data.to === 'archived') await assertClosingComplete(tx, before);
     const now = new Date();
     await tx
       .update(editions)
@@ -359,7 +362,38 @@ export async function changeEditionStatus(ctx: Ctx, slug: string, input: z.input
       })
       .where(eq(editions.id, before.id));
     await audit(tx, ctx, 'edition.status_changed', { entityType: 'edition', entityId: before.id, edition: slug, before: { status: before.status }, after: { status: data.to }, reason: data.reason ?? null });
+    return { type: `edition.${data.to}`, editionId: before.id, edition: slug, from: before.status, automatic: false } as DomainEvent;
   });
+  await publish([event]);
+}
+
+/**
+ * Esaurita automatica e reversibile (§9): on_sale ⇄ sold_out decisa dal sistema in base ai posti.
+ * Cambia solo se lo stato è ancora quello atteso, così non sovrascrive una scelta fatta a mano.
+ */
+export async function setSoldOutAutomatically(editionId: string, soldOut: boolean): Promise<boolean> {
+  const from = soldOut ? 'on_sale' : 'sold_out';
+  const to = soldOut ? 'sold_out' : 'on_sale';
+  const event = await withTransaction(async (tx) => {
+    const [row] = await tx
+      .update(editions)
+      .set({ status: to, updatedAt: new Date() })
+      .where(and(eq(editions.id, editionId), eq(editions.status, from)))
+      .returning({ slug: editions.slug });
+    if (!row) return null;
+    const ctx = systemCtx('posti');
+    await audit(tx, ctx, 'edition.status_changed', {
+      entityType: 'edition',
+      entityId: editionId,
+      edition: row.slug,
+      before: { status: from },
+      after: { status: to },
+      reason: soldOut ? 'Posti esauriti' : 'Si sono liberati dei posti',
+    });
+    return { type: `edition.${to}`, editionId, edition: row.slug, from, automatic: true } as DomainEvent;
+  });
+  if (event) await publish([event]);
+  return !!event;
 }
 
 // ─── Elenco con i conteggi, per /admin/edizioni ──────────────────────────────

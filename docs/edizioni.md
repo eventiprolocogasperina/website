@@ -31,3 +31,13 @@ Le vendite, la cassa e il sito pubblico continuano a usare le tabelle di oggi. L
 ## Pagine dell'admin
 
 `/admin/edizioni` (lista, nuova edizione da format, duplicando o vuota), `/admin/format`, e per ogni edizione `date`, `catalogo` (prodotti, quote, codici sconto) e `impostazioni` (generale, pagina pubblica, stato, moduli). La vecchia gestione delle schede del calendario resta in `/admin/edizioni/calendario`.
+
+## Ciclo di vita, chiusura e statistiche (prompt 16)
+
+- **Stati** (`src/server/domain/editions/lifecycle.ts`): ogni passaggio passa da `changeEditionStatus`, scrive nel registro ed emette `edition.<stato>` (es. `edition.concluded`) dopo il commit.
+- **Esaurita automatica** (`editions/sold-out.ts`, `editions/handlers.ts`): dopo ogni ordine creato, scaduto, annullato, rimborsato o spostato si ricalcola. `on_sale` → `sold_out` quando nessun biglietto d'ingresso online ha posti nelle date future; torna `on_sale` se se ne libera uno. Nel registro compare come "Sistema · posti".
+- **Dichiara conclusa**: pulsante nella panoramica (edizione in corso o sospesa), confermato scrivendo il nome.
+- **Checklist di chiusura** (`editions/closing.ts`, Impostazioni → Chiusura e archivio): ordini in attesa, rimborsi aperti, rendiconto finale, più i `closingChecks` dei moduli attivi (Fasce orarie: date future chiuse; Foto: nessuna foto da moderare). Il controllo dei turni di cassa arriva con la cassa nuova. Owner e admin possono saltare un controllo con un motivo (tabella `edition_closing_skips`). "Archivia" si abilita solo a checklist completa e il server lo ricontrolla.
+- **Rendiconto finale** (`editions/final-report.tsx`): PDF e CSV degli aggregati, salvati in `edition_reports`; si scaricano da `/admin/e/<edizione>/rendiconto/rendiconto.pdf|.csv`.
+- **Numeri** (`src/server/domain/stats`): solo aggregati, ore e giorni di Roma. Panoramica dell'edizione, pagina Statistiche (`…/statistiche`, esportazione in `…/statistiche/esporta`) e panoramica dell'associazione (`/admin`). La vecchia pagina "analytics" è stata tolta; `/admin/analytics` porta ancora alle Statistiche.
+- **Sola lettura**: in `archived` ogni servizio di scrittura risponde `EDITION_ARCHIVED`; `lifecycle.db.test.ts` lo verifica servizio per servizio.

@@ -14,6 +14,7 @@ import { ORDER_CHANNELS, priceCart, type OrderChannel } from '@/server/domain/pr
 // Collega gli handler dei moduli agli eventi pubblicati da qui (es. email del modulo rinvio).
 import '@/modules/handlers';
 import '@/server/notifications/handlers';
+import '@/server/domain/editions/handlers';
 import { validateActivities } from '@/modules/activities/server';
 import { newOrderCode, randomToken } from './code';
 import { moduleSettings } from '@/modules/registry';

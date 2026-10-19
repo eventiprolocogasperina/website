@@ -6,6 +6,7 @@ import { pageDenied } from '@/server/auth/guard';
 import { can } from '@/server/auth/permissions';
 import { getEditionDetail } from '@/server/domain/editions';
 import { describeEditionModules, moduleFieldOptions } from '@/server/domain/editions/modules';
+import { getClosingChecklist } from '@/server/domain/editions/closing';
 import { TRANSITIONS } from '@/server/domain/editions/lifecycle';
 import type { EditionParams } from '@/server/domain/editions/page-params';
 import { listSeries } from '@/server/domain/editions/series';
@@ -21,9 +22,16 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
   const [e, formats] = await Promise.all([getEditionDetail(slug), listSeries()]);
   if (!e) notFound();
   const moduleOptions = await moduleFieldOptions(e.id);
+  const closing = e.status === 'concluded' || e.status === 'archived' ? await getClosingChecklist(ctx, slug) : null;
   const transitions = TRANSITIONS[e.status]
     .filter((t) => can(ctx, t.permission, { edition: slug }))
-    .map(({ to, label, description, typeToConfirm }) => ({ to, label, description, typeToConfirm: !!typeToConfirm }));
+    .map(({ to, label, description, typeToConfirm }) => ({
+      to,
+      label,
+      description,
+      typeToConfirm: !!typeToConfirm,
+      disabledReason: to === 'archived' && !closing?.complete ? 'Completa prima la checklist di chiusura.' : null,
+    }));
   return (
     <AdminPage>
       <SettingsClient
@@ -52,6 +60,8 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
         modules={describeEditionModules(e)}
         moduleOptions={moduleOptions}
         canManageModules={can(ctx, 'modules.manage', { edition: slug })}
+        closing={closing}
+        canSkipChecks={can(ctx, 'editions.archive', { edition: slug })}
       />
     </AdminPage>
   );

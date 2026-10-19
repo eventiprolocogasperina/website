@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { ArchivedNotice, Notice } from '@/components/admin/edition/common';
+import { ArchivedNotice } from '@/components/admin/edition/common';
 import {
   AnnotatedSection,
   Button,
@@ -21,8 +21,10 @@ import {
 } from '@/components/ui';
 import { formatDateTime } from '@/lib/dates';
 import type { EditionStatus } from '@/server/domain/editions/types';
+import type { ClosingChecklist } from '@/server/domain/editions/closing';
 import type { ModuleView } from '@/server/domain/editions/modules';
 import { changeStatusAction, updateEditionAction } from '../actions';
+import { ClosingSection } from './ClosingSection';
 import { ModulesSection, type ModuleFieldOptions } from './ModulesSection';
 
 type Form = {
@@ -37,7 +39,7 @@ type Form = {
   endsTime: string;
   publicPageMode: 'generic' | 'landing';
 };
-type Transition = { to: EditionStatus; label: string; description: string; typeToConfirm: boolean };
+type Transition = { to: EditionStatus; label: string; description: string; typeToConfirm: boolean; disabledReason: string | null };
 type EditionInfo = { slug: string; title: string; status: EditionStatus; readOnly: boolean; concludedAt: string | null; archivedAt: string | null };
 
 const NONE = '__nessuno';
@@ -50,6 +52,8 @@ export function SettingsClient({
   modules,
   moduleOptions,
   canManageModules,
+  closing,
+  canSkipChecks,
 }: {
   edition: EditionInfo;
   initial: Form;
@@ -58,6 +62,8 @@ export function SettingsClient({
   modules: ModuleView[];
   moduleOptions: ModuleFieldOptions;
   canManageModules: boolean;
+  closing: ClosingChecklist | null;
+  canSkipChecks: boolean;
 }) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
@@ -172,7 +178,7 @@ export function SettingsClient({
 
         <AnnotatedSection
           title="Stato"
-          description="Il ciclo di vita dell’edizione: bozza, pubblicata, in vendita, in corso, conclusa, archiviata. Per ora lo stato non cambia il sito pubblico né la cassa."
+          description="Il ciclo di vita dell’edizione: bozza, pubblicata, in vendita, in corso, conclusa, archiviata. “Esaurita” scatta da sola quando i posti finiscono e si toglie se se ne liberano."
         >
           <div className="flex flex-col gap-3">
             <p className="flex flex-wrap items-center gap-2 text-body">
@@ -180,13 +186,16 @@ export function SettingsClient({
               {edition.concludedAt && <span className="text-label text-muted">conclusa il {formatDateTime(edition.concludedAt)}</span>}
               {edition.archivedAt && <span className="text-label text-muted">· archiviata il {formatDateTime(edition.archivedAt)}</span>}
             </p>
-            {edition.status === 'concluded' && (
-              <Notice>Prima di archiviare controlla che i turni di cassa siano chiusi e che non ci siano ordini in attesa né rimborsi aperti. La checklist automatica arriva con la fase 3.</Notice>
-            )}
             {transitions.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {transitions.map((t, i) => (
-                  <Button key={t.to} variant={i === 0 && t.to !== 'archived' ? 'primary' : 'secondary'} onClick={() => setPending(t)} disabled={dirty}>
+                  <Button
+                    key={t.to}
+                    variant={i === 0 && t.to !== 'archived' ? 'primary' : 'secondary'}
+                    onClick={() => setPending(t)}
+                    disabled={dirty || !!t.disabledReason}
+                    title={t.disabledReason ?? undefined}
+                  >
                     {t.label}
                   </Button>
                 ))}
@@ -195,8 +204,18 @@ export function SettingsClient({
               !ro && <p className="text-label text-muted">Non hai i permessi per cambiare lo stato.</p>
             )}
             {dirty && transitions.length > 0 && <p className="text-label text-muted">Salva le modifiche prima di cambiare lo stato.</p>}
+            {transitions.some((t) => t.disabledReason) && <p className="text-label text-muted">Per archiviare completa prima la checklist qui sotto.</p>}
           </div>
         </AnnotatedSection>
+
+        {closing && (
+          <AnnotatedSection
+            title="Chiusura e archivio"
+            description="I controlli prima di archiviare: cassa, ordini, rimborsi, rendiconto e quelli dei moduli attivi. Solo owner e admin possono saltarne uno, scrivendo il motivo."
+          >
+            <ClosingSection edition={edition.slug} list={closing} canSkip={canSkipChecks} readOnly={ro} />
+          </AnnotatedSection>
+        )}
 
         <AnnotatedSection title="Moduli" description="Funzioni in più per questa edizione. Spegnere un modulo non cancella niente: dati e impostazioni tornano quando lo riaccendi.">
           <ModulesSection edition={edition.slug} modules={modules} options={moduleOptions} disabled={ro || !canManageModules} />
