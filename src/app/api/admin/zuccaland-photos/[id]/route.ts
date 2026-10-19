@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { updatePhotoStatus } from '@/lib/data/zuccaland_photos';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('photos.moderate');
   if (denied) return denied;
   try {
     const { status } = await request.json();

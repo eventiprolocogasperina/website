@@ -4,10 +4,10 @@ import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendPayLinkEmail } from '@/lib/tickets/sendPayLinkEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
 import crypto from 'crypto';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 export async function POST(req: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('orders.edit');
   if (denied) return denied;
   try {
     const data = await req.json();

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 // Helper for DB connection
 function getDb() {
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('editions.create');
   if (denied) return denied;
   try {
     const sql = getDb();

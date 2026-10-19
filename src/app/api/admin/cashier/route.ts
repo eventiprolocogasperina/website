@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getCashierConfig, saveCashierConfig, getCashierStats, type CashierConfig } from '@/lib/data/cashier';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('catalog.edit');
   if (denied) return denied;
   try {
     const config = await getCashierConfig();
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('catalog.edit');
   if (denied) return denied;
   try {
     const body = await request.json();

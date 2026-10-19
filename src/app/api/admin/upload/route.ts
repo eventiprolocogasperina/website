@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { requireAdmin } from '@/server/auth/session';
+import { requireAnyPermission } from '@/server/auth/context';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -14,7 +14,7 @@ cloudinary.config({
  * Returns: { url, publicId }
  */
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requireAnyPermission(['content.edit', 'editions.edit']);
   if (denied) return denied;
   try {
     const formData = await request.formData();

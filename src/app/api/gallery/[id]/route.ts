@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -11,7 +11,7 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('content.edit');
   if (denied) return denied;
   try {
     const { id } = await params;
@@ -45,7 +45,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('content.edit');
   if (denied) return denied;
   try {
     const { id } = await params;

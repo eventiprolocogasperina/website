@@ -15,7 +15,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "db:mark-baseline": "node scripts/db/mark-baseline.mjs"
+    "db:mark-baseline": "node scripts/db/mark-baseline.mjs",
+    "create-owner": "tsx scripts/create-owner.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

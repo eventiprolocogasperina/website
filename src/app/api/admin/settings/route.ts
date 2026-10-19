@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -9,7 +9,7 @@ function getDb() {
 
 // GET /api/admin/settings — get all settings as key/value object
 export async function GET() {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('settings.manage');
   if (denied) return denied;
   try {
     const sql = getDb();
@@ -26,7 +26,7 @@ export async function GET() {
 
 // POST /api/admin/settings — upsert settings (body: { key: value, ... })
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('settings.manage');
   if (denied) return denied;
   try {
     const body = await request.json();

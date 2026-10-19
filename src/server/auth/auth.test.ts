@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
-import { signToken, verifyToken } from './token';
-import { hashPassword, verifyPassword } from './password';
+import { signLinkToken, signToken, verifyLinkToken, verifyToken } from './token';
+import { hashPassword, isValidPin, passwordFingerprint, verifyPassword } from './password';
 import { isRateLimited, recordFailure } from './rateLimit';
 import { proxy } from '../../proxy';
 
@@ -36,6 +36,30 @@ describe('token di sessione', () => {
     expect(verifyToken(undefined, SECRET)).toBeNull();
     expect(verifyToken('abc', SECRET)).toBeNull();
     expect(verifyToken(signToken({ sub: 'a', role: 'admin', exp: inOneHour() }, SECRET), '')).toBeNull();
+  });
+});
+
+describe('link firmati', () => {
+  it('valgono una volta per impronta e scadono', () => {
+    const t = signLinkToken({ p: 'reset', uid: 'u1', fp: 'abc', exp: inOneHour() }, SECRET);
+    expect(verifyLinkToken(t, SECRET)?.uid).toBe('u1');
+    expect(verifyLinkToken(t, 'altro')).toBeNull();
+    expect(verifyLinkToken(signLinkToken({ p: 'reset', uid: 'u1', fp: 'abc', exp: 1 }, SECRET), SECRET)).toBeNull();
+    // Un token di sessione non vale come link e viceversa.
+    expect(verifyToken(t, SECRET)).toBeNull();
+    expect(verifyLinkToken(signToken({ sub: 'u1', role: 'admin', exp: inOneHour() }, SECRET), SECRET)).toBeNull();
+  });
+
+  it('l\'impronta cambia quando cambia la password', () => {
+    expect(passwordFingerprint(hashPassword('prima-password'))).not.toBe(passwordFingerprint(hashPassword('prima-password')));
+    expect(passwordFingerprint(null)).toBe(passwordFingerprint(null));
+  });
+});
+
+describe('PIN', () => {
+  it('accetta da 4 a 6 cifre', () => {
+    expect(['1234', '123456'].every(isValidPin)).toBe(true);
+    expect(['123', '1234567', '12a4', ''].some(isValidPin)).toBe(false);
   });
 });
 
@@ -80,10 +104,31 @@ describe('proxy', () => {
     expect(proxy(req('/api/admin/orders', 'GET', `pl_admin=${t}`)).status).toBe(401);
   });
 
-  it('con una sessione admin valida lascia passare', () => {
-    const t = signToken({ sub: 'admin', role: 'admin', exp: inOneHour() }, SECRET);
+  it('con una sessione utente valida lascia passare', () => {
+    const t = signToken({ sub: 'u1', sid: 's1', role: 'admin', exp: inOneHour() }, SECRET);
     const res = proxy(req('/api/admin/orders', 'GET', `pl_admin=${t}`));
     expect(res.headers.get('x-middleware-next')).toBe('1');
+  });
+
+  it('l\'accesso di emergenza vale solo con ALLOW_LEGACY_ADMIN=true', () => {
+    const t = signToken({ sub: 'admin', role: 'admin', exp: inOneHour() }, SECRET);
+    delete process.env.ALLOW_LEGACY_ADMIN;
+    expect(proxy(req('/api/admin/orders', 'GET', `pl_admin=${t}`)).status).toBe(401);
+    process.env.ALLOW_LEGACY_ADMIN = 'true';
+    expect(proxy(req('/api/admin/orders', 'GET', `pl_admin=${t}`)).headers.get('x-middleware-next')).toBe('1');
+    delete process.env.ALLOW_LEGACY_ADMIN;
+  });
+
+  it('lo scanner si apre con un dispositivo abbinato, senza dispositivo va al login', () => {
+    expect(proxy(req('/scanner', 'GET', 'pl_device=qualcosa')).headers.get('x-middleware-next')).toBe('1');
+    expect(proxy(req('/scanner')).status).toBe(307);
+    // Il cookie del dispositivo non apre l'admin.
+    expect(proxy(req('/admin', 'GET', 'pl_device=qualcosa')).status).toBe(307);
+  });
+
+  it('una sessione PIN non apre l\'admin', () => {
+    const t = signToken({ sub: 'u1', role: 'pin', did: 'd1', exp: inOneHour() }, SECRET);
+    expect(proxy(req('/api/admin/orders', 'GET', `pl_admin=${t}`)).status).toBe(401);
   });
 
   it('la lettura degli sponsor resta pubblica, la modifica no', () => {

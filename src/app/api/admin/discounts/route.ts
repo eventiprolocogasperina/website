@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
 }
 
 export async function GET() {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('catalog.edit');
   if (denied) return denied;
   try {
     const sql = getDb();
@@ -24,7 +24,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('catalog.edit');
   if (denied) return denied;
   try {
     const data = await req.json();

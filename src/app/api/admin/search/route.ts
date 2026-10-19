@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { searchOrders } from '@/server/admin/search';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 import { log } from '@/server/log';
 
 // GET /api/admin/search?q=… — ricerca ordini per la palette ⌘K (al massimo 10 risultati).
 export async function GET(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('orders.read');
   if (denied) return denied;
   const q = new URL(request.url).searchParams.get('q') ?? '';
   if (q.length > 100) return NextResponse.json({ error: 'Ricerca troppo lunga' }, { status: 400 });

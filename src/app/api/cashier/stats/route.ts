@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getCashierStats } from '@/lib/data/cashier';
-import { requireCassaOrAdmin } from '@/server/auth/session';
+import { requirePos } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const { denied, cassaEventId } = await requireCassaOrAdmin();
+  const { denied, cassaEventId } = await requirePos();
   if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);

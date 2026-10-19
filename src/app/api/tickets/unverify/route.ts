@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { requireAdmin } from '@/server/auth/session';
+import { requireCheckin } from '@/server/auth/context';
 
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
+  const denied = (await requireCheckin('checkin.revert')).denied;
   if (denied) return denied;
   try {
     const { ticketId } = await request.json();

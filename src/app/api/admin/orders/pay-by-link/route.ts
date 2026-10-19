@@ -3,10 +3,10 @@ import { neon } from '@neondatabase/serverless';
 import { getOrder, createOrderWithTickets } from '@/lib/data/tickets';
 import { sendTelegramNotification } from '@/lib/telegram';
 import crypto from 'crypto';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 export async function POST(req: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('orders.edit');
   if (denied) return denied;
   try {
     const data = await req.json();

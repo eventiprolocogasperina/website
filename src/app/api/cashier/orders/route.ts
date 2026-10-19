@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { createCashierOrder, getCashierOrders, voidCashierOrder } from '@/lib/data/cashier';
 import { broadcastCashierEvent } from '../realtime/route';
 import QRCode from 'qrcode';
-import { requireCassaOrAdmin } from '@/server/auth/session';
+import { requirePos } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const { denied, cassaEventId } = await requireCassaOrAdmin();
+  const { denied, cassaEventId } = await requirePos();
   if (denied) return denied;
   try {
     const data = await request.json();
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const { denied, cassaEventId } = await requireCassaOrAdmin();
+  const { denied, cassaEventId } = await requirePos();
   if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
@@ -116,7 +116,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const { denied } = await requireCassaOrAdmin();
+  const { denied } = await requirePos();
   if (denied) return denied;
   try {
     const { orderId } = await request.json();

@@ -9,21 +9,28 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import { cn, focusRing, IconButton, Kbd, Toaster, TooltipProvider } from '@/components/ui';
 import type { TodoCounts } from '@/server/admin/todo';
+import type { Permission } from '@/server/auth/permissions';
 import { ACTIVE_STATUSES, type EditionSummary } from '@/server/domain/editions/types';
 import { Breadcrumbs, type Crumb } from './Breadcrumbs';
 import { CommandPalette } from './CommandPalette';
 import { EditionSwitcher } from './EditionSwitcher';
-import { editionNav, findActive, ORG_NAV, type NavGroup } from './nav.config';
+import { editionNav, filterNav, findActive, ORG_NAV, type NavGroup } from './nav.config';
 import { NotificationsBell } from './NotificationsBell';
 import { Sidebar } from './Sidebar';
 import { useShortcuts } from './useShortcuts';
-import { UserMenu } from './UserMenu';
+import { UserMenu, type ShellUser } from './UserMenu';
+
+/** Cosa può fare l'utente: calcolato sul server con can(); al client arriva solo questa lista. */
+export type ShellAccess = { org: Permission[]; editions: Record<string, Permission[]> };
 
 export type AdminShellProps = {
+  /** Edizioni su cui l'utente ha almeno un permesso. */
   editions: EditionSummary[];
   counts: TodoCounts;
   /** Ultima edizione scelta (cookie), usata fuori dal livello edizione. */
   cookieEdition: string | null;
+  user: ShellUser;
+  access: ShellAccess;
   children: ReactNode;
 };
 
@@ -42,7 +49,7 @@ function Brand() {
  * Il contenuto (main) NON è dentro .ui-root: le pagine precedenti al rifacimento mantengono i loro stili,
  * le pagine nuove si avvolgono da sole in .ui-root (vedi AdminPage).
  */
-export function AdminShell({ editions, counts, cookieEdition, children }: AdminShellProps) {
+export function AdminShell({ editions, counts, cookieEdition, user, access, children }: AdminShellProps) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -57,8 +64,11 @@ export function AdminShell({ editions, counts, cookieEdition, children }: AdminS
     editions[0] ??
     null;
 
-  const groups: NavGroup[] = routeEdition ? editionNav(routeEdition.slug, routeEdition.modules) : ORG_NAV;
-  const currentEditionNav = useMemo(() => (current ? editionNav(current.slug, current.modules) : []), [current]);
+  const orgNav = useMemo(() => filterNav(ORG_NAV, access.org), [access.org]);
+  const navFor = (e: EditionSummary) => filterNav(editionNav(e.slug, e.modules), access.editions[e.slug] ?? []);
+  const groups: NavGroup[] = routeEdition ? navFor(routeEdition) : orgNav;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const currentEditionNav = useMemo(() => (current ? navFor(current) : []), [current, access]);
 
   const crumbs: Crumb[] = useMemo(() => {
     const root: Crumb = routeEdition ? { label: routeEdition.title, href: `/admin/e/${routeEdition.slug}` } : { label: 'Pro Loco Gasperina', href: '/admin' };
@@ -77,9 +87,9 @@ export function AdminShell({ editions, counts, cookieEdition, children }: AdminS
 
   const goTo = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const g of [...ORG_NAV, ...currentEditionNav]) for (const i of g.items) if (i.shortcut) map[i.shortcut.split(' ')[1]] = i.href;
+    for (const g of [...orgNav, ...currentEditionNav]) for (const i of g.items) if (i.shortcut) map[i.shortcut.split(' ')[1]] = i.href;
     return map;
-  }, [currentEditionNav]);
+  }, [orgNav, currentEditionNav]);
   useShortcuts({ onOpenPalette: () => setPaletteOpen(true), goTo });
 
   const heading = routeEdition ? routeEdition.title : 'Associazione';
@@ -139,23 +149,24 @@ export function AdminShell({ editions, counts, cookieEdition, children }: AdminS
             <IconButton icon={Search} label="Cerca (⌘K)" className="md:hidden" onClick={() => setPaletteOpen(true)} />
             <NotificationsBell counts={counts} />
             <IconButton icon={theme === 'dark' ? Sun : Moon} label={theme === 'dark' ? 'Tema chiaro' : 'Tema scuro'} onClick={toggleTheme} className="hidden sm:inline-flex" />
-            <UserMenu />
+            <UserMenu user={user} />
           </div>
         </header>
 
         <div className="ui-root bg-transparent px-4 pt-4 sm:px-6 lg:px-8">
           <Breadcrumbs items={crumbs} />
         </div>
-        <main id="contenuto" className="admin-main">
+        {/* Non <main>: il layout del sito avvolge già tutto in <main>. */}
+        <div id="contenuto" className="admin-main">
           {children}
-        </main>
+        </div>
       </div>
       <CommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
         editions={editions}
         currentEdition={current}
-        navGroups={[{ title: 'Associazione', groups: ORG_NAV }, ...(current ? [{ title: current.title, groups: currentEditionNav }] : [])]}
+        navGroups={[{ title: 'Associazione', groups: orgNav }, ...(current ? [{ title: current.title, groups: currentEditionNav }] : [])]}
       />
       <Toaster />
     </TooltipProvider>

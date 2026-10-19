@@ -15,6 +15,20 @@
       "when": 1792399551791,
       "tag": "0001_site_settings_defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792402744597,
+      "tag": "0002_utenti_ruoli_dispositivi",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792402914707,
+      "tag": "0003_flag_codice_evento",
+      "breakpoints": true
     }
   ]
 }

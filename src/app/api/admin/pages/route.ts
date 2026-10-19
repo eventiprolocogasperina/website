@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getPageContent, savePageContent, DEFAULT_ASSAGGIA_CONTENT, DEFAULT_ZUCCALAND_CONTENT } from '@/lib/data/pages';
-import { requireAdmin } from '@/server/auth/session';
+import { requireAnyPermission, requirePermission } from '@/server/auth/context';
 
 /**
  * GET /api/admin/pages?slug=...
  * Fetch content for a specific page slug.
  */
 export async function GET(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requireAnyPermission(['content.edit', 'editions.edit']);
   if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug');
@@ -37,9 +37,13 @@ export async function GET(request: Request) {
  * Body: { slug, content }
  * Save content for a specific page.
  */
+// Le pagine degli eventi contengono anche biglietti e prezzi: le modifica chi gestisce le edizioni.
+// Le altre (associazione, sponsor…) sono contenuti del sito.
+const EVENT_PAGES = new Set(['zuccaland', 'assaggia-e-passeggia', 'cashier_config']);
+
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
-  if (denied) return denied;
+  const signedIn = await requireAnyPermission(['content.edit', 'editions.edit']);
+  if (signedIn) return signedIn;
   try {
     const body = await request.json();
     const { slug, content } = body;
@@ -47,6 +51,8 @@ export async function POST(request: Request) {
     if (!slug || !content) {
       return NextResponse.json({ error: 'Missing slug or content' }, { status: 400 });
     }
+    const denied = await requirePermission(EVENT_PAGES.has(slug) ? 'editions.edit' : 'content.edit');
+    if (denied) return denied;
 
     const success = await savePageContent(slug, content);
 

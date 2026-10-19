@@ -45,6 +45,16 @@ const FIXED: FixedEdition[] = [
   },
 ];
 
+/** Gli ID usati oggi nel codice (eventId di ordini, biglietti e cassa) per un'edizione. */
+export function legacyIdsFor(slug: string): string[] {
+  return FIXED.find((f) => f.slug === slug)?.legacyIds ?? [slug];
+}
+
+/** L'edizione a cui appartiene un vecchio eventId. */
+export function editionSlugForLegacyId(eventId: string): string {
+  return FIXED.find((f) => f.legacyIds.includes(eventId))?.slug ?? eventId;
+}
+
 type EventRow = { id: string; title: string; date: string };
 
 /** Stato dedotto dalla data: prima del giorno dell'evento è in vendita o pubblicato, poi concluso. */

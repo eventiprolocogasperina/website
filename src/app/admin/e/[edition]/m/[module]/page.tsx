@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import ReviewsPage from '@/components/admin/legacy/ReviewsPage';
 import ZuccalandInvitesPage from '@/components/admin/legacy/ZuccalandInvitesPage';
 import ZuccalandPhotosPage from '@/components/admin/legacy/ZuccalandPhotosPage';
-import { MODULE_LABELS } from '@/components/admin/shell/nav.config';
+import { MODULE_LABELS, MODULE_PERMISSIONS } from '@/components/admin/shell/nav.config';
+import { pageDenied } from '@/server/auth/guard';
 import { getEdition } from '@/server/domain/editions';
 import type { EditionModule } from '@/server/domain/editions/types';
 
@@ -27,5 +28,8 @@ export async function generateMetadata(props: Props) {
 
 /** Moduli attivabili per edizione (§10.2). Solo quelli accesi per l'edizione esistono. */
 export default async function EditionModulePage(props: Props) {
-  return PAGES[await resolve(props)]();
+  const mod = await resolve(props);
+  const denied = await pageDenied(MODULE_PERMISSIONS[mod], { edition: (await props.params).edition });
+  if (denied) return denied;
+  return PAGES[mod]();
 }

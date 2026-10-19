@@ -20,6 +20,73 @@ Legenda classificazione:
 - Scanner (`/api/tickets/verify`, `unverify`, `/api/orders/add-extra`, `/api/admin/stats`): la pagina scanner è nell'admin, quindi serve la sessione admin, come prima serviva la password.
 - Cassa e monitor stand: il codice evento si verifica sul server in `/api/cashier/session`, che apre una sessione di cassa valida 16 ore e solo per quell'evento.
 
+## Permessi (prompt 07)
+
+Ogni rotta protetta chiama una delle funzioni di `src/server/auth/context.ts` con il permesso della matrice del §8.3.
+`requirePermission` e `authorize` rispondono 401 senza sessione e 403 senza permesso. I ruoli assegnati a una sola edizione valgono solo
+quando la rotta indica quell'edizione: le rotte qui sotto sono ancora "di associazione", quindi servono ruoli sull'associazione
+(le versioni per edizione arrivano con i prompt 08–12).
+
+Quando la colonna dice "o", basta uno dei due accessi (es. le statistiche dello scanner: chi legge gli ordini oppure lo scanner con PIN).
+
+| Rotta | Permesso per metodo |
+|---|---|
+| `/api/admin/cashier/reset-report` | POST: `settings.manage` |
+| `/api/admin/cashier/reset-sequence` | POST: `settings.manage` |
+| `/api/admin/cashier` | GET: `catalog.edit`; POST: `catalog.edit` |
+| `/api/admin/discounts/[id]` | PUT: `catalog.edit`; DELETE: `catalog.edit` |
+| `/api/admin/discounts` | GET: `catalog.edit`; POST: `catalog.edit` |
+| `/api/admin/orders/archived` | GET: `orders.read`; PATCH: `orders.edit` |
+| `/api/admin/orders/create` | POST: `orders.edit` |
+| `/api/admin/orders/export-pdf` | POST: `reports.export` |
+| `/api/admin/orders/pay-by-link` | POST: `orders.edit` |
+| `/api/admin/orders/pay-by-link/send-email` | POST: `orders.resend` |
+| `/api/admin/orders` | GET: `orders.read`; PATCH: `orders.edit`; DELETE: `orders.cancel` |
+| `/api/admin/orders/send-postponement-email` | POST: `orders.resend` |
+| `/api/admin/orders/test` | GET: `settings.manage`; POST: `settings.manage` |
+| `/api/admin/orders/thankyou-preview` | GET: `orders.read` |
+| `/api/admin/orders/thankyou` | POST: `orders.resend` |
+| `/api/admin/orders/zuccaland-time-update` | GET: `orders.read`; POST: `orders.edit` |
+| `/api/admin/pages` | GET: `content.edit o editions.edit`; POST: `content.edit o editions.edit` |
+| `/api/admin/refunds` | GET: `orders.read`; PATCH: `orders.refund`; DELETE: `orders.refund` |
+| `/api/admin/search` | GET: `orders.read` |
+| `/api/admin/settings` | GET: `settings.manage`; POST: `settings.manage` |
+| `/api/admin/sponsors` | POST: `content.edit`; PUT: `content.edit`; DELETE: `content.edit` |
+| `/api/admin/stats` | GET: `orders.read` oppure checkin.scan (scanner con PIN) |
+| `/api/admin/upload` | POST: `content.edit o editions.edit` |
+| `/api/admin/whatsapp/send-broadcast` | POST: `customers.read` |
+| `/api/admin/zuccaland-photos/[id]` | PUT: `photos.moderate` |
+| `/api/admin/zuccaland-photos` | GET: `photos.moderate` |
+| `/api/admin/zuccaland/invites` | POST: `orders.edit`; GET: `orders.read`; PUT: `orders.edit`; DELETE: `orders.edit` |
+| `/api/bookings/[id]` | PUT: `orders.edit`; DELETE: `orders.cancel` |
+| `/api/bookings` | GET: `orders.read` |
+| `/api/cashier/item-status` | PATCH: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/cashier/orders/[id]` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/cashier/orders` | POST: pos.sell (cassa: admin, dispositivo+PIN o codice evento); GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento); PATCH: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/cashier/realtime` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/cashier/session` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/cashier/stand` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento); PATCH: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/cashier/stats` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/events/[id]` | PUT: `editions.edit`; DELETE: `editions.archive` |
+| `/api/events` | POST: `editions.create` |
+| `/api/gallery/[id]` | PUT: `content.edit`; DELETE: `content.edit` |
+| `/api/gallery` | POST: `content.edit` |
+| `/api/manuals/[type]` | GET: qualunque accesso (admin o PIN) |
+| `/api/members/[id]` | PUT: `members.manage`; DELETE: `members.manage` |
+| `/api/members` | GET: `members.manage`; POST: `members.manage` |
+| `/api/news/[id]` | PUT: `content.edit`; DELETE: `content.edit` |
+| `/api/news` | POST: `content.edit` |
+| `/api/orders/add-extra` | POST: `orders.edit` oppure checkin.scan (scanner con PIN) |
+| `/api/reviews` | GET: `reviews.moderate` |
+| `/api/telegram/setup` | GET: `settings.manage` |
+| `/api/tickets/qr` | GET: `orders.read` |
+| `/api/tickets/stats` | GET: `orders.read` oppure checkin.scan (scanner con PIN) |
+| `/api/tickets/unverify` | POST: checkin.revert (scanner: admin o dispositivo+PIN) |
+| `/api/tickets/verify` | POST: checkin.scan (scanner: admin o dispositivo+PIN) |
+| `/api/zuccaland/alert` | POST: `editions.edit` |
+
+Rotte nuove: `/api/field/session` (stato dell'accesso sul dispositivo, pubblica: non restituisce dati personali oltre ai nomi di chi può entrare su quel dispositivo, e solo a un dispositivo abbinato), `/api/field/pin` (PIN, richiede il dispositivo), `/api/field/logout`, `/api/auth/password-link` (utente dell'admin).
+
 ## Riepilogo
 
 | Classificazione | Rotte |

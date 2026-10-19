@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 export async function POST(request: Request) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('reviews.moderate');
   if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);

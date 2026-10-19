@@ -1,0 +1,22 @@
+/** Testi italiani delle azioni, per la pagina Registro attività. */
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  'auth.login': 'Accesso all’admin',
+  'auth.login_failed': 'Accesso non riuscito',
+  'auth.logout': 'Uscita dall’admin',
+  'auth.legacy_login': 'Accesso di emergenza',
+  'auth.password_reset_requested': 'Richiesta di nuova password',
+  'auth.password_set': 'Password impostata',
+  'auth.pin_login': 'Entrata con PIN',
+  'auth.pin_failed': 'PIN sbagliato',
+  'auth.pin_locked': 'PIN bloccato',
+  'user.created': 'Utente creato',
+  'user.invited': 'Invito inviato',
+  'user.updated': 'Utente modificato',
+  'user.roles_changed': 'Ruoli cambiati',
+  'user.pin_set': 'PIN impostato',
+  'user.deactivated': 'Utente disattivato',
+  'user.reactivated': 'Utente riattivato',
+  'device.pairing_created': 'QR di abbinamento creato',
+  'device.paired': 'Dispositivo abbinato',
+  'device.revoked': 'Dispositivo revocato',
+};

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAllPhotos } from '@/lib/data/zuccaland_photos';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 export async function GET() {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('photos.moderate');
   if (denied) return denied;
   try {
     const photos = await getAllPhotos();

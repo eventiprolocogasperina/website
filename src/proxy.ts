@@ -3,8 +3,10 @@ import { verifyToken } from '@/server/auth/token';
 
 // Primo livello di protezione dell'admin (il secondo è requireAdmin() dentro ogni rotta).
 // Senza una sessione admin valida: /admin/** e /scanner vanno al login, /api/admin/** risponde 401.
+// Il secondo livello (permessi per ruolo) è in src/server/auth/context.ts, richiamato da ogni rotta.
 
 const ADMIN_COOKIE = 'pl_admin';
+const DEVICE_COOKIE = 'pl_device';
 // Ultima edizione aperta nell'admin: la usano il selettore e i vecchi indirizzi senza edizione (/admin/vai/…).
 const EDITION_COOKIE = 'pl_edition';
 const EDITION_PATH = /^\/admin\/e\/([a-z0-9-]{1,80})(?:\/|$)/;
@@ -22,7 +24,14 @@ export function proxy(request: NextRequest) {
   }
 
   const session = verifyToken(request.cookies.get(ADMIN_COOKIE)?.value, process.env.AUTH_SECRET || '');
-  if (session?.role === 'admin') {
+  // L'accesso di emergenza (sub "admin", senza sessione sul server) vale solo con ALLOW_LEGACY_ADMIN=true.
+  // Le sessioni degli utenti si controllano anche sul database, in getAdminCtx().
+  const validAdmin = session?.role === 'admin' && (!!session.sid || process.env.ALLOW_LEGACY_ADMIN === 'true');
+
+  // Lo scanner si apre anche da un dispositivo abbinato: il PIN lo chiede la pagina (§8.2).
+  if (pathname.startsWith('/scanner') && (validAdmin || request.cookies.has(DEVICE_COOKIE))) return NextResponse.next();
+
+  if (validAdmin) {
     const res = NextResponse.next();
     const edition = pathname.match(EDITION_PATH)?.[1];
     if (edition && request.cookies.get(EDITION_COOKIE)?.value !== edition) {

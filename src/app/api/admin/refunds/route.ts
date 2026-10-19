@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { requireAdmin } from '@/server/auth/session';
+import { authorize, requirePermission } from '@/server/auth/context';
+import { can } from '@/server/auth/permissions';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) {
@@ -10,8 +11,10 @@ function getDb() {
 }
 
 export async function GET(request: Request) {
-  const denied = await requireAdmin();
+  const { ctx, denied } = await authorize('orders.read');
   if (denied) return denied;
+  // L'IBAN lo vede solo chi ha refunds.view_iban (§8.3); agli altri arrivano le ultime 4 cifre.
+  const showIban = can(ctx, 'refunds.view_iban');
   try {
     const { searchParams } = new URL(request.url);
     const eventSlug = searchParams.get('eventSlug');
@@ -21,7 +24,8 @@ export async function GET(request: Request) {
       ? sql`SELECT * FROM refund_requests WHERE event_slug = ${eventSlug} ORDER BY created_at DESC`
       : sql`SELECT * FROM refund_requests ORDER BY created_at DESC`;
 
-    const refunds = await query;
+    const rows = await query;
+    const refunds = showIban ? rows : rows.map((r) => ({ ...r, iban: r.iban ? `•••• ${String(r.iban).replace(/\s/g, '').slice(-4)}` : r.iban }));
     return NextResponse.json({ success: true, refunds });
   } catch (error: any) {
     console.error('Errore lettura richieste di rimborso:', error);
@@ -30,7 +34,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('orders.refund');
   if (denied) return denied;
   try {
     const body = await request.json();
@@ -59,7 +63,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('orders.refund');
   if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);

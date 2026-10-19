@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getCashierOrders, updateCashierDepartmentStatus, getCashierConfig } from '@/lib/data/cashier';
 import { broadcastCashierEvent } from '../realtime/route';
-import { requireCassaOrAdmin } from '@/server/auth/session';
+import { requirePos } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const { denied, cassaEventId } = await requireCassaOrAdmin();
+  const { denied, cassaEventId } = await requirePos();
   if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const { denied } = await requireCassaOrAdmin();
+  const { denied } = await requirePos();
   if (denied) return denied;
   try {
     const { orderId, department, status } = await request.json();

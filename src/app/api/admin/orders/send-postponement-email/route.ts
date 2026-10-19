@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 import { render } from '@react-email/render';
 import { createElement } from 'react';
 import { PostponementEmailDocument } from '@/lib/tickets/PostponementEmailDocument';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -12,7 +12,7 @@ function getDb() {
 }
 
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('orders.resend');
   if (denied) return denied;
   try {
     const body = await request.json();

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { requireAdmin } from '@/server/auth/session';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) {
@@ -10,7 +10,7 @@ function getDb() {
 }
 
 export async function GET() {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('members.manage');
   if (denied) return denied;
   try {
     const sql = getDb();
@@ -23,7 +23,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const denied = await requireAdmin();
+  const denied = await requirePermission('members.manage');
   if (denied) return denied;
   try {
     const sql = getDb();

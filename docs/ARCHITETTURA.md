@@ -872,6 +872,9 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-18 | Cassa = "contributi", senza scontrino fiscale | domande aperte 2 |
 | 2026-10-18 | Almeno 2 dispositivi da campo per evento: cassa e scanner devono funzionare in parallelo su più dispositivi fin dal primo giorno | domande aperte 3 |
 | 2026-10-18 | Nessun servizio esterno di monitoraggio: log di Vercel + allarmi Telegram senza dati personali | domande aperte 5 |
+| 2026-10-19 | Prompt 07: finché non esiste `editions` (prompt 08), ruoli, dispositivi e registro usano `edition_slug`; il prompt 08 aggiunge `edition_id` e lo riempie dallo slug | Claude, esecuzione fase 1 |
+| 2026-10-19 | Prompt 07: password con scrypt (già in uso, nessuna dipendenza nuova); TOTP rimandato; sul dispositivo si sceglie il nome e poi si digita il PIN | Claude, esecuzione fase 1 |
+| 2026-10-19 | Prompt 07: i dispositivi li abbinano titolare e amministratori (`settings.manage`); gli utenti li gestisce solo il titolare (`users.manage`) | Claude, esecuzione fase 1 |
 
 ---
 

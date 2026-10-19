@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireCassaOrAdmin } from '@/server/auth/session';
+import { requirePos } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,7 @@ export function broadcastCashierEvent(eventType: string, data: any) {
 }
 
 export async function GET(request: Request) {
-  const { denied } = await requireCassaOrAdmin();
+  const { denied } = await requirePos();
   if (denied) return denied;
   const encoder = new TextEncoder();
 

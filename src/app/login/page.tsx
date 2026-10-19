@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { AuthCard } from './AuthCard';
 import LoginForm from './LoginForm';
 
 export const metadata: Metadata = {
@@ -6,7 +7,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
-  return <LoginForm next={typeof next === 'string' ? next : '/admin'} />;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; password?: string }> }) {
+  const { next, password } = await searchParams;
+  return (
+    <AuthCard title="Area riservata" footer="Accesso riservato ai volontari e al direttivo.">
+      <LoginForm next={typeof next === 'string' ? next : '/admin'} notice={password === 'ok' ? 'Password salvata. Ora puoi entrare.' : undefined} />
+    </AuthCard>
+  );
 }

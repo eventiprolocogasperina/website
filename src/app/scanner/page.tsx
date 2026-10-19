@@ -6,6 +6,7 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import type { Ticket as TicketType } from '@/lib/data/tickets';
 import Link from 'next/link';
 import ThemeToggle from '@/components/ThemeToggle';
+import { FieldGate, FieldUserBar } from '@/components/field/FieldGate';
 
 type ScanStatus = 'idle' | 'scanning' | 'success' | 'error' | 'already_used' | 'order_found';
 
@@ -70,6 +71,19 @@ function parseOrderNotes(notes: string): ParsedNotes {
 
 
 export default function ScannerPage() {
+  return (
+    <FieldGate kind="scanner">
+      {(session, logout) => (
+        <>
+          <FieldUserBar session={session} logout={logout} />
+          <ScannerApp />
+        </>
+      )}
+    </FieldGate>
+  );
+}
+
+function ScannerApp() {
   const [scanResult, setScanResult] = useState<ScanResult>({ status: 'idle', message: 'In attesa di scansione...' });
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);

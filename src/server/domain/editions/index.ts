@@ -25,3 +25,22 @@ export function pickDefaultEdition(editions: EditionSummary[], cookieSlug?: stri
     null
   );
 }
+
+/**
+ * Ambiti a cui si può assegnare un ruolo o abbinare un dispositivo: le edizioni più gli eventi
+ * configurati nella cassa che non sono (ancora) edizioni. Provvisorio fino ai prompt 08 e 14.
+ */
+export async function listAssignableEditions(): Promise<Array<{ slug: string; title: string }>> {
+  const editions = await listEditions();
+  const out = editions.map((e) => ({ slug: e.slug, title: e.title }));
+  try {
+    const { getCashierConfig } = await import('@/lib/data/cashier');
+    const known = new Set(editions.flatMap((e) => [e.slug, ...e.legacyIds]));
+    for (const evt of (await getCashierConfig()).events) {
+      if (!known.has(evt.id)) out.push({ slug: evt.id, title: `${evt.name} (cassa)` });
+    }
+  } catch {
+    // Configurazione della cassa illeggibile: restano le sole edizioni.
+  }
+  return out;
+}

@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import CashierClient from './CashierClient';
+import CashierEntry from './CashierEntry';
 
 export const metadata: Metadata = {
   title: 'Cassa Eventi & Sagre - Pro Loco Gasperina APS',
@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default function CashierPage() {
-  return <CashierClient />;
+  return <CashierEntry />;
 }

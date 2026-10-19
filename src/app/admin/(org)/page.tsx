@@ -6,6 +6,8 @@ import { todoRows } from '@/components/admin/shell/todo-rows';
 import { ButtonLink, Card, cn, focusRing, PageHeader, StatusBadge } from '@/components/ui';
 import { formatDate } from '@/lib/dates';
 import { getTodoCounts } from '@/server/admin/todo';
+import { getAdminCtx } from '@/server/auth/context';
+import { can, canSomewhere, editionPermissions } from '@/server/auth/permissions';
 import { listEditions } from '@/server/domain/editions';
 import { ACTIVE_STATUSES } from '@/server/domain/editions/types';
 
@@ -13,9 +15,11 @@ export const metadata = { title: 'Panoramica' };
 
 /** Panoramica dell'associazione (§10.3): cosa c'è da fare e quali edizioni sono attive. */
 export default async function AdminHomePage() {
+  const ctx = (await getAdminCtx())!;
   const [editions, counts] = await Promise.all([listEditions(), getTodoCounts()]);
-  const todo = todoRows(counts).filter((r) => r.count > 0);
-  const active = editions.filter((e) => ACTIVE_STATUSES.includes(e.status));
+  const allowed = { refunds: can(ctx, 'orders.read'), photos: canSomewhere(ctx, 'photos.moderate'), pending: can(ctx, 'orders.read') };
+  const todo = todoRows(counts).filter((r) => r.count > 0 && allowed[r.key as keyof typeof allowed]);
+  const active = editions.filter((e) => ACTIVE_STATUSES.includes(e.status) && editionPermissions(ctx, e.slug).length > 0);
 
   return (
     <AdminPage>
