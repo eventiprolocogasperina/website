@@ -6,7 +6,7 @@ import { settingsFields, type SettingsField } from '@/modules/settings-form';
 import type { ModuleKey } from '@/modules/types';
 import type { Ctx } from '@/server/auth/context-shared';
 import { getDb, withTransaction } from '@/server/db/client';
-import { editions, products, sessions } from '@/server/db/schema';
+import { cashRegisters, editions, products, sessions } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { assertCan, editionForWrite } from './index';
@@ -36,14 +36,15 @@ export function describeEditionModules(e: { enabledModules: string[]; moduleSett
   }));
 }
 
-/** Date e prodotti dell'edizione per i campi delle impostazioni che li scelgono. */
+/** Date, prodotti e casse dell'edizione per i campi delle impostazioni che li scelgono. */
 export async function moduleFieldOptions(editionId: string) {
   const db = getDb();
-  const [s, p] = await Promise.all([
+  const [s, p, r] = await Promise.all([
     db.select({ id: sessions.id, label: sessions.label }).from(sessions).where(eq(sessions.editionId, editionId)).orderBy(asc(sessions.startsAt)),
     db.select({ id: products.id, name: products.name }).from(products).where(eq(products.editionId, editionId)).orderBy(asc(products.sort), asc(products.name)),
+    db.select({ id: cashRegisters.id, name: cashRegisters.name }).from(cashRegisters).where(eq(cashRegisters.editionId, editionId)).orderBy(asc(cashRegisters.name)),
   ]);
-  return { sessions: s, products: p };
+  return { sessions: s, products: p, registers: r };
 }
 
 const ModuleKeyInput = z.string().refine(isModuleKey, 'Modulo sconosciuto.');

@@ -22,17 +22,30 @@ Esito a schermo intero, con vibrazione (non su iOS: Safari non la supporta) e su
 | Esito | Colore | Testo |
 |---|---|---|
 | `valid` | success | VALIDO |
-| `already_used` | warning | GIÀ ENTRATO alle HH:MM (con il nome del dispositivo) |
-| `wrong_session` | warning | ALTRA DATA: Dom 25 ott |
+| `already_used` | giallo (`scan-yellow`) | GIÀ ENTRATO alle HH:MM (con il nome del dispositivo) |
+| `wrong_session` | giallo (`scan-yellow`) | ALTRA DATA: Dom 25 ott |
 | `wrong_list` | danger | LISTA SBAGLIATA |
 | `void` | danger | ANNULLATO / NON VALIDO |
-| `blocked` | danger | BLOCCATO (ordine in blacklist) |
+| `blocked` | danger | BLOCCATO (ordine in blacklist) con l'avviso "chiama un responsabile"; vince anche su un ordine annullato |
 | `unknown` | danger | NON TROVATO |
 
 - **Annulla ultimo**: per 30 secondi dopo un ingresso (online annulla il passaggio con audit; offline toglie il passaggio dalla coda).
-- **Azioni dei moduli** (`scanner.actions`): es. "+1 Bambino" incrementa la risposta `bambini` dell'ordine (`attendee_answers`, livello ordine) con audit `order.scanner_action`. Accetta numeri, stringhe numeriche e il formato migrato `{bambini, iscritti}`. Non registra pagamenti.
+- **Azioni dei moduli** (`scanner.actions`): es. "+1 Bambino" incrementa la risposta `bambini` dell'ordine (`attendee_answers`, livello ordine) con audit `order.scanner_action`. Accetta numeri, stringhe numeriche e il formato migrato `{bambini, iscritti}`.
+- **Pulsanti a pagamento**: vedi sotto.
 - **Ricerca manuale**: codice ordine, nome dell'acquirente o del partecipante, QR esatto. Mai email o telefono.
 - **Contatori** sempre visibili (entrati / attesi della lista e della data).
+
+## Pulsanti a pagamento (es. "+1 Bambino" con ingresso bambino)
+
+Impostazioni del modulo Attività → "Pulsanti dello scanner": ogni pulsante può avere un **Prodotto da incassare** e una **Cassa che incassa**.
+
+- Senza prodotto, o con un prodotto a 0 €: il pulsante conta e basta, come prima.
+- Con un prodotto a pagamento: il pulsante mostra il prezzo e apre un popup di cassa. Prodotto e prezzo arrivano dal server (`GET /api/scanner/action`), si sceglie **Contanti** o **Carta POS** e si conferma (`POST /api/scanner/action` con `method`).
+- Il server (`checkin/paid.ts`, `payScannerAction`) crea una vendita con `sell()` della cassa nuova: ordine `pos` pagato, legato all'ordine letto (`parent_order_id`), con la data dell'ordine se il prodotto la richiede, sul **turno aperto** della cassa indicata (o, senza cassa, sul turno aperto da questo telefono). Il conteggio sale nella **stessa transazione** della vendita; il registro `order.scanner_action` riporta codice della vendita e importo.
+- Il telefono manda il prezzo che ha mostrato: se nel frattempo è cambiato, `PRICE_CHANGED` e niente incasso. Una chiave di idempotenza per apertura del popup: "Riprova" dopo una rete ballerina non incassa né conta due volte.
+- Non si incassa (messaggio nel popup, nessun conteggio) se: il profilo non ha `pos.sell` (il ruolo Varco da solo non basta, serve anche Cassa); la cassa non ha un turno aperto ("Nessun turno aperto sulla cassa «…». Aprilo dall'app Cassa"); il telefono non ha un turno e il pulsante non indica una cassa.
+- **Serve la rete**: come gli altri pulsanti dei moduli, non va in coda offline. Senza rete il popup lo dice e non registra nulla.
+- I soldi finiscono nella chiusura Z e nel rendiconto della cassa indicata, come ogni vendita di cassa.
 
 ## Regole
 

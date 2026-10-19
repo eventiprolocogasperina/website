@@ -60,7 +60,17 @@ export type SaleResult = {
  * porzione → uno vende, l'altro riceve SOLD_OUT. Le vendite offline (offlineAt) non si rifiutano per
  * le scorte né per il turno chiuso: i soldi sono già in cassa, si segnalano in admin.
  */
-export async function sell(ctx: Ctx, input: SellInput, opts: { now?: Date } = {}): Promise<SaleResult> {
+export type SellOptions = {
+  now?: Date;
+  /** Data della vendita, per i prodotti che la richiedono (es. ingresso bambino dallo scanner). */
+  sessionId?: string | null;
+  /** Ordine a cui la vendita si aggiunge (lo scanner: il biglietto appena letto). */
+  parentOrderId?: string;
+  /** Lavoro in più nella stessa transazione della vendita (es. il "+1 Bambino" dello scanner). */
+  afterSale?: CreateOrderHook;
+};
+
+export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): Promise<SaleResult> {
   const data = SellInput.parse(input);
   const serverNow = opts.now ?? new Date();
   const offline = !!data.offlineAt;
@@ -110,6 +120,7 @@ export async function sell(ctx: Ctx, input: SellInput, opts: { now?: Date } = {}
     if (edition.enabledModules.includes('departments')) {
       await tx.update(orderLines).set({ prepStatus: 'pending' }).where(and(eq(orderLines.orderId, order.id), isNotNull(orderLines.department)));
     }
+    await opts.afterSale?.(tx, { order, lines, edition, oversold });
   };
 
   const result = await createOrder(
@@ -123,8 +134,9 @@ export async function sell(ctx: Ctx, input: SellInput, opts: { now?: Date } = {}
       cashSessionId: data.cashSessionId,
       idempotencyKey: data.idempotencyKey,
       expectedTotalCents: offline ? null : data.expectedTotalCents,
+      sessionId: opts.sessionId ?? null,
     },
-    { now: soldAt, allowOversell: offline, inTransaction: hook },
+    { now: soldAt, allowOversell: offline, inTransaction: hook, parentOrderId: opts.parentOrderId },
   );
   const sale = await loadSale(getDb(), result.id);
   if (!sale) throw new DomainError('CONFLICT', { message: 'Questa chiave è già stata usata per un ordine che non è di cassa.' });

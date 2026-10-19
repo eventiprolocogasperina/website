@@ -11,6 +11,8 @@ export type SettingsField =
   /** Date dell'edizione (scelta multipla) e prodotto dell'edizione: le opzioni le passa la pagina. */
   | { key: string; label: string; help?: string; kind: 'sessions' }
   | { key: string; label: string; help?: string; kind: 'product' }
+  /** Cassa dell'edizione (cash_registers). */
+  | { key: string; label: string; help?: string; kind: 'register' }
   | { key: string; label: string; help?: string; kind: 'list'; maxItems?: number; item: SettingsField[]; itemDefaults: Record<string, unknown> };
 
 type JsonSchema = {
@@ -25,7 +27,7 @@ type JsonSchema = {
   default?: unknown;
   anyOf?: JsonSchema[];
   /** Da `.meta({ widget })` nello schema zod. */
-  widget?: 'sessions' | 'product';
+  widget?: 'sessions' | 'product' | 'register';
 };
 
 function fieldsOf(schema: JsonSchema, labels: EditionModule['settingsLabels'], prefix = ''): SettingsField[] {

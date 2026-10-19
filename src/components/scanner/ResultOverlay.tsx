@@ -3,13 +3,16 @@
 import { CheckCircle2, Clock3, Plus, XOctagon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn, focusRing } from '@/components/ui';
+import { formatMoney } from '@/lib/money';
+import { PayActionDialog } from './PayActionDialog';
 import { present, type Tone } from './present';
 import { UndoBar } from './UndoBar';
 import type { Outcome, ScannerSetup } from './types';
 
 const TONE: Record<Tone, string> = {
   success: 'bg-success text-bg',
-  warning: 'bg-warning text-bg',
+  // Giallo pieno con testo scuro in entrambi i temi: "Già entrato" deve distinguersi dal rosso a colpo d'occhio.
+  warning: 'bg-scan-yellow text-scan-yellow-fg',
   danger: 'bg-danger text-bg',
 };
 const ICON = { success: CheckCircle2, warning: Clock3, danger: XOctagon } as const;
@@ -20,18 +23,21 @@ type Props = {
   outcome: Outcome;
   actions: ScannerSetup['actions'];
   onAction: (key: string) => Promise<unknown>;
+  /** Dopo un incasso dal popup di cassa: nuovo valore del conteggio. */
+  onPaid: (questionKey: string, after: number) => void;
   onClose: () => void;
   undo: { until: number } | null;
   onUndo: () => Promise<boolean | undefined | void>;
 };
 
 /** Esito a tutto schermo (§12.3) con i pulsanti dei moduli sotto, es. "+1 Bambino". */
-export function ResultOverlay({ outcome, actions, onAction, onClose, undo, onUndo }: Props) {
+export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, undo, onUndo }: Props) {
   const p = present(outcome);
   const Icon = ICON[p.tone];
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+  const [paying, setPaying] = useState<Props['actions'][number] | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const withActions = outcome.source === 'online' && (outcome.data.result === 'valid' || outcome.data.result === 'already_used') && actions.length > 0;
   const answers = outcome.source === 'online' ? outcome.data.answers : {};
@@ -68,6 +74,8 @@ export function ResultOverlay({ outcome, actions, onAction, onClose, undo, onUnd
                 type="button"
                 disabled={busy !== null}
                 onClick={async () => {
+                  // Pulsante a pagamento: prima la cassa (prezzo dal server), il conteggio sale con l'incasso.
+                  if (a.paid) return setPaying(a);
                   setBusy(a.key);
                   setActionError(null);
                   try {
@@ -83,6 +91,7 @@ export function ResultOverlay({ outcome, actions, onAction, onClose, undo, onUnd
                 <span className="flex items-center gap-2">
                   <Plus size={20} aria-hidden />
                   {a.label}
+                  {a.paid && <span className="font-normal text-muted tabular-nums">· {formatMoney(a.paid.priceCents)}</span>}
                 </span>
                 <span className="text-body font-normal text-muted tabular-nums">ora {answers[a.questionKey] ?? 0}</span>
               </button>
@@ -93,6 +102,9 @@ export function ResultOverlay({ outcome, actions, onAction, onClose, undo, onUnd
               </p>
             )}
           </div>
+        )}
+        {paying && outcome.source === 'online' && 'ticket' in outcome.data && (
+          <PayActionDialog orderId={outcome.data.ticket.orderId} action={paying} onClose={() => setPaying(null)} onPaid={(r) => onPaid(r.questionKey, r.after)} />
         )}
         {p.tone === 'success' && undo && <UndoBar until={undo.until} onUndo={onUndo} />}
         <button ref={closeRef} type="button" onClick={onClose} className={cn('min-h-16 rounded-xl border-2 border-current text-title font-semibold', focusRing)}>

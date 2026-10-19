@@ -22,12 +22,14 @@ type Values = Record<string, unknown>;
 export type ModuleFieldOptions = {
   sessions: Array<{ id: string; label: string }>;
   products: Array<{ id: string; name: string }>;
+  registers: Array<{ id: string; name: string }>;
 };
 
 /** Date e prodotti dell'edizione, per i campi che li scelgono (es. i giorni di un'attività). */
 const OptionsContext = createContext<ModuleFieldOptions>({
   sessions: [],
   products: [],
+  registers: [],
 });
 const NO_PRODUCT = "__nessuno";
 
@@ -290,6 +292,8 @@ function Fields({
             );
           }
           case "product":
+          case "register": {
+            const items = f.kind === "product" ? options.products : options.registers;
             return (
               <Field key={f.key} label={f.label} help={f.help}>
                 <Select
@@ -297,8 +301,8 @@ function Fields({
                   onValueChange={(x) => set(f.key, x === NO_PRODUCT ? null : x)}
                   disabled={disabled}
                   options={[
-                    { value: NO_PRODUCT, label: "Nessuno" },
-                    ...options.products.map((p) => ({
+                    { value: NO_PRODUCT, label: f.kind === "product" ? "Nessuno" : "Nessuna" },
+                    ...items.map((p) => ({
                       value: p.id,
                       label: p.name,
                     })),
@@ -306,6 +310,7 @@ function Fields({
                 />
               </Field>
             );
+          }
           case "list": {
             const items = Array.isArray(v) ? (v as Values[]) : [];
             const full = f.maxItems !== undefined && items.length >= f.maxItems;
