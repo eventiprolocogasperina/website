@@ -135,7 +135,7 @@ src/
 │   └── integrations/{nexi, resend, telegram, whatsapp, cloudinary}/
 ├── modules/                      # moduli per edizione (§7)
 │   ├── registry.ts
-│   ├── time-slots/  attendee-questions/  postponement/  invites/
+│   ├── time-slots/  activities/  postponement/  invites/
 │   ├── visitor-photos/  route-stops/  departments/  reviews/  free-booking/  landing-page/
 ├── components/
 │   ├── ui/                       # primitive del design system (§14)
@@ -221,7 +221,7 @@ checkin_lists
 checkins
   id, ticket_id, checkin_list_id, at, operator_id, device_id, reverted_at NULL
 
-attendee_answers      (modulo attendee-questions)
+attendee_answers      (modulo activities)
   id, order_id, ticket_id NULL, question_key, value jsonb
 
 payments
@@ -357,8 +357,8 @@ export interface EditionModule<S extends z.ZodTypeAny> {
 | Chiave | Nome | Cosa fa | Sostituisce oggi |
 |---|---|---|---|
 | `time-slots` | Fasce orarie | scelta della sessione nel checkout, capienza per fascia | `dateLimits`, `dayKey` in `notes` |
-| `attendee-questions` | Domande ai partecipanti | domande configurabili (età bambini, intolleranze) | bambini e attività in `notes` |
-| `postponement` | Rinvio date | sposta ordini tra sessioni, email automatica, storico | `[SPOSTAMENTO DATA…]` in `notes`, `send-postponement-email` |
+| `activities` | Attività e laboratori | bambini, attività gratuite per giorno con i loro posti, laboratorio a pagamento, altre domande | bambini e attività in `notes` |
+| `postponement` | Rinvio per maltempo | giornata rinviata alla data di recupero, email ai clienti, avviso sul sito, rimborso al secondo rinvio | `[SPOSTAMENTO DATA…]` in `notes`, `send-postponement-email` |
 | `invites` | Inviti e omaggi | invio in blocco di biglietti a 0 € con canale `invite` | `/admin/zuccaland-inviti` |
 | `visitor-photos` | Foto dei visitatori | caricamento pubblico, moderazione, galleria | `zuccaland_photos`, `/admin/zuccaland-photos` |
 | `route-stops` | Percorso a tappe | tappe con mappa, menu e QR stabile per tappa | tappe di A&P in `pages_content` |
@@ -647,7 +647,7 @@ Comande del reparto in colonne PENDING → PREPARING → READY → DELIVERED, ag
 1. Dispositivo abbinato → PIN → scelta della **lista di check-in** (Ingresso, Laboratorio…).
 2. Inquadratura del QR → esito a **tutto schermo**: verde "VALIDO" (nome, prodotto, sessione), giallo "GIÀ ENTRATO alle 10:41", rosso "NON VALIDO / altra data / annullato". Accompagnato da vibrazione e suono.
 3. "Annulla ultimo check-in" resta disponibile per 30 secondi.
-4. Le azioni dei moduli (es. "+1 Bambino" del modulo `attendee-questions`) compaiono come pulsanti sotto l'esito. Non sono cablate nello scanner.
+4. Le azioni dei moduli (es. "+1 Bambino" del modulo `activities`) compaiono come pulsanti sotto l'esito. Non sono cablate nello scanner.
 5. Ricerca manuale per nome o codice, per chi non ha il QR.
 6. Contatori in alto: entrati e attesi per la sessione corrente.
 
@@ -886,6 +886,8 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 10: la migrazione scrive anche nelle edizioni archiviate (è storico importato, non una modifica) e salta quelle non concluse | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 10: un'edizione con ordini migrati conta i posti solo dal nucleo nuovo; le altre sommano tabelle attuali e ordini nuovi | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 11: i servizi del nucleo rifiutano le funzioni di un modulo spento (canali `invite` e `paylink`, cambio data), non solo l'interfaccia | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 11: i moduli generici "Domande ai partecipanti" e "Rinvio date" diventano "Attività e laboratori" (`activities`) e "Rinvio per maltempo", con le regole di Zuccaland (giorni e posti delle attività, data di recupero, rimborso al secondo rinvio) | Niccolo, dopo la demo della fase 2 |
+| 2026-10-19 | Zuccaland 2026: 10 e 11 ottobre sono date rinviate, recuperate il 17 e il 18 (`sessions.rescheduled_to_session_id`); ogni ordine ricorda la data scelta all'acquisto (`orders_v2.original_session_id`) | Niccolo |
 | 2026-10-19 | Prompt 11: `zuccaland_photos` diventa `mod_visitor_photos_items` con il prompt 19; rinominarla ora romperebbe il caricamento pubblico di un'edizione in vendita | Claude, esecuzione fase 2 |
 
 ---

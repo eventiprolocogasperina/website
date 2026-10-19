@@ -200,13 +200,19 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
       continue;
     }
     if (!allowed(e)) continue;
-    if (await mapped('order', o.id)) {
+    const notes = interpretNotes(o.notes);
+    // Data scelta all'acquisto, se poi l'ordine è passato alla data di recupero (es. 10 → 17 ottobre).
+    const originalSessionId =
+      notes.originalDayKey && notes.originalDayKey !== notes.dayKey ? await mapped('zuccaland_day', `${tickets[0].eventId}:${notes.originalDayKey}`) : null;
+    const already = await mapped('order', o.id);
+    if (already) {
+      // Ordini migrati prima che esistesse original_session_id: si completa, senza toccare altro.
+      if (originalSessionId) await db.query('update orders_v2 set original_session_id = $2 where id = $1 and original_session_id is null', [already, originalSessionId]);
       count('ordini online', false);
       continue;
     }
     touch(e);
 
-    const notes = interpretNotes(o.notes);
     for (const text of notes.uninterpreted) report.uninterpretedNotes.push({ orderId: o.id, edition: e.slug, text: maskString(text) });
     const sessions = await sessionsOf(e.id);
     const sessionId =
@@ -271,6 +277,7 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
     for (const a of notes.answers) {
       await db.query('insert into attendee_answers (order_id, question_key, value) values ($1, $2, $3)', [orderId, a.questionKey, JSON.stringify(a.value)]);
     }
+    if (originalSessionId) await db.query('update orders_v2 set original_session_id = $2 where id = $1', [orderId, originalSessionId]);
     if (notes.originalDayKey && notes.originalDayKey !== notes.dayKey) {
       await auditRow('order.session_moved', orderId, e.slug, { da: notes.originalDayKey, a: notes.dayKey, spostamenti: notes.moves }, 'Spostamento registrato nelle note del vecchio sistema');
     }

@@ -17,12 +17,18 @@ export const postponementHandlers: ModuleHandlers = {
       .innerJoin(customers, eq(customers.id, ordersV2.customerId))
       .where(eq(ordersV2.id, event.orderId));
     const [to] = await db.select({ label: sessions.label, startsAt: sessions.startsAt }).from(sessions).where(eq(sessions.id, event.toSessionId));
+    const [from] = event.fromSessionId ? await db.select({ label: sessions.label, status: sessions.status }).from(sessions).where(eq(sessions.id, event.fromSessionId)) : [];
     if (!row || !to) return;
+    const hello = row.name ? `Ciao ${row.name}, ` : '';
+    const intro =
+      from?.status === 'postponed'
+        ? `${hello}${settings.noticeTitle ? `${String(settings.noticeTitle).replace(/[.:]$/, '')}. ` : ''}La giornata del ${from.label} è rinviata: il tuo ordine ${event.code} passa a ${to.label} (${formatDateTime(to.startsAt)}). I biglietti che hai già restano validi, non devi fare nulla.`
+        : `${hello}la data del tuo ordine ${event.code} è cambiata. Nuova data: ${to.label} (${formatDateTime(to.startsAt)}). I biglietti che hai già restano validi.`;
     await sendEmail(
       actionEmail({
         to: row.email,
         subject: `${edition.title}: nuova data per l’ordine ${event.code}`,
-        intro: `${row.name ? `Ciao ${row.name}, l` : 'L'}a data del tuo ordine ${event.code} è cambiata. Nuova data: ${to.label} (${formatDateTime(to.startsAt)}). I biglietti che hai già restano validi.`,
+        intro,
         outro: 'Se la nuova data non ti va bene, rispondi a questa email: troviamo insieme una soluzione.',
       }),
     );

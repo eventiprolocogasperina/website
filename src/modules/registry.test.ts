@@ -27,12 +27,12 @@ describe('registro dei moduli', () => {
     const none = { enabledModules: [], moduleSettings: {} };
     for (const point of Object.values(extensionPoints)) expect(point(none)).toEqual([]);
     const zucca = {
-      enabledModules: ['time-slots', 'attendee-questions', 'postponement', 'paylink', 'visitor-photos', 'chiave-rimossa'],
-      moduleSettings: { 'attendee-questions': { scannerCounters: [{ label: '+1 Bambino', questionKey: 'bambini', increment: 1 }] } },
+      enabledModules: ['time-slots', 'activities', 'postponement', 'paylink', 'visitor-photos', 'chiave-rimossa'],
+      moduleSettings: { activities: { scannerCounters: [{ label: '+1 Bambino', questionKey: 'bambini', increment: 1 }] } },
     };
     expect(extensionPoints.scannerActions(zucca)).toEqual([{ key: 'counter-0', label: '+1 Bambino', questionKey: 'bambini', increment: 1 }]);
     expect(extensionPoints.orderActions(zucca).map((a) => a.key)).toEqual(expect.arrayContaining(['move-session', 'paylink']));
-    expect(extensionPoints.nav(zucca).map((n) => n.key)).toEqual(['visitor-photos']);
+    expect(extensionPoints.nav(zucca).map((n) => n.key)).toEqual(['activities', 'postponement', 'visitor-photos']);
   });
 });
 
@@ -46,11 +46,14 @@ describe('form delle impostazioni dallo schema', () => {
   });
 
   it('liste di oggetti diventano un elenco ripetibile con scelte e default', () => {
-    const [questions] = settingsFields(getModule('attendee-questions')!);
-    expect(questions).toMatchObject({ key: 'questions', kind: 'list', label: 'Domande', maxItems: 20 });
-    if (questions.kind !== 'list') throw new Error();
-    expect(questions.item.find((f) => f.key === 'type')).toMatchObject({ kind: 'enum', label: 'Tipo', options: ['text', 'number', 'choice', 'age'] });
-    expect(questions.itemDefaults).toMatchObject({ type: 'text', required: false, options: '' });
+    const fields = settingsFields(getModule('activities')!);
+    const list = fields.find((f) => f.key === 'activities')!;
+    expect(list).toMatchObject({ kind: 'list', label: 'Attività gratuite', maxItems: 30 });
+    if (list.kind !== 'list') throw new Error();
+    expect(list.item.find((f) => f.key === 'target')).toMatchObject({ kind: 'enum', label: 'Per chi', options: ['bambini', 'tutti'] });
+    expect(list.item.find((f) => f.key === 'sessionIds')).toEqual({ key: 'sessionIds', kind: 'sessions', label: 'Giorni', help: 'Nessuno selezionato = tutti i giorni.' });
+    expect(list.itemDefaults).toMatchObject({ target: 'bambini', sessionIds: [], maxPlaces: 0, details: '' });
+    expect(fields.find((f) => f.key === 'labProductId')).toMatchObject({ kind: 'product', label: 'Laboratorio a pagamento' });
   });
 
   it('ogni modulo ha un form disegnabile ed etichette per tutti i campi', () => {

@@ -2,7 +2,7 @@
 // esistono, e i servizi dei moduli (inviti, pay-link, rinvio in blocco, destinatari dei messaggi).
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { auditLog, editions, ordersV2, products, ticketsV2 } from '@/server/db/schema';
+import { auditLog, editions, ordersV2, products, sessions, ticketsV2 } from '@/server/db/schema';
 import { DomainError } from '@/server/domain/errors';
 import { saveModuleSettings, setModuleEnabled } from '@/server/domain/editions/modules';
 import { createOrder, moveSession } from '@/server/domain/orders';
@@ -12,7 +12,8 @@ import { closeTestDb, getDb } from '@/test/pg-client';
 import { broadcastAudience } from './broadcast/server';
 import { sendInvites } from './invites/server';
 import { createPaylinkOrder } from './paylink/server';
-import { moveAllOrders } from './postponement/server';
+import { activityCounts } from './activities/server';
+import { moveAllOrders, postponeSession, postponementRefundRight } from './postponement/server';
 
 const sent = vi.hoisted(() => [] as Array<{ to: string; subject: string; text: string }>);
 vi.mock('@/server/email/send', async (orig) => ({
@@ -157,6 +158,77 @@ describe.skipIf(!enabled)('moduli', () => {
       expect(await errorCode(broadcastAudience(owner, { editionId: f.edition.id }))).toBe('FORBIDDEN');
       expect(await errorCode(broadcastAudience(system, { editionId: f.edition.id }))).toBe('FORBIDDEN');
       expect(await errorCode(broadcastAudience({ ...staff, grants: [{ role: 'gate', edition: f.slug }] }, { editionId: f.edition.id }))).toBe('FORBIDDEN');
+    });
+  });
+
+  describe('rinvio per maltempo', () => {
+    it('rinvia la giornata al recupero, ricorda la data originale e dà il rimborso solo al secondo rinvio', async () => {
+      const f = await createEdition();
+      const [day3, day4] = await getDb()
+        .insert(sessions)
+        .values([
+          { editionId: f.edition.id, label: 'Sab 31 ott', startsAt: new Date('2026-10-31T08:00:00Z'), capacity: 1000 },
+          { editionId: f.edition.id, label: 'Dom 1 nov', startsAt: new Date('2026-11-01T08:00:00Z'), capacity: 1000 },
+        ])
+        .returning();
+      const o = await createOrder(owner, { editionId: f.edition.id, channel: 'admin', lines: [{ productId: f.ticket.id, quantity: 2, sessionId: f.day2.id }], customer: buyer, idempotencyKey: key(), payNow: 'cash' });
+      expect(await postponementRefundRight(o.id)).toMatchObject({ eligible: false, postponements: 0 });
+
+      const first = await postponeSession(owner, { editionId: f.edition.id, sessionId: f.day2.id, toSessionId: day3.id, reason: 'Pioggia' });
+      expect(first).toEqual({ moved: [o.code], failed: [] });
+      const [after] = await getDb().select().from(ordersV2).where(eq(ordersV2.id, o.id));
+      expect(after).toMatchObject({ sessionId: day3.id, originalSessionId: f.day2.id });
+      const [d2] = await getDb().select().from(sessions).where(eq(sessions.id, f.day2.id));
+      expect(d2).toMatchObject({ status: 'postponed', rescheduledToSessionId: day3.id });
+      expect(sent[0].text).toMatch(/rinviata[\s\S]*Sab 31 ott/);
+      expect(await postponementRefundRight(o.id)).toMatchObject({ eligible: false, postponements: 1 });
+
+      // Rilanciare non sposta nulla; rinviare una data già rinviata altrove o creare un giro è rifiutato.
+      expect(await postponeSession(owner, { editionId: f.edition.id, sessionId: f.day2.id, toSessionId: day3.id })).toEqual({ moved: [], failed: [] });
+      expect(await errorMessage(postponeSession(owner, { editionId: f.edition.id, sessionId: f.day2.id, toSessionId: day4.id }))).toMatch(/già rinviata/);
+      expect(await errorMessage(postponeSession(owner, { editionId: f.edition.id, sessionId: day3.id, toSessionId: f.day2.id }))).toMatch(/annullata o già rinviata/);
+
+      await postponeSession(owner, { editionId: f.edition.id, sessionId: day3.id, toSessionId: day4.id });
+      const [again] = await getDb().select().from(ordersV2).where(eq(ordersV2.id, o.id));
+      expect(again).toMatchObject({ sessionId: day4.id, originalSessionId: f.day2.id });
+      expect(await postponementRefundRight(o.id)).toMatchObject({ eligible: true, postponements: 2 });
+
+      await saveModuleSettings(owner, f.slug, { module: 'postponement', settings: { refundOnSecondPostponement: false } });
+      expect(await postponementRefundRight(o.id)).toMatchObject({ eligible: false, postponements: 2 });
+      expect(await errorCode(postponeSession(roleOn('cashier', f.slug), { editionId: f.edition.id, sessionId: f.day1.id, toSessionId: day4.id }))).toBe('FORBIDDEN');
+    });
+  });
+
+  describe('attività e laboratori', () => {
+    it('controlla giorni e posti delle attività e conta per giorno', async () => {
+      const f = await createEdition();
+      await saveModuleSettings(owner, f.slug, {
+        module: 'activities',
+        settings: { activities: [{ key: 'zucca_vaso', label: 'Zucca in Vaso', sessionIds: [f.day2.id], maxPlaces: 3 }, { key: 'zuccart', label: 'Zuccart' }] },
+      });
+      const buy = (qty: number, sessionId: string, answers: Array<{ questionKey: string; value: unknown }>) =>
+        createOrder(owner, { editionId: f.edition.id, channel: 'admin', lines: [{ productId: f.ticket.id, quantity: qty, sessionId }], customer: buyer, idempotencyKey: key(), payNow: 'cash', answers });
+      await buy(3, f.day2.id, [{ questionKey: 'bambini', value: 2 }, { questionKey: 'attivita', value: ['zucca_vaso', 'zuccart'] }]);
+      expect(await errorMessage(buy(2, f.day2.id, [{ questionKey: 'bambini', value: 2 }, { questionKey: 'attivita', value: ['zucca_vaso'] }]))).toBe('“Zucca in Vaso”: resta 1 posto.');
+      expect(await errorMessage(buy(1, f.day1.id, [{ questionKey: 'bambini', value: 1 }, { questionKey: 'attivita', value: ['zucca_vaso'] }]))).toMatch(/non c’è nel giorno scelto/);
+      expect(await errorMessage(buy(1, f.day2.id, [{ questionKey: 'bambini', value: 2 }]))).toMatch(/più degli ingressi/);
+      await buy(1, f.day2.id, [{ questionKey: 'bambini', value: 1 }, { questionKey: 'attivita', value: ['zucca_vaso'] }]);
+
+      const { days } = await activityCounts(owner, f.slug);
+      const d2 = days.find((d) => d.sessionId === f.day2.id)!;
+      expect(d2).toMatchObject({ orders: 2, admissions: 4, children: 3 });
+      expect(d2.activities).toEqual([
+        { key: 'zucca_vaso', label: 'Zucca in Vaso', used: 3, maxPlaces: 3 },
+        { key: 'zuccart', label: 'Zuccart', used: 2, maxPlaces: 0 },
+      ]);
+      expect(days.find((d) => d.sessionId === f.day1.id)!.activities.map((a) => a.key)).toEqual(['zuccart']);
+      expect(await errorCode(activityCounts(roleOn('gate', f.slug), f.slug))).toBe('FORBIDDEN');
+    });
+
+    it('senza il modulo le risposte non si controllano', async () => {
+      const f = await createEdition({ modules: ['time-slots'] });
+      const o = await createOrder(owner, { editionId: f.edition.id, channel: 'admin', lines: [{ productId: f.ticket.id, quantity: 1, sessionId: f.day2.id }], customer: buyer, idempotencyKey: key(), payNow: 'cash', answers: [{ questionKey: 'attivita', value: ['qualunque'] }] });
+      expect(o.status).toBe('paid');
     });
   });
 });

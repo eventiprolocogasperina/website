@@ -55,6 +55,8 @@ export const ordersV2 = pgTable(
     status: orderStatus('status').notNull(),
     /** Data scelta per l'ordine, se l'edizione ne ha. Le righe possono indicarne una propria. */
     sessionId: uuid('session_id').references(() => sessions.id),
+    /** Data scelta all'acquisto, se poi l'ordine è stato spostato da un rinvio. Serve per il diritto al rimborso al secondo rinvio. */
+    originalSessionId: uuid('original_session_id').references(() => sessions.id),
     subtotalCents: integer('subtotal_cents').notNull(),
     discountCents: integer('discount_cents').default(0).notNull(),
     totalCents: integer('total_cents').notNull(),

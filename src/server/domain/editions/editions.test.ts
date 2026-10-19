@@ -60,6 +60,16 @@ describe('backfill delle edizioni', () => {
     expect(plan.sessions.find((s) => s.edition === 'concerto-natale-2026')).toMatchObject({ capacity: 120 });
   });
 
+  it('Zuccaland: attività gratuite con i loro giorni, posti e il laboratorio a pagamento', () => {
+    const m = plan.moduleSettings.find((x) => x.edition === 'zuccaland-2026' && x.module === 'activities')!;
+    const s = m.settings as { labProductId: unknown; activities: Array<{ key: string; sessionIds: Array<{ $ref: { id: string } }>; maxPlaces: number }> };
+    expect(s.labProductId).toEqual({ $ref: { kind: 'ticket_type', id: 'zuccaland-2026:laboratorio' } });
+    const zv = s.activities.find((a) => a.key === 'zucca_vaso')!;
+    expect(zv.maxPlaces).toBe(60);
+    expect(zv.sessionIds.map((r) => r.$ref.id)).toEqual(['zuccaland-2026:10', 'zuccaland-2026:17', 'zuccaland-2026:24']);
+    expect(s.activities.find((a) => a.key === 'zuccart')!.sessionIds).toEqual([]);
+  });
+
   it('Zuccaland: prodotti con gli stessi prezzi della pagina attuale', () => {
     const zp = plan.products.filter((p) => p.edition === 'zuccaland-2026');
     expect(zp.map((p) => [p.name, p.priceCents, p.kind])).toEqual(
@@ -77,7 +87,9 @@ describe('backfill delle edizioni', () => {
     expect(zs.find((s) => s.legacy.id.endsWith(':17'))!.startsAt.toISOString()).toBe('2026-10-17T08:30:00.000Z');
     expect(d25).toMatchObject({ capacity: 300, status: 'sold_out', label: 'Dom 25 ott' });
     expect(zs.find((s) => s.legacy.id.endsWith(':24'))).toMatchObject({ capacity: 250, status: 'open' });
-    expect(zs.find((s) => s.legacy.id.endsWith(':10'))).toMatchObject({ capacity: null, status: 'closed' });
+    expect(zs.find((s) => s.legacy.id.endsWith(':10'))).toMatchObject({ capacity: null, status: 'postponed', rescheduledTo: { kind: 'zuccaland_day', id: 'zuccaland-2026:17' } });
+    expect(zs.find((s) => s.legacy.id.endsWith(':11'))).toMatchObject({ status: 'postponed', rescheduledTo: { id: 'zuccaland-2026:18' } });
+    expect(zs.find((s) => s.legacy.id.endsWith(':17'))!.rescheduledTo).toBeUndefined();
   });
 
   it('la cassa porta i prodotti con canale pos e le scorte come quote', () => {

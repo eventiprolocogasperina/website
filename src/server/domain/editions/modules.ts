@@ -1,12 +1,12 @@
 import 'server-only';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { dependents, getModule, isModuleKey, MODULES, moduleSettings } from '@/modules/registry';
 import { settingsFields, type SettingsField } from '@/modules/settings-form';
 import type { ModuleKey } from '@/modules/types';
 import type { Ctx } from '@/server/auth/context-shared';
-import { withTransaction } from '@/server/db/client';
-import { editions } from '@/server/db/schema';
+import { getDb, withTransaction } from '@/server/db/client';
+import { editions, products, sessions } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { assertCan, editionForWrite } from './index';
@@ -34,6 +34,16 @@ export function describeEditionModules(e: { enabledModules: string[]; moduleSett
     fields: settingsFields(m),
     settings: moduleSettings(m.key, e.moduleSettings),
   }));
+}
+
+/** Date e prodotti dell'edizione per i campi delle impostazioni che li scelgono. */
+export async function moduleFieldOptions(editionId: string) {
+  const db = getDb();
+  const [s, p] = await Promise.all([
+    db.select({ id: sessions.id, label: sessions.label }).from(sessions).where(eq(sessions.editionId, editionId)).orderBy(asc(sessions.startsAt)),
+    db.select({ id: products.id, name: products.name }).from(products).where(eq(products.editionId, editionId)).orderBy(asc(products.sort), asc(products.name)),
+  ]);
+  return { sessions: s, products: p };
 }
 
 const ModuleKeyInput = z.string().refine(isModuleKey, 'Modulo sconosciuto.');

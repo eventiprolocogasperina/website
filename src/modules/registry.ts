@@ -1,5 +1,5 @@
 // Unico punto in cui i moduli vengono registrati (§7).
-import { attendeeQuestions } from './attendee-questions/module';
+import { activities } from './activities/module';
 import { broadcast } from './broadcast/module';
 import { departments } from './departments/module';
 import { freeBooking } from './free-booking/module';
@@ -15,7 +15,7 @@ import { visitorPhotos } from './visitor-photos/module';
 
 export const MODULES: EditionModule[] = [
   timeSlots,
-  attendeeQuestions,
+  activities,
   postponement,
   invites,
   visitorPhotos,

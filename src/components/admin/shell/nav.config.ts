@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Camera,
   ChefHat,
+  CloudRain,
   Link2,
   Map as MapIcon,
   Megaphone,
@@ -112,6 +113,8 @@ const MODULE_ICONS: Record<NonNullable<NonNullable<EditionModuleDef['admin']>['n
   megaphone: Megaphone,
   map: MapIcon,
   chef: ChefHat,
+  palette: Palette,
+  cloud: CloudRain,
 };
 
 const MODULE_NAV = Object.fromEntries(

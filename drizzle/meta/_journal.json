@@ -57,6 +57,13 @@
       "when": 1792410961623,
       "tag": "0007_viste_riconciliazione",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792413621152,
+      "tag": "0008_rinvii",
+      "breakpoints": true
     }
   ]
 }

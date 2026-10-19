@@ -23,7 +23,7 @@ import { formatDateTime } from '@/lib/dates';
 import type { EditionStatus } from '@/server/domain/editions/types';
 import type { ModuleView } from '@/server/domain/editions/modules';
 import { changeStatusAction, updateEditionAction } from '../actions';
-import { ModulesSection } from './ModulesSection';
+import { ModulesSection, type ModuleFieldOptions } from './ModulesSection';
 
 type Form = {
   title: string;
@@ -48,6 +48,7 @@ export function SettingsClient({
   formats,
   transitions,
   modules,
+  moduleOptions,
   canManageModules,
 }: {
   edition: EditionInfo;
@@ -55,6 +56,7 @@ export function SettingsClient({
   formats: Array<{ id: string; name: string; landingPath: string | null }>;
   transitions: Transition[];
   modules: ModuleView[];
+  moduleOptions: ModuleFieldOptions;
   canManageModules: boolean;
 }) {
   const router = useRouter();
@@ -197,7 +199,7 @@ export function SettingsClient({
         </AnnotatedSection>
 
         <AnnotatedSection title="Moduli" description="Funzioni in più per questa edizione. Spegnere un modulo non cancella niente: dati e impostazioni tornano quando lo riaccendi.">
-          <ModulesSection edition={edition.slug} modules={modules} disabled={ro || !canManageModules} />
+          <ModulesSection edition={edition.slug} modules={modules} options={moduleOptions} disabled={ro || !canManageModules} />
         </AnnotatedSection>
       </Card>
 

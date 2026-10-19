@@ -28,6 +28,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'edition.module_enabled': 'Modulo attivato',
   'edition.module_disabled': 'Modulo spento',
   'edition.module_settings_saved': 'Impostazioni di un modulo salvate',
+  'session.postponed': 'Data rinviata',
   'session.created': 'Data aggiunta',
   'session.updated': 'Data modificata',
   'session.deleted': 'Data eliminata',

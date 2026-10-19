@@ -5,7 +5,7 @@ import type { Permission } from '@/server/auth/permissions';
 
 export type ModuleKey =
   | 'time-slots'
-  | 'attendee-questions'
+  | 'activities'
   | 'postponement'
   | 'invites'
   | 'visitor-photos'
@@ -18,7 +18,7 @@ export type ModuleKey =
   | 'broadcast';
 
 /** Voce sotto "Moduli" nella scheda edizione: la pagina è /admin/e/<edizione>/m/<key>. */
-export type AdminNavItem = { label: string; icon: 'send' | 'camera' | 'star' | 'link' | 'megaphone' | 'map' | 'chef'; permission: Permission; badge?: 'photos' };
+export type AdminNavItem = { label: string; icon: 'send' | 'camera' | 'star' | 'link' | 'megaphone' | 'map' | 'chef' | 'palette' | 'cloud'; permission: Permission; badge?: 'photos' };
 /** Riquadro nella pagina di dettaglio ordine (prompt 12 lo disegna). */
 export type OrderPanel = { key: string; title: string; permission: Permission };
 /** Azione nel menu "Altre azioni" dell'ordine. */

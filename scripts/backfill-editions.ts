@@ -106,6 +106,19 @@ async function main() {
       count('date', true);
     }
 
+    // Rinvii: la data rinviata punta alla sua data di recupero. Si applica anche a date già create
+    // da un backfill precedente (prima del prompt 11 il 10 e l'11 ottobre erano solo "chiuse").
+    for (const s of plan.sessions) {
+      if (!s.rescheduledTo) continue;
+      const [from, to] = [await lookup([s.legacy]), await lookup([s.rescheduledTo])];
+      if (!from || !to) continue;
+      const { rowCount } = await db.query(
+        `update sessions set status = 'postponed', rescheduled_to_session_id = $2, updated_at = now() where id = $1 and rescheduled_to_session_id is distinct from $2`,
+        [from, to],
+      );
+      count('rinvii collegati', !!rowCount);
+    }
+
     for (const p of plan.products) {
       if (await lookup([p.legacy])) {
         count('prodotti', false);
@@ -132,6 +145,30 @@ async function main() {
       }
       await remember([q.legacy], rows[0].id);
       count('quote', true);
+    }
+
+    // Impostazioni iniziali dei moduli: solo se l'edizione non le ha già (mai sovrascrivere quelle scelte in admin).
+    const resolveRefs = async (v: unknown): Promise<unknown> => {
+      // In sequenza: una sola connessione, una query alla volta.
+      if (Array.isArray(v)) {
+        const out = [];
+        for (const x of v) out.push(await resolveRefs(x));
+        return out.filter((x) => x !== undefined);
+      }
+      if (v && typeof v === 'object') {
+        if ('$ref' in v) return (await lookup([(v as { $ref: LegacyRef }).$ref])) ?? undefined;
+        const out: Record<string, unknown> = {};
+        for (const [k, x] of Object.entries(v)) out[k] = (await resolveRefs(x)) ?? null;
+        return out;
+      }
+      return v;
+    };
+    for (const m of plan.moduleSettings) {
+      const { rowCount } = await db.query(
+        `update editions set module_settings = module_settings || jsonb_build_object($2::text, $3::jsonb), updated_at = now() where slug = $1 and not (module_settings ? $2)`,
+        [m.edition, m.module, JSON.stringify(await resolveRefs(m.settings))],
+      );
+      count('impostazioni dei moduli', !!rowCount);
     }
 
     // Confronto dei prezzi di Zuccaland: pagina attuale contro catalogo nuovo.

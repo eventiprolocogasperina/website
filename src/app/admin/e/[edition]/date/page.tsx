@@ -14,7 +14,7 @@ export default async function SessionsPage(props: EditionParams) {
   const { catalog, availability } = await getCatalogWithAvailability((await getAdminCtx())!, edition.slug);
   const sessions = catalog.sessions.map((s) => {
     const a = availability.sessions.find((x) => x.id === s.id)!;
-    return { id: s.id, label: s.label, startsAt: s.startsAt.toISOString(), endsAt: s.endsAt?.toISOString() ?? null, capacity: s.capacity, status: s.status, used: a.used };
+    return { id: s.id, label: s.label, startsAt: s.startsAt.toISOString(), endsAt: s.endsAt?.toISOString() ?? null, capacity: s.capacity, status: s.status, used: a.used, recovery: catalog.sessions.find((x) => x.id === s.rescheduledToSessionId)?.label ?? null };
   });
   return (
     <AdminPage>

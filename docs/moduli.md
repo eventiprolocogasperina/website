@@ -36,6 +36,12 @@ Riferimento: `docs/ARCHITETTURA.md` §7. Un modulo è una funzione in più che s
 
 Fatto: registro, punti di estensione, interruttori e form nelle Impostazioni, i servizi di inviti, pay-link, rinvio in blocco e destinatari dei messaggi, l'email automatica del rinvio.
 
+Dopo la prova di Niccolo (19-10-2026) due moduli generici sono diventati su misura per le regole di Zuccaland:
+- **Attività e laboratori** (`activities`, prima `attendee-questions`): attività gratuite con i loro giorni e posti, bambini, laboratorio a pagamento. Pagina "Attività" con i conteggi per giorno.
+- **Rinvio per maltempo** (`postponement`): giornata rinviata collegata alla data di recupero (10 → 17, 11 → 18), rinvio in un passo, rimborso al secondo rinvio. Pagina "Rinvii".
+
+Il form delle impostazioni sa anche scegliere date (`.meta({ widget: 'sessions' })`) e un prodotto (`.meta({ widget: 'product' })`) dell'edizione.
+
 Le pagine che usano i punti di estensione arrivano con i prompt successivi: pagina ordine (12), checkout (13), scanner e cassa (15), checklist di chiusura (16). Fino ad allora le funzioni di oggi restano dove sono: inviti e foto da Moduli nella scheda edizione, pay-link e messaggi WhatsApp dalla pagina Ordini, "+1 Bambino" nello scanner di oggi.
 
 Restano nomi di edizione nel codice, motivati:

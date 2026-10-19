@@ -13,6 +13,7 @@ import { summarizePayments } from '@/server/domain/payments/status';
 import { ORDER_CHANNELS, priceCart, type OrderChannel } from '@/server/domain/pricing/cart';
 // Collega gli handler dei moduli agli eventi pubblicati da qui (es. email del modulo rinvio).
 import '@/modules/handlers';
+import { validateActivities } from '@/modules/activities/server';
 import { newOrderCode, randomToken } from './code';
 import { actorColumns, isUniqueViolation, lockEdition, lockOrder, pendingTtlMs, releaseDiscountUse, requireModule, reserveSeats, type EditionRow, type OrderRow } from './shared';
 
@@ -54,7 +55,7 @@ export const CreateOrderInput = z
     lines: LinesInput,
     customer: CustomerInput.nullish(),
     sessionId: uuid.nullish(),
-    /** Risposte alle domande del modulo attendee-questions. `ticket` è la posizione del biglietto nell'ordine (da 0). */
+    /** Risposte alle domande del modulo activities. `ticket` è la posizione del biglietto nell'ordine (da 0). */
     answers: z
       .array(z.object({ questionKey: z.string().trim().min(1).max(60), value: z.unknown(), ticket: z.number().int().min(0).nullish() }))
       .max(200)
@@ -174,6 +175,11 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
   if (data.expectedTotalCents != null && data.expectedTotalCents !== priced.totalCents) throw new DomainError('PRICE_CHANGED');
 
   await reserveSeats(tx, edition.id, priced.lines, { now });
+  if (edition.enabledModules.includes('activities') && data.answers?.length) {
+    const admissions = priced.lines.reduce((s, l) => s + (catalog.find((p) => p.id === l.productId)?.kind === 'ticket' ? l.quantity : 0), 0);
+    const sessionForCheck = data.sessionId ?? priced.lines.find((l) => l.sessionId)?.sessionId ?? null;
+    await validateActivities(tx, edition, { sessionId: sessionForCheck, admissions, answers: data.answers, now });
+  }
 
   const customer = data.customer ? await upsertByEmail(tx, data.customer) : null;
   const payNow = data.channel === 'pos' ? (data.payNow ?? 'cash') : data.payNow;

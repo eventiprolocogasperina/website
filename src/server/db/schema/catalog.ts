@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { boolean, check, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 /*
  * Format, edizioni, date, catalogo, quote e sconti (ARCHITETTURA §5.2 e §5.3, prompt 08).
@@ -72,6 +73,8 @@ export const sessions = pgTable(
     /** Capienza della data: vale come quota sui prodotti di tipo "ticket" che richiedono la data. NULL = nessun limite. */
     capacity: integer('capacity'),
     status: sessionStatus('status').default('open').notNull(),
+    /** Data di recupero di una data rinviata (status 'postponed'), es. 10 ottobre → 17 ottobre. */
+    rescheduledToSessionId: uuid('rescheduled_to_session_id').references((): AnyPgColumn => sessions.id),
     sort: integer('sort').default(0).notNull(),
     ...timestamps,
   },

@@ -26,6 +26,8 @@ export type PlannedEdition = {
 };
 export type PlannedSession = {
   edition: string;
+  /** Data di recupero, se questa data è stata rinviata. */
+  rescheduledTo?: LegacyRef;
   label: string;
   startsAt: Date;
   endsAt: Date | null;
@@ -56,6 +58,8 @@ export type BackfillPlan = {
   sessions: PlannedSession[];
   products: PlannedProduct[];
   quotas: PlannedQuota[];
+  /** Impostazioni iniziali dei moduli. `{ $ref: LegacyRef }` si sostituisce con l'ID nuovo (data o prodotto). */
+  moduleSettings: Array<{ edition: string; module: ModuleKey; settings: unknown }>;
   /** Righe non importate, con il motivo. */
   skipped: Array<{ source: string; id: string; reason: string }>;
   /** Scelte da rivedere a mano. */
@@ -88,7 +92,7 @@ const SERIES: Array<PlannedSeries & { editions: Array<{ slug: string; legacyIds:
       {
         slug: 'zuccaland-2026',
         legacyIds: ['zuccaland-2026'],
-        modules: ['time-slots', 'attendee-questions', 'postponement', 'invites', 'visitor-photos', 'paylink', 'broadcast', 'reviews', 'landing-page'],
+        modules: ['time-slots', 'activities', 'postponement', 'invites', 'visitor-photos', 'paylink', 'broadcast', 'reviews', 'landing-page'],
       },
     ],
   },
@@ -147,7 +151,7 @@ export function cashierKind(category: string, department?: string): 'food' | 'dr
 }
 
 export function planBackfill(input: { events: LegacyEventRow[]; zuccaland: ZuccalandContent | null; cashier: CashierConfig | null; today: string }): BackfillPlan {
-  const plan: BackfillPlan = { series: [], editions: [], sessions: [], products: [], quotas: [], skipped: [], notes: [] };
+  const plan: BackfillPlan = { series: [], editions: [], sessions: [], products: [], quotas: [], moduleSettings: [], skipped: [], notes: [] };
   const eventsById = new Map(input.events.map((e) => [e.id, e]));
   const usedEvents = new Set<string>();
 
@@ -303,6 +307,12 @@ function addEventCatalog(plan: BackfillPlan, edition: string, row: LegacyEventRo
   });
 }
 
+/** Zuccaland 2026: 10 e 11 ottobre rinviati per maltempo, recuperati il 17 e il 18 (scelta di Niccolo, 19-10-2026). */
+const ZUCCALAND_RECOVERY_DAYS: Record<string, string> = { '10': '17', '11': '18' };
+
+/** Giorni delle attività gratuite, come li filtra oggi il checkout di Zuccaland (ZuccalandClient). */
+const ZUCCALAND_ACTIVITY_DAYS: Record<string, string[]> = { zucca_vaso: ['10', '17', '24'], facepainting: ['11', '18'], altre_attivita_25: ['25'] };
+
 function addZuccaland(plan: BackfillPlan, content: ZuccalandContent) {
   const edition = 'zuccaland-2026';
   const start = content.event?.startDate ? new Date(content.event.startDate) : romeDateTime('2026-10-17', '10:30');
@@ -312,18 +322,40 @@ function addZuccaland(plan: BackfillPlan, content: ZuccalandContent) {
   days.forEach(([day, limit], i) => {
     if (!limit) return;
     const startsAt = romeDateTime(`${monthKey}${day.padStart(2, '0')}`, openAt);
+    const recovery = ZUCCALAND_RECOVERY_DAYS[day];
     plan.sessions.push({
       edition,
       label: sessionLabel(startsAt),
       startsAt,
       endsAt: null,
       capacity: limit.enabled ? limit.maxTickets : null,
-      status: limit.active === false ? 'closed' : limit.manualSoldOut ? 'sold_out' : 'open',
+      status: recovery ? 'postponed' : limit.active === false ? 'closed' : limit.manualSoldOut ? 'sold_out' : 'open',
+      ...(recovery ? { rescheduledTo: { kind: 'zuccaland_day', id: `${edition}:${recovery}` } } : {}),
       sort: i,
       legacy: { kind: 'zuccaland_day', id: `${edition}:${day}` },
     });
   });
-  if (days.length) plan.notes.push('Zuccaland 2026: le date non attive diventano "chiuse", quelle segnate esaurite a mano diventano "esaurite". Le capienze contano solo gli ingressi, come oggi.');
+  const dayRefs = (...d: string[]) => d.filter((x) => days.some(([k, l]) => k === x && l)).map((x) => ({ $ref: { kind: 'zuccaland_day', id: `${edition}:${x}` } }));
+  const lab = (content.ticketTypes ?? []).find((t) => t.isExtra);
+  plan.moduleSettings.push({
+    edition,
+    module: 'activities',
+    settings: {
+      askChildren: true,
+      remindIfMissing: true,
+      labProductId: lab ? { $ref: { kind: 'ticket_type', id: `${edition}:${lab.id}` } } : null,
+      activities: (content.freeActivities ?? []).map((a) => ({
+        key: a.id,
+        label: a.label,
+        details: a.details,
+        target: 'bambini',
+        sessionIds: ZUCCALAND_ACTIVITY_DAYS[a.id] ? dayRefs(...ZUCCALAND_ACTIVITY_DAYS[a.id]) : [],
+        maxPlaces: Number(a.details.match(/Max\s+(\d+)\s+posti/i)?.[1] ?? 0),
+      })),
+      scannerCounters: [{ label: '+1 Bambino', questionKey: 'bambini', increment: 1 }],
+    },
+  });
+  if (days.length) plan.notes.push('Zuccaland 2026: 10 e 11 ottobre diventano date "rinviate" con recupero il 17 e il 18; le altre date non attive diventano "chiuse", quelle segnate esaurite a mano diventano "esaurite". Le capienze contano solo gli ingressi, come oggi.');
 
   (content.ticketTypes ?? []).forEach((t, i) => {
     const ref = { kind: 'ticket_type', id: `${edition}:${t.id}` };

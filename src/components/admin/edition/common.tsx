@@ -16,8 +16,8 @@ export function SessionStatusBadge({ status }: { status: string }) {
 }
 
 /** Barra di riempimento: venduti su capienza, oppure "senza limite". */
-export function FillBar({ used, size, className }: { used: number; size: number | null; className?: string }) {
-  if (size === null) return <span className={cn('text-label text-muted tabular-nums', className)}>{used} venduti · senza limite</span>;
+export function FillBar({ used, size, className, noun = 'venduti' }: { used: number; size: number | null; className?: string; noun?: string }) {
+  if (size === null) return <span className={cn('text-label text-muted tabular-nums', className)}>{used} {noun} · senza limite</span>;
   const pct = size === 0 ? 100 : Math.min(100, Math.round((used / size) * 100));
   return (
     <div className={cn('flex min-w-36 flex-col gap-1', className)}>

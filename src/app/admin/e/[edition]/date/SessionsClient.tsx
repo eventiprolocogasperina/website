@@ -8,7 +8,7 @@ import { Button, Card, ConfirmDialog, DatePicker, EmptyState, Field, IconButton,
 import { formatDate, romeDateKey, romeTime } from '@/lib/dates';
 import { deleteSessionAction, saveSessionAction } from '../actions';
 
-type SessionItem = { id: string; label: string; startsAt: string; endsAt: string | null; capacity: number | null; status: string; used: number };
+type SessionItem = { id: string; label: string; startsAt: string; endsAt: string | null; capacity: number | null; status: string; used: number; recovery: string | null };
 type EditionInfo = { slug: string; title: string; readOnly: boolean; legacy: boolean };
 
 export function SessionsClient({ edition, sessions, hasCapacityProducts }: { edition: EditionInfo; sessions: SessionItem[]; hasCapacityProducts: boolean }) {
@@ -56,6 +56,7 @@ export function SessionsClient({ edition, sessions, hasCapacityProducts }: { edi
                     {formatDate(s.startsAt)} · {romeTime(s.startsAt)}
                     {s.endsAt ? `–${romeTime(s.endsAt)}` : ''}
                   </p>
+                  {s.recovery && <p className="text-label text-warning">Recupero: {s.recovery}</p>}
                 </div>
                 <SessionStatusBadge status={s.status} />
                 <FillBar used={s.used} size={s.capacity} className="w-48" />
