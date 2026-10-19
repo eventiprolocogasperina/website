@@ -5,7 +5,7 @@ import { moduleSettings } from '@/modules/registry';
 import type { ActivitiesSettings } from '@/modules/activities/module';
 import { publicCtx } from '@/server/auth/context-shared';
 import { getDb } from '@/server/db/client';
-import { discountsV2, editions, legacyIdMap, ordersV2, products, sessions } from '@/server/db/schema';
+import { discountsV2, editions, legacyIdMap, ordersV2, products, series, sessions } from '@/server/db/schema';
 import { getAvailability } from '@/server/domain/catalog';
 import { DomainError } from '@/server/domain/errors';
 import { createOrder, type OrderResult } from '@/server/domain/orders';
@@ -33,7 +33,19 @@ export type CheckoutActivities = Pick<ActivitiesSettings, 'askChildren' | 'labPr
   activities: Array<Pick<ActivitiesSettings['activities'][number], 'key' | 'label' | 'details' | 'target' | 'sessionIds' | 'maxPlaces'>>;
 };
 export type CheckoutView = {
-  edition: { id: string; slug: string; title: string; status: string; location: string | null; coverImage: string | null; startsAt: string | null };
+  edition: {
+    id: string;
+    slug: string;
+    title: string;
+    subtitle: string | null;
+    status: string;
+    location: string | null;
+    coverImage: string | null;
+    startsAt: string | null;
+    endsAt: string | null;
+    /** Pallino del format: decide i colori della pagina (src/lib/edition-theme.ts). */
+    theme: string | null;
+  };
   /** Vende ora? Se no, `closedReason` dice perché. */
   selling: boolean;
   closedReason: string | null;
@@ -70,9 +82,10 @@ export async function getCheckout(slug: string, now = new Date()): Promise<Check
   const db = getDb();
   const [edition] = await db.select().from(editions).where(eq(editions.slug, slug));
   if (!edition || !(VISIBLE as readonly string[]).includes(edition.status)) return null;
-  const [sessionRows, productRows] = await Promise.all([
+  const [sessionRows, productRows, [format]] = await Promise.all([
     db.select().from(sessions).where(eq(sessions.editionId, edition.id)).orderBy(asc(sessions.startsAt), asc(sessions.sort)),
     db.select().from(products).where(eq(products.editionId, edition.id)).orderBy(asc(products.sort), asc(products.name)),
+    edition.seriesId ? db.select({ theme: series.theme }).from(series).where(eq(series.id, edition.seriesId)) : Promise.resolve([]),
   ]);
   const online = productRows.filter((p) => p.active && channelAllows(p, 'online'));
   const availability = await getAvailability(edition.id);
@@ -122,10 +135,13 @@ export async function getCheckout(slug: string, now = new Date()): Promise<Check
       id: edition.id,
       slug: edition.slug,
       title: edition.title,
+      subtitle: edition.subtitle,
       status: edition.status,
       location: edition.location,
       coverImage: edition.coverImage,
       startsAt: edition.startsAt?.toISOString() ?? null,
+      endsAt: edition.endsAt?.toISOString() ?? null,
+      theme: format?.theme.dot ?? null,
     },
     selling: closedReason === null,
     closedReason,

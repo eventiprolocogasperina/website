@@ -1,6 +1,8 @@
-import { CalendarPlus, CheckCircle2, Clock, Download, RotateCcw, Ticket, XCircle } from 'lucide-react';
+import { CalendarPlus, Clock, Download, RotateCcw, Ticket, XCircle } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { eventCard } from '@/components/public/event-card';
+import { EventPageShell } from '@/components/public/EventPageShell';
 import { OrderTickets } from '@/components/public/OrderTickets';
 import { getOrderByToken, maskEmail } from '@/server/domain/checkout/my-tickets';
 import { ClearCart, WaitForPayment } from './WaitForPayment';
@@ -10,9 +12,9 @@ export const metadata: Metadata = { title: 'Il tuo ordine', robots: { index: fal
 
 type Props = { params: Promise<{ edition: string; token: string }>; searchParams: Promise<{ esito?: string }> };
 
-const link = 'inline-flex h-11 items-center justify-center gap-2 rounded-lg px-4 text-body font-semibold';
+const link = 'inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-body font-semibold shadow-sm';
 const primary = `${link} bg-primary text-primary-fg hover:bg-primary-hover`;
-const secondary = `${link} border border-border-strong bg-surface text-fg hover:bg-surface-sunken`;
+const secondary = `${link} border border-[var(--ev-border)] bg-white text-[var(--ev-ink)] hover:bg-[var(--ev-softer)]`;
 
 /** Conferma dopo il pagamento (o dopo un annullo): stato, codice, QR, calendario, "I miei biglietti". */
 export default async function ConfirmPage({ params, searchParams }: Props) {
@@ -24,14 +26,16 @@ export default async function ConfirmPage({ params, searchParams }: Props) {
   const failed = esito === 'annullato' || esito === 'rifiutato' || esito === 'errore';
 
   return (
-    <main className="ui-root min-h-screen bg-bg px-4 pb-16 pt-28 text-fg">
-      <div className="mx-auto flex max-w-2xl flex-col gap-5">
+    <EventPageShell edition={order.edition} eyebrow={paid ? 'Ci vediamo lì!' : 'Il tuo ordine'}>
+      <div className="mx-auto flex max-w-3xl flex-col gap-5">
         {paid && (
-          <div role="status" className="flex gap-3 rounded-lg bg-success-bg p-4">
+          <div role="status" className={`${eventCard} flex gap-4 p-5`}>
             <ClearCart slug={order.edition.slug} />
-            <CheckCircle2 className="mt-0.5 shrink-0 text-success" aria-hidden />
+            <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-success-bg text-[1.5rem]">
+              🎉
+            </span>
             <div>
-              <h1 className="text-title font-semibold text-fg">Ordine confermato</h1>
+              <h2 className="text-title font-bold text-[var(--ev-ink)]">Ordine confermato</h2>
               <p className="text-body text-fg">
                 Codice <strong data-testid="codice-ordine">{order.code}</strong>.{' '}
                 {order.customer ? `Ti abbiamo mandato i biglietti a ${maskEmail(order.customer.email)}.` : ''}
@@ -40,11 +44,11 @@ export default async function ConfirmPage({ params, searchParams }: Props) {
           </div>
         )}
         {order.status === 'pending' && pendingValid && (
-          <div role="status" className={`flex gap-3 rounded-lg p-4 ${failed ? 'bg-danger-bg' : 'bg-warning-bg'}`}>
+          <div role="status" className={`flex gap-3 rounded-2xl border p-5 ${failed ? 'border-danger/30 bg-danger-bg' : 'border-warning/30 bg-warning-bg'}`}>
             {failed ? <XCircle className="mt-0.5 shrink-0 text-danger" aria-hidden /> : <Clock className="mt-0.5 shrink-0 text-warning" aria-hidden />}
             <div className="flex flex-col gap-3">
               <div>
-                <h1 className="text-title font-semibold text-fg">{esito === 'annullato' ? 'Pagamento annullato' : failed ? 'Il pagamento non è andato a buon fine' : 'Stiamo aspettando la conferma del pagamento'}</h1>
+                <h2 className="text-title font-bold text-[var(--ev-ink)]">{esito === 'annullato' ? 'Pagamento annullato' : failed ? 'Il pagamento non è andato a buon fine' : 'Stiamo aspettando la conferma del pagamento'}</h2>
                 <p className="text-body text-fg">
                   {failed
                     ? 'Non ti è stato addebitato nulla. I posti sono ancora tenuti per te: riprova o usa un’altra carta.'
@@ -65,11 +69,11 @@ export default async function ConfirmPage({ params, searchParams }: Props) {
           </div>
         )}
         {(order.status === 'expired' || order.status === 'cancelled' || (order.status === 'pending' && !pendingValid)) && (
-          <div role="status" className="flex gap-3 rounded-lg bg-danger-bg p-4">
+          <div role="status" className="flex gap-3 rounded-2xl border border-danger/30 bg-danger-bg p-5">
             <XCircle className="mt-0.5 shrink-0 text-danger" aria-hidden />
             <div className="flex flex-col gap-3">
               <div>
-                <h1 className="text-title font-semibold text-fg">{order.status === 'cancelled' ? 'Ordine annullato' : 'Il tempo per pagare è scaduto'}</h1>
+                <h2 className="text-title font-bold text-[var(--ev-ink)]">{order.status === 'cancelled' ? 'Ordine annullato' : 'Il tempo per pagare è scaduto'}</h2>
                 <p className="text-body text-fg">I posti sono stati liberati. Se vuoi ancora i biglietti, ricomincia l’acquisto.</p>
               </div>
               <div>
@@ -97,6 +101,6 @@ export default async function ConfirmPage({ params, searchParams }: Props) {
           </div>
         )}
       </div>
-    </main>
+    </EventPageShell>
   );
 }
