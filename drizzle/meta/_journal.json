@@ -64,6 +64,20 @@
       "when": 1792413621152,
       "tag": "0008_rinvii",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792415025725,
+      "tag": "0009_admin_ordini",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792415030290,
+      "tag": "0010_admin_ordini_dati",
+      "breakpoints": true
     }
   ]
 }
