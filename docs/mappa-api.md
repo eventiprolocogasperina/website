@@ -67,6 +67,13 @@ Quando la colonna dice "o", basta uno dei due accessi (es. le statistiche dello 
 | `/api/cashier/session` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
 | `/api/cashier/stand` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento); PATCH: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
 | `/api/cashier/stats` | GET: pos.sell (cassa: admin, dispositivo+PIN o codice evento) |
+| `/api/cassa/state`, `/api/cassa/catalog`, `/api/cassa/stream`, `/api/cassa/reparto` | GET (reparto anche POST): pos.sell (dispositivo pos + PIN, oppure admin con `?edizione=`; niente codice evento) |
+| `/api/cassa/sales` | POST, GET: pos.sell (idem) |
+| `/api/cassa/sales/[id]/void` | POST: pos.sell + PIN di un responsabile con pos.void (dall'admin basta pos.void); limite di tentativi |
+| `/api/cassa/sessions`, `/api/cassa/sessions/[id]`, `/api/cassa/sessions/[id]/z` | pos.open_close_session (idem) |
+| `/api/cassa/pronti/[edition]` | GET pubblico: solo numeri e reparti, 404 se lo schermo Pronti è spento |
+| `/api/admin/cassa/z/[id]` | GET: reports.export (controllato dal servizio) |
+| `/api/admin/cassa/[edition]/rendiconto` | GET: reports.export |
 | `/api/events/[id]` | PUT: `editions.edit`; DELETE: `editions.archive` |
 | `/api/events` | POST: `editions.create` |
 | `/api/gallery/[id]` | PUT: `content.edit`; DELETE: `content.edit` |

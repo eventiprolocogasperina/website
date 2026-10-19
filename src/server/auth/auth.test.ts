@@ -126,6 +126,17 @@ describe('proxy', () => {
     expect(proxy(req('/admin', 'GET', 'pl_device=qualcosa')).status).toBe(307);
   });
 
+  it('la nuova cassa come lo scanner; schermo Pronti, manifest e service worker pubblici', () => {
+    expect(proxy(req('/cassa', 'GET', 'pl_device=qualcosa')).headers.get('x-middleware-next')).toBe('1');
+    expect(proxy(req('/cassa/reparto/Cucina', 'GET', 'pl_device=qualcosa')).headers.get('x-middleware-next')).toBe('1');
+    expect(proxy(req('/cassa')).status).toBe(307);
+    expect(proxy(req('/cassa/reparto/Cucina')).status).toBe(307);
+    for (const p of ['/cassa/pronti/sagra-2026', '/cassa/sw.js', '/cassa/manifest.webmanifest']) {
+      expect(proxy(req(p)).headers.get('x-middleware-next')).toBe('1');
+    }
+    expect(proxy(req('/cassa/prontix')).status).toBe(307);
+  });
+
   it('una sessione PIN non apre l\'admin', () => {
     const t = signToken({ sub: 'u1', role: 'pin', did: 'd1', exp: inOneHour() }, SECRET);
     expect(proxy(req('/api/admin/orders', 'GET', `pl_admin=${t}`)).status).toBe(401);

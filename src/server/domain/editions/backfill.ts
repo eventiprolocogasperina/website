@@ -5,6 +5,7 @@ import type { CashierConfig } from '@/lib/data/cashier';
 import type { ZuccalandContent } from '@/lib/data/pages';
 import { romeDateKey, romeDateTime, romeTime } from '@/lib/dates';
 import type { SeriesTheme } from '@/server/db/schema/catalog';
+import { planRegisters, type PlannedRegister } from './backfill-cash';
 import type { EditionStatus, ModuleKey } from './types';
 
 export type LegacyRef = { kind: string; id: string };
@@ -58,6 +59,8 @@ export type BackfillPlan = {
   sessions: PlannedSession[];
   products: PlannedProduct[];
   quotas: PlannedQuota[];
+  /** Casse della nuova cassa (prompt 14), dalla configurazione della vecchia. */
+  registers: PlannedRegister[];
   /** Impostazioni iniziali dei moduli. `{ $ref: LegacyRef }` si sostituisce con l'ID nuovo (data o prodotto). */
   moduleSettings: Array<{ edition: string; module: ModuleKey; settings: unknown }>;
   /** Righe non importate, con il motivo. */
@@ -151,7 +154,7 @@ export function cashierKind(category: string, department?: string): 'food' | 'dr
 }
 
 export function planBackfill(input: { events: LegacyEventRow[]; zuccaland: ZuccalandContent | null; cashier: CashierConfig | null; today: string }): BackfillPlan {
-  const plan: BackfillPlan = { series: [], editions: [], sessions: [], products: [], quotas: [], moduleSettings: [], skipped: [], notes: [] };
+  const plan: BackfillPlan = { series: [], editions: [], sessions: [], products: [], quotas: [], registers: [], moduleSettings: [], skipped: [], notes: [] };
   const eventsById = new Map(input.events.map((e) => [e.id, e]));
   const usedEvents = new Set<string>();
 
@@ -266,6 +269,10 @@ export function planBackfill(input: { events: LegacyEventRow[]; zuccaland: Zucca
         plan.quotas.push({ edition: edition.slug, name: `Scorta: ${item.name}`, size: Math.floor(item.stockQuantity), products: [ref], legacy: { kind: 'cashier_stock', id: ref.id } });
       }
     });
+    const imported = new Set(evt.items.filter((item) => Number.isFinite(Number(item.price)) && Number(item.price) >= 0).map((item) => item.id));
+    const cash = planRegisters(edition.slug, evt, imported, input.cashier?.defaultPrinterSettings);
+    plan.registers.push(...cash.registers);
+    plan.notes.push(...cash.notes);
   }
 
   return plan;

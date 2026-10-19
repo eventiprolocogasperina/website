@@ -64,6 +64,13 @@
       "when": 1792413621152,
       "tag": "0008_rinvii",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792415009990,
+      "tag": "0009_cassa",
+      "breakpoints": true
     }
   ]
 }

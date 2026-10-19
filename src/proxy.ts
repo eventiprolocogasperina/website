@@ -16,6 +16,8 @@ const PUBLIC_ADMIN_API: Array<{ method: string; path: string }> = [
   { method: 'GET', path: '/api/admin/sponsors' }, // SponsorsMarquee
 ];
 
+const CASSA_PUBLIC = ['/cassa/pronti', '/cassa/sw.js', '/cassa/manifest.webmanifest'];
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -30,6 +32,12 @@ export function proxy(request: NextRequest) {
 
   // Lo scanner si apre anche da un dispositivo abbinato: il PIN lo chiede la pagina (§8.2).
   if (pathname.startsWith('/scanner') && (validAdmin || request.cookies.has(DEVICE_COOKIE))) return NextResponse.next();
+
+  // Nuova cassa (§12.1): come lo scanner. Lo schermo "Pronti", il manifest e il service worker sono pubblici.
+  if (pathname === '/cassa' || pathname.startsWith('/cassa/')) {
+    if (CASSA_PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
+    if (validAdmin || request.cookies.has(DEVICE_COOKIE)) return NextResponse.next();
+  }
 
   if (validAdmin) {
     const res = NextResponse.next();
@@ -56,5 +64,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*', '/scanner/:path*'],
+  matcher: ['/admin/:path*', '/api/admin/:path*', '/scanner/:path*', '/cassa/:path*'],
 };

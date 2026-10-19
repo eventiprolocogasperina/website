@@ -147,6 +147,26 @@ async function main() {
       count('quote', true);
     }
 
+    // Casse della nuova cassa (prompt 14): una riga per cassa della vecchia configurazione.
+    for (const r of plan.registers) {
+      if (await lookup([r.legacy])) {
+        count('casse', false);
+        continue;
+      }
+      const productIds: string[] = [];
+      for (const ref of r.products ?? []) {
+        const id = await lookup([ref]);
+        if (id) productIds.push(id);
+      }
+      const { rows } = await db.query<{ id: string }>(
+        `insert into cash_registers (edition_id, name, product_ids, printer_settings, issues_numbers, sort)
+         values ($1, $2, $3, $4, $5, $6) on conflict (edition_id, name) do update set updated_at = cash_registers.updated_at returning id`,
+        [editionIds.get(r.edition), r.name, r.products ? productIds : null, r.printer ? JSON.stringify(r.printer) : null, r.issuesNumbers, r.sort],
+      );
+      await remember([r.legacy], rows[0].id);
+      count('casse', true);
+    }
+
     // Impostazioni iniziali dei moduli: solo se l'edizione non le ha già (mai sovrascrivere quelle scelte in admin).
     const resolveRefs = async (v: unknown): Promise<unknown> => {
       // In sequenza: una sola connessione, una query alla volta.

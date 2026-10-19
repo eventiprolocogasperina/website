@@ -1,8 +1,8 @@
 # Reparti e comande (`departments`)
 
-Reparti della cassa e comande (oggi `enableDepartments`). Solo struttura e impostazioni: interfaccia con il prompt 15.
+Reparti della cassa e comande (oggi `enableDepartments`). Schermo reparto `/cassa/reparto/[reparto]` e schermo pubblico `/cassa/pronti/[edizione]` (prompt 14).
 
-**Impostazioni** (`editions.module_settings["departments"]`, form generato dallo schema in `module.ts`): `printTickets`, `kitchenScreen`.
+**Impostazioni** (`editions.module_settings["departments"]`, form generato dallo schema in `module.ts`): `printTickets`, `kitchenScreen`, `readyScreen` (schermo "Pronti" pubblico, spento di default).
 
 **Eventi ascoltati**: Nessuno.
 
