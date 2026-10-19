@@ -185,8 +185,10 @@ export const checkins = pgTable(
     deviceId: uuid('device_id').references(() => devices.id),
     revertedAt: timestamp('reverted_at', { withTimezone: true }),
     revertedBy: uuid('reverted_by').references(() => users.id),
+    /** ID generato dallo scanner per i passaggi registrati offline: la sincronizzazione è idempotente. */
+    clientId: text('client_id'),
   },
-  (t) => [index('checkins_ticket_list_idx').on(t.ticketId, t.checkinListId)],
+  (t) => [index('checkins_ticket_list_idx').on(t.ticketId, t.checkinListId), uniqueIndex('checkins_client_id_unique').on(t.clientId), index('checkins_at_idx').on(t.at)],
 );
 
 export const attendeeAnswers = pgTable(

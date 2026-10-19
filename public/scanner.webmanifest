@@ -1,0 +1,15 @@
+{
+  "name": "Scanner biglietti Pro Loco Gasperina",
+  "short_name": "Scanner",
+  "description": "Check-in dei biglietti agli eventi della Pro Loco Gasperina",
+  "start_url": "/scanner",
+  "scope": "/scanner",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

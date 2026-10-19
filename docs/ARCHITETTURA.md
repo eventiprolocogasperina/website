@@ -914,6 +914,14 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 14: il tempo reale della cassa (SSE) legge il database ogni 2,5 s e chiude dopo 50 s, per funzionare con più istanze su Vercel | Claude, esecuzione fase 3 |
 | 2026-10-19 | Prompt 14: lo schermo "Pronti" è pubblico ma esiste solo con l'impostazione `readyScreen` del modulo reparti e mostra solo numeri | Claude, esecuzione fase 3 |
 | 2026-10-19 | Prompt 14: la nuova cassa non accetta il codice evento (solo dispositivo + PIN o admin); il QR della ricevuta online non si stampa | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 15: lo scanner nuovo è dietro il flag `site_settings.scanner_v2` (spento); `/scanner` serve il vecchio finché il flag è spento, `/scanner/nuovo` serve sempre il nuovo per le prove. I due scanner non vanno usati insieme sulla stessa edizione | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 15: un biglietto di una data rinviata vale nella data di recupero (catena di `rescheduled_to_session_id`) e non più nella data originale | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 15: se la lista di check-in ha una data, vale quella della lista e non quella scelta sullo scanner | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 15: la scansione fa prima una lettura senza transazione (gli esiti negativi rispondono in ~20 ms) e apre la transazione con `FOR UPDATE` sul biglietto solo per registrare un ingresso; i contatori si chiedono dopo, fuori dal percorso critico | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 15: offline in sola lettura con l'elenco degli hash SHA-256 (32 caratteri esadecimali) dei QR validi, mai dati personali; i passaggi offline si sincronizzano in modo idempotente con `checkins.client_id` (UNIQUE) | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 15: il "+1 Bambino" allo scanner aggiorna solo la risposta `bambini` dell'ordine (con audit), non registra un pagamento: l'incasso resta in cassa o con un link di pagamento | Claude, esecuzione fase 3 (da confermare con Niccolo) |
+| 2026-10-19 | Prompt 15: il lettore ZXing (wasm) è servito dal sito (`public/vendor/zxing/`), non dal CDN: serve offline e su iOS | Claude, esecuzione fase 3 |
+| 2026-10-19 | Sviluppo locale: `LOCAL_DB_PROXY` in `instrumentation.ts` permette a ogni worktree il proprio proxy Neon (predefinito `localhost:4444`) | Claude, esecuzione fase 3 |
 
 ---
 

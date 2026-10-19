@@ -92,6 +92,19 @@ Quando la colonna dice "o", basta uno dei due accessi (es. le statistiche dello 
 | `/api/tickets/verify` | POST: checkin.scan (scanner: admin o dispositivo+PIN) |
 | `/api/zuccaland/alert` | POST: `editions.edit` |
 
+Rotte dello scanner nuovo (prompt 15, `src/app/api/scanner/*`, vedi [check-in.md](check-in.md)): tutte richiedono admin con il permesso oppure dispositivo scanner abbinato + PIN (`requireCheckin`); nessuna restituisce email o telefono.
+
+| Rotta | Permesso |
+|---|---|
+| `/api/scanner/bootstrap` | GET: checkin.scan |
+| `/api/scanner/scan` | POST: checkin.scan |
+| `/api/scanner/revert` | POST: checkin.revert |
+| `/api/scanner/action` | POST: checkin.scan (pulsanti dei moduli, es. "+1 Bambino") |
+| `/api/scanner/search` | GET: checkin.scan (nome o codice; niente email/telefono) |
+| `/api/scanner/counters` | GET: checkin.scan |
+| `/api/scanner/offline` | GET: checkin.scan (solo hash dei QR, niente dati personali) |
+| `/api/scanner/sync` | POST: checkin.scan (idempotente su `checkins.client_id`) |
+
 Rotte nuove: `/api/field/session` (stato dell'accesso sul dispositivo, pubblica: non restituisce dati personali oltre ai nomi di chi può entrare su quel dispositivo, e solo a un dispositivo abbinato), `/api/field/pin` (PIN, richiede il dispositivo), `/api/field/logout`, `/api/auth/password-link` (utente dell'admin).
 
 ## Riepilogo
