@@ -45,6 +45,8 @@ const LineInput = z.object({ productId: z.string().uuid(), quantity: z.number().
 const LinesInput = z.array(LineInput).min(1, 'Il carrello è vuoto.').max(30);
 
 const IMMEDIATE_METHODS = ['cash', 'card_pos', 'bank_transfer'] as const;
+/** In cassa si può anche dare un omaggio, con il motivo (prompt 14). */
+const POS_METHODS = [...IMMEDIATE_METHODS, 'complimentary'] as const;
 
 function assertCanOn(ctx: Ctx, permission: Permission, edition: string) {
   if (!can(ctx, permission, { edition })) throw new DomainError('FORBIDDEN');
@@ -75,12 +77,19 @@ export const CreateOrderInput = z
     idempotencyKey: z.string().trim().min(8).max(100),
     /** Totale mostrato al cliente: se il server calcola un importo diverso, PRICE_CHANGED. */
     expectedTotalCents: z.number().int().min(0).nullish(),
-    /** Pagamento incassato subito (cassa e admin). In cassa il default è il contante. */
-    payNow: z.enum(IMMEDIATE_METHODS).nullish(),
+    /** Pagamento incassato subito (cassa e admin). In cassa il default è il contante; `complimentary` solo in cassa. */
+    payNow: z.enum(POS_METHODS).nullish(),
+    /** Motivo dell'omaggio, obbligatorio con `payNow: 'complimentary'`. Finisce nel pagamento e nel registro. */
+    complimentaryReason: z.string().trim().max(200).nullish(),
+    /** Turno di cassa (solo canale `pos`). Lo controlla il servizio della cassa, che passa da qui (cash/sales). */
+    cashSessionId: uuid.nullish(),
   })
   .superRefine((v, c) => {
     if (['online', 'paylink', 'invite'].includes(v.channel) && !v.customer) c.addIssue({ code: 'custom', path: ['customer'], message: 'Servono nome ed email.' });
     if (v.payNow && !['pos', 'admin'].includes(v.channel)) c.addIssue({ code: 'custom', path: ['payNow'], message: 'Pagamento immediato solo da cassa o admin.' });
+    if (v.payNow === 'complimentary' && v.channel !== 'pos') c.addIssue({ code: 'custom', path: ['payNow'], message: 'L’omaggio si registra solo in cassa.' });
+    if (v.payNow === 'complimentary' && (v.complimentaryReason ?? '').length < 3) c.addIssue({ code: 'custom', path: ['complimentaryReason'], message: 'Scrivi il motivo dell’omaggio.' });
+    if (v.cashSessionId && v.channel !== 'pos') c.addIssue({ code: 'custom', path: ['cashSessionId'], message: 'Il turno di cassa vale solo per il canale cassa.' });
   });
 export type CreateOrderInput = z.input<typeof CreateOrderInput>;
 
@@ -93,6 +102,22 @@ export type OrderResult = {
   expiresAt: Date | null;
   /** false se l'ordine esisteva già con la stessa chiave di idempotenza. */
   created: boolean;
+  /** true se l'ordine è stato accettato oltre le scorte (solo con `allowOversell`). */
+  oversold?: boolean;
+};
+
+/** Dentro la transazione di createOrder, dopo aver scritto ordine, righe e pagamento (es. i dati della cassa). */
+export type CreateOrderHook = (tx: Tx, created: { order: OrderRow; lines: Array<typeof orderLines.$inferSelect>; edition: EditionRow; oversold: boolean }) => Promise<void>;
+
+export type CreateOrderOptions = {
+  now?: Date;
+  parentOrderId?: string;
+  /**
+   * Accetta l'ordine anche oltre le quote, segnandolo `oversold`. Solo per le vendite di cassa fatte
+   * offline e sincronizzate dopo: i soldi sono già stati presi, va segnalato, non rifiutato (§12.1).
+   */
+  allowOversell?: boolean;
+  inTransaction?: CreateOrderHook;
 };
 
 const toResult = (o: OrderRow, created: boolean): OrderResult => ({
@@ -119,7 +144,7 @@ async function findByIdempotencyKey(db: Tx | ReturnType<typeof getDb>, key: stri
  * - cassa, pagamento immediato o totale a 0 €: `paid` subito, con il pagamento registrato;
  * - stessa `idempotencyKey`: restituisce l'ordine già creato.
  */
-export async function createOrder(ctx: Ctx, input: CreateOrderInput, opts: { now?: Date; parentOrderId?: string } = {}): Promise<OrderResult> {
+export async function createOrder(ctx: Ctx, input: CreateOrderInput, opts: CreateOrderOptions = {}): Promise<OrderResult> {
   const data = CreateOrderInput.parse(input);
   const now = opts.now ?? new Date();
   const already = await findByIdempotencyKey(getDb(), data.idempotencyKey, data.editionId);
@@ -128,7 +153,7 @@ export async function createOrder(ctx: Ctx, input: CreateOrderInput, opts: { now
   for (let attempt = 0; ; attempt++) {
     const events: DomainEvent[] = [];
     try {
-      const result = await withTransaction((tx) => createOrderTx(tx, ctx, data, now, events, opts.parentOrderId ?? null));
+      const result = await withTransaction((tx) => createOrderTx(tx, ctx, data, now, events, opts));
       await publish(events);
       return result;
     } catch (error) {
@@ -144,7 +169,8 @@ export async function createOrder(ctx: Ctx, input: CreateOrderInput, opts: { now
   }
 }
 
-async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrderInput>, now: Date, events: DomainEvent[], parentOrderId: string | null): Promise<OrderResult> {
+async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrderInput>, now: Date, events: DomainEvent[], opts: CreateOrderOptions): Promise<OrderResult> {
+  const parentOrderId = opts.parentOrderId ?? null;
   const edition = await lockEdition(tx, data.editionId);
   const permission = CHANNEL_PERMISSION[data.channel];
   if (permission) assertCanOn(ctx, permission, edition.slug);
@@ -178,7 +204,13 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
   });
   if (data.expectedTotalCents != null && data.expectedTotalCents !== priced.totalCents) throw new DomainError('PRICE_CHANGED');
 
-  await reserveSeats(tx, edition.id, priced.lines, { now });
+  let oversold = false;
+  try {
+    await reserveSeats(tx, edition.id, priced.lines, { now });
+  } catch (error) {
+    if (!(opts.allowOversell && data.channel === 'pos' && error instanceof DomainError && error.code === 'SOLD_OUT')) throw error;
+    oversold = true;
+  }
   if (edition.enabledModules.includes('activities') && data.answers?.length) {
     const admissions = priced.lines.reduce((s, l) => s + (catalog.find((p) => p.id === l.productId)?.kind === 'ticket' ? l.quantity : 0), 0);
     const sessionForCheck = data.sessionId ?? priced.lines.find((l) => l.sessionId)?.sessionId ?? null;
@@ -210,6 +242,7 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
       idempotencyKey: data.idempotencyKey,
       expiresAt: !paidNow && ttl ? new Date(now.getTime() + ttl) : null,
       paidAt: paidNow ? now : null,
+      cashSessionId: data.cashSessionId ?? null,
     })
     .returning();
 
@@ -250,19 +283,23 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
       amountCents: priced.totalCents,
       status: 'succeeded',
       receivedAt: now,
-      cashSessionId: null,
+      cashSessionId: data.cashSessionId ?? null,
+      raw: payNow === 'complimentary' ? { reason: data.complimentaryReason } : null,
     });
   }
+
+  if (opts.inTransaction) await opts.inTransaction(tx, { order, lines: lineRows, edition, oversold });
 
   await audit(tx, ctx, 'order.created', {
     entityType: 'order',
     entityId: order.id,
     edition: edition.slug,
-    after: { code: order.code, channel: order.channel, status: order.status, totalCents: order.totalCents, lines: lineRows.length, tickets: ticketRows.length, parentOrderId },
+    after: { code: order.code, channel: order.channel, status: order.status, totalCents: order.totalCents, lines: lineRows.length, tickets: ticketRows.length, parentOrderId, ...(oversold ? { oversold } : {}) },
+    reason: payNow === 'complimentary' ? data.complimentaryReason : null,
   });
   events.push({ type: 'order.created', orderId: order.id, code: order.code, edition: edition.slug, status: order.status });
   if (paidNow) events.push({ type: 'order.paid', orderId: order.id, code: order.code, edition: edition.slug, totalCents: order.totalCents });
-  return toResult(order, true);
+  return { ...toResult(order, true), ...(oversold ? { oversold } : {}) };
 }
 
 // ─── Annullamento e scadenza ─────────────────────────────────────────────────

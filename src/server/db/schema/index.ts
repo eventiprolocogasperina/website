@@ -4,3 +4,4 @@ export * from './catalog';
 export * from './orders';
 export * from './closing';
 export * from './admin';
+export * from './cash';

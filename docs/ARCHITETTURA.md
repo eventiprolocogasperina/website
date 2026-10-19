@@ -904,6 +904,16 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 12: note interne dell'ordine in una tabella a parte (`order_notes`), solo aggiunte e mai modificate, come un registro; le note del sistema di prima restano in `legacy_notes` | Prompt 12 |
 | 2026-10-19 | Prompt 12: CSV con separatore ";" e BOM per Excel in italiano; le celle che iniziano con = + - @ prendono un apostrofo (anche i telefoni "+39") per non diventare formule | Prompt 12 |
 | 2026-10-19 | Prompt 12: esportazioni (ordini, partecipanti, bonifici) con `reports.export`; l'IBAN intero nel CSV solo con `refunds.view_iban` su tutte le edizioni esportate, e l'esportazione resta nel registro | Prompt 12 |
+| 2026-10-19 | Prompt 14: l'annullo di un contributo è uno storno con lo stesso metodo (rimborso già pagato, legato al turno che restituisce i soldi) più l'annullo dell'ordine; nulla si cancella | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: l'omaggio è un pagamento con metodo `complimentary` al valore della merce (motivo obbligatorio, solo canale `pos`), mostrato a parte e fuori dai contributi | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: un turno per cassa (indice unico sui turni aperti); un secondo telefono sulla stessa cassa entra nel turno già aperto | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: numero da chiamare e numero Z sono contatori per edizione (`cash_counters`); "Nuova giornata" fa solo ripartire il numero, il vecchio "salva storico e azzera" diventa il rendiconto filtrato per data | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: le vendite offline si accettano anche oltre la scorta o dopo la chiusura del turno (i soldi sono già in cassa) e restano segnalate in admin; l'ora è quella del telefono se ha meno di 48 ore | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: Z e rendiconto leggono gli stessi movimenti (pagamenti e storni legati ai turni), così la somma delle Z quadra con il rendiconto | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: la griglia della cassa raggruppa per reparto del prodotto, altrimenti per tipo (il catalogo nuovo non ha categorie); i prodotti legati a una data non si vendono in cassa | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: il tempo reale della cassa (SSE) legge il database ogni 2,5 s e chiude dopo 50 s, per funzionare con più istanze su Vercel | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: lo schermo "Pronti" è pubblico ma esiste solo con l'impostazione `readyScreen` del modulo reparti e mostra solo numeri | Claude, esecuzione fase 3 |
+| 2026-10-19 | Prompt 14: la nuova cassa non accetta il codice evento (solo dispositivo + PIN o admin); il QR della ricevuta online non si stampa | Claude, esecuzione fase 3 |
 
 ---
 

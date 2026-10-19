@@ -49,3 +49,7 @@ Restano nomi di edizione nel codice, motivati:
 - `src/server/domain/pricing/legacyCatalog.ts`: il catalogo che usa oggi l'acquisto di Zuccaland, in vendita (§18.10); sparisce con il checkout nuovo (prompt 13);
 - `src/components/admin/OrderManager.tsx`: la pagina Ordini di oggi, sostituita dal prompt 12;
 - `src/components/admin/GalleryForm.tsx`: `baguette26` è una categoria della galleria, non un'edizione.
+
+## Reparti nella nuova cassa (prompt 14)
+
+Con `departments` attivo le righe di cassa con un reparto partono "da preparare" e compaiono in `/cassa/reparto/<reparto>` (da preparare → in preparazione → pronte → consegnate). L'impostazione **Schermo Pronti** (`readyScreen`, spenta di default) accende lo schermo pubblico `/cassa/pronti/<edizione>`, che mostra solo i numeri. Vedi `docs/cassa.md`.

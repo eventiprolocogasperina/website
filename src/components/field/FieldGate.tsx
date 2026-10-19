@@ -16,26 +16,60 @@ type Props = {
   kind: 'pos' | 'scanner';
   /** Contenuto dell'app; riceve chi è entrato (null se si usa il vecchio codice evento o l'admin). */
   children: (session: FieldSession, logout: () => Promise<void>) => ReactNode;
+  /** Indirizzo dell'app di cassa a cui rimandare un dispositivo pos (default la vecchia /cashier). */
+  posHref?: string;
+  /** La vecchia cassa accetta anche il codice evento; la nuova /cassa no. */
+  allowLegacyCode?: boolean;
+  /**
+   * Se indicata, l'ultima sessione si conserva sul telefono con questa chiave: senza rete l'app
+   * si riapre lo stesso (la cassa offline, §12.1 punto 7). Il server ricontrolla tutto al rientro.
+   */
+  offlineCacheKey?: string;
 };
+
+function readCache(key?: string): FieldSession | null {
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as FieldSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key: string | undefined, session: FieldSession) {
+  if (!key) return;
+  try {
+    // Solo una sessione valida (dispositivo + persona): una sessione scaduta non si riapre offline.
+    if (session.device && session.user) localStorage.setItem(key, JSON.stringify(session));
+    else localStorage.removeItem(key);
+  } catch {
+    // archivio del browser non disponibile: niente copia offline
+  }
+}
 
 /**
  * Ingresso delle app da campo (§8.1): dispositivo abbinato → nome → PIN.
  * Senza dispositivo la cassa resta accessibile con il codice evento (flag legacy_event_code)
  * e lo scanner con la sessione dell'admin.
  */
-export function FieldGate({ kind, children }: Props) {
+export function FieldGate({ kind, children, posHref = '/cashier', allowLegacyCode = true, offlineCacheKey }: Props) {
   const [session, setSession] = useState<FieldSession | null>(null);
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const res = await fetch('/api/field/session', { cache: 'no-store' });
-      setSession(await res.json());
+      const data = (await res.json()) as FieldSession;
+      writeCache(offlineCacheKey, data);
+      setSession(data);
       setFailed(false);
     } catch {
-      setFailed(true);
+      const cached = readCache(offlineCacheKey);
+      if (cached) setSession(cached);
+      else setFailed(true);
     }
-  }, []);
+  }, [offlineCacheKey]);
 
   useEffect(() => {
     load();
@@ -70,7 +104,7 @@ export function FieldGate({ kind, children }: Props) {
       <Screen title="Dispositivo per un’altra app">
         <p className="text-body text-muted">
           “{device.name}” è abbinato {device.kind === 'pos' ? 'alla cassa' : 'allo scanner'}. Apri{' '}
-          <a className="text-primary underline" href={device.kind === 'pos' ? '/cashier' : '/scanner'}>
+          <a className="text-primary underline" href={device.kind === 'pos' ? posHref : '/scanner'}>
             {device.kind === 'pos' ? 'la cassa' : 'lo scanner'}
           </a>{' '}
           oppure chiedi un nuovo abbinamento.
@@ -86,7 +120,7 @@ export function FieldGate({ kind, children }: Props) {
       </Screen>
     );
   }
-  if (!device && kind === 'pos' && !session.legacyCode && !session.admin) {
+  if (!device && kind === 'pos' && !(allowLegacyCode && session.legacyCode) && !session.admin) {
     return (
       <Screen title="Dispositivo non abbinato">
         <p className="text-body text-muted">Chiedi a un responsabile di abbinare questo dispositivo alla cassa, dall’admin in Sistema › Utenti › Dispositivi.</p>

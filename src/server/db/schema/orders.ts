@@ -17,7 +17,8 @@ export const ticketStatus = pgEnum('ticket_status', ['valid', 'void']);
 export const paymentMethod = pgEnum('payment_method', ['nexi', 'cash', 'card_pos', 'complimentary', 'bank_transfer']);
 export const paymentStatus = pgEnum('payment_status', ['pending', 'succeeded', 'failed']);
 export const refundStatus = pgEnum('refund_status', ['requested', 'approved', 'paid', 'rejected']);
-export const refundMethod = pgEnum('refund_method', ['bank_transfer', 'nexi', 'cash']);
+/** `card_pos` e `complimentary`: storno di un contributo annullato in cassa, con lo stesso metodo del pagamento (prompt 14). */
+export const refundMethod = pgEnum('refund_method', ['bank_transfer', 'nexi', 'cash', 'card_pos', 'complimentary']);
 
 const timestamps = {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -63,7 +64,7 @@ export const ordersV2 = pgTable(
     discountCents: integer('discount_cents').default(0).notNull(),
     totalCents: integer('total_cents').notNull(),
     discountId: uuid('discount_id').references(() => discountsV2.id),
-    /** Turno di cassa (tabella del prompt 15). */
+    /** Turno di cassa (`cash_sessions`, prompt 14). */
     cashSessionId: uuid('cash_session_id'),
     operatorId: uuid('operator_id').references(() => users.id),
     deviceId: uuid('device_id').references(() => devices.id),
@@ -220,7 +221,12 @@ export const payments = pgTable(
     cashSessionId: uuid('cash_session_id'),
     ...timestamps,
   },
-  (t) => [uniqueIndex('payments_provider_ref_unique').on(t.providerRef), index('payments_order_idx').on(t.orderId), check('payments_amount', sql`${t.amountCents} >= 0`)],
+  (t) => [
+    uniqueIndex('payments_provider_ref_unique').on(t.providerRef),
+    index('payments_order_idx').on(t.orderId),
+    index('payments_cash_session_idx').on(t.cashSessionId),
+    check('payments_amount', sql`${t.amountCents} >= 0`),
+  ],
 );
 
 export const refundsV2 = pgTable(
@@ -240,6 +246,8 @@ export const refundsV2 = pgTable(
     requestedAt: timestamp('requested_at', { withTimezone: true }).defaultNow().notNull(),
     processedAt: timestamp('processed_at', { withTimezone: true }),
     processedBy: uuid('processed_by').references(() => users.id),
+    /** Turno di cassa da cui sono usciti i soldi (annullo in cassa, prompt 14). */
+    cashSessionId: uuid('cash_session_id'),
     ...timestamps,
   },
   (t) => [index('refunds_v2_order_idx').on(t.orderId), index('refunds_v2_status_idx').on(t.status), check('refunds_v2_amount', sql`${t.amountCents} > 0`)],

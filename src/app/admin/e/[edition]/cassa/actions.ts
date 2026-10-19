@@ -1,0 +1,43 @@
+'use server';
+
+import QRCode from 'qrcode';
+import { runAction } from '@/server/admin/run-action';
+import { DomainError } from '@/server/domain/errors';
+import { createPairing, listDevices, revokeDevice } from '@/server/domain/devices';
+import { resetOrderNumbering, saveRegister, setRegisterActive, type RegisterInput } from '@/server/domain/cash/registers';
+import { siteUrl } from '@/server/email/send';
+
+// Azioni della pagina Cassa dell'admin (prompt 14). I permessi li controllano i servizi.
+
+const paths = (edition: string) => [`/admin/e/${edition}/cassa`];
+
+export async function saveRegisterAction(edition: string, id: string | null, input: RegisterInput) {
+  return runAction(paths(edition), (ctx) => saveRegister(ctx, edition, id, input));
+}
+
+export async function setRegisterActiveAction(edition: string, id: string, active: boolean) {
+  return runAction(paths(edition), (ctx) => setRegisterActive(ctx, edition, id, active));
+}
+
+export async function resetNumberingAction(edition: string, startFrom: number) {
+  return runAction(paths(edition), (ctx) => resetOrderNumbering(ctx, edition, startFrom));
+}
+
+/** QR di abbinamento di un dispositivo di cassa per questa edizione (come in Sistema › Utenti). */
+export async function pairPosDeviceAction(edition: string, name: string) {
+  return runAction(paths(edition), async (ctx) => {
+    const { token, expiresAt } = await createPairing(ctx, { name, edition, kind: 'pos' });
+    const url = `${siteUrl()}/abbina/${token}`;
+    const qr = await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 280 });
+    return { url, qr, expiresAt };
+  });
+}
+
+export async function revokePosDeviceAction(edition: string, deviceId: string) {
+  return runAction(paths(edition), async (ctx) => {
+    // Solo i dispositivi di questa edizione si revocano da qui.
+    const device = (await listDevices(ctx)).find((d) => d.id === deviceId);
+    if (!device || device.edition !== edition) throw new DomainError('NOT_FOUND', { message: 'Dispositivo non trovato in questa edizione.' });
+    await revokeDevice(ctx, deviceId);
+  });
+}

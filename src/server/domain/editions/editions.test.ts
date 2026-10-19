@@ -128,6 +128,42 @@ describe('backfill delle edizioni', () => {
     // La cassa di Zuccaland si aggancia all'edizione esistente, non ne crea un'altra.
     expect(withCashier.editions.filter((e) => e.slug.startsWith('zuccaland'))).toHaveLength(1);
     expect(withCashier.editions.find((e) => e.slug === 'zuccaland-2026')!.legacy).toContainEqual({ kind: 'cashier_event', id: 'zuccaland-2026' });
+    // Senza elenco di casse: una sola "Cassa" che vende tutto.
+    expect(withCashier.registers.filter((r) => r.edition === 'sagra-2026')).toEqual([expect.objectContaining({ name: 'Cassa', products: null, sort: 1 })]);
+  });
+
+  it('le casse della vecchia configurazione diventano casse con i loro prodotti e la stampante', () => {
+    const plan = planBackfill({
+      events: [],
+      zuccaland: null,
+      today: '2026-10-19',
+      cashier: {
+        defaultPrinterSettings: { ticketWidthMm: 80, charactersPerLine: 48, autoPrintOnOrder: true, printCustomerReceipt: true, printDepartmentSlips: false, showQrCode: true, autoCutPaper: true },
+        events: [
+          {
+            id: 'sagra-2026',
+            name: 'Sagra 2026',
+            eventCode: 'X',
+            active: true,
+            categories: [],
+            createdAt: '',
+            updatedAt: '',
+            casses: ['Cassa 1', 'Bar', 'Bar'],
+            cassaAssignments: { Bar: ['birra', 'sparito'], 'Cassa 1': [] },
+            items: [
+              { id: 'birra', name: 'Birra', category: 'Bevande', price: 3.5, isAvailable: true },
+              { id: 'panino', name: 'Panino', category: 'Panini', price: 6, isAvailable: true },
+            ],
+          },
+        ],
+      },
+    });
+    expect(plan.registers.map((r) => [r.name, r.products, r.sort, r.legacy.id])).toEqual([
+      ['Cassa 1', null, 1, 'sagra-2026:Cassa 1'],
+      ['Bar', [{ kind: 'cashier_item', id: 'sagra-2026:birra' }], 2, 'sagra-2026:Bar'],
+    ]);
+    expect(plan.registers[0].printer).toMatchObject({ ticketWidthMm: 80, autoPrintOnOrder: true, showQrCode: false });
+    expect(plan.notes.some((n) => n.includes('Bar') && n.includes('1 prodotti'))).toBe(true);
   });
 
   it('slug sicuri', () => {

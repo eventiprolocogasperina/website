@@ -69,4 +69,13 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'ticket.checkin_reverted': 'Ingresso annullato',
   'checkin_list.created': 'Lista di check-in creata',
   'checkin_list.updated': 'Lista di check-in modificata',
+  'cash.register_created': 'Cassa creata',
+  'cash.register_updated': 'Cassa modificata',
+  'cash.register_enabled': 'Cassa attivata',
+  'cash.register_disabled': 'Cassa spenta',
+  'cash.numbering_reset': 'Numerazione della cassa ripartita',
+  'cash.session_opened': 'Turno di cassa aperto',
+  'cash.session_closed': 'Turno di cassa chiuso (chiusura Z)',
+  'cash.sale_voided': 'Contributo annullato in cassa',
+  'cash.prep_status': 'Comanda spostata nel reparto',
 };
