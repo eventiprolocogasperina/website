@@ -4,11 +4,12 @@ import { z } from 'zod';
 import { romeDateTime } from '@/lib/dates';
 import type { Ctx } from '@/server/auth/context-shared';
 import { getDb, withTransaction, type Tx } from '@/server/db/client';
-import { discountsV2, editions, products, quotaProducts, quotas, sessions } from '@/server/db/schema';
+import { discountsV2, editions, orderLines, products, quotaProducts, quotas, sessions } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { assertCan, editionForWrite } from '@/server/domain/editions';
 import { DomainError } from '@/server/domain/errors';
-import { computeAvailability, type Availability } from '@/server/domain/quotas/availability';
+import { soldCounts } from '@/server/domain/orders/shared';
+import { computeAvailability, type Availability, type SoldCounts } from '@/server/domain/quotas/availability';
 import { legacySoldCounts } from '@/server/domain/quotas/legacy-sold';
 
 export const PRODUCT_KINDS = ['ticket', 'addon', 'food', 'drink', 'merch', 'donation', 'service'] as const;
@@ -45,10 +46,20 @@ async function loadCatalog(editionId: string): Promise<Catalog> {
   return { sessions: s, products: p, quotas: q.map((x) => ({ ...x, productIds: links.filter((l) => l.quotaId === x.id).map((l) => l.productId) })), discounts: d };
 }
 
-/** Posti residui per prodotto e data, calcolati dalle quote (per ora sui biglietti delle tabelle attuali). */
+/**
+ * Posti occupati: vendite delle tabelle attuali (adattatore del prompt 08) più gli ordini del nucleo
+ * nuovo. Fino alla migrazione del prompt 10 un'edizione ha vendite solo da una delle due parti.
+ */
+async function allSoldCounts(editionId: string): Promise<SoldCounts> {
+  const [legacy, current] = await Promise.all([legacySoldCounts(editionId), soldCounts(getDb(), editionId, { now: new Date() })]);
+  for (const [k, n] of current) legacy.set(k, (legacy.get(k) ?? 0) + n);
+  return legacy;
+}
+
+/** Posti residui per prodotto e data, calcolati dalle quote. */
 export async function getAvailability(editionId: string, catalog?: Catalog): Promise<Availability> {
   const c = catalog ?? (await loadCatalog(editionId));
-  const sold = await legacySoldCounts(editionId);
+  const sold = await allSoldCounts(editionId);
   return computeAvailability({ products: c.products, sessions: c.sessions, quotas: c.quotas, sold });
 }
 
@@ -64,10 +75,20 @@ async function writable(ctx: Ctx, tx: Tx, slug: string) {
   return editionForWrite(tx, slug);
 }
 
-async function assertNothingSold(editionId: string, check: (key: string) => boolean, what: string) {
+/**
+ * Un prodotto o una data con vendite non si elimina: si disattiva o si chiude.
+ * Contano le vendite delle tabelle attuali e ogni riga d'ordine del nucleo nuovo, anche annullata
+ * (ordini e righe non si cancellano mai, §18).
+ */
+async function assertNothingSold(editionId: string, check: (key: string) => boolean, what: string, ref: { productId?: string; sessionId?: string }) {
   const sold = await legacySoldCounts(editionId);
-  for (const [key, n] of sold) {
-    if (n > 0 && check(key)) throw new DomainError('CONFLICT', { message: `${what} ha già delle vendite: non si può eliminare. Disattivalo o chiudilo invece.` });
+  const [line] = await getDb()
+    .select({ id: orderLines.id })
+    .from(orderLines)
+    .where(ref.productId ? eq(orderLines.productId, ref.productId) : eq(orderLines.sessionId, ref.sessionId!))
+    .limit(1);
+  if (line || [...sold].some(([key, n]) => n > 0 && check(key))) {
+    throw new DomainError('CONFLICT', { message: `${what} ha già delle vendite: non si può eliminare. Disattivalo o chiudilo invece.` });
   }
 }
 
@@ -124,7 +145,7 @@ export async function saveSession(ctx: Ctx, slug: string, id: string | null, inp
 export async function deleteSession(ctx: Ctx, slug: string, id: string): Promise<void> {
   assertCan(ctx, 'catalog.edit', slug);
   const editionId = await editionIdFor(slug);
-  await assertNothingSold(editionId, (key) => key.endsWith(`|${id}`), 'Questa data');
+  await assertNothingSold(editionId, (key) => key.endsWith(`|${id}`), 'Questa data', { sessionId: id });
   await withTransaction(async (tx) => {
     const edition = await writable(ctx, tx, slug);
     const [row] = await tx.delete(sessions).where(and(eq(sessions.id, id), eq(sessions.editionId, edition.id))).returning();
@@ -205,7 +226,7 @@ export async function saveProduct(ctx: Ctx, slug: string, id: string | null, inp
 export async function deleteProduct(ctx: Ctx, slug: string, id: string): Promise<void> {
   assertCan(ctx, 'catalog.edit', slug);
   const editionId = await editionIdFor(slug);
-  await assertNothingSold(editionId, (key) => key.startsWith(`${id}|`), 'Questo prodotto');
+  await assertNothingSold(editionId, (key) => key.startsWith(`${id}|`), 'Questo prodotto', { productId: id });
   await withTransaction(async (tx) => {
     const edition = await writable(ctx, tx, slug);
     const [row] = await tx.delete(products).where(and(eq(products.id, id), eq(products.editionId, edition.id))).returning();

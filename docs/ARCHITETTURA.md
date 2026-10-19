@@ -880,6 +880,9 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 08: la capienza di una data è una quota implicita sui prodotti di tipo biglietto che richiedono la data; vale sempre la quota più piccola | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 08: duplicando un'edizione le date si spostano del multiplo di 7 giorni più vicino a N anni (stesso giorno della settimana, stessa ora di Roma) | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 08: gli eventi che esistono solo nella cassa diventano edizioni in bozza; le scorte della cassa sono già "rimanenti" e non si sottraggono vendite | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 09: un'integrazione è un ordine nuovo collegato (`parent_order_id`) con il suo pagamento, non righe aggiunte a un ordine pagato | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 09: un pagamento che arriva dopo la scadenza riattiva l'ordine solo se i posti ci sono ancora; altrimenti evento `order.paid_after_expiry` per il rimborso | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 09: i test sul database usano un Postgres locale (`proloco_test`), mai un branch Neon | Claude, esecuzione fase 2 |
 
 ---
 

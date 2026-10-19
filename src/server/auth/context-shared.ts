@@ -16,9 +16,22 @@ export type Ctx = {
   legacy: boolean;
   grants: RoleGrant[];
   ip: string | null;
+  /** Processi automatici (cron, callback di pagamento già verificati): il nome compare nel registro. */
+  system?: string;
 };
 
+/** Contesto di chi compra dal sito: nessun ruolo, solo l'IP. */
+export function publicCtx(ip: string | null = null): Ctx {
+  return { user: null, device: null, legacy: false, grants: [], ip };
+}
+
+/** Contesto di un processo automatico, già autenticato dal chiamante (segreto del cron, firma del gestore). */
+export function systemCtx(name: string): Ctx {
+  return { user: null, device: null, legacy: false, grants: [], ip: null, system: name };
+}
+
 export function actorLabel(ctx: Ctx): string {
+  if (ctx.system) return `Sistema · ${ctx.system}`;
   if (ctx.legacy) return 'Accesso di emergenza';
   const who = ctx.user?.name ?? 'Non identificato';
   return ctx.device ? `${who} · ${ctx.device.name}` : who;

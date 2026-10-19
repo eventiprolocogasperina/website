@@ -17,7 +17,9 @@
     "db:studio": "drizzle-kit studio",
     "db:mark-baseline": "node scripts/db/mark-baseline.mjs",
     "create-owner": "tsx scripts/create-owner.ts",
-    "backfill:editions": "tsx scripts/backfill-editions.ts"
+    "backfill:editions": "tsx scripts/backfill-editions.ts",
+    "test:db": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --project db",
+    "test:coverage": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --coverage"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -68,6 +70,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^3.2.7",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",

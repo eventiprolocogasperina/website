@@ -36,6 +36,13 @@
       "when": 1792408394872,
       "tag": "0004_edizioni_catalogo",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792410119799,
+      "tag": "0005_ordini",
+      "breakpoints": true
     }
   ]
 }
