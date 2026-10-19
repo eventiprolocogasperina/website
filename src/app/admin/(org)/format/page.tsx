@@ -1,10 +1,16 @@
+import { AdminPage } from '@/components/admin/shell/AdminPage';
 import { pageDenied } from '@/server/auth/guard';
-import { ComingSoon } from '@/components/admin/shell/ComingSoon';
+import { listSeries } from '@/server/domain/editions/series';
+import { FormatsClient } from './FormatsClient';
 
 export const metadata = { title: 'Format' };
 
-export default async function Page() {
-  const denied = await pageDenied('editions.create');
+export default async function FormatsPage() {
+  const denied = await pageDenied('editions.edit');
   if (denied) return denied;
-  return <ComingSoon title="Format" description="Ogni format (Zuccaland, Assaggia e Passeggia…) con le sue edizioni, i moduli e la pagina fuori stagione." when="con la fase 2" />;
+  return (
+    <AdminPage>
+      <FormatsClient rows={await listSeries()} />
+    </AdminPage>
+  );
 }

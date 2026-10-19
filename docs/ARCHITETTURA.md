@@ -875,6 +875,11 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 07: finché non esiste `editions` (prompt 08), ruoli, dispositivi e registro usano `edition_slug`; il prompt 08 aggiunge `edition_id` e lo riempie dallo slug | Claude, esecuzione fase 1 |
 | 2026-10-19 | Prompt 07: password con scrypt (già in uso, nessuna dipendenza nuova); TOTP rimandato; sul dispositivo si sceglie il nome e poi si digita il PIN | Claude, esecuzione fase 1 |
 | 2026-10-19 | Prompt 07: i dispositivi li abbinano titolare e amministratori (`settings.manage`); gli utenti li gestisce solo il titolare (`users.manage`) | Claude, esecuzione fase 1 |
+| 2026-10-19 | Prompt 08: lo slug dell'edizione non cambia mai e resta il riferimento in ruoli, dispositivi e registro (`edition_slug`), al posto di aggiungere `edition_id` | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 08: le tabelle nuove che hanno già un omonimo legacy prendono il suffisso `_v2` (`discounts_v2`; poi `orders_v2`, `tickets_v2`, `refunds_v2`) | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 08: la capienza di una data è una quota implicita sui prodotti di tipo biglietto che richiedono la data; vale sempre la quota più piccola | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 08: duplicando un'edizione le date si spostano del multiplo di 7 giorni più vicino a N anni (stesso giorno della settimana, stessa ora di Roma) | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 08: gli eventi che esistono solo nella cassa diventano edizioni in bozza; le scorte della cassa sono già "rimanenti" e non si sottraggono vendite | Claude, esecuzione fase 2 |
 
 ---
 

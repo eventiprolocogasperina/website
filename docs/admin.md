@@ -6,7 +6,7 @@ La shell è in `src/components/admin/shell/` e ha due livelli (§10 di ARCHITETT
 - **Edizione** (`/admin/e/<edizione>/…`): panoramica, date, catalogo, ordini, partecipanti, check-in, cassa, rimborsi, statistiche, pagina pubblica, moduli attivi e impostazioni.
 
 Le voci di menu stanno tutte in `nav.config.ts`; sidebar, breadcrumb, palette ⌘K e scorciatoie `g x` leggono da lì.
-Le edizioni per ora le ricostruisce `src/server/domain/editions/legacyEditions.ts` dalla tabella `events`; il prompt 08 lo sostituisce con le tabelle vere.
+Le edizioni vengono dalle tabelle `series` ed `editions` (prompt 08, vedi `docs/edizioni.md`). Quelle importate dal vecchio sistema sono collegate alle tabelle di oggi tramite `legacy_id_map`.
 
 ## Pagine precedenti al rifacimento
 

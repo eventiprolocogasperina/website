@@ -39,3 +39,18 @@ eseguita**, va solo registrata come applicata. Procedura, da fare con Niccolo:
 
 `db:mark-baseline` si rifiuta di agire se trova già migrazioni registrate o se il database è
 vuoto (in quel caso basta `db:migrate`).
+
+## Migrazioni
+
+| Migrazione | Cosa aggiunge | Come tornare indietro |
+|---|---|---|
+| `0004_edizioni_catalogo` | `series`, `editions`, `sessions`, `products`, `quotas`, `quota_products`, `discounts_v2`, `legacy_id_map` e i loro enum | Tabelle solo nuove, nessuna colonna esistente cambia: `DROP TABLE` delle otto tabelle (nell'ordine inverso) e dei cinque enum. Le tabelle di oggi continuano a funzionare. |
+
+## Backfill delle edizioni (prompt 08)
+
+`npm run backfill:editions` legge eventi, Zuccaland e cassa di oggi e crea format, edizioni, date,
+prodotti e quote. Senza argomenti lavora dentro una transazione annullata alla fine e stampa solo il
+report (quante righe creerebbe, confronto prezzi Zuccaland, cosa salta). Con `-- --conferma` scrive.
+È idempotente: le righe già importate sono riconosciute da `legacy_id_map` e non vengono ricreate.
+
+In produzione si esegue solo dopo che Niccolo ha letto il report della prova a secco (ARCHITETTURA §18.4).

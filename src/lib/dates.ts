@@ -60,3 +60,36 @@ export function romeDateKey(input: DateInput): string {
   }).format(toDate(input));
   return parts;
 }
+
+const wallClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+
+/** Ora "HH:MM" a Roma. */
+export function romeTime(input: DateInput): string {
+  return time.format(toDate(input));
+}
+
+/**
+ * L'istante corrispondente a un giorno ("YYYY-MM-DD") e un'ora ("HH:MM") a Roma, con l'ora legale
+ * giusta per quel giorno (es. 25 ottobre 2026 10:30 → 09:30 UTC, ora solare).
+ */
+export function romeDateTime(dateKey: string, hhmm = '00:00'): Date {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const [hh, mm] = hhmm.split(':').map(Number);
+  if (![y, m, d, hh, mm].every(Number.isFinite)) throw new RangeError(`Data o ora non valida: ${dateKey} ${hhmm}`);
+  const asUtc = Date.UTC(y, m - 1, d, hh, mm);
+  // Scarto tra l'ora di Roma e UTC in quell'istante; ricalcolato una volta per i giorni del cambio d'ora.
+  const offsetAt = (ms: number) => {
+    const p = Object.fromEntries(wallClock.formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - ms;
+  };
+  const first = asUtc - offsetAt(asUtc);
+  return new Date(asUtc - offsetAt(first));
+}
+
+/** Aggiunge giorni a una data di calendario "YYYY-MM-DD". */
+export function addDaysToKey(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}

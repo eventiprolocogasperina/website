@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server';
 import { cache } from 'react';
 import { getDb } from '@/server/db/client';
 import { devices, roleAssignments, siteSettings, userSessions, users } from '@/server/db/schema';
-import { editionSlugForLegacyId, legacyIdsFor } from '@/server/domain/editions/legacyEditions';
 import { log } from '@/server/log';
 import type { Ctx, CtxDevice, CtxUser } from './context-shared';
 import { hashToken } from './password';
@@ -150,20 +149,23 @@ export const legacyEventCodeEnabled = cache(async (): Promise<boolean> => {
 });
 
 /** true se il dispositivo (edizione) e il vecchio eventId della cassa o del biglietto sono la stessa edizione. */
-export function sameEdition(edition: string, legacyEventId: string) {
-  return edition === legacyEventId || legacyIdsFor(edition).includes(legacyEventId) || editionSlugForLegacyId(legacyEventId) === edition;
+export async function sameEdition(edition: string, legacyEventId: string): Promise<boolean> {
+  const { sameEdition: same } = await import('@/server/domain/editions');
+  return same(edition, legacyEventId);
 }
 
 /** L'evento della configurazione di cassa che corrisponde all'edizione del dispositivo. */
 async function cashierEventIdFor(edition: string): Promise<string> {
+  const { legacyIdsFor } = await import('@/server/domain/editions');
+  const ids = await legacyIdsFor(edition);
   try {
     const { getCashierConfig } = await import('@/lib/data/cashier');
-    const match = (await getCashierConfig()).events.find((e) => sameEdition(edition, e.id));
+    const match = (await getCashierConfig()).events.find((e) => ids.includes(e.id));
     if (match) return match.id;
   } catch (error) {
     log.error('Configurazione della cassa illeggibile', { error });
   }
-  return legacyIdsFor(edition)[0];
+  return ids[0];
 }
 
 export type FieldAccess = { denied: NextResponse | null; ctx?: Ctx | null; cassaEventId?: string; edition?: string };
@@ -177,11 +179,15 @@ export type FieldAccess = { denied: NextResponse | null; ctx?: Ctx | null; cassa
  */
 export async function requirePos(eventId?: string | null, permission: Permission = 'pos.sell'): Promise<FieldAccess> {
   const admin = await getAdminCtx();
-  if (admin && can(admin, permission, { edition: eventId ? editionSlugForLegacyId(eventId) : null })) return { denied: null, ctx: admin };
+  if (admin) {
+    const { editionSlugForLegacyId } = await import('@/server/domain/editions');
+    const edition = eventId ? await editionSlugForLegacyId(eventId) : null;
+    if (can(admin, permission, { edition })) return { denied: null, ctx: admin };
+  }
 
   const field = await getFieldCtx();
   if (field?.device?.kind === 'pos' && can(field, permission, { edition: field.device.edition })) {
-    if (eventId && !sameEdition(field.device.edition, eventId)) return { denied: forbidden() };
+    if (eventId && !(await sameEdition(field.device.edition, eventId))) return { denied: forbidden() };
     await touchPinSession(field);
     return { denied: null, ctx: field, cassaEventId: eventId ?? (await cashierEventIdFor(field.device.edition)), edition: field.device.edition };
   }

@@ -29,6 +29,13 @@
       "when": 1792402914707,
       "tag": "0003_flag_codice_evento",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792408394872,
+      "tag": "0004_edizioni_catalogo",
+      "breakpoints": true
     }
   ]
 }

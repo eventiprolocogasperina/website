@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCashierConfig, DEFAULT_PRINTER_SETTINGS } from '@/lib/data/cashier';
-import { legacyEventCodeEnabled, requirePos, sameEdition } from '@/server/auth/context';
+import { legacyEventCodeEnabled, requirePos } from '@/server/auth/context';
+import { legacyIdsFor } from '@/server/domain/editions';
 import { createSession } from '@/server/auth/session';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +34,8 @@ export async function GET() {
   if (denied) return denied;
   if (!edition) return NextResponse.json({ success: false, error: 'Nessun dispositivo di cassa abbinato.' }, { status: 400 });
   const config = await getCashierConfig();
-  const matchedEvent = config.events.find((e) => sameEdition(edition, e.id));
+  const ids = await legacyIdsFor(edition);
+  const matchedEvent = config.events.find((e) => ids.includes(e.id));
   if (!matchedEvent) return NextResponse.json({ success: false, error: 'La cassa di questa edizione non è ancora configurata.' }, { status: 404 });
   if (!matchedEvent.active) return NextResponse.json({ success: false, error: 'La cassa per questo evento non è al momento attiva' }, { status: 403 });
   return NextResponse.json({ success: true, event: eventPayload(matchedEvent, config) });
