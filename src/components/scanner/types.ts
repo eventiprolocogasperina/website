@@ -9,7 +9,7 @@ export type ScanResponse =
   | { result: 'wrong_session' | 'wrong_list' | 'void' | 'blocked'; ticket: ScannedTicket }
   | { result: 'unknown' };
 
-export type OnlineScan = ScanResponse & { counter: Counter; answers: Record<string, number> };
+export type OnlineScan = ScanResponse & { answers: Record<string, number> };
 
 /** Esito calcolato sul telefono senza rete, dall'elenco scaricato. */
 export type OfflineScan = { result: 'valid' | 'already_used' | 'wrong_session' | 'unknown' | 'no_manifest'; validOn?: string | null; clientId?: string };

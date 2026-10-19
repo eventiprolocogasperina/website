@@ -37,6 +37,18 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     [muted],
   );
 
+  const refreshCounter = useCallback(async () => {
+    if (!online) {
+      if (offline.manifest) setCounter(offlineCounter(offline.manifest, effectiveSession, store.used(listId)));
+      return;
+    }
+    try {
+      setCounter(await api<Counter>(`counters?${qs({ lista: listId, data: effectiveSession })}`));
+    } catch {
+      // I contatori si riprovano al prossimo giro.
+    }
+  }, [online, offline.manifest, effectiveSession, listId]);
+
   const scanOffline = useCallback(
     async (code: string) => {
       const hash = await qrHashBrowser(code);
@@ -47,8 +59,9 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
         setUndo({ kind: 'offline', clientId, until: Date.now() + UNDO_MS });
         show({ source: 'offline', data: { ...r, clientId } });
       } else show({ source: 'offline', data: r });
+      void refreshCounter();
     },
-    [offline, effectiveSession, listId, show],
+    [offline, effectiveSession, listId, show, refreshCounter],
   );
 
   const submit = useCallback(
@@ -58,9 +71,9 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
       try {
         if (!online && input.qrToken) return await scanOffline(input.qrToken);
         const data = await api<OnlineScan>('scan', { method: 'POST', body: { ...input, checkinListId: listId, sessionId: effectiveSession, questionKeys } });
-        setCounter(data.counter);
         if (data.result === 'valid') setUndo({ kind: 'online', checkinId: data.checkinId, until: Date.now() + UNDO_MS });
         show({ source: 'online', data });
+        void refreshCounter();
       } catch (e) {
         if (e instanceof NetworkError && input.qrToken) return await scanOffline(input.qrToken);
         setError(e instanceof ApiError || e instanceof NetworkError ? e.message : 'Lettura non riuscita. Riprova.');
@@ -69,7 +82,7 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
         setBusy(false);
       }
     },
-    [online, listId, effectiveSession, questionKeys, scanOffline, show, muted],
+    [online, listId, effectiveSession, questionKeys, scanOffline, show, muted, refreshCounter],
   );
 
   /** Da fotocamera o lettore: ignora lo stesso codice letto di nuovo entro 2,5 secondi o con un esito aperto. */
@@ -84,18 +97,6 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     },
     [busy, outcome, submit],
   );
-
-  const refreshCounter = useCallback(async () => {
-    if (!online) {
-      if (offline.manifest) setCounter(offlineCounter(offline.manifest, effectiveSession, store.used(listId)));
-      return;
-    }
-    try {
-      setCounter(await api<Counter>(`counters?${qs({ lista: listId, data: effectiveSession })}`));
-    } catch {
-      // I contatori si riprovano al prossimo giro.
-    }
-  }, [online, offline.manifest, effectiveSession, listId]);
 
   const revertLast = useCallback(async () => {
     if (!undo || Date.now() > undo.until) return setUndo(null);

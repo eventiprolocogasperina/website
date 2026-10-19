@@ -34,7 +34,7 @@ export function StatsPanel({ stats, onDay }: { stats: CheckinStats; onDay: (day:
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Entrati in totale" value={stats.total.entered} help={`su ${stats.total.expected} attesi`} />
         <Stat label={stats.day ? `Ingressi del ${formatDate(stats.day, 'short')}` : 'Ingressi del giorno'} value={dayTotal} />
-        <Stat label="Quarto d’ora più pieno" value={busiest ? romeTime(busiest.start) : '—'} help={busiest ? `${peak} ingressi` : undefined} />
+        <Stat label="Quarto d’ora più pieno" value={busiest ? romeTime(busiest.start) : '—'} help={busiest ? `${peak} ${peak === 1 ? "ingresso" : "ingressi"}` : undefined} />
         <Stat label="Ancora da entrare" value={Math.max(0, (today?.expected ?? stats.total.expected) - (today?.entered ?? stats.total.entered))} help={today ? today.label : 'tutte le date'} />
       </div>
 
