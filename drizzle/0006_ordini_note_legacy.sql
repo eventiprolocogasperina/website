@@ -1,0 +1,1 @@
+ALTER TABLE "orders_v2" ADD COLUMN "legacy_notes" text;

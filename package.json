@@ -19,7 +19,8 @@
     "create-owner": "tsx scripts/create-owner.ts",
     "backfill:editions": "tsx scripts/backfill-editions.ts",
     "test:db": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --project db",
-    "test:coverage": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --coverage"
+    "test:coverage": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --coverage",
+    "migrate:orders": "tsx scripts/migrate-orders.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

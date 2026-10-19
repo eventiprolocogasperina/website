@@ -199,3 +199,42 @@ describe('eventi di dominio', () => {
     expect(seen).toEqual(['ZC26-AAAA']);
   });
 });
+
+describe('migrazione: lettura delle note e abbinamenti', async () => {
+  const { interpretNotes, groupTickets, matchProduct, toCents } = await import('./legacy-migration');
+
+  it('legge data, bambini, attività, spostamenti e integrazioni', () => {
+    const n = interpretNotes(
+      'Data: Sabato 10 Ottobre 2026 | Bambini: 3/5 | Attività [Bambini]: ZuccArt, Zucca in vaso | [SPOSTAMENTO DATA: Domenica 25 Ottobre - Modificato il 12/10/2026] | [INTEGRAZIONE]: +€6,00 (2x You Pick Lab) - Transazione: ABC123 | chiamare prima',
+    );
+    expect(n.dayKey).toBe('25');
+    expect(n.originalDayKey).toBe('10');
+    expect(n.moves).toHaveLength(1);
+    expect(n.integrations).toEqual([{ amountCents: 600, description: '2x You Pick Lab', transactionId: 'ABC123' }]);
+    expect(n.answers.map((a) => a.questionKey)).toEqual(['bambini', 'attivita', 'attivita_per']);
+    expect(n.uninterpreted).toEqual(['chiamare prima']);
+  });
+
+  it('rinvio automatico dal 10 al 17 e note vuote', () => {
+    expect(interpretNotes('Data: Sabato 10 Ottobre 2026')).toMatchObject({ dayKey: '17', originalDayKey: '10', uninterpreted: [] });
+    expect(interpretNotes(null)).toMatchObject({ dayKey: null, answers: [], uninterpreted: [] });
+  });
+
+  it('raggruppa i biglietti per tipo e prezzo e abbina i prodotti', () => {
+    const t = (type: string, price: string) => ({ id: type + price, type, price, qrCodeData: 'q', isCheckedIn: false, checkInTime: null });
+    expect(groupTickets([t('Ingresso', '5.00'), t('Ingresso', '5.00'), t('Ingresso', '4.00')]).map((g) => [g.type, g.unitPriceCents, g.tickets.length])).toEqual([
+      ['Ingresso', 500, 2],
+      ['Ingresso', 400, 1],
+    ]);
+    const products = [
+      { id: 'a', name: 'Biglietto', kind: 'ticket' },
+      { id: 'b', name: 'Panino', kind: 'food' },
+    ];
+    expect(matchProduct('biglietto', products)?.id).toBe('a');
+    expect(matchProduct('Biglietto Assaggia e Passeggia', products)?.id).toBe('a');
+    expect(matchProduct('Panino salsiccia', products)).toBeNull();
+    expect(matchProduct('Qualsiasi', [{ id: 'z', name: 'Prenotazione', kind: 'ticket' }])?.id).toBe('z');
+    expect(toCents('12.345')).toBe(1235);
+    expect(toCents(null)).toBe(0);
+  });
+});

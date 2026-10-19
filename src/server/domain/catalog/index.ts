@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { romeDateTime } from '@/lib/dates';
 import type { Ctx } from '@/server/auth/context-shared';
 import { getDb, withTransaction, type Tx } from '@/server/db/client';
-import { discountsV2, editions, orderLines, products, quotaProducts, quotas, sessions } from '@/server/db/schema';
+import { discountsV2, editions, legacyIdMap, orderLines, ordersV2, products, quotaProducts, quotas, sessions } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { assertCan, editionForWrite } from '@/server/domain/editions';
 import { DomainError } from '@/server/domain/errors';
@@ -47,11 +47,19 @@ async function loadCatalog(editionId: string): Promise<Catalog> {
 }
 
 /**
- * Posti occupati: vendite delle tabelle attuali (adattatore del prompt 08) più gli ordini del nucleo
- * nuovo. Fino alla migrazione del prompt 10 un'edizione ha vendite solo da una delle due parti.
+ * Posti occupati. Un'edizione già migrata (prompt 10) conta solo gli ordini del nucleo nuovo, che
+ * contengono anche quelli di prima; le altre contano le tabelle attuali più gli eventuali ordini nuovi.
  */
 async function allSoldCounts(editionId: string): Promise<SoldCounts> {
-  const [legacy, current] = await Promise.all([legacySoldCounts(editionId), soldCounts(getDb(), editionId, { now: new Date() })]);
+  const current = await soldCounts(getDb(), editionId, { now: new Date() });
+  const [migrated] = await getDb()
+    .select({ id: legacyIdMap.newId })
+    .from(legacyIdMap)
+    .innerJoin(ordersV2, eq(ordersV2.id, legacyIdMap.newId))
+    .where(and(eq(ordersV2.editionId, editionId), inArray(legacyIdMap.legacyKind, ['order', 'cashier_order', 'booking'])))
+    .limit(1);
+  if (migrated) return current;
+  const legacy = await legacySoldCounts(editionId);
   for (const [k, n] of current) legacy.set(k, (legacy.get(k) ?? 0) + n);
   return legacy;
 }

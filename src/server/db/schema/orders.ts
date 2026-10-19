@@ -69,6 +69,8 @@ export const ordersV2 = pgTable(
     accessToken: text('access_token').notNull(),
     /** Chiave inviata dal client: lo stesso ordine non si crea due volte. */
     idempotencyKey: text('idempotency_key'),
+    /** Testo originale delle note del vecchio sistema (migrazione del prompt 10). */
+    legacyNotes: text('legacy_notes'),
     isBlacklisted: boolean('is_blacklisted').default(false).notNull(),
     blacklistReason: text('blacklist_reason'),
     /** Scadenza degli ordini online in attesa di pagamento. */

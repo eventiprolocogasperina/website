@@ -883,6 +883,8 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 09: un'integrazione è un ordine nuovo collegato (`parent_order_id`) con il suo pagamento, non righe aggiunte a un ordine pagato | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 09: un pagamento che arriva dopo la scadenza riattiva l'ordine solo se i posti ci sono ancora; altrimenti evento `order.paid_after_expiry` per il rimborso | Claude, esecuzione fase 2 |
 | 2026-10-19 | Prompt 09: i test sul database usano un Postgres locale (`proloco_test`), mai un branch Neon | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 10: la migrazione scrive anche nelle edizioni archiviate (è storico importato, non una modifica) e salta quelle non concluse | Claude, esecuzione fase 2 |
+| 2026-10-19 | Prompt 10: un'edizione con ordini migrati conta i posti solo dal nucleo nuovo; le altre sommano tabelle attuali e ordini nuovi | Claude, esecuzione fase 2 |
 
 ---
 
