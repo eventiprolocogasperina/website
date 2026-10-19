@@ -5,9 +5,11 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
   const { neonConfig } = await import('@neondatabase/serverless');
-  neonConfig.fetchEndpoint = () => 'http://localhost:4444/sql'; // neon()
-  neonConfig.wsProxy = () => 'localhost:4444/v2'; // Pool e Client
+  // LOCAL_DB_PROXY (es. localhost:4453) per lavorare in parallelo con un proprio proxy e un proprio database.
+  const proxy = process.env.LOCAL_DB_PROXY || 'localhost:4444';
+  neonConfig.fetchEndpoint = () => `http://${proxy}/sql`; // neon()
+  neonConfig.wsProxy = () => `${proxy}/v2`; // Pool e Client
   neonConfig.useSecureWebSocket = false;
   neonConfig.pipelineConnect = false;
-  console.log('[LOCAL_DB] Database locale attivo: le query vanno a http://localhost:4444');
+  console.log(`[LOCAL_DB] Database locale attivo: le query vanno a http://${proxy}`);
 }

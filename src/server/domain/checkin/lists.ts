@@ -90,3 +90,20 @@ export async function deleteCheckinList(ctx: Ctx, editionSlug: string, id: strin
     await audit(tx, ctx, 'checkin_list.deleted', { entityType: 'checkin_list', entityId: id, edition: edition.slug, before: { name: list.name } });
   });
 }
+
+/** Prodotti con biglietto e date dell'edizione, per il modulo della lista. */
+export async function checkinListOptions(ctx: Ctx, editionSlug: string) {
+  if (!can(ctx, 'checkin.scan', { edition: editionSlug }) && !can(ctx, 'catalog.edit', { edition: editionSlug })) throw new DomainError('FORBIDDEN');
+  const db = getDb();
+  const [edition] = await db.select({ id: editions.id }).from(editions).where(eq(editions.slug, editionSlug));
+  if (!edition) throw new DomainError('NOT_FOUND');
+  const [prods, days] = await Promise.all([
+    db
+      .select({ id: products.id, name: products.name, active: products.active })
+      .from(products)
+      .where(and(eq(products.editionId, edition.id), eq(products.issuesTicket, true)))
+      .orderBy(asc(products.sort), asc(products.name)),
+    db.select({ id: sessions.id, label: sessions.label, status: sessions.status, rescheduledTo: sessions.rescheduledToSessionId }).from(sessions).where(eq(sessions.editionId, edition.id)).orderBy(asc(sessions.startsAt)),
+  ]);
+  return { products: prods, sessions: days.filter((d) => !(d.status === 'postponed' && d.rescheduledTo)).map((d) => ({ id: d.id, label: d.label })) };
+}
