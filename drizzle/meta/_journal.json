@@ -64,6 +64,20 @@
       "when": 1792413621152,
       "tag": "0008_rinvii",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792415008817,
+      "tag": "0009_scanner",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792415009786,
+      "tag": "0010_scanner_dati",
+      "breakpoints": true
     }
   ]
 }

@@ -57,4 +57,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'ticket.checkin_reverted': 'Ingresso annullato',
   'checkin_list.created': 'Lista di check-in creata',
   'checkin_list.updated': 'Lista di check-in modificata',
+  'checkin_list.deleted': 'Lista di check-in eliminata',
+  'order.scanner_action': 'Pulsante dello scanner (es. +1 Bambino)',
+  'settings.flag_changed': 'Interruttore di sistema cambiato',
 };
