@@ -58,7 +58,7 @@ L'ingresso valido costa una transazione WebSocket (un `Pool` per chiamata, §16)
 
 ## Flag `scanner_v2`
 
-`site_settings.scanner_v2` (migrazione `0010_scanner_dati`, spento). Si accende da Check-in → Dispositivi (permesso `settings.manage`, con audit). Spento: `/scanner` è il vecchio scanner, invariato. Il vecchio scanner scrive sulle tabelle vecchie, il nuovo su `checkins`: non usarli insieme sulla stessa edizione.
+`site_settings.scanner_v2` (migrazione `0011_flag_pagine_nuove`, spento). Si accende da Check-in → Dispositivi (permesso `settings.manage`, con audit). Spento: `/scanner` è il vecchio scanner, invariato. Il vecchio scanner scrive sulle tabelle vecchie, il nuovo su `checkins`: non usarli insieme sulla stessa edizione.
 
 ## Vecchio → nuovo
 

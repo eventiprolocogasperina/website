@@ -4,6 +4,12 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { editionReports, editions, sessions, ticketsV2 } from '@/server/db/schema';
 import { revertCheckin, saveCheckinList, scan } from '@/server/domain/checkin';
+import { applyScannerAction } from '@/server/domain/checkin/actions';
+import { syncOfflineCheckins } from '@/server/domain/checkin/offline';
+import { resetOrderNumbering, saveRegister, setRegisterActive } from '@/server/domain/cash/registers';
+import { sell } from '@/server/domain/cash/sales';
+import { closeSession, openSession } from '@/server/domain/cash/sessions';
+import { voidSale } from '@/server/domain/cash/void';
 import { deleteDiscount, deleteProduct, deleteQuota, deleteSession, saveDiscount, saveProduct, saveQuota, saveSession } from '@/server/domain/catalog';
 import { DomainError } from '@/server/domain/errors';
 import { on, type DomainEvent } from '@/server/domain/events';
@@ -69,7 +75,7 @@ describe.skipIf(!enabled)('ciclo di vita delle edizioni', () => {
     await createOrder(anon, online(f));
     await getDb().update(editions).set({ status: 'concluded' }).where(eq(editions.id, f.edition.id));
     const list = await getClosingChecklist(owner, f.slug);
-    expect(list.items.map((i) => i.key)).toEqual(['core:pending-orders', 'core:refunds-closed', 'core:final-report', 'time-slots:sessions-closed', 'visitor-photos:photos-moderated']);
+    expect(list.items.map((i) => i.key)).toEqual(['core:cash-sessions', 'core:pending-orders', 'core:refunds-closed', 'core:final-report', 'time-slots:sessions-closed', 'visitor-photos:photos-moderated']);
     expect(list.items.find((i) => i.key === 'core:pending-orders')).toMatchObject({ ok: false, detail: '1 ordine in attesa' });
     expect(list.complete).toBe(false);
     expect(await errorCode(changeEditionStatus(owner, f.slug, { to: 'archived' }))).toBe('CONFLICT');
@@ -121,6 +127,9 @@ describe.skipIf(!enabled)('ciclo di vita delle edizioni', () => {
     const [t] = await getDb().select().from(ticketsV2).where(eq(ticketsV2.orderId, paid.id));
     const checkin = await scan(roleOn('gate', f.slug), { qrToken: t.qrToken, checkinListId: f.entrance.id });
     const checkinId = checkin.result === 'valid' ? checkin.checkinId : '';
+    const { id: registerId } = await saveRegister(owner, f.slug, null, { name: 'Cassa 1', issuesNumbers: true, active: true, productIds: null });
+    const { sessionId: cashSessionId } = await openSession(owner, { registerId, openingFloatCents: 0 });
+    const sale = await sell(owner, { cashSessionId, lines: [{ productId: f.drink.id, quantity: 1 }], method: 'cash', cashReceivedCents: 100, idempotencyKey: key() });
     await getDb().update(editions).set({ status: 'archived' }).where(eq(editions.id, f.edition.id));
 
     const attempts: Record<string, () => Promise<unknown>> = {
@@ -131,7 +140,7 @@ describe.skipIf(!enabled)('ciclo di vita delle edizioni', () => {
       saveSession: () => saveSession(owner, f.slug, null, { label: 'Nuova', date: '2026-10-31', startTime: '10:00', endTime: null, capacity: null, status: 'open' }),
       deleteSession: () => deleteSession(owner, f.slug, f.day1.id),
       saveProduct: () => saveProduct(owner, f.slug, f.drink.id, { name: 'Acqua', kind: 'drink', priceCents: 100, description: null, icon: null, channels: ['pos'], requiresSession: false, issuesTicket: false, department: null, active: true, minPerOrder: null, maxPerOrder: null }),
-      deleteProduct: () => deleteProduct(owner, f.slug, f.drink.id),
+      deleteProduct: () => deleteProduct(owner, f.slug, f.lab.id),
       saveQuota: () => saveQuota(owner, f.slug, f.labQuota.id, { name: 'Lab', size: 2, sessionId: null, productIds: [f.lab.id] }),
       deleteQuota: () => deleteQuota(owner, f.slug, f.labQuota.id),
       saveDiscount: () => saveDiscount(owner, f.slug, null, { code: 'ARCH', kind: 'percent', value: 10, maxUses: null, validFrom: null, validUntil: null, appliesToProductIds: [], active: true }),
@@ -150,12 +159,23 @@ describe.skipIf(!enabled)('ciclo di vita delle edizioni', () => {
       saveCheckinList: () => saveCheckinList(owner, f.slug, null, { name: 'Nuova' }),
       postponeSession: () => postponeSession(owner, { editionId: f.edition.id, sessionId: f.day1.id, toSessionId: f.day2.id }),
       moveAllOrders: () => moveAllOrders(owner, { editionId: f.edition.id, fromSessionId: f.day2.id, toSessionId: f.day1.id }),
+      saveRegister: () => saveRegister(owner, f.slug, null, { name: 'Cassa 2', issuesNumbers: true, active: true, productIds: null }),
+      setRegisterActive: () => setRegisterActive(owner, f.slug, registerId, false),
+      resetOrderNumbering: () => resetOrderNumbering(owner, f.slug, 1),
+      openSession: () => openSession(owner, { registerId, openingFloatCents: 0 }),
+      sell: () => sell(owner, { cashSessionId, lines: [{ productId: f.drink.id, quantity: 1 }], method: 'cash', cashReceivedCents: 100, idempotencyKey: key() }),
+      voidSale: () => voidSale(owner, { orderId: sale.orderId, reason: 'Prova' }),
+      closeSession: () => closeSession(owner, { sessionId: cashSessionId, denominations: { '100': 1 }, notes: null }),
+      applyScannerAction: () => applyScannerAction(owner, { orderId: paid.id, actionKey: 'counter-0' }),
       skipClosingCheck: () => skipClosingCheck(owner, f.slug, { key: 'core:final-report', reason: 'Prova di scrittura' }),
       unskipClosingCheck: () => unskipClosingCheck(owner, f.slug, 'core:final-report'),
       generateFinalReport: () => generateFinalReport(owner, f.slug),
     };
     const results = Object.fromEntries(await Promise.all(Object.entries(attempts).map(async ([name, fn]) => [name, await errorCode(fn())])));
     expect(results).toEqual(Object.fromEntries(Object.keys(attempts).map((name) => [name, 'EDITION_ARCHIVED'])));
+    // La sincronizzazione offline risponde per ogni ingresso invece di lanciare l'errore.
+    const [synced] = await syncOfflineCheckins(roleOn('gate', f.slug), { items: [{ clientId: key(), qrToken: t.qrToken, checkinListId: f.entrance.id }] } as never);
+    expect(synced).toMatchObject({ result: 'error', message: new DomainError('EDITION_ARCHIVED').message });
     expect(await getDb().select().from(editionReports).where(eq(editionReports.editionId, f.edition.id))).toHaveLength(0);
   });
 });

@@ -16,7 +16,7 @@ parallelo per evento. La vecchia `/cashier` resta attiva finché Zuccaland è in
 | Servizi | `src/server/domain/cash/` (casse, turni, vendite, annulli, reparti, rendiconto, PDF) |
 | API dei dispositivi | `src/app/api/cassa/*`; admin: `src/app/api/admin/cassa/*` |
 | Funzioni pure | `src/lib/cash/` (tagli, resto, CSV, coda offline, stampa) |
-| Tabelle | `cash_registers`, `cash_sessions`, `cash_sales`, `cash_counters` (migrazione `0009_cassa`) |
+| Tabelle | `cash_registers`, `cash_sessions`, `cash_sales`, `cash_counters` (migrazione `0010_admin_cassa_scanner`) |
 
 ## Flusso (§12.1)
 

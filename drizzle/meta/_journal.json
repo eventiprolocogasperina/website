@@ -71,6 +71,20 @@
       "when": 1792434417227,
       "tag": "0009_chiusura",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792435786593,
+      "tag": "0010_admin_cassa_scanner",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792435793912,
+      "tag": "0011_flag_pagine_nuove",
+      "breakpoints": true
     }
   ]
 }

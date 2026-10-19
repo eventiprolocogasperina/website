@@ -24,7 +24,7 @@ così il dettaglio (`detail/OrderDetailPage.tsx`) e la coda rimborsi (`refunds/R
 
 ## Flag `orders_v2`
 
-In `site_settings` come `legacy_event_code`, spento dalla migrazione `0010_admin_ordini_dati`. Le pagine nuove
+In `site_settings` come `legacy_event_code`, spento dalla migrazione `0011_flag_pagine_nuove`. Le pagine nuove
 esistono comunque e si raggiungono dalla sidebar dell'edizione. Acceso, `/admin/ordini` e `/admin/rimborsi`
 mostrano le pagine nuove globali e `/admin/prenotazioni` porta a `/admin/vai/partecipanti`. Si accende e si spegne
 dall'interruttore "Pagine nuove predefinite" in testa a Ordini (solo con `settings.manage`), e resta nel registro.
@@ -76,7 +76,7 @@ doppioni con conferma scrivendo l'email del doppione. L'unione non tocca gli ord
 
 ## Prestazioni
 
-Paginazione lato server da 50 righe. Indici aggiunti (migrazione `0009_admin_ordini`):
+Paginazione lato server da 50 righe. Indici aggiunti (migrazione `0010_admin_cassa_scanner`):
 
 - `orders_v2_created_idx` (`created_at desc, id`): elenco globale in ordine di data;
 - `orders_v2_edition_created_idx` (`edition_id, created_at desc`): elenco di un'edizione;

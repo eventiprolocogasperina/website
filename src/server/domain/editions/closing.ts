@@ -7,7 +7,7 @@ import { extensionPoints } from '@/modules/registry';
 import type { Ctx } from '@/server/auth/context-shared';
 import { can } from '@/server/auth/permissions';
 import { getDb, withTransaction, type Tx } from '@/server/db/client';
-import { editionClosingSkips, editionReports, editions, ordersV2, refundsV2, sessions, users, zuccalandPhotos } from '@/server/db/schema';
+import { cashSessions, editionClosingSkips, editionReports, editions, ordersV2, refundsV2, sessions, users, zuccalandPhotos } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { editionForWrite } from './index';
@@ -37,8 +37,20 @@ type Evaluator = (db: Db, e: Edition, now: Date) => Promise<Result>;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** Controlli del nucleo, in ordine. Il controllo dei turni di cassa arriva con la cassa nuova (prompt 14). */
+/** Controlli del nucleo, in ordine (§9). */
 const CORE: Array<{ key: string; label: string; evaluate: Evaluator }> = [
+  {
+    // La differenza oltre 1 € si giustifica già alla chiusura del turno (nota obbligatoria, prompt 14).
+    key: 'cash-sessions',
+    label: 'Tutti i turni di cassa sono chiusi',
+    evaluate: async (db, e) => {
+      const [r] = await db
+        .select({ n: count() })
+        .from(cashSessions)
+        .where(and(eq(cashSessions.editionId, e.id), isNull(cashSessions.closedAt)));
+      return { ok: r.n === 0, detail: r.n ? plural(r.n, 'turno ancora aperto', 'turni ancora aperti') : 'Nessun turno aperto', href: `/admin/e/${e.slug}/cassa?tab=turni` };
+    },
+  },
   {
     key: 'pending-orders',
     label: 'Nessun ordine in attesa di pagamento',
