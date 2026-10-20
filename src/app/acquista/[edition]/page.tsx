@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { eventCard } from '@/components/public/event-card';
 import { EventPageShell } from '@/components/public/EventPageShell';
@@ -30,9 +31,9 @@ export default async function CheckoutPage({ params }: Props) {
           <p className="mt-2 text-section font-bold text-[var(--ev-ink)]">{view.closedReason}</p>
           <p className="mt-1 text-body text-muted">
             Per informazioni scrivici dalla pagina{' '}
-            <a href="/contatti" className="text-primary underline">
+            <Link href="/contatti" className="text-primary underline">
               Contatti
-            </a>
+            </Link>
             .
           </p>
         </div>

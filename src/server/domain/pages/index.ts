@@ -18,7 +18,8 @@ export { getEditionYearPage, getFormatPage, type ResolvedPage } from './resolve'
 
 // Un solo flag per tutto il sito pubblico nuovo (prompt 17): acceso, /zuccaland e /assaggia-e-passeggia
 // mostrano le pagine a blocchi; /<format>/<anno> è sempre attiva perché non sostituisce nessun URL.
-export { PUBLIC_V2, publicV2Enabled } from '@/server/public/flags';
+import { PUBLIC_V2, publicV2Enabled } from '@/server/public/flags';
+export { PUBLIC_V2, publicV2Enabled };
 
 export async function setPublicV2(ctx: Ctx, enabled: boolean): Promise<void> {
   if (!can(ctx, 'settings.manage')) throw new DomainError('FORBIDDEN');
