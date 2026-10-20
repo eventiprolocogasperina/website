@@ -17,6 +17,7 @@ const GRAPH = 'https://graph.facebook.com/v21.0';
 
 const httpClient: WhatsappClient = {
   async sendTemplate({ phoneNumberId, token, to, template, language, params }) {
+    if (process.env.VERCEL_ENV === 'preview') return { ok: false, error: 'WhatsApp disattivato sul Preview' };
     try {
       const res = await fetch(`${GRAPH}/${phoneNumberId}/messages`, {
         method: 'POST',

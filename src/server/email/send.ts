@@ -1,7 +1,7 @@
 import 'server-only';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { log } from '@/server/log';
 
 export const FROM_ADDRESS = 'Pro Loco Gasperina <biglietti@prolocogasperina.it>';

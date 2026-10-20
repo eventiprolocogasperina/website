@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
 import { renderToBuffer } from '@react-pdf/renderer';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 import { TicketPdfDocument, generateQrDataUri } from './TicketPdfDocument';
 import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';

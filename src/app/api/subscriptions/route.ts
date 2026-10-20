@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { generateSubscriptionPDF } from '@/lib/generatePDF';
 
 export async function POST(request: Request) {

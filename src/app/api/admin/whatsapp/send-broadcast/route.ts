@@ -129,6 +129,10 @@ export async function POST(request: Request) {
       }
     }
 
+    if (process.env.VERCEL_ENV === 'preview') {
+      return NextResponse.json({ success: false, error: 'WhatsApp disattivato sul Preview.' }, { status: 400 });
+    }
+
     if (recipients.length === 0) {
       return NextResponse.json({
         success: false,

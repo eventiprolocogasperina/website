@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 import { sendTelegramNotification } from '@/lib/telegram';
 import fs from 'fs';

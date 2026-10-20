@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { render } from '@react-email/render';
 import { createElement } from 'react';
 import { PostponementEmailDocument } from '@/lib/tickets/PostponementEmailDocument';

@@ -11,6 +11,8 @@ export type TelegramClient = { sendMessage(chatId: string, text: string): Promis
 const httpClient: TelegramClient = {
   async sendMessage(chatId, text) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
+    // Sul Preview di Vercel niente messaggi al gruppo vero, salvo PREVIEW_ALLOW_TELEGRAM=1.
+    if (process.env.VERCEL_ENV === 'preview' && process.env.PREVIEW_ALLOW_TELEGRAM !== '1') return false;
     if (!token || !chatId) {
       log.debug('Telegram non configurato: messaggio non inviato');
       return false;
