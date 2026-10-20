@@ -21,6 +21,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'device.revoked': 'Dispositivo revocato',
   'series.created': 'Format creato',
   'series.updated': 'Format modificato',
+  'series.page_saved': 'Pagina del format salvata',
+  'edition.page_saved': 'Pagina pubblica dell’edizione salvata',
   'edition.created': 'Edizione creata',
   'edition.duplicated': 'Edizione duplicata',
   'edition.updated': 'Edizione modificata',

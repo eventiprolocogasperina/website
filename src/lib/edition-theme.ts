@@ -48,3 +48,37 @@ export function editionThemeStyle(dot: string | null | undefined): CSSProperties
     '--ev-glow': t.glow,
   } as CSSProperties;
 }
+
+/**
+ * Token del tema del format per le pagine a blocchi (§14.3): --brand e compagni. I valori di Zuccaland
+ * vengono da ZuccalandClient.tsx (arancio #ea580c su crema #fefce8), quelli di A&P dal §14.3.
+ */
+type Brand = { brand: string; strong: string; fg: string; surface: string; soft: string; border: string; accent: string; ink: string; inkSoft: string; blob1: string; blob2: string };
+
+const BRANDS: Record<EditionThemeKey, Brand> = {
+  orange: { brand: '#ea580c', strong: '#c2410c', fg: '#ffffff', surface: '#fefce8', soft: '#ffedd5', border: '#fdba74', accent: '#f97316', ink: '#431407', inkSoft: '#7c2d12', blob1: '#fef08a', blob2: '#fed7aa' },
+  blue: { brand: '#283983', strong: '#1f2c66', fg: '#ffffff', surface: '#F9F3E4', soft: '#e0e7ff', border: '#e7dfc8', accent: '#E8C042', ink: '#1a1a1a', inkSoft: '#555555', blob1: '#f3e2a6', blob2: '#e0e7ff' },
+  gold: { brand: '#9a6a08', strong: '#7a5500', fg: '#ffffff', surface: '#fffaf0', soft: '#fdf0cf', border: '#f3d891', accent: '#c98f10', ink: '#4a3300', inkSoft: '#6b4c0a', blob1: '#fdf0cf', blob2: '#fde68a' },
+  gray: { brand: '#1b4baa', strong: '#163f8f', fg: '#ffffff', surface: '#f8f9fc', soft: '#e8eef8', border: '#dfe3eb', accent: '#c9a227', ink: '#151a2b', inkSoft: '#4b5368', blob1: '#e8eef8', blob2: '#f5ecd0' },
+};
+
+export function brandThemeStyle(dot: string | null | undefined): CSSProperties {
+  const key = (dot && dot in BRANDS ? dot : 'gray') as EditionThemeKey;
+  const b = BRANDS[key];
+  return {
+    ...editionThemeStyle(key),
+    '--ui-primary': b.brand,
+    '--ui-primary-hover': b.strong,
+    '--brand': b.brand,
+    '--brand-strong': b.strong,
+    '--brand-fg': b.fg,
+    '--brand-surface': b.surface,
+    '--brand-soft': b.soft,
+    '--brand-border': b.border,
+    '--brand-accent': b.accent,
+    '--brand-ink': b.ink,
+    '--brand-ink-soft': b.inkSoft,
+    '--brand-blob-1': b.blob1,
+    '--brand-blob-2': b.blob2,
+  } as CSSProperties;
+}

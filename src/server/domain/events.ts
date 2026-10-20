@@ -21,7 +21,9 @@ export type DomainEvent =
 export type EditionEventType = `edition.${EditionStatus}`;
 
 export type DomainEventType = DomainEvent['type'];
-type Handler<T extends DomainEventType> = (event: Extract<DomainEvent, { type: T }>) => void | Promise<void>;
+/** Gli eventi di stato hanno un tipo "modello" (edition.${stato}): Extract da solo non li trova. */
+type EventOf<T extends DomainEventType> = T extends EditionEventType ? Extract<DomainEvent, { type: EditionEventType }> & { type: T } : Extract<DomainEvent, { type: T }>;
+type Handler<T extends DomainEventType> = (event: EventOf<T>) => void | Promise<void>;
 type AnyHandler = (event: DomainEvent) => void | Promise<void>;
 
 const handlers = new Map<DomainEventType | '*', AnyHandler[]>();

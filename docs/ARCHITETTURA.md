@@ -922,6 +922,15 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 15: il "+1 Bambino" allo scanner aggiorna solo la risposta `bambini` dell'ordine (con audit), non registra un pagamento: l'incasso resta in cassa o con un link di pagamento | Claude, esecuzione fase 3 (da confermare con Niccolo) |
 | 2026-10-19 | Prompt 15: il lettore ZXing (wasm) è servito dal sito (`public/vendor/zxing/`), non dal CDN: serve offline e su iOS | Claude, esecuzione fase 3 |
 | 2026-10-19 | Sviluppo locale: `LOCAL_DB_PROXY` in `instrumentation.ts` permette a ogni worktree il proprio proxy Neon (predefinito `localhost:4444`) | Claude, esecuzione fase 3 |
+| 2026-10-20 | Prompt 17b: i blocchi stanno in `editions.page_blocks` e `series.page_blocks` (jsonb validato da zod); un blocco non valido si scarta in lettura, senza rompere la pagina | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17b: `/zuccaland` e `/assaggia-e-passeggia` passano alle pagine a blocchi solo con il flag `site_settings.public_v2` (spento); `/<format>/<anno>` e `/<format>` per i format nuovi sono sempre attive perché non sostituiscono URL esistenti | Claude, esecuzione fase 4 (§18.10) |
+| 2026-10-20 | Prompt 17b: "in stagione" = edizione `live`, `on_sale`, `sold_out` o `published` (in quest'ordine; a parità la più vicina). Anche `sold_out` tiene la pagina dell'edizione, non quella fuori stagione | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17b: con il flag spento il pulsante Acquista delle pagine nuove di un'edizione che vende ancora dalla pagina di oggi porta a `/<format>#acquista`, non al checkout nuovo (chiuso per quelle edizioni) | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17b: l'editor salva tutta la pagina insieme con un'impronta dei blocchi letti; se nel frattempo un altro ha salvato, CONFLICT invece di sovrascrivere | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17b: Avvisami = una riga per format ed email (indice su `lower(email)`), consenso salvato come testo; l'avviso parte dall'evento `edition.on_sale` e "prenota" gli iscritti con un solo UPDATE…RETURNING, così non parte mai due volte per la stessa edizione; disiscrizione con token e clic di conferma | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17b: lo script di conversione scrive i blocchi anche nell'edizione archiviata A&P 2026 (contenuto importato, come la migrazione del prompt 10); l'editor invece la mostra in sola lettura | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17b: i prezzi non si copiano nei blocchi (né `ticketTypes` né `presale.priceInfo`): Prezzi, Acquista e Copertina li leggono dal catalogo | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17b: testo dei blocchi con una mini-sintassi (**, *, [link](url), "- ", "## ") resa come nodi React, mai HTML: niente `dangerouslySetInnerHTML` nelle pagine nuove | Claude, esecuzione fase 4 |
 
 ---
 

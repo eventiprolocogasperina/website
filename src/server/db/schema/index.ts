@@ -5,3 +5,4 @@ export * from './orders';
 export * from './closing';
 export * from './admin';
 export * from './cash';
+export * from './site';
