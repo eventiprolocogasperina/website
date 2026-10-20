@@ -1,7 +1,6 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { desc, eq, sql } from 'drizzle-orm';
-import { cache } from 'react';
 import { PageBlocksSchema, readBlocks, type Block } from '@/components/public/blocks/schema';
 import type { BlockData } from '@/components/public/blocks/types';
 import type { Ctx } from '@/server/auth/context-shared';
@@ -17,21 +16,9 @@ export { getEditionYearPage, getFormatPage, type ResolvedPage } from './resolve'
 
 // ─── Flag ────────────────────────────────────────────────────────────────────
 
-export const PUBLIC_V2 = 'public_v2';
-
-/**
- * Flag `public_v2` (site_settings, spento di default): acceso, /zuccaland e /assaggia-e-passeggia
- * mostrano le pagine a blocchi; spento resta la pagina di oggi (§18.10). /<format>/<anno> è sempre
- * attiva perché non sostituisce nessun URL. Se il database non risponde: spento.
- */
-export const publicV2Enabled = cache(async (): Promise<boolean> => {
-  try {
-    const [row] = await getDb().select({ value: siteSettings.value }).from(siteSettings).where(eq(siteSettings.key, PUBLIC_V2));
-    return row?.value === 'true';
-  } catch {
-    return false;
-  }
-});
+// Un solo flag per tutto il sito pubblico nuovo (prompt 17): acceso, /zuccaland e /assaggia-e-passeggia
+// mostrano le pagine a blocchi; /<format>/<anno> è sempre attiva perché non sostituisce nessun URL.
+export { PUBLIC_V2, publicV2Enabled } from '@/server/public/flags';
 
 export async function setPublicV2(ctx: Ctx, enabled: boolean): Promise<void> {
   if (!can(ctx, 'settings.manage')) throw new DomainError('FORBIDDEN');
