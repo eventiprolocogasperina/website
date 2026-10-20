@@ -11,6 +11,7 @@ import { editions, legacyIdMap, products, quotaProducts, quotas, series, session
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
+import '@/server/domain/pages/handlers';
 import { assertClosingComplete } from './closing';
 import { bumpYear, shiftInstant, shiftSession, weekdayPreservingShift } from './duplicate';
 import { isReadOnly, transitionFor } from './lifecycle';

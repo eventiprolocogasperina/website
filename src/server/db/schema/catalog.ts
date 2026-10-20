@@ -32,6 +32,8 @@ export const series = pgTable('series', {
   /** Pagina pubblica stabile del format, es. /zuccaland. */
   landingPath: text('landing_path'),
   theme: jsonb('theme').$type<SeriesTheme>().default({}).notNull(),
+  /** Blocchi della pagina "fuori stagione" del format (§13.3, §13.4), validati da src/components/public/blocks/schema.ts. */
+  pageBlocks: jsonb('page_blocks').$type<unknown[]>().default([]).notNull(),
   ...timestamps,
 });
 
@@ -55,6 +57,8 @@ export const editions = pgTable(
     publicPageMode: publicPageMode('public_page_mode').default('generic').notNull(),
     enabledModules: text('enabled_modules').array().default(sql`'{}'::text[]`).notNull(),
     moduleSettings: jsonb('module_settings').$type<Record<string, unknown>>().default({}).notNull(),
+    /** Blocchi della pagina pubblica dell'edizione (§13.4): /<format>/<anno> e /<format> in stagione. */
+    pageBlocks: jsonb('page_blocks').$type<unknown[]>().default([]).notNull(),
     concludedAt: timestamp('concluded_at', { withTimezone: true }),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     ...timestamps,

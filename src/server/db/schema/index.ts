@@ -6,3 +6,4 @@ export * from './closing';
 export * from './admin';
 export * from './cash';
 export * from './transparency';
+export * from './site';

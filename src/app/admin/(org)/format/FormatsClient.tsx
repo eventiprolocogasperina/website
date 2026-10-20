@@ -1,13 +1,14 @@
 'use client';
 
-import { Layers, Plus } from 'lucide-react';
+import { LayoutTemplate, Layers, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { EditionDot } from '@/components/admin/shell/EditionDot';
-import { Button, DataTable, dataTableColumns, EmptyState, Field, Input, PageHeader, RadioGroup, Sheet, SheetContent, Textarea, toast } from '@/components/ui';
+import { Button, DataTable, dataTableColumns, EmptyState, Field, Input, PageHeader, RadioGroup, Sheet, SheetContent, Switch, Textarea, toast } from '@/components/ui';
 import type { SeriesRow } from '@/server/domain/editions/series';
 import { saveSeriesAction } from '../edizioni/actions';
+import { setPublicV2Action } from './actions';
 
 const DOTS = [
   { value: 'orange', label: 'Arancione' },
@@ -16,8 +17,20 @@ const DOTS = [
   { value: 'gray', label: 'Grigio' },
 ] as const;
 
-export function FormatsClient({ rows }: { rows: SeriesRow[] }) {
+export function FormatsClient({ rows, publicV2, canToggle }: { rows: SeriesRow[]; publicV2: boolean; canToggle: boolean }) {
+  const router = useRouter();
   const [editing, setEditing] = useState<SeriesRow | 'new' | null>(null);
+  const [v2, setV2] = useState(publicV2);
+  async function toggleV2(on: boolean) {
+    setV2(on);
+    const res = await setPublicV2Action(on);
+    if (!res.ok) {
+      setV2(!on);
+      return void toast.error(res.error);
+    }
+    toast.success(on ? 'Pagine nuove accese su /zuccaland e /assaggia-e-passeggia' : 'Tornate le pagine di prima');
+    router.refresh();
+  }
   const columns = useMemo(() => {
     const col = dataTableColumns<SeriesRow>();
     return [
@@ -44,6 +57,17 @@ export function FormatsClient({ rows }: { rows: SeriesRow[] }) {
           </Link>
         ),
       }),
+      col.display({
+        id: 'page',
+        header: 'Pagina',
+        meta: { label: 'Pagina' },
+        size: 160,
+        cell: (c) => (
+          <Link href={`/admin/format/${c.row.original.slug}/pagina`} className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline" onClick={(e) => e.stopPropagation()}>
+            <LayoutTemplate size={15} aria-hidden /> Modifica
+          </Link>
+        ),
+      }),
     ];
   }, []);
 
@@ -60,6 +84,16 @@ export function FormatsClient({ rows }: { rows: SeriesRow[] }) {
           </Button>
         }
       />
+      {canToggle && (
+        <div className="mb-4 rounded-lg border border-border bg-surface px-4 py-3">
+          <Switch
+            label="Pagine nuove del sito"
+            description="Acceso: /zuccaland e /assaggia-e-passeggia mostrano le pagine a blocchi (edizione in corso o fuori stagione). Spento: le pagine di oggi. Da accendere dopo il 25 ottobre, quando Zuccaland 2026 ha finito di vendere."
+            checked={v2}
+            onCheckedChange={toggleV2}
+          />
+        </div>
+      )}
       <DataTable
         label="Format"
         data={rows}

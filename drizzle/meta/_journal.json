@@ -99,6 +99,13 @@
       "when": 1792440669144,
       "tag": "0013_sito_pubblico_dati",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792525603227,
+      "tag": "0014_pagine_blocchi",
+      "breakpoints": true
     }
   ]
 }
