@@ -14,6 +14,9 @@ export type DomainEvent =
   | { type: 'order.tickets_resent'; orderId: string; code: string; edition: string }
   | { type: 'order.session_moved'; orderId: string; code: string; edition: string; fromSessionId: string | null; toSessionId: string }
   | { type: 'refund.requested'; refundId: string; orderId: string; code: string; edition: string; amountCents: number }
+  | { type: 'payment.failed'; orderId: string; code: string; edition: string; amountCents: number; method: string }
+  | { type: 'payment.amount_mismatch'; orderId: string; code: string; edition: string; paidCents: number; totalCents: number }
+  | { type: 'cash.session_closed'; sessionId: string; edition: string; registerName: string; zReportNumber: number; expectedCashCents: number; countedCashCents: number; differenceCents: number }
   | { type: 'ticket.checked_in'; ticketId: string; checkinListId: string; edition: string }
   | { type: EditionEventType; editionId: string; edition: string; from: EditionStatus; automatic: boolean };
 

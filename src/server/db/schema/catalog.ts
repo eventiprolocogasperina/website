@@ -59,6 +59,8 @@ export const editions = pgTable(
     moduleSettings: jsonb('module_settings').$type<Record<string, unknown>>().default({}).notNull(),
     /** Blocchi della pagina pubblica dell'edizione (§13.4): /<format>/<anno> e /<format> in stagione. */
     pageBlocks: jsonb('page_blocks').$type<unknown[]>().default([]).notNull(),
+    /** Notifiche Telegram attive per l'edizione (prompt 18): { orderPaid: false, … }; chiave assente = attiva. */
+    notificationSettings: jsonb('notification_settings').$type<Record<string, boolean>>().default({}).notNull(),
     concludedAt: timestamp('concluded_at', { withTimezone: true }),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     ...timestamps,

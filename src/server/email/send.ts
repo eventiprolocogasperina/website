@@ -13,11 +13,14 @@ export function siteUrl(): string {
 
 export type Email = { to: string; subject: string; html: string; text: string; attachments?: Array<{ filename: string; content: Buffer }> };
 
+export type Delivery = { status: 'sent' | 'outbox' | 'failed'; providerId?: string; error?: string };
+
 /**
- * Invia un'email con Resend. In sviluppo, con EMAIL_DEV_OUTBOX=1, la scrive invece in dev/outbox/
- * (cartella ignorata da git) per poter aprire i link senza un servizio di posta.
+ * Invia un'email con Resend e restituisce l'esito con l'ID del messaggio (per il registro degli invii).
+ * In sviluppo, con EMAIL_DEV_OUTBOX=1, la scrive invece in dev/outbox/ (cartella non versionata)
+ * per poter aprire i link senza un servizio di posta.
  */
-export async function sendEmail(email: Email): Promise<boolean> {
+export async function deliverEmail(email: Email): Promise<Delivery> {
   if (process.env.EMAIL_DEV_OUTBOX === '1' && process.env.NODE_ENV !== 'production') {
     const dir = path.join(process.cwd(), 'dev', 'outbox');
     await mkdir(dir, { recursive: true });
@@ -25,18 +28,23 @@ export async function sendEmail(email: Email): Promise<boolean> {
     await writeFile(file, `<!-- A: ${email.to} | Oggetto: ${email.subject} -->\n${email.html}`);
     for (const a of email.attachments ?? []) await writeFile(file.replace(/\.html$/, `-${a.filename}`), a.content);
     log.info('Email scritta nella cartella dev/outbox', { file: path.basename(file) });
-    return true;
+    return { status: 'outbox', providerId: path.basename(file) };
   }
   if (!process.env.RESEND_API_KEY) {
     log.error('RESEND_API_KEY mancante: email non inviata', { subject: email.subject });
-    return false;
+    return { status: 'failed', error: 'RESEND_API_KEY mancante' };
   }
-  const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM_ADDRESS, ...email });
+  const { data, error } = await new Resend(process.env.RESEND_API_KEY).emails.send({ from: FROM_ADDRESS, ...email });
   if (error) {
     log.error('Invio email non riuscito', { subject: email.subject, error: error.message });
-    return false;
+    return { status: 'failed', error: error.message.slice(0, 300) };
   }
-  return true;
+  return { status: 'sent', providerId: data?.id };
+}
+
+/** Come deliverEmail, solo vero o falso: per gli invii che non vanno nel registro (password, inviti). */
+export async function sendEmail(email: Email): Promise<boolean> {
+  return (await deliverEmail(email)).status !== 'failed';
 }
 
 const escape = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);

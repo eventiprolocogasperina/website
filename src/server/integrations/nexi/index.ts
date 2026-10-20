@@ -4,10 +4,9 @@ import { systemCtx } from '@/server/auth/context-shared';
 import { getDb } from '@/server/db/client';
 import { editions, ordersV2 } from '@/server/db/schema';
 import { siteUrl } from '@/server/email/send';
-import { sendAlert } from '@/server/integrations/telegram';
+import { publish } from '@/server/domain/events';
 import { log } from '@/server/log';
 import { recordPayment } from '@/server/domain/payments';
-import { formatMoney } from '@/lib/money';
 import { attemptCodTrans, orderCodeFromCodTrans, outcomeOf, requestMac, toImporto, verifyResultMac, type NexiOutcome } from './mac';
 
 export * from './mac';
@@ -36,6 +35,28 @@ function config() {
   if (!alias || !macKey) throw new Error('NEXI_ALIAS o NEXI_MAC_KEY mancanti');
   const endpoint = mode === 'simulatore' ? `${siteUrl()}/api/pagamenti/nexi/simulatore` : (process.env.NEXI_ENDPOINT ?? TEST_ENDPOINT);
   return { mode, alias, macKey, endpoint };
+}
+
+/** Configurazione completa (con la chiave): solo per firmare, mai verso una pagina. */
+export function paymentConfigStatus(): { ready: true; config: ReturnType<typeof config> } | { ready: false; config: null } {
+  try {
+    return { ready: true, config: config() };
+  } catch {
+    return { ready: false, config: null };
+  }
+}
+
+/** Stato per Sistema → Pagamenti: alias e ambiente; della chiave MAC solo se è impostata (§18.2). */
+export function nexiStatus() {
+  const mode = nexiMode();
+  const s = paymentConfigStatus();
+  return {
+    mode,
+    alias: s.config?.alias ?? process.env.NEXI_ALIAS ?? '',
+    macKeySet: !!process.env.NEXI_MAC_KEY || mode === 'simulatore',
+    endpoint: s.config?.endpoint ?? process.env.NEXI_ENDPOINT ?? TEST_ENDPOINT,
+    ready: s.ready,
+  };
 }
 
 /** Chiave del MAC, per il simulatore (che firma gli esiti come farebbe Nexi). */
@@ -112,9 +133,8 @@ export async function processResult(params: Record<string, string | undefined>, 
     // Esito e notifica arrivano entrambi: l'allarme parte una volta sola.
     const amountCents = Number.isInteger(paid) && paid >= 0 ? paid : 0;
     const r = await recordPayment(systemCtx('nexi'), { orderId: order.id, method: 'nexi', amountCents, status: 'pending', providerRef, raw: { ...raw, problema: 'importo diverso dal totale' } });
-    if (!r.duplicate) {
-      await sendAlert(`Pagamento Nexi con importo diverso dal totale. Ordine ${order.code}: pagati ${formatMoney(amountCents)}, totale ${formatMoney(order.totalCents)}. L'ordine NON è stato segnato come pagato: controllalo nell'admin.`);
-    }
+    // L'allarme Telegram lo manda l'handler dell'evento (notifiche per edizione, prompt 18).
+    if (!r.duplicate) await publish([{ type: 'payment.amount_mismatch', orderId: order.id, code: order.code, edition: order.edition, paidCents: amountCents, totalCents: order.totalCents }]);
     return { ok: true, outcome: 'amount_mismatch', order: view };
   }
 

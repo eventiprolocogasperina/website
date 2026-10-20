@@ -8,7 +8,6 @@ import { resultMac } from '@/server/integrations/nexi/mac';
 import { anon, buyer, createDiscount, createEdition, key, type Fixture } from '@/test/fixtures';
 import { closeTestDb, getDb } from '@/test/pg-client';
 
-vi.mock('@/server/integrations/telegram', () => ({ sendAlert: vi.fn(async () => {}) }));
 process.env.NEXI_ALIAS = 'ALIAS_TEST';
 process.env.NEXI_MAC_KEY = 'chiave-di-test';
 
@@ -16,7 +15,9 @@ const { getCheckout, placeOrder, quoteCart } = await import('./index');
 const { getOrderByToken } = await import('./my-tickets');
 const { paymentForm, processResult } = await import('@/server/integrations/nexi');
 const { customerMoveSession } = await import('@/server/domain/orders');
-const { sendAlert } = await import('@/server/integrations/telegram');
+const { setTelegramClient } = await import('@/server/integrations/telegram');
+const telegram = vi.fn(async (_chat: string, _text: string) => true);
+setTelegramClient({ sendMessage: telegram });
 const { sendOrderTickets } = await import('@/server/email/order-tickets');
 
 const enabled = !!process.env.TEST_DATABASE_URL;
@@ -109,15 +110,18 @@ describe.skipIf(!enabled)('checkout pubblico e Nexi', () => {
   });
 
   it('importo diverso: l’ordine non diventa pagato e parte un solo allarme', async () => {
-    vi.mocked(sendAlert).mockClear();
+    telegram.mockClear();
     const r = await order();
     const form = paymentForm({ code: r.code, totalCents: r.totalCents });
     const p = nexiResult(form.fields, { importo: '900' });
     expect(await processResult(p, 'server')).toMatchObject({ outcome: 'amount_mismatch' });
     expect(await processResult(p, 'browser')).toMatchObject({ outcome: 'amount_mismatch' });
     expect((await getDb().select().from(ordersV2).where(eq(ordersV2.id, r.id)))[0].status).toBe('pending');
-    expect(vi.mocked(sendAlert)).toHaveBeenCalledTimes(1);
-    expect(String(vi.mocked(sendAlert).mock.calls[0][0])).not.toContain(buyer.email.toLowerCase());
+    // L'allarme ora parte dall'evento payment.amount_mismatch (notifiche per edizione, prompt 18).
+    const alerts = telegram.mock.calls.filter((c) => c[1].includes('Importo diverso'));
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0][1]).toContain(r.code);
+    expect(alerts[0][1]).not.toContain(buyer.email.toLowerCase());
   });
 
   it('firma falsa o ordine sconosciuto: nulla viene registrato', async () => {

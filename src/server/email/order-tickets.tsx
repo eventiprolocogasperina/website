@@ -13,7 +13,11 @@ import { getDb } from '@/server/db/client';
 import { ordersV2 } from '@/server/db/schema';
 import { getOrderByToken, type MyOrder } from '@/server/domain/checkout/my-tickets';
 import { log } from '@/server/log';
-import { sendEmail, siteUrl } from './send';
+import { siteUrl } from './send';
+import type { TemplateVars } from '@/server/domain/email-templates/defaults';
+import { resolveTemplate, varsForOrder } from '@/server/domain/email-templates';
+import { sendLoggedEmail } from '@/server/domain/email-templates/log';
+import { PARAGRAPH_STYLE, renderBodyHtml, renderText } from '@/server/domain/email-templates/render';
 
 /** Colore dell'edizione nei biglietti e nell'email. */
 export const accentFor = (slug: string) => (slug.startsWith('zuccaland') ? '#c2410c' : '#283983');
@@ -58,38 +62,30 @@ export async function renderOrderPdf(o: MyOrder): Promise<Buffer> {
   return renderToBuffer(<OrderTicketsPdf data={data} />);
 }
 
-/**
- * Email con i biglietti in PDF: alla conferma del pagamento (`order.paid`) e quando lo staff li rimanda.
- * Restituisce false se l'ordine non ha un'email o non ha biglietti validi.
- */
-export async function sendOrderTickets(orderId: string, opts: { reason: 'paid' | 'resent' } = { reason: 'paid' }): Promise<boolean> {
-  const [row] = await getDb().select({ token: ordersV2.accessToken }).from(ordersV2).where(eq(ordersV2.id, orderId));
-  const o = row ? await getOrderByToken(row.token) : null;
-  if (!o?.customer?.email) return false;
-  const valid = o.tickets.filter((t) => t.status !== 'void');
-  if (!valid.length && opts.reason === 'paid' && !o.lines.length) return false;
+export type ConfirmationTemplate = { subject: string; body: string };
 
-  const [pdf, html] = await Promise.all([
-    renderOrderPdf(o),
-    render(
-      <OrderConfirmationEmail
-        reason={opts.reason}
-        name={o.customer.name}
-        code={o.code}
-        editionTitle={o.edition.title}
-        when={whenOf(o)}
-        location={o.edition.location}
-        lines={o.lines.map((l) => ({ label: `${l.quantity}× ${l.name}${l.sessionLabel ? ` · ${l.sessionLabel}` : ''}`, amount: formatMoney(l.totalCents) }))}
-        total={formatMoney(o.totalCents)}
-        ticketCount={valid.length}
-        myTicketsUrl={myTicketsUrl(o.accessToken)}
-        qrSrc={valid[0] ? await qr(valid[0].qrToken, 360) : await qr(o.code, 360)}
-        accent={accentFor(o.edition.slug)}
-      />,
-    ),
-  ]);
+/** Oggetto, HTML e testo dell'email di conferma con il modello dato: per l'invio e per l'anteprima in admin. */
+export async function renderConfirmation(o: MyOrder, reason: 'paid' | 'resent', template: ConfirmationTemplate, vars: TemplateVars = varsForOrder(o)) {
+  const valid = o.tickets.filter((t) => t.status !== 'void');
+  const html = await render(
+    <OrderConfirmationEmail
+      reason={reason}
+      name={o.customer?.name ?? null}
+      code={o.code}
+      editionTitle={o.edition.title}
+      when={whenOf(o)}
+      location={o.edition.location}
+      lines={o.lines.map((l) => ({ label: `${l.quantity}× ${l.name}${l.sessionLabel ? ` · ${l.sessionLabel}` : ''}`, amount: formatMoney(l.totalCents) }))}
+      total={formatMoney(o.totalCents)}
+      ticketCount={valid.length}
+      myTicketsUrl={myTicketsUrl(o.accessToken)}
+      qrSrc={valid[0] ? await qr(valid[0].qrToken, 360) : await qr(o.code, 360)}
+      accent={accentFor(o.edition.slug)}
+      introHtml={renderBodyHtml(template.body, vars, PARAGRAPH_STYLE)}
+    />,
+  );
   const text = [
-    `${opts.reason === 'resent' ? 'I tuoi biglietti' : 'Ordine confermato'}: ${o.edition.title}`,
+    renderText(template.body, vars),
     `Codice ordine: ${o.code}`,
     whenOf(o) ? `Quando: ${whenOf(o)}` : '',
     ...o.lines.map((l) => `${l.quantity}× ${l.name}: ${formatMoney(l.totalCents)}`),
@@ -98,13 +94,27 @@ export async function sendOrderTickets(orderId: string, opts: { reason: 'paid' |
   ]
     .filter(Boolean)
     .join('\n');
-  const ok = await sendEmail({
-    to: o.customer.email,
-    subject: opts.reason === 'resent' ? `I tuoi biglietti per ${o.edition.title} (${o.code})` : `Biglietti ${o.edition.title} · ordine ${o.code}`,
-    html,
-    text,
-    attachments: [{ filename: `biglietti-${o.code}.pdf`, content: pdf }],
-  });
+  return { subject: renderText(template.subject, vars), html, text };
+}
+
+/**
+ * Email con i biglietti in PDF: alla conferma del pagamento (`order.paid`) e quando lo staff li rimanda.
+ * Il testo è il modello "Conferma ordine" dell'edizione (o globale, o predefinito), letto al momento
+ * dell'invio. Restituisce false se l'ordine non ha un'email o non ha biglietti validi.
+ */
+export async function sendOrderTickets(orderId: string, opts: { reason: 'paid' | 'resent' } = { reason: 'paid' }): Promise<boolean> {
+  const [row] = await getDb().select({ token: ordersV2.accessToken, editionId: ordersV2.editionId }).from(ordersV2).where(eq(ordersV2.id, orderId));
+  const o = row ? await getOrderByToken(row.token) : null;
+  if (!row || !o?.customer?.email) return false;
+  const valid = o.tickets.filter((t) => t.status !== 'void');
+  if (!valid.length && opts.reason === 'paid' && !o.lines.length) return false;
+
+  const template = await resolveTemplate('confirmation', row.editionId);
+  const [pdf, email] = await Promise.all([renderOrderPdf(o), renderConfirmation(o, opts.reason, template)]);
+  const ok = await sendLoggedEmail(
+    { to: o.customer.email, ...email, attachments: [{ filename: `biglietti-${o.code}.pdf`, content: pdf }] },
+    { templateKey: 'confirmation', editionId: row.editionId, orderId },
+  );
   if (!ok) log.error('Email dei biglietti non inviata', { code: o.code });
   return ok;
 }

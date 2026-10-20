@@ -1,4 +1,5 @@
-// Modello predefinito dell'email di conferma (prompt 13). L'editor dei modelli arriva con il prompt 18.
+// Email di conferma (prompt 13). Il testo d'apertura viene dal modello "Conferma ordine" modificabile in
+// Sistema → Email (prompt 18), già reso in HTML sicuro da renderBodyHtml; il resto (QR, righe) è fisso.
 import { Body, Button, Container, Head, Heading, Hr, Html, Img, Preview, Section, Text } from '@react-email/components';
 
 export type OrderConfirmationProps = {
@@ -14,6 +15,8 @@ export type OrderConfirmationProps = {
   myTicketsUrl: string;
   qrSrc: string;
   accent: string;
+  /** Testo del modello, in HTML già escapato (paragrafi <p>). */
+  introHtml: string;
 };
 
 const font = 'system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
@@ -33,10 +36,7 @@ export function OrderConfirmationEmail(p: OrderConfirmationProps) {
             </Heading>
           </Section>
           <Section style={{ padding: '24px 32px 8px' }}>
-            <Text style={{ fontSize: 15, lineHeight: 1.5, margin: '0 0 12px' }}>
-              {p.name ? `Ciao ${p.name.split(' ')[0]},` : 'Ciao,'} {p.reason === 'resent' ? 'ecco di nuovo i tuoi biglietti.' : 'grazie! Il pagamento è andato a buon fine.'} I biglietti sono nel PDF allegato e
-              sempre disponibili su “I miei biglietti”.
-            </Text>
+            <div dangerouslySetInnerHTML={{ __html: p.introHtml }} />
             <Text style={{ fontSize: 13, color: '#666d80', margin: '0 0 4px' }}>Codice ordine</Text>
             <Text style={{ fontSize: 22, fontWeight: 700, letterSpacing: 1, margin: '0 0 12px' }}>{p.code}</Text>
             {p.when && <Text style={{ fontSize: 15, margin: '0 0 4px' }}>📅 {p.when}</Text>}

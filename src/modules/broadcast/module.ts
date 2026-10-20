@@ -11,5 +11,5 @@ export const broadcast = defineModule({
     email: z.boolean().default(true),
   }),
   settingsLabels: { whatsapp: { label: 'Invio su WhatsApp' }, email: { label: 'Invio per email' } },
-  // Fino al prompt 12 l'invio resta nella pagina Ordini dell'edizione (WhatsApp in blocco).
+  admin: { nav: { label: 'Messaggi', icon: 'megaphone', permission: 'orders.edit' } },
 });
