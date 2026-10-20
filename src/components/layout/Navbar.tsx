@@ -6,7 +6,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/components/ThemeProvider';
-import ThemeToggle from '@/components/ThemeToggle';
+import type { ResolvedNav } from '@/lib/public/nav';
+import { isActiveHref } from '@/lib/public/nav';
+import { MobileNavAccordion, NavDropdown } from './NavDropdown';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -21,12 +23,19 @@ const navLinks = [
   // { href: '/progetti', label: 'Progetti' }, // nascosta temporaneamente
 ];
 
-export default function Navbar() {
+/**
+ * `nav` arriva dal layout solo con il flag public_v2 acceso (menu da /admin/sito/navigazione, tendina Eventi).
+ * Senza, il menu resta quello di sempre.
+ */
+export default function Navbar({ nav = null }: { nav?: ResolvedNav | null }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const dark = theme === 'dark';
   const pathname = usePathname();
+  const links = nav ? nav.items : navLinks.map((l) => ({ ...l, children: [] }));
+  const cta = nav ? nav.cta : { label: 'Iscriviti', href: '/iscriviti' };
+  const current = (href: string) => (nav && pathname && isActiveHref(pathname, href) ? ('page' as const) : undefined);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -79,10 +88,13 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} className="desktop-nav">
-            {navLinks.map(link => (
+            {links.map(link => link.children.length > 0 ? (
+              <NavDropdown key={link.href} item={link} color={navTextColor} active={!!pathname && [link.href, ...link.children.map((c) => c.href)].some((h) => isActiveHref(pathname, h))} />
+            ) : (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={current(link.href)}
                 style={{
                   padding: '0.5rem 0.85rem',
                   fontFamily: 'var(--font-body)',
@@ -125,14 +137,16 @@ export default function Navbar() {
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
 
-            <Link
-              href="/iscriviti"
-              className="btn btn-gold"
-              style={{ padding: '0.55rem 1.2rem', fontSize: '0.82rem', display: 'none' }}
-              id="nav-cta"
-            >
-              Iscriviti
-            </Link>
+            {cta && (
+              <Link
+                href={cta.href}
+                className="btn btn-gold"
+                style={{ padding: '0.55rem 1.2rem', fontSize: '0.82rem', display: 'none' }}
+                id="nav-cta"
+              >
+                {cta.label}
+              </Link>
+            )}
 
             {/* Hamburger */}
             <button
@@ -147,6 +161,8 @@ export default function Navbar() {
                 display: 'none',
               }}
               aria-label="Menu"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
             >
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -157,21 +173,25 @@ export default function Navbar() {
       {/* Mobile overlay */}
       {menuOpen && (
         <div
+          id="mobile-menu"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 99,
+            overflowY: 'auto',
             background: dark ? 'rgba(10,12,18,0.98)' : 'rgba(247,244,238,0.98)',
             backdropFilter: 'blur(20px)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: nav ? 'safe center' : 'center',
             gap: '0.5rem',
             animation: 'fadeIn 0.25s ease',
           }}
         >
-          {navLinks.map((link, i) => (
+          {links.map((link, i) => link.children.length > 0 ? (
+            <MobileNavAccordion key={link.href} item={link} onNavigate={() => setMenuOpen(false)} />
+          ) : (
             <Link
               key={link.href}
               href={link.href}
@@ -190,9 +210,11 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <Link href="/iscriviti" className="btn btn-gold" style={{ marginTop: '1.5rem' }} onClick={() => setMenuOpen(false)}>
-            Iscriviti Ora
-          </Link>
+          {cta && (
+            <Link href={cta.href} className="btn btn-gold" style={{ marginTop: '1.5rem' }} onClick={() => setMenuOpen(false)}>
+              {nav ? cta.label : 'Iscriviti Ora'}
+            </Link>
+          )}
         </div>
       )}
 

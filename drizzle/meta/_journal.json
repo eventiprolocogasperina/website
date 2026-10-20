@@ -85,6 +85,20 @@
       "when": 1792435793912,
       "tag": "0011_flag_pagine_nuove",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792440667994,
+      "tag": "0012_sito_pubblico",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792440669144,
+      "tag": "0013_sito_pubblico_dati",
+      "breakpoints": true
     }
   ]
 }

@@ -25,6 +25,8 @@ import type { ClosingChecklist } from '@/server/domain/editions/closing';
 import type { ModuleView } from '@/server/domain/editions/modules';
 import { changeStatusAction, updateEditionAction } from '../actions';
 import { ClosingSection } from './ClosingSection';
+import { CATEGORY_LABELS, EVENT_CATEGORIES } from '@/lib/public/editions';
+import type { UpdateEditionInput } from '@/server/domain/editions';
 import { ModulesSection, type ModuleFieldOptions } from './ModulesSection';
 
 type Form = {
@@ -38,6 +40,7 @@ type Form = {
   endsDate: string;
   endsTime: string;
   publicPageMode: 'generic' | 'landing';
+  category: string;
 };
 type Transition = { to: EditionStatus; label: string; description: string; typeToConfirm: boolean; disabledReason: string | null };
 type EditionInfo = { slug: string; title: string; status: EditionStatus; readOnly: boolean; concludedAt: string | null; archivedAt: string | null };
@@ -86,6 +89,7 @@ export function SettingsClient({
       startsTime: form.startsDate ? form.startsTime || '00:00' : null,
       endsDate: form.endsDate || null,
       endsTime: form.endsDate ? form.endsTime || '23:59' : null,
+      category: (form.category || null) as UpdateEditionInput['category'],
     });
     setSaving(false);
     if (!res.ok) return setError(res.error);
@@ -153,13 +157,21 @@ export function SettingsClient({
                 options={[{ value: NONE, label: 'Nessuno (evento singolo)' }, ...formats.map((f) => ({ value: f.id, label: f.name }))]}
               />
             </Field>
+            <Field label="Categoria" help="Serve al filtro del calendario /eventi.">
+              <Select
+                value={form.category || NONE}
+                onValueChange={(v) => set({ category: v === NONE ? '' : v })}
+                disabled={ro}
+                options={[{ value: NONE, label: 'Nessuna' }, ...EVENT_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] }))]}
+              />
+            </Field>
             <Field label="Slug" help="Non si può cambiare: lo usano ruoli, dispositivi e indirizzi.">
               <Input value={edition.slug} disabled readOnly />
             </Field>
           </div>
         </AnnotatedSection>
 
-        <AnnotatedSection title="Pagina pubblica" description="Come appare l’edizione sul sito. Il collegamento con il sito arriva nella fase 4.">
+        <AnnotatedSection title="Pagina pubblica" description="Come appare l’edizione sul sito. Con il sito nuovo acceso, la scheda nel calendario porta alla pagina dedicata.">
           <RadioGroup
             aria-label="Pagina pubblica"
             value={form.publicPageMode}

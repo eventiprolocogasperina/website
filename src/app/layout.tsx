@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Script from "next/script";
 import WhatsAppWidget from "@/components/ui/WhatsAppWidget";
+import { getPublicNav } from "@/server/domain/site/navigation";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://prolocogasperina.it'),
@@ -35,11 +36,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Menu configurabile solo con il flag public_v2 (null = menu di sempre).
+  const nav = await getPublicNav();
   return (
     <html lang="it" suppressHydrationWarning>
       <head>
@@ -57,7 +60,7 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <Navbar />
+          <Navbar nav={nav} />
           <main>{children}</main>
           <Footer />
           <WhatsAppWidget />

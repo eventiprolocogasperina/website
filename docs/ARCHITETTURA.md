@@ -924,6 +924,12 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Sviluppo locale: `LOCAL_DB_PROXY` in `instrumentation.ts` permette a ogni worktree il proprio proxy Neon (predefinito `localhost:4444`) | Claude, esecuzione fase 3 |
 | 2026-10-19 | Scanner, pulsanti a pagamento: prodotto e cassa si configurano sul pulsante (`activities.scannerCounters[].productId/registerId`), non sulla lista di check-in, perché il pulsante è già lì. La vendita è un ordine `pos` figlio dell'ordine letto, sul turno aperto della cassa scelta (senza cassa: il turno aperto dal telefono) e il conteggio sale nella stessa transazione. Serve `pos.sell` (Varco + Cassa) e la rete | Niccolo / Claude, fase 4 |
 | 2026-10-19 | Scanner: "Già entrato" e "Altra data" in giallo pieno con testo scuro (token `scan-yellow`, uguale nei due temi); la blacklist si controlla prima di "annullato", così un ordine in blacklist è sempre BLOCCATO in rosso con l'avviso | Niccolo / Claude, fase 4 |
+| 2026-10-20 | Prompt 17: menu, calendario dalle edizioni e schede `/eventi/[slug]` nuove dietro il flag `site_settings.public_v2` (spento); Trasparenza, SEO e redirect sono attivi subito | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: edizione corrente di un format = la prima per data tra pubblicata, in vendita, esaurita e in corso (Zuccaland 2026 prima del 2027) | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: menu in `site_settings.public_nav` (JSON validato) con un segnaposto "format" che si espande da solo; letto in cache 5 minuti e svuotato a ogni salvataggio | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: categoria del calendario in `editions.category`; un'edizione `landing` senza `landing_path` (Baguette) porta alla sua pagina di oggi | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: contenuti di Trasparenza versionati in `transparency_versions` (solo aggiunte); richieste degli interessati in `privacy_requests`, visibili con `customers.read` perché contengono dati personali | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: `/assaggia-e-passeggia/edizione-2026/success` non fa redirect (link con `?order=` nelle email già inviate) | Claude, esecuzione fase 4 |
 
 ---
 

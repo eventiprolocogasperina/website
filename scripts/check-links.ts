@@ -11,9 +11,20 @@ const MAX_PAGES = 800;
 // URL che esistono fuori dal sito (QR stampati, email già inviate, vecchi link): devono funzionare.
 // Le tappe esistenti dipendono dal contenuto A&P nel database: con i dati di prova c'è solo la 1.
 // Contro il sito vero aggiungi gli id delle altre tappe come argomenti: ... check-links.ts URL 2 3 4
+const TAPPE = ['1', ...process.argv.slice(3)];
 const HISTORICAL = [
-  ...['1', ...process.argv.slice(3)].map((id) => `/assaggia-e-passeggia/tappa/${id}`),
+  // QR stampati delle tappe A&P 2026 (URL stabile, decisione 5A) e le loro versioni con "edizione-2026".
+  ...TAPPE.map((id) => `/assaggia-e-passeggia/tappa/${id}`),
+  ...TAPPE.map((id) => `/assaggia-e-passeggia/edizione-2026/tappa/${id}`),
+  // Vecchie pagine A&P 2026, acquisto e successo (link nelle email e sui social).
+  '/assaggia-e-passeggia/edizione-2026', '/assaggia-e-passeggia/edizione-2026/ticket', '/assaggia-e-passeggia/edizione-2026/success',
   '/assaggia-e-passeggia/ticket', '/assaggia-e-passeggia/success',
+  // Zuccaland: pagina, successo, foto, galleria e rimborsi (QR sui tavoli, email dei biglietti).
+  '/zuccaland', '/zuccaland/success', '/zuccaland/photo', '/zuccaland/galleria', '/zuccaland/rimborso',
+  // Schede eventi con gli slug di oggi (sitemap prima del prompt 17) e la pagina della Baguette.
+  '/eventi/zuccaland-2026', '/eventi/assaggia-e-passeggia-2026', '/eventi/concerto-di-natale-2026', '/eventi/la-baguette-da-record-2026',
+  // Pagine istituzionali.
+  '/privacy', '/trasparenza', '/iscriviti',
 ];
 
 // Percorsi da non visitare: area riservata, API e file tecnici.

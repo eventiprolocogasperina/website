@@ -49,6 +49,8 @@ export const editions = pgTable(
     endsAt: timestamp('ends_at', { withTimezone: true }),
     location: text('location'),
     coverImage: text('cover_image'),
+    /** Categoria nel calendario pubblico /eventi (EVENT_CATEGORIES in src/lib/public/editions.ts). */
+    category: text('category'),
     timezone: text('timezone').default('Europe/Rome').notNull(),
     publicPageMode: publicPageMode('public_page_mode').default('generic').notNull(),
     enabledModules: text('enabled_modules').array().default(sql`'{}'::text[]`).notNull(),
