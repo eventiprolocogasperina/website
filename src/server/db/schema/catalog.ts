@@ -53,6 +53,8 @@ export const editions = pgTable(
     publicPageMode: publicPageMode('public_page_mode').default('generic').notNull(),
     enabledModules: text('enabled_modules').array().default(sql`'{}'::text[]`).notNull(),
     moduleSettings: jsonb('module_settings').$type<Record<string, unknown>>().default({}).notNull(),
+    /** Notifiche Telegram attive per l'edizione (prompt 18): { orderPaid: false, … }; chiave assente = attiva. */
+    notificationSettings: jsonb('notification_settings').$type<Record<string, boolean>>().default({}).notNull(),
     concludedAt: timestamp('concluded_at', { withTimezone: true }),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     ...timestamps,

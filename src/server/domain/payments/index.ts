@@ -113,6 +113,7 @@ export async function recordPayment(ctx: Ctx, input: RecordPaymentInput, opts: {
       before: { status: order.status },
       after: { status: next, paymentId, method: data.method, amountCents: data.amountCents, paymentStatus: data.status },
     });
+    if (data.status === 'failed') events.push({ type: 'payment.failed', orderId: order.id, code: order.code, edition: edition.slug, amountCents: data.amountCents, method: data.method });
     if (becamePaid) events.push({ type: 'order.paid', orderId: order.id, code: order.code, edition: edition.slug, totalCents: order.totalCents });
     return { paymentId, orderStatus: next, duplicate };
   });

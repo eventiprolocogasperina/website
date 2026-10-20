@@ -8,6 +8,8 @@ import { getDb, withTransaction } from '@/server/db/client';
 import { cashRegisters, cashSessions, editions, users } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
+import { publish, type DomainEvent } from '@/server/domain/events';
+import '@/server/notifications/handlers';
 import { lockEdition } from '@/server/domain/orders/shared';
 import { assertCanOn, loadCashData, nextCounter, type CashSessionRow, type Db } from './shared';
 import { cashTotals, expectedCash, type CashTotals } from './totals';
@@ -121,7 +123,8 @@ export async function closeSession(ctx: Ctx, input: z.input<typeof CloseSessionI
   const problems = countProblems(data.denominations);
   if (problems.length) throw new DomainError('VALIDATION', { message: problems[0] });
   const now = opts.now ?? new Date();
-  return withTransaction(async (tx) => {
+  const events: DomainEvent[] = [];
+  const result = await withTransaction(async (tx) => {
     const [session] = await tx.select().from(cashSessions).where(eq(cashSessions.id, data.sessionId)).for('update');
     if (!session) throw new DomainError('NOT_FOUND');
     const edition = await lockEdition(tx, session.editionId);
@@ -160,8 +163,21 @@ export async function closeSession(ctx: Ctx, input: z.input<typeof CloseSessionI
       after: { zReportNumber, expectedCashCents: expected, countedCashCents: counted, differenceCents: difference, netCents: totals.netCents },
       reason: data.notes || null,
     });
+    const [register] = await tx.select({ name: cashRegisters.name }).from(cashRegisters).where(eq(cashRegisters.id, session.registerId));
+    events.push({
+      type: 'cash.session_closed',
+      sessionId: session.id,
+      edition: edition.slug,
+      registerName: register?.name ?? 'Cassa',
+      zReportNumber,
+      expectedCashCents: expected,
+      countedCashCents: counted,
+      differenceCents: difference,
+    });
     return { zReportNumber, expectedCashCents: expected, countedCashCents: counted, differenceCents: difference };
   });
+  await publish(events);
+  return result;
 }
 
 export type SessionListRow = {

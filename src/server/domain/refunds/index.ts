@@ -14,6 +14,7 @@ import { lockOrder, type EditionRow, type OrderRow } from '@/server/domain/order
 import { derivePaymentStatus, summarizePayments } from '@/server/domain/payments/status';
 import { decryptIban, encryptIban, maskIban } from './crypto';
 import '@/server/domain/editions/handlers';
+import '@/server/notifications/handlers';
 
 type RefundRow = typeof refundsV2.$inferSelect;
 

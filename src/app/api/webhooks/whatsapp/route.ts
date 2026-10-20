@@ -1,15 +1,8 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { createHmac, timingSafeEqual } from 'node:crypto';
-
-/** Meta firma ogni notifica con HMAC-SHA256 del corpo grezzo, usando l'App Secret. */
-function hasValidMetaSignature(rawBody: string, header: string | null): boolean {
-  const appSecret = process.env.WHATSAPP_APP_SECRET;
-  if (!appSecret || !header?.startsWith('sha256=')) return false;
-  const expected = Buffer.from(createHmac('sha256', appSecret).update(rawBody).digest('hex'));
-  const given = Buffer.from(header.slice('sha256='.length));
-  return given.length === expected.length && timingSafeEqual(given, expected);
-}
+import { applyWhatsappStatuses } from '@/modules/broadcast/whatsapp';
+import { verifyMetaSignature } from '@/server/integrations/whatsapp';
+import { log } from '@/server/log';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -62,11 +55,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text();
-    if (!hasValidMetaSignature(rawBody, request.headers.get('x-hub-signature-256'))) {
+    if (!verifyMetaSignature(rawBody, request.headers.get('x-hub-signature-256'), process.env.WHATSAPP_APP_SECRET)) {
       return NextResponse.json({ success: false, error: 'Firma non valida' }, { status: 401 });
     }
-    const body = JSON.parse(rawBody);
-    console.log('📩 [WhatsApp Webhook Event Received]:', JSON.stringify(body, null, 2));
+    // Solo gli stati dei messaggi inviati dal modulo broadcast; il corpo non va nei log (contiene i numeri).
+    const updated = await applyWhatsappStatuses(JSON.parse(rawBody));
+    log.info('Webhook WhatsApp ricevuto', { updated });
     return NextResponse.json({ success: true, status: 'EVENT_RECEIVED' }, { status: 200 });
   } catch (err: any) {
     console.error('Error handling WhatsApp webhook POST event:', err);

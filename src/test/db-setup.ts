@@ -10,7 +10,7 @@ process.env.REFUND_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
 vi.spyOn(console, 'log').mockImplementation(() => {});
 
 // Nessuna email vera dai test: l'invio riesce senza uscire (i test che le controllano hanno il loro mock).
-vi.mock('@/server/email/send', async (orig) => ({ ...(await orig<typeof import('@/server/email/send')>()), sendEmail: async () => true }));
+vi.mock('@/server/email/send', async (orig) => ({ ...(await orig<typeof import('@/server/email/send')>()), sendEmail: async () => true, deliverEmail: vi.fn(async () => ({ status: 'sent', providerId: 'test' })) }));
 
 // Email dei biglietti (PDF): i test controllano che parta, senza generare il PDF.
 vi.mock('@/server/email/order-tickets', async (orig) => ({ ...(await orig<typeof import('@/server/email/order-tickets')>()), sendOrderTickets: vi.fn(async () => true) }));

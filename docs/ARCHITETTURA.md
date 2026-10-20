@@ -922,6 +922,12 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 15: il "+1 Bambino" allo scanner aggiorna solo la risposta `bambini` dell'ordine (con audit), non registra un pagamento: l'incasso resta in cassa o con un link di pagamento | Claude, esecuzione fase 3 (da confermare con Niccolo) |
 | 2026-10-19 | Prompt 15: il lettore ZXing (wasm) è servito dal sito (`public/vendor/zxing/`), non dal CDN: serve offline e su iOS | Claude, esecuzione fase 3 |
 | 2026-10-19 | Sviluppo locale: `LOCAL_DB_PROXY` in `instrumentation.ts` permette a ogni worktree il proprio proxy Neon (predefinito `localhost:4444`) | Claude, esecuzione fase 3 |
+| 2026-10-20 | Prompt 18: le notifiche Telegram nuove partono solo dagli eventi degli ordini v2; i messaggi delle rotte di oggi (Zuccaland in vendita) restano finché esistono quelle rotte. Ogni tipo si spegne per edizione (`editions.notification_settings`, chiave assente = attiva) | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 18: i comandi generici del bot (`/stats <edizione>`, `/ordini <edizione>`, `/edizioni`) passano dopo quelli di oggi: `/stats` e `/ordini` senza argomento e `/stats …zucca…` restano invariati | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 18: allarmi di errore raggruppati con la tabella `alert_throttle` (vale tra le istanze di Vercel); il collegamento a `log.ts` si fa in `instrumentation.ts`, perché `log.ts` finisce anche nei bundle client | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 18: modelli email predefiniti nel codice, in `email_templates` solo le versioni modificate (globale o per edizione); il testo modificabile è l'apertura dell'email, QR, righe e PDF restano fissi | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 18: le impostazioni di Sistema restano in `site_settings` con le chiavi di prima (`contact_email`, `whatsapp_topics`, `wa_*`, `zuccaland_postponed_*`) perché le rotte di oggi le leggono; i token si leggono solo dall'env e la pagina mostra "impostato/mancante" | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 18: l'invio WhatsApp a un segmento è idempotente su un `request_id` scelto dal browser e rifiuta l'invio se i destinatari sono cambiati dopo l'anteprima | Claude, esecuzione fase 4 |
 
 ---
 

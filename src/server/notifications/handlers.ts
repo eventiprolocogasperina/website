@@ -4,6 +4,8 @@ import { getDb } from '@/server/db/client';
 import { ordersV2 } from '@/server/db/schema';
 import { on, registerOnce } from '@/server/domain/events';
 import { sendOrderTickets } from '@/server/email/order-tickets';
+// Notifiche Telegram allo staff (prompt 18): si registrano insieme a quelle per i clienti.
+import '@/server/domain/notifications/handlers';
 
 // Notifiche ai clienti collegate agli eventi di dominio (§6). Le importano i servizi che pubblicano
 // gli eventi; la registrazione avviene una volta sola anche con il ricaricamento a caldo.

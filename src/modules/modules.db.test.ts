@@ -19,6 +19,7 @@ const sent = vi.hoisted(() => [] as Array<{ to: string; subject: string; text: s
 vi.mock('@/server/email/send', async (orig) => ({
   ...(await orig<typeof import('@/server/email/send')>()),
   sendEmail: async (e: { to: string; subject: string; text: string }) => (sent.push(e), true),
+  deliverEmail: async (e: { to: string; subject: string; text: string }) => (sent.push(e), { status: 'sent' as const, providerId: 'test' }),
 }));
 
 const enabled = !!process.env.TEST_DATABASE_URL;

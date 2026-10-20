@@ -44,5 +44,21 @@ export const log = {
   },
   info: (msg: string, context?: Context) => write('info', msg, context),
   warn: (msg: string, context?: Context) => write('warn', msg, context),
-  error: (msg: string, context?: Context) => write('error', msg, context),
+  /** Errore: va nei log e, raggruppato, su Telegram alla chat admin (`alerts.ts`, solo con il bot configurato). */
+  error: (msg: string, context?: Context) => {
+    write('error', msg, context);
+    const sink = (globalThis as { [ERROR_SINK]?: ErrorSink })[ERROR_SINK];
+    if (sink) void sink(msg, context).catch(() => {});
+  },
 };
+
+/**
+ * Destinazione degli allarmi di errore. La registra `src/instrumentation.ts` sul server (alerts.ts):
+ * questo file lo importano anche moduli che finiscono nei componenti client, quindi non può
+ * importare il database. Si usa globalThis perché Next carica più copie di questo modulo.
+ */
+type ErrorSink = (msg: string, context?: Context) => Promise<unknown>;
+const ERROR_SINK = '__prolocoErrorSink';
+export function setErrorSink(sink: ErrorSink | null): void {
+  (globalThis as { [ERROR_SINK]?: ErrorSink | null })[ERROR_SINK] = sink;
+}

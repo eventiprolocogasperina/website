@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import ReviewsPage from '@/components/admin/legacy/ReviewsPage';
 import { ActivitiesPage } from '@/components/admin/modules/ActivitiesPage';
+import { BroadcastPage } from '@/components/admin/modules/BroadcastPage';
 import { PostponementPage } from '@/components/admin/modules/PostponementPage';
 import ZuccalandInvitesPage from '@/components/admin/legacy/ZuccalandInvitesPage';
 import ZuccalandPhotosPage from '@/components/admin/legacy/ZuccalandPhotosPage';
@@ -14,6 +15,7 @@ type Props = { params: Promise<{ edition: string; module: string }> };
 const PAGES: Partial<Record<EditionModule, (edition: string) => React.ReactNode>> = {
   activities: (edition) => <ActivitiesPage edition={edition} />,
   postponement: (edition) => <PostponementPage edition={edition} />,
+  broadcast: (edition) => <BroadcastPage edition={edition} />,
   invites: () => <ZuccalandInvitesPage />,
   'visitor-photos': () => <ZuccalandPhotosPage />,
   reviews: () => <ReviewsPage />,

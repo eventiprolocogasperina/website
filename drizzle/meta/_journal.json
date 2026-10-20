@@ -85,6 +85,13 @@
       "when": 1792435793912,
       "tag": "0011_flag_pagine_nuove",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792441069225,
+      "tag": "0012_notifiche_sistema",
+      "breakpoints": true
     }
   ]
 }
