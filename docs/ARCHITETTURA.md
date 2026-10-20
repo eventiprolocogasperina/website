@@ -922,6 +922,12 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 15: il "+1 Bambino" allo scanner aggiorna solo la risposta `bambini` dell'ordine (con audit), non registra un pagamento: l'incasso resta in cassa o con un link di pagamento | Claude, esecuzione fase 3 (da confermare con Niccolo) |
 | 2026-10-19 | Prompt 15: il lettore ZXing (wasm) è servito dal sito (`public/vendor/zxing/`), non dal CDN: serve offline e su iOS | Claude, esecuzione fase 3 |
 | 2026-10-19 | Sviluppo locale: `LOCAL_DB_PROXY` in `instrumentation.ts` permette a ogni worktree il proprio proxy Neon (predefinito `localhost:4444`) | Claude, esecuzione fase 3 |
+| 2026-10-20 | Prompt 17: menu, calendario dalle edizioni e schede `/eventi/[slug]` nuove dietro il flag `site_settings.public_v2` (spento); Trasparenza, SEO e redirect sono attivi subito | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: edizione corrente di un format = la prima per data tra pubblicata, in vendita, esaurita e in corso (Zuccaland 2026 prima del 2027) | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: menu in `site_settings.public_nav` (JSON validato) con un segnaposto "format" che si espande da solo; letto in cache 5 minuti e svuotato a ogni salvataggio | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: categoria del calendario in `editions.category`; un'edizione `landing` senza `landing_path` (Baguette) porta alla sua pagina di oggi | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: contenuti di Trasparenza versionati in `transparency_versions` (solo aggiunte); richieste degli interessati in `privacy_requests`, visibili con `customers.read` perché contengono dati personali | Claude, esecuzione fase 4 |
+| 2026-10-20 | Prompt 17: `/assaggia-e-passeggia/edizione-2026/success` non fa redirect (link con `?order=` nelle email già inviate) | Claude, esecuzione fase 4 |
 
 ---
 

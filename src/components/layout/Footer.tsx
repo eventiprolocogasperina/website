@@ -12,6 +12,7 @@ const footerLinks = {
     { href: '/associazione', label: 'Chi Siamo' },
     { href: '/associazione#missione', label: 'Missione e Valori' },
     { href: '/privacy', label: 'Informativa Privacy' },
+    { href: '/trasparenza', label: 'Trasparenza sui dati' },
     { href: '/iscriviti', label: 'Diventa Socio' },
   ],
   territorio: [
@@ -149,6 +150,8 @@ export default function Footer() {
           <div>
             <span>© {new Date().getFullYear()} Pro Loco Gasperina APS · C.F. 99330790793 · P.IVA 03923590792 · </span>
             <Link href="/privacy" style={{ color: 'var(--neutral-400)', textDecoration: 'underline' }}>Informativa Privacy (GDPR)</Link>
+            <span> · </span>
+            <Link href="/trasparenza" style={{ color: 'var(--neutral-400)', textDecoration: 'underline' }}>Trasparenza</Link>
           </div>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             Fatto con <Heart size={12} style={{ color: 'var(--gold-500)' }} fill="currentColor" /> in Calabria

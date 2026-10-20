@@ -54,6 +54,7 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
           endsDate: e.endsAt ? romeDateKey(e.endsAt) : '',
           endsTime: e.endsAt ? romeTime(e.endsAt) : '',
           publicPageMode: e.publicPageMode,
+          category: e.category ?? '',
         }}
         formats={formats.map((f) => ({ id: f.id, name: f.name, landingPath: f.landingPath }))}
         transitions={transitions}

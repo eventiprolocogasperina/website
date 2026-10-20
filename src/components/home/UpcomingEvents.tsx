@@ -3,7 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, ChevronRight, Clock } from 'lucide-react';
-import type { Event } from '@/lib/data/events';
+import type { EventCardData } from '@/lib/public/calendar';
+
+/** Card della home: con il flag public_v2 arriva dalle edizioni e `href` porta alla pagina dedicata. */
+export type UpcomingCard = EventCardData & { price?: number };
 
 const categoryColors: Record<string, string> = {
   cultura: 'badge-blue',
@@ -18,7 +21,7 @@ function monthAbbr(label: string): string {
   return label.split(' ')[0].slice(0, 3).toUpperCase();
 }
 
-export default function UpcomingEvents({ events }: { events: Event[] }) {
+export default function UpcomingEvents({ events }: { events: UpcomingCard[] }) {
   const featuredEvents = events.filter(e => e.featured).slice(0, 3);
 
   return (
@@ -53,7 +56,7 @@ export default function UpcomingEvents({ events }: { events: Event[] }) {
               : dateObj.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
             return (
-              <Link key={event.id} href={`/eventi/${event.slug}`} style={{ textDecoration: 'none' }}>
+              <Link key={event.id} href={event.href} style={{ textDecoration: 'none' }}>
                 <article className="card" style={{ overflow: 'hidden' }}>
                   {/* Image */}
                   <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
@@ -61,6 +64,7 @@ export default function UpcomingEvents({ events }: { events: Event[] }) {
                       src={event.image}
                       alt={event.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, 400px"
                       style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }}
                       onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1.05)'}
                       onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}
@@ -90,9 +94,11 @@ export default function UpcomingEvents({ events }: { events: Event[] }) {
                       )}
                     </div>
                     {/* Category */}
-                    <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
-                      <span className={`badge ${categoryColors[event.category]}`}>{event.category}</span>
-                    </div>
+                    {event.category && (
+                      <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                        <span className={`badge ${categoryColors[event.category]}`}>{event.category}</span>
+                      </div>
+                    )}
                     {/* Free badge */}
                     {event.price === 0 && (
                       <div style={{

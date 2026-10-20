@@ -1,4 +1,5 @@
 import 'server-only';
+import { EVENT_CATEGORIES } from '@/lib/public/editions';
 import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 import { cache } from 'react';
 import { z } from 'zod';
@@ -309,6 +310,8 @@ export const UpdateEditionInput = z
     endsDate: DATE_KEY.nullable(),
     endsTime: TIME.nullable(),
     publicPageMode: z.enum(['generic', 'landing']),
+    /** Categoria nel calendario /eventi; assente = invariata. */
+    category: z.enum(EVENT_CATEGORIES).nullable().optional(),
   })
   .refine((v) => !v.endsDate || !!v.startsDate, { message: 'Indica prima la data di inizio.', path: ['startsDate'] });
 export type UpdateEditionInput = z.input<typeof UpdateEditionInput>;
@@ -330,6 +333,7 @@ export async function updateEdition(ctx: Ctx, slug: string, input: UpdateEdition
       startsAt,
       endsAt,
       publicPageMode: data.publicPageMode,
+      ...(data.category !== undefined ? { category: data.category } : {}),
       year: startsAt ? Number(romeDateKey(startsAt).slice(0, 4)) : before.year,
     };
     await tx.update(editions).set({ ...after, updatedAt: new Date() }).where(eq(editions.id, before.id));
