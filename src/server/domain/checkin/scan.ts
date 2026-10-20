@@ -116,8 +116,9 @@ async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx:
     if (same) return { final: { result: 'valid', checkinId: same.id, at: same.at, ticket } };
   }
 
-  if (row.ticket.status === 'void' || row.order.deletedAt || !ADMITTING_STATUSES.includes(row.order.status as OrderStatus)) return { final: { result: 'void', ticket } };
+  // La blacklist vince su tutto: rosso con l'avviso di chiamare un responsabile, anche se l'ordine è annullato.
   if (row.order.blacklisted) return { final: { result: 'blocked', ticket } };
+  if (row.ticket.status === 'void' || row.order.deletedAt || !ADMITTING_STATUSES.includes(row.order.status as OrderStatus)) return { final: { result: 'void', ticket } };
   if (!listAcceptsProduct(list, row.ticket.productId)) return { final: { result: 'wrong_list', ticket } };
   if (graph && !sessionMatches(graph, row.ticket.sessionId, target)) return { final: { result: 'wrong_session', ticket } };
 

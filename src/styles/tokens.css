@@ -30,6 +30,9 @@
   --ui-success-bg: #dcfce7;
   --ui-warning: #b45309;
   --ui-warning-bg: #fef3c7;
+  /* Esito "Già entrato" dello scanner: giallo pieno e testo scuro, uguali nei due temi. */
+  --ui-scan-yellow: #facc15;
+  --ui-scan-yellow-fg: #1c1917;
   --ui-danger: #b91c1c;
   --ui-danger-hover: #991b1b;
   --ui-danger-bg: #fee2e2;
@@ -89,6 +92,8 @@
   --color-success-bg: var(--ui-success-bg);
   --color-warning: var(--ui-warning);
   --color-warning-bg: var(--ui-warning-bg);
+  --color-scan-yellow: var(--ui-scan-yellow);
+  --color-scan-yellow-fg: var(--ui-scan-yellow-fg);
   --color-danger: var(--ui-danger);
   --color-danger-hover: var(--ui-danger-hover);
   --color-danger-bg: var(--ui-danger-bg);

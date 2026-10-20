@@ -1,7 +1,7 @@
 // Tipi dello scanner nuovo lato browser: gli stessi del dominio, già serializzati in JSON (date come stringhe).
-import type { Counter, OfflineManifest, ScannedTicket, ScannerSetup, SearchOrder, SyncOutcome } from '@/server/domain/checkin';
+import type { ActionQuote, Counter, OfflineManifest, PayActionResult, ScannedTicket, ScannerSetup, SearchOrder, SyncOutcome } from '@/server/domain/checkin';
 
-export type { Counter, OfflineManifest, ScannedTicket, ScannerSetup, SearchOrder, SyncOutcome };
+export type { ActionQuote, Counter, OfflineManifest, PayActionResult, ScannedTicket, ScannerSetup, SearchOrder, SyncOutcome };
 
 export type ScanResponse =
   | { result: 'valid'; checkinId: string; at: string; ticket: ScannedTicket }

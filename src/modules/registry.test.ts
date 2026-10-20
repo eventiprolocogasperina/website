@@ -30,7 +30,7 @@ describe('registro dei moduli', () => {
       enabledModules: ['time-slots', 'activities', 'postponement', 'paylink', 'visitor-photos', 'chiave-rimossa'],
       moduleSettings: { activities: { scannerCounters: [{ label: '+1 Bambino', questionKey: 'bambini', increment: 1 }] } },
     };
-    expect(extensionPoints.scannerActions(zucca)).toEqual([{ key: 'counter-0', label: '+1 Bambino', questionKey: 'bambini', increment: 1 }]);
+    expect(extensionPoints.scannerActions(zucca)).toEqual([{ key: 'counter-0', label: '+1 Bambino', questionKey: 'bambini', increment: 1, productId: null, registerId: null }]);
     expect(extensionPoints.orderActions(zucca).map((a) => a.key)).toEqual(expect.arrayContaining(['move-session', 'paylink']));
     expect(extensionPoints.nav(zucca).map((n) => n.key)).toEqual(['activities', 'postponement', 'visitor-photos']);
   });
@@ -54,6 +54,17 @@ describe('form delle impostazioni dallo schema', () => {
     expect(list.item.find((f) => f.key === 'sessionIds')).toEqual({ key: 'sessionIds', kind: 'sessions', label: 'Giorni', help: 'Nessuno selezionato = tutti i giorni.' });
     expect(list.itemDefaults).toMatchObject({ target: 'bambini', sessionIds: [], maxPlaces: 0, details: '' });
     expect(fields.find((f) => f.key === 'labProductId')).toMatchObject({ kind: 'product', label: 'Laboratorio a pagamento' });
+  });
+
+  it('i pulsanti dello scanner scelgono prodotto da incassare e cassa; senza, contano e basta', () => {
+    const counters = settingsFields(getModule('activities')!).find((f) => f.key === 'scannerCounters')!;
+    if (counters.kind !== 'list') throw new Error();
+    expect(counters.item.find((f) => f.key === 'productId')).toMatchObject({ kind: 'product', label: 'Prodotto da incassare' });
+    expect(counters.item.find((f) => f.key === 'registerId')).toMatchObject({ kind: 'register', label: 'Cassa che incassa' });
+    const p = '00000000-0000-4000-8000-000000000001';
+    const actions = extensionPoints.scannerActions({ enabledModules: ['activities', 'time-slots'], moduleSettings: { activities: { scannerCounters: [{ label: '+1 Bambino', questionKey: 'bambini', productId: p }] } } });
+    expect(actions).toEqual([{ key: 'counter-0', label: '+1 Bambino', questionKey: 'bambini', increment: 1, productId: p, registerId: null }]);
+    expect(extensionPoints.scannerActions({ enabledModules: ['activities', 'time-slots'], moduleSettings: {} })[0]).toMatchObject({ productId: null, registerId: null });
   });
 
   it('ogni modulo ha un form disegnabile ed etichette per tutti i campi', () => {

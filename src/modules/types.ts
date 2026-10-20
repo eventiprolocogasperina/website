@@ -32,7 +32,8 @@ export type ClosingCheck = { key: string; label: string; blocking: boolean };
 export type CheckoutStep = { key: string; title: string };
 export type PosAction = { key: string; label: string };
 /** Pulsante dello scanner dopo una lettura valida, es. "+1 Bambino". */
-export type ScannerAction = { key: string; label: string; questionKey: string; increment: number };
+/** Pulsante dello scanner: aggiunge `increment` alla risposta; con `productId` a pagamento incassa anche (cassa). */
+export type ScannerAction = { key: string; label: string; questionKey: string; increment: number; productId?: string | null; registerId?: string | null };
 
 /** Contesto passato agli hook dichiarativi: le impostazioni già validate del modulo. */
 export type ModuleContext<S> = { settings: S };

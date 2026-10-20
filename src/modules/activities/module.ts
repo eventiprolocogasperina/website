@@ -27,6 +27,10 @@ export const ScannerCounterSchema = z.object({
   label: z.string().trim().min(2).max(40),
   questionKey: z.string().trim().min(2).max(40),
   increment: z.number().int().min(-10).max(10).default(1),
+  /** Prodotto a pagamento da incassare a ogni tocco (es. ingresso bambino): vuoto o gratuito = solo conteggio. */
+  productId: z.string().uuid().nullable().default(null).meta({ widget: 'product' }),
+  /** Cassa il cui turno aperto riceve l'incasso; vuota = il turno aperto da questo telefono. */
+  registerId: z.string().uuid().nullable().default(null).meta({ widget: 'register' }),
 });
 
 export const activitiesSettings = z.object({
@@ -36,7 +40,7 @@ export const activitiesSettings = z.object({
   labProductId: z.string().uuid().nullable().default(null).meta({ widget: 'product' }),
   remindIfMissing: z.boolean().default(true),
   questions: z.array(QuestionSchema).max(20).default([]),
-  scannerCounters: z.array(ScannerCounterSchema).max(6).default([{ label: '+1 Bambino', questionKey: 'bambini', increment: 1 }]),
+  scannerCounters: z.array(ScannerCounterSchema).max(6).default([{ label: '+1 Bambino', questionKey: 'bambini', increment: 1, productId: null, registerId: null }]),
 });
 export type ActivitiesSettings = z.output<typeof activitiesSettings>;
 
@@ -74,6 +78,8 @@ export const activities = defineModule({
     'scannerCounters.label': { label: 'Testo del pulsante' },
     'scannerCounters.questionKey': { label: 'Codice della risposta', help: 'bambini, o il codice di una domanda.' },
     'scannerCounters.increment': { label: 'Quanto aggiunge' },
+    'scannerCounters.productId': { label: 'Prodotto da incassare', help: 'Es. ingresso bambino o laboratorio. Il tocco apre la cassa con prezzo, contanti o carta POS. Nessuno o gratuito = solo conteggio.' },
+    'scannerCounters.registerId': { label: 'Cassa che incassa', help: 'Deve avere un turno aperto (dall’app Cassa). Nessuna = il turno aperto da questo telefono.' },
   },
   admin: {
     nav: { label: 'Attività', icon: 'palette', permission: 'orders.read' },
@@ -82,6 +88,13 @@ export const activities = defineModule({
   },
   checkout: { steps: [{ key: 'activities', title: 'Bambini e attività' }] },
   scanner: {
-    actions: ({ settings }) => settings.scannerCounters.map((c, i) => ({ key: `counter-${i}`, label: c.label, questionKey: c.questionKey, increment: c.increment })),
+    actions: ({ settings }) => settings.scannerCounters.map((c, i) => ({
+        key: `counter-${i}`,
+        label: c.label,
+        questionKey: c.questionKey,
+        increment: c.increment,
+        productId: c.productId ?? null,
+        registerId: c.registerId ?? null,
+      })),
   },
 });

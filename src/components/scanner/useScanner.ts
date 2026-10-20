@@ -125,6 +125,11 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     [outcome],
   );
 
+  /** Conteggio aggiornato da fuori (popup di cassa di un pulsante a pagamento). */
+  const setAnswer = useCallback((questionKey: string, after: number) => {
+    setOutcome((o) => (o?.source === 'online' ? { ...o, data: { ...o.data, answers: { ...o.data.answers, [questionKey]: after } } } : o));
+  }, []);
+
   useEffect(() => {
     const first = window.setTimeout(refreshCounter, 0);
     const id = window.setInterval(refreshCounter, 15_000);
@@ -141,5 +146,5 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     return () => window.clearTimeout(id);
   }, [undo]);
 
-  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, runAction, submit, onCode, busy, error, clearError: () => setError(null) };
+  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, runAction, setAnswer, submit, onCode, busy, error, clearError: () => setError(null) };
 }

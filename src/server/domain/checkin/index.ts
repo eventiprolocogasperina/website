@@ -6,5 +6,6 @@ export { listCounters, checkinStats, type Counter, type CheckinStats } from './s
 export { searchTickets, SearchInput, type SearchOrder } from './search';
 export { offlineManifest, syncOfflineCheckins, qrHash, SyncInput, type OfflineManifest, type SyncOutcome } from './offline';
 export { applyScannerAction, answerCounts, scannerActionsFor, ScannerActionInput, type ScannerActionResult } from './actions';
+export { scannerActionQuote, payScannerAction, paidActionProducts, ActionQuoteInput, PayActionInput, type ActionQuote, type PayActionResult } from './paid';
 export { scannerV2Enabled, setScannerV2, SCANNER_FLAG } from './flag';
 export { scannerSetup, scannerEditions, type ScannerSetup } from './setup';

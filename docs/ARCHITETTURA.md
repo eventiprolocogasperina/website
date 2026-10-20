@@ -922,6 +922,8 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-19 | Prompt 15: il "+1 Bambino" allo scanner aggiorna solo la risposta `bambini` dell'ordine (con audit), non registra un pagamento: l'incasso resta in cassa o con un link di pagamento | Claude, esecuzione fase 3 (da confermare con Niccolo) |
 | 2026-10-19 | Prompt 15: il lettore ZXing (wasm) è servito dal sito (`public/vendor/zxing/`), non dal CDN: serve offline e su iOS | Claude, esecuzione fase 3 |
 | 2026-10-19 | Sviluppo locale: `LOCAL_DB_PROXY` in `instrumentation.ts` permette a ogni worktree il proprio proxy Neon (predefinito `localhost:4444`) | Claude, esecuzione fase 3 |
+| 2026-10-19 | Scanner, pulsanti a pagamento: prodotto e cassa si configurano sul pulsante (`activities.scannerCounters[].productId/registerId`), non sulla lista di check-in, perché il pulsante è già lì. La vendita è un ordine `pos` figlio dell'ordine letto, sul turno aperto della cassa scelta (senza cassa: il turno aperto dal telefono) e il conteggio sale nella stessa transazione. Serve `pos.sell` (Varco + Cassa) e la rete | Niccolo / Claude, fase 4 |
+| 2026-10-19 | Scanner: "Già entrato" e "Altra data" in giallo pieno con testo scuro (token `scan-yellow`, uguale nei due temi); la blacklist si controlla prima di "annullato", così un ordine in blacklist è sempre BLOCCATO in rosso con l'avviso | Niccolo / Claude, fase 4 |
 
 ---
 
