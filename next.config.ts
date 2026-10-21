@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// Anche durante la build del Preview: mai il database di produzione (vedi src/instrumentation.ts).
+if (process.env.VERCEL_ENV === 'preview') process.env.POSTGRES_URL = process.env.PREVIEW_POSTGRES_URL || '';
+
 const nextConfig: NextConfig = {
   // Solo con LOCAL_DB=1 (sviluppo locale, vedi dev/README.md): una sola copia del driver Neon,
   // così la configurazione in src/instrumentation.ts vale per tutte le rotte.

@@ -1,6 +1,9 @@
 // Avvio del server. Solo sviluppo locale: indirizza il driver Neon al database Docker in dev/.
 // Si attiva unicamente con LOCAL_DB=1 e fuori da production, quindi su Vercel non fa nulla.
 export async function register() {
+  // Preview di Vercel: POSTGRES_URL è quella di produzione (la imposta l'integrazione Neon), quindi il
+  // Preview usa solo PREVIEW_POSTGRES_URL, il branch Neon di prova. Senza, nessun database.
+  if (process.env.VERCEL_ENV === 'preview') process.env.POSTGRES_URL = process.env.PREVIEW_POSTGRES_URL || '';
   // Allarmi Telegram per gli errori dei servizi (prompt 18), solo sul server Node.
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const [{ setErrorSink }, { reportError }] = await Promise.all([import('./server/log'), import('./server/alerts')]);

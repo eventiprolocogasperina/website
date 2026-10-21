@@ -22,7 +22,7 @@ const PROTECTED = ['/admin', '/api/admin', '/scanner', '/cassa'];
 
 // Preview di Vercel bloccato finché non ha le sue variabili (database di prova, Nexi di test):
 // senza PREVIEW_READY=1 non apre nessuna pagina, così non lavora mai con le chiavi di produzione.
-const previewLocked = () => process.env.VERCEL_ENV === 'preview' && process.env.PREVIEW_READY !== '1';
+const previewLocked = () => process.env.VERCEL_ENV === 'preview' && (process.env.PREVIEW_READY !== '1' || !process.env.PREVIEW_POSTGRES_URL);
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
