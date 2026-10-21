@@ -21,6 +21,7 @@
     "test:db": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --project db",
     "test:coverage": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/proloco_test} vitest run --no-file-parallelism --coverage",
     "migrate:orders": "tsx scripts/migrate-orders.ts",
+    "migrate:discounts": "tsx scripts/migrate-discounts.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
