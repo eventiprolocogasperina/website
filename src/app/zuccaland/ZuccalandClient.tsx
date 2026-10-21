@@ -695,7 +695,7 @@ function ZuccalandTicketBuyer({
       selectedDay === '24 Ottobre' ? '24' : '25';
 
     if (currentDayKey === '17' || currentDayKey === '18') {
-      alert(`I biglietti per ${selectedDay} non sono acquistabili sul sito in quanto riservati al recupero delle date del 10 e 11 Ottobre. Le nuove prenotazioni sono aperte per Domenica 25 Ottobre.`);
+      alert(`I biglietti per ${selectedDay} non sono acquistabili sul sito in quanto riservati al recupero delle date del 10 e 11 Ottobre. Le nuove prenotazioni sono aperte per Sabato 24 Ottobre (orario 11:00 - 17:00).`);
       return;
     }
 
@@ -960,7 +960,7 @@ function ZuccalandTicketBuyer({
                     }}>
                       <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>📢</span>
                       <div>
-                        <strong style={{ color: '#c2410c' }}>Aggiornamento Date & Biglietti:</strong> Tutti i biglietti originariamente acquistati per il 10 Ottobre sono validi per <strong>Sabato 17 Ottobre</strong>, e tutti i biglietti dell&apos;11 Ottobre per <strong>Domenica 18 Ottobre</strong>. Per il 17 e 18 Ottobre i posti sono al completo (non acquistabili). Le nuove prenotazioni sono aperte per <strong>Domenica 25 Ottobre</strong>!
+                        <strong style={{ color: '#c2410c' }}>Aggiornamento Date & Biglietti:</strong> I posti per il 17, 18 e 25 Ottobre sono esauriti (SOLD OUT). Le nuove prenotazioni sono aperte esclusivamente per <strong>Sabato 24 Ottobre</strong> (orario speciale 11:00 - 17:00)!
                       </div>
                     </div>
 
@@ -980,9 +980,11 @@ function ZuccalandTicketBuyer({
                             Scegli il giorno di partecipazione
                           </div>
                           <div style={{ fontSize: '0.78rem', color: '#9a3412' }}>
-                            {is24Active
-                              ? 'Date disponibili: Sabato 24 (ore 11:00 - 17:00) e Domenica 25 Ottobre (ore 10:30 - 16:30)'
-                              : '17 e 18 Ottobre: Recupero sold out · Nuove prenotazioni aperte per Domenica 25 Ottobre'}
+                            {is24Active && !isSoldOut24
+                              ? 'Data disponibile: Sabato 24 Ottobre (ore 11:00 - 17:00) · 17, 18 e 25 Ottobre SOLD OUT'
+                              : isSoldOut25
+                                ? 'Tutte le date sono SOLD OUT'
+                                : 'Data disponibile: Domenica 25 Ottobre'}
                           </div>
                         </div>
                       </div>
@@ -1211,7 +1213,7 @@ function ZuccalandTicketBuyer({
                       }}>
                         <span>✨</span>
                         <span>
-                          Le prenotazioni sono aperte per <strong>Sabato 24</strong> (orario speciale 11:00 - 17:00) e <strong>Domenica 25 Ottobre</strong>! I posti per il 17 e 18 Ottobre sono esauriti in quanto riservati ai possessori dei biglietti del 10 e 11 Ottobre.
+                          Le prenotazioni sono aperte esclusivamente per <strong>Sabato 24 Ottobre</strong> (orario speciale 11:00 - 17:00)! I posti per il 17, 18 e 25 Ottobre sono esauriti (SOLD OUT).
                         </span>
                       </div>
                     </div>

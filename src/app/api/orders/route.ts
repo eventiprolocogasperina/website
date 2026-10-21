@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
         if (parsed.dayKey === '17' || parsed.dayKey === '18') {
           return NextResponse.json({
-            error: `I biglietti per la data di ${dayName} non sono acquistabili sul sito in quanto riservati al recupero delle date del 10 e 11 Ottobre. Le nuove prenotazioni sono aperte per Domenica 25 Ottobre.`
+            error: `I biglietti per la data di ${dayName} non sono acquistabili sul sito in quanto riservati al recupero delle date del 10 e 11 Ottobre. Le nuove prenotazioni sono aperte per Sabato 24 Ottobre (ore 11:00 - 17:00).`
           }, { status: 400 });
         }
 
