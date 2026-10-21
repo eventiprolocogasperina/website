@@ -257,7 +257,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
   const priceColor = isZuccaland ? '#f97316' : palette.primary;
   const eventTitle = isZuccaland ? 'Zuccaland 2026' : 'Assaggia & Passeggia';
   const eventSubtitle = isZuccaland 
-    ? (parsedNotes.dayKey !== 'unspecified' ? `Pro Loco Gasperina · ${parsedNotes.eventDate}` : 'Pro Loco Gasperina · Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026') 
+    ? (parsedNotes.dayKey !== 'unspecified' ? `Pro Loco Gasperina · ${parsedNotes.eventDate}${parsedNotes.dayKey === '24' ? ' (Ore 11:00 - 17:00)' : ''}` : 'Pro Loco Gasperina · Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026') 
     : 'Pro Loco Gasperina · Gasperina (CZ)';
   const eventDate = isZuccaland ? parsedNotes.fullDateWithTime : '10 Agosto 2026 - Ritiro dalle ore 19:00';
 
@@ -414,6 +414,15 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
               📍 Luogo dell&apos;evento: Gasperina (CZ) · Coordinate GPS per navigatore: 38.743791, 16.481122
             </Text>
           </View>
+
+          {/* Day 24 Special Opening Time Alert */}
+          {isZuccaland && parsedNotes.dayKey === '24' && (
+            <View style={[styles.infoBox, { backgroundColor: '#fff7ed', borderColor: '#ea580c', borderWidth: 1.5, marginTop: 4 }]} wrap={false}>
+              <Text style={[styles.infoText, { color: '#c2410c', fontFamily: 'Helvetica-Bold' }]}>
+                ⏰ ORARIO INGRESSO SABATO 24 OTTOBRE: L&apos;orario ufficiale di apertura cancelli e svolgimento dell&apos;evento per Sabato 24 Ottobre è dalle ore 11:00 alle ore 17:00.
+              </Text>
+            </View>
+          )}
 
           {/* Info box */}
           {isZuccaland && youPickCount > 0 && (

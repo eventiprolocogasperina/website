@@ -62,7 +62,14 @@ export async function GET() {
       ? Math.max(0, dateLimits['25'].maxTickets - counts['25'].admissionTickets)
       : null;
 
-    // Date attualmente aperte all'acquisto pubblico: 25 (+ 24 se attivata)
+    const maxYouPick24 = dateLimits['24'].maxYouPickTickets ?? 50;
+    const isYouPickSoldOut24 = Boolean(
+      dateLimits['24'].manualYouPickSoldOut ||
+      counts['24'].youPickTickets >= maxYouPick24
+    );
+    const remainingYouPick24 = Math.max(0, maxYouPick24 - counts['24'].youPickTickets);
+
+    // Date attualmente aperte all'acquisto pubblico: 24 (se attiva) e 25
     const purchasableDatesList = [
       ...(is24Active ? [{ key: '24', soldOut: isSoldOut24 }] : []),
       { key: '25', active: is25Active, soldOut: isSoldOut25 },
@@ -97,6 +104,12 @@ export async function GET() {
         '25': remaining25,
         '10': null,
         '11': null,
+      },
+      youPickSoldOut: {
+        '24': isYouPickSoldOut24,
+      },
+      youPickRemaining: {
+        '24': remainingYouPick24,
       },
       allSoldOut,
     });

@@ -64,6 +64,36 @@ export async function POST(request: Request) {
             }, { status: 400 });
           }
         }
+
+        // Check You-Pick tickets limit (50 tickets for Saturday 24)
+        const requestedYouPick = cart.reduce((sum: number, item: any) => {
+          const isExtra = item.type.toLowerCase().includes('you pick') || item.type.toLowerCase().includes('laboratorio');
+          return sum + (isExtra ? (item.quantity || 0) : 0);
+        }, 0);
+
+        if (requestedYouPick > 0) {
+          const maxYouPick = dayLimit?.maxYouPickTickets ?? (parsed.dayKey === '24' ? 50 : null);
+          const isManualYouPickSoldOut = Boolean(dayLimit?.manualYouPickSoldOut);
+
+          if (isManualYouPickSoldOut) {
+            return NextResponse.json({
+              error: `I biglietti You-Pick per la data di ${dayName} sono terminati.`
+            }, { status: 400 });
+          }
+
+          if (maxYouPick !== null) {
+            const counts = await getZuccalandDateCounts();
+            const currentYouPickSold = counts[parsed.dayKey as keyof typeof counts]?.youPickTickets || 0;
+            if (currentYouPickSold + requestedYouPick > maxYouPick) {
+              const left = Math.max(0, maxYouPick - currentYouPickSold);
+              return NextResponse.json({
+                error: left > 0
+                  ? `Disponibilità You-Pick insufficiente per ${dayName}. Rimangono solo ${left} bigliett${left === 1 ? 'o' : 'i'} You-Pick.`
+                  : `I biglietti You-Pick per la data di ${dayName} sono terminati.`
+              }, { status: 400 });
+            }
+          }
+        }
       }
     }
 

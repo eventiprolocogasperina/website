@@ -29,6 +29,8 @@ export async function sendPayLinkEmail(
 
   const parsedNotes = parseOrderNotes(order.notes);
   const parentParsed = options?.parentOrder ? parseOrderNotes(options.parentOrder.notes) : null;
+  const targetDayKey = parentParsed?.dayKey !== 'unspecified' && parentParsed?.dayKey ? parentParsed.dayKey : parsedNotes.dayKey;
+  const timeText = targetDayKey === '24' ? 'Orario di ingresso 11:00 - 17:00' : 'Ingresso dalle ore 10:30';
   const eventDate =
     parentParsed?.eventDate ||
     parsedNotes.eventDate ||
@@ -129,7 +131,7 @@ export async function sendPayLinkEmail(
               }
               <div style="color:#7c2d12;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Il villaggio delle zucche di Gasperina</div>
               <div style="display:inline-block;background:#fff7ed;border:1px solid #fdba74;color:#ea580c;font-size:12px;margin-top:10px;font-weight:800;padding:4px 14px;border-radius:999px;">
-                🎃 ${eventDate} · Ingresso dalle ore 10:30 · Gasperina (CZ)
+                🎃 ${eventDate} · ${timeText} · Gasperina (CZ)
               </div>
             </td>
           </tr>
@@ -164,7 +166,7 @@ export async function sendPayLinkEmail(
                     <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;font-weight:700;">📅 Data Prenotata:</td>
                     <td style="text-align:right;font-size:12.5px;color:#ea580c;font-weight:800;padding-bottom:10px;">
                       ${eventDate}<br/>
-                      <span style="font-size:11.5px;color:#c2410c;font-weight:600;">Ingresso dalle ore 10:30</span>
+                      <span style="font-size:11.5px;color:#c2410c;font-weight:600;">${timeText}</span>
                     </td>
                   </tr>
                   <tr>
