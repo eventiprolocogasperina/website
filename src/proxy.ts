@@ -18,8 +18,19 @@ const PUBLIC_ADMIN_API: Array<{ method: string; path: string }> = [
 
 const CASSA_PUBLIC = ['/cassa/pronti', '/cassa/sw.js', '/cassa/manifest.webmanifest'];
 
+const PROTECTED = ['/admin', '/api/admin', '/scanner', '/cassa'];
+
+// Preview di Vercel bloccato finché non ha le sue variabili (database di prova, Nexi di test):
+// senza PREVIEW_READY=1 non apre nessuna pagina, così non lavora mai con le chiavi di produzione.
+const previewLocked = () => process.env.VERCEL_ENV === 'preview' && process.env.PREVIEW_READY !== '1';
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  if (previewLocked()) {
+    return new NextResponse('Preview non ancora configurato.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  }
+  if (!PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
 
   if (PUBLIC_ADMIN_API.some((r) => r.method === request.method && r.path === pathname)) {
     return NextResponse.next();
@@ -64,5 +75,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*', '/scanner/:path*', '/cassa/:path*'],
+  // Tutte le rotte, per il blocco del Preview; fuori dalle aree protette il proxy non fa nulla.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
