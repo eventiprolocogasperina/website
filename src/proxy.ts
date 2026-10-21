@@ -28,7 +28,9 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (previewLocked()) {
-    return new NextResponse('Preview non ancora configurato.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    // Solo i nomi delle variabili mancanti, mai i valori.
+    const missing = ['PREVIEW_READY', 'PREVIEW_POSTGRES_URL'].filter((k) => (k === 'PREVIEW_READY' ? process.env[k] !== '1' : !process.env[k]));
+    return new NextResponse(`Preview non ancora configurato. Mancano: ${missing.join(', ')} (branch ${process.env.VERCEL_GIT_COMMIT_REF ?? '?'}).`, { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   }
   if (!PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
 
