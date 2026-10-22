@@ -36,7 +36,8 @@ export type ScannedTicket = { id: string; orderId: string; productName: string; 
 
 export type ScanResult =
   | { result: 'valid'; checkinId: string; at: Date; ticket: ScannedTicket }
-  | { result: 'already_used'; at: Date; by: string | null; ticket: ScannedTicket }
+  /** `checkinId`: il passaggio che lo ha fatto entrare, per annullarlo dall'esito (con conferma). */
+  | { result: 'already_used'; checkinId: string; at: Date; by: string | null; ticket: ScannedTicket }
   | { result: 'wrong_session'; ticket: ScannedTicket }
   | { result: 'wrong_list'; ticket: ScannedTicket }
   | { result: 'void'; ticket: ScannedTicket }
@@ -124,13 +125,13 @@ async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx:
 
   if (!list.allowMultiple) {
     const [previous] = await db
-      .select({ at: checkins.at, by: devices.name })
+      .select({ id: checkins.id, at: checkins.at, by: devices.name })
       .from(checkins)
       .leftJoin(devices, eq(devices.id, checkins.deviceId))
       .where(and(eq(checkins.ticketId, row.ticket.id), eq(checkins.checkinListId, list.id), isNull(checkins.revertedAt)))
       .orderBy(desc(checkins.at))
       .limit(1);
-    if (previous) return { final: { result: 'already_used', at: previous.at, by: previous.by, ticket } };
+    if (previous) return { final: { result: 'already_used', checkinId: previous.id, at: previous.at, by: previous.by, ticket } };
   }
   return { ready: { list, editionSlug, ticketId: row.ticket.id, orderCode: row.order.code, ticket } };
 }
@@ -172,7 +173,11 @@ export async function scan(ctx: Ctx, input: z.input<typeof ScanInput>, opts: Sca
 
 export const RevertCheckinInput = z.object({ checkinId: z.string().uuid(), reason: z.string().trim().max(500).nullish() });
 
-/** Annulla un passaggio fatto per errore: il biglietto torna utilizzabile. */
+/**
+ * Annulla un passaggio fatto per errore: il biglietto torna utilizzabile. Mai una cancellazione (§18.5):
+ * il passaggio resta con `reverted_at` e chi l'ha annullato, più la voce nel registro. Vale per
+ * "Annulla ultimo" e per l'annullo fatto dopo, dalla ricerca o dall'esito "Già entrato".
+ */
 export async function revertCheckin(ctx: Ctx, input: z.input<typeof RevertCheckinInput>): Promise<void> {
   const data = RevertCheckinInput.parse(input);
   await withTransaction(async (tx) => {

@@ -4,15 +4,17 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Client } from 'pg';
-import { E2E_DB, sql } from './db';
+import { E2E_DB, E2E_DB_NAME, sql } from './db';
 
 export default async function setup() {
   const url = new URL(E2E_DB);
-  if (url.hostname !== 'localhost' || url.pathname !== '/proloco_e2e') throw new Error('Database e2e non locale');
-  const admin = new Client({ connectionString: E2E_DB.replace('/proloco_e2e', '/postgres') });
+  if (url.hostname !== 'localhost' || !/^[a-z0-9_]+_e2e$/.test(E2E_DB_NAME)) throw new Error('Database e2e non locale');
+  const server = new URL(E2E_DB);
+  server.pathname = '/postgres';
+  const admin = new Client({ connectionString: server.toString() });
   await admin.connect();
-  await admin.query('DROP DATABASE IF EXISTS proloco_e2e WITH (FORCE)');
-  await admin.query('CREATE DATABASE proloco_e2e');
+  await admin.query(`DROP DATABASE IF EXISTS "${E2E_DB_NAME}" WITH (FORCE)`);
+  await admin.query(`CREATE DATABASE "${E2E_DB_NAME}"`);
   await admin.end();
   const c = new Client({ connectionString: E2E_DB });
   await c.connect();

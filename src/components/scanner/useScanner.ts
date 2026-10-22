@@ -115,6 +115,17 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     }
   }, [undo, offline, refreshCounter]);
 
+  /** Annullo fatto dopo, con conferma, dalla ricerca o dall'esito "Già entrato": serve la rete. */
+  const revertLater = useCallback(
+    async (checkinId: string, from: 'ricerca' | 'esito') => {
+      await api('revert', { method: 'POST', body: { checkinId, from } });
+      setUndo((u) => (u?.kind === 'online' && u.checkinId === checkinId ? null : u));
+      if (from === 'esito') setOutcome(null);
+      void refreshCounter();
+    },
+    [refreshCounter],
+  );
+
   const runAction = useCallback(
     async (key: string) => {
       if (outcome?.source !== 'online' || !('ticket' in outcome.data)) return;
@@ -146,5 +157,5 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     return () => window.clearTimeout(id);
   }, [undo]);
 
-  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, runAction, setAnswer, submit, onCode, busy, error, clearError: () => setError(null) };
+  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, revertLater, runAction, setAnswer, submit, onCode, busy, error, clearError: () => setError(null) };
 }

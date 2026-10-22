@@ -5,7 +5,7 @@ export type { ActionQuote, Counter, OfflineManifest, PayActionResult, ScannedTic
 
 export type ScanResponse =
   | { result: 'valid'; checkinId: string; at: string; ticket: ScannedTicket }
-  | { result: 'already_used'; at: string; by: string | null; ticket: ScannedTicket }
+  | { result: 'already_used'; checkinId: string; at: string; by: string | null; ticket: ScannedTicket }
   | { result: 'wrong_session' | 'wrong_list' | 'void' | 'blocked'; ticket: ScannedTicket }
   | { result: 'unknown' };
 

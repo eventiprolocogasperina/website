@@ -646,7 +646,7 @@ Comande del reparto in colonne PENDING → PREPARING → READY → DELIVERED, ag
 ### 12.3 Scanner (`/scanner`)
 1. Dispositivo abbinato → PIN → scelta della **lista di check-in** (Ingresso, Laboratorio…).
 2. Inquadratura del QR → esito a **tutto schermo**: verde "VALIDO" (nome, prodotto, sessione), giallo "GIÀ ENTRATO alle 10:41", rosso "NON VALIDO / altra data / annullato". Accompagnato da vibrazione e suono.
-3. "Annulla ultimo check-in" resta disponibile per 30 secondi.
+3. "Annulla ultimo check-in" resta disponibile per 30 secondi. Dopo, un ingresso si annulla con conferma dalla ricerca o dall'esito "Già entrato" (`checkin.revert`, con audit, mai cancellato).
 4. Le azioni dei moduli (es. "+1 Bambino" del modulo `activities`) compaiono come pulsanti sotto l'esito. Non sono cablate nello scanner.
 5. Ricerca manuale per nome o codice, per chi non ha il QR.
 6. Contatori in alto: entrati e attesi per la sessione corrente.
@@ -948,6 +948,7 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-22 | Cassa, pulsante "Altro": l'importo libero è una riga di un prodotto `open_price` (uno per edizione, creato dal server alla prima vendita, si spegne disattivandolo in Catalogo). Il server accetta il prezzo della riga solo per quel prodotto, solo sul canale `pos` con il turno, da 0,01 a 1000 €; per ogni altro prodotto un prezzo dal browser si rifiuta (§18.1). Vale su ogni cassa, anche su quelle con i prodotti limitati | Niccolo / Claude |
 | 2026-10-22 | Cassa: chiusura del turno, Z, rendiconto (admin e PDF) mostrano i pezzi venduti per prodotto, senza gli annullati e con gli omaggi | Niccolo / Claude |
 | 2026-10-22 | Abbinamento dei dispositivi: insieme al QR si genera un PIN di 6 cifre (hash scrypt, mai in chiaro nel database o nel registro) da digitare sul telefono; al quinto PIN sbagliato il QR non vale più, più un limite per IP. Il ruolo del dispositivo (Cassa o Varco) si sceglie nello stesso dialogo, anche da Cassa e Check-in dell'edizione. I QR senza PIN non si accettano più | Niccolo / Claude |
+| 2026-10-22 | Scanner: un ingresso si annulla anche dopo i 30 secondi, con conferma, dalla ricerca o dall'esito "Già entrato"; stesso `revertCheckin` (segna `reverted_at`, audit con il motivo), mai una cancellazione | Claude, richiesta di Niccolo |
 
 ---
 

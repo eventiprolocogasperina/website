@@ -30,6 +30,7 @@ Esito a schermo intero, con vibrazione (non su iOS: Safari non la supporta) e su
 | `unknown` | danger | NON TROVATO |
 
 - **Annulla ultimo**: per 30 secondi dopo un ingresso (online annulla il passaggio con audit; offline toglie il passaggio dalla coda).
+- **Annulla ingresso dopo**, con conferma ("Annullare questo ingresso?" → "Annulla l’ingresso" / "Lascia entrato"): dalla ricerca manuale su un biglietto entrato, oppure dall'esito giallo "Già entrato" (pulsante "Annulla questo ingresso"). Permesso `checkin.revert`, serve la rete. Il passaggio non si cancella (§18.5): resta in `checkins` con `reverted_at` e `reverted_by`, più `ticket.checkin_reverted` nel registro con il motivo ("Annullato dopo, dalla ricerca dello scanner" o "… dall’esito «Già entrato» dello scanner"). Il biglietto torna valido. Nell'admin (ordine, partecipanti) l'ingresso si vede soltanto: non c'è un'azione di check-in da annullare.
 - **Azioni dei moduli** (`scanner.actions`): es. "+1 Bambino" incrementa la risposta `bambini` dell'ordine (`attendee_answers`, livello ordine) con audit `order.scanner_action`. Accetta numeri, stringhe numeriche e il formato migrato `{bambini, iscritti}`.
 - **Pulsanti a pagamento**: vedi sotto.
 - **Ricerca manuale**: codice ordine, nome dell'acquirente o del partecipante, QR esatto. Mai email o telefono.
@@ -80,7 +81,7 @@ L'ingresso valido costa una transazione WebSocket (un `Pool` per chiamata, §16)
 | Lettura QR e verifica (`/api/tickets/verify`) | `/scanner` nuovo, `/api/scanner/scan` |
 | Ricerca per ID biglietto/ordine o nome | Ricerca manuale (codice, nome, QR) |
 | "Convalida tutti" / convalida singolo | "Fai entrare" per biglietto dalla ricerca |
-| Annulla convalida (`/api/tickets/unverify`) | "Annulla ultimo" per 30 s; annullamento con audit |
+| Annulla convalida (`/api/tickets/unverify`) | "Annulla ultimo" per 30 s; dopo, con conferma, dalla ricerca o da "Già entrato"; sempre con audit |
 | Extra "+1 Bambino" con pagamento (`/api/orders/add-extra`) | Azione del modulo: solo il conteggio; l'incasso in cassa o con link di pagamento |
 | Statistiche (`/api/admin/stats`, `/api/tickets/stats`) | Contatori sullo scanner e pagina admin Check-in |
 | Elenco ultime scansioni | Non ripreso: registro attività (audit) |

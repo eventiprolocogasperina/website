@@ -53,6 +53,8 @@ export function BlockList({ blocks, readOnly, onChange, onEdit }: { blocks: Bloc
               onDragStart={(e) => {
                 setDragging(i);
                 e.dataTransfer.effectAllowed = 'move';
+                // Firefox non inizia il trascinamento senza dati.
+                e.dataTransfer.setData('text/plain', b.id);
               }}
               onDragOver={(e) => {
                 if (dragging === null) return;

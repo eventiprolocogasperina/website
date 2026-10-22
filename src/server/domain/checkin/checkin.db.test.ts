@@ -123,6 +123,39 @@ describe.skipIf(!enabled)('scanner e liste di check-in', () => {
       expect(logs.map((l) => l.action).sort()).toEqual(['ticket.checked_in', 'ticket.checkin_reverted']);
       expect(logs.every((l) => l.actorDeviceId === phoneA.device!.id && l.actorLabel?.includes('Ingresso nord'))).toBe(true);
     });
+
+    it('annullo dopo, dalla ricerca o da "già entrato": il passaggio resta segnato, il biglietto rientra, permessi', async () => {
+      const g = await createEdition();
+      const gate = roleOn('gate', g.slug);
+      const { tickets, code } = await order(g);
+      const first = await scan(gate, { ticketId: tickets[0].id, checkinListId: g.entrance.id });
+      if (first.result !== 'valid') throw new Error(first.result);
+
+      // "Già entrato" porta il passaggio da annullare; la ricerca anche.
+      const again = await scan(gate, { qrToken: tickets[0].qrToken, checkinListId: g.entrance.id });
+      expect(again).toMatchObject({ result: 'already_used', checkinId: first.checkinId });
+      const [found] = await searchTickets(gate, { checkinListId: g.entrance.id, q: code });
+      expect(found.tickets[0]).toMatchObject({ checkinId: first.checkinId, enteredAt: first.at.toISOString() });
+
+      // Senza permesso o da un'altra edizione: niente annullo.
+      expect(await errorCode(revertCheckin(roleOn('cashier', g.slug), { checkinId: first.checkinId }))).toBe('FORBIDDEN');
+      expect(await errorCode(revertCheckin(phoneA, { checkinId: first.checkinId }))).toBe('FORBIDDEN');
+
+      await revertCheckin(gate, { checkinId: first.checkinId, reason: 'Annullato dopo, dalla ricerca dello scanner' });
+      expect(await errorCode(revertCheckin(gate, { checkinId: first.checkinId }))).toBe('CONFLICT');
+      const [row] = await getDb().select().from(checkins).where(eq(checkins.id, first.checkinId));
+      expect(row.revertedAt).not.toBeNull();
+      const [log] = await getDb()
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.entityId, tickets[0].id), eq(auditLog.action, 'ticket.checkin_reverted')));
+      expect(log.reason).toBe('Annullato dopo, dalla ricerca dello scanner');
+
+      expect((await searchTickets(gate, { checkinListId: g.entrance.id, q: code }))[0].tickets[0]).toMatchObject({ checkinId: null, enteredAt: null });
+      const back = await scan(gate, { qrToken: tickets[0].qrToken, checkinListId: g.entrance.id });
+      expect(back.result).toBe('valid');
+      expect(await getDb().select().from(checkins).where(eq(checkins.ticketId, tickets[0].id))).toHaveLength(2);
+    });
   });
 
   describe('offline', () => {

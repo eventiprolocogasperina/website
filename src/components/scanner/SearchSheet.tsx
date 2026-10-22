@@ -1,19 +1,28 @@
 'use client';
 
-import { Search } from 'lucide-react';
+import { Search, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge, Button, EmptyState, Input, Sheet, SheetContent, Skeleton } from '@/components/ui';
 import { api, qs } from './api';
+import { RevertCheckinDialog, type RevertTarget } from './RevertCheckinDialog';
 import type { SearchOrder } from './types';
 
 const time = (iso: string) => new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }).format(new Date(iso));
 
-/** Ricerca manuale per chi non ha il QR: per nome o codice ordine, poi "Fai entrare" sul biglietto. */
-export function SearchSheet({ listId, initial, onClose, onCheckIn }: { listId: string; initial: string; onClose: () => void; onCheckIn: (ticketId: string) => void }) {
+type Props = { listId: string; initial: string; onClose: () => void; onCheckIn: (ticketId: string) => void; onRevert: (checkinId: string) => Promise<unknown> };
+
+/**
+ * Ricerca manuale per chi non ha il QR: per nome o codice ordine, poi "Fai entrare" sul biglietto.
+ * Su un biglietto già entrato, "Annulla ingresso" (con conferma) lo rende di nuovo valido.
+ */
+export function SearchSheet({ listId, initial, onClose, onCheckIn, onRevert }: Props) {
   const [q, setQ] = useState(initial);
   const [orders, setOrders] = useState<SearchOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reverting, setReverting] = useState<RevertTarget | null>(null);
+  /** Cresce dopo un annullo: rilancia la ricerca per mostrare il biglietto di nuovo valido. */
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     const term = q.trim();
@@ -35,7 +44,7 @@ export function SearchSheet({ listId, initial, onClose, onCheckIn }: { listId: s
       stale = true;
       window.clearTimeout(id);
     };
-  }, [q, listId]);
+  }, [q, listId, reload]);
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
@@ -78,7 +87,14 @@ export function SearchSheet({ listId, initial, onClose, onCheckIn }: { listId: s
                           </p>
                         </div>
                         {t.enteredAt ? (
-                          <Badge tone="warning">Entrato {time(t.enteredAt)}</Badge>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <Badge tone="warning">Entrato {time(t.enteredAt)}</Badge>
+                            {t.checkinId && (
+                              <Button size="sm" variant="secondary" icon={Undo2} onClick={() => setReverting({ checkinId: t.checkinId!, what: `${t.productName} · ${o.code}`, at: t.enteredAt! })}>
+                                Annulla ingresso
+                              </Button>
+                            )}
+                          </div>
                         ) : (
                           <Button size="sm" disabled={!o.admitted || !t.inList} onClick={() => onCheckIn(t.id)}>
                             Fai entrare
@@ -93,6 +109,16 @@ export function SearchSheet({ listId, initial, onClose, onCheckIn }: { listId: s
             </ul>
           )}
         </div>
+        <RevertCheckinDialog
+          target={reverting}
+          onClose={() => setReverting(null)}
+          onRevert={async (id) => {
+            setError(null);
+            await onRevert(id);
+            setReload((n) => n + 1);
+          }}
+          onError={setError}
+        />
       </SheetContent>
     </Sheet>
   );
