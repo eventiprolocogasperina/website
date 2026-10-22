@@ -71,7 +71,11 @@ export async function saveSeries(ctx: Ctx, id: string | null, input: SeriesInput
       const [used] = await tx.select({ id: editions.id }).from(editions).where(eq(editions.seriesId, id)).limit(1);
       if (used) throw new DomainError('CONFLICT', { message: 'Lo slug non si può cambiare: il format ha già delle edizioni.' });
     }
-    await tx.update(series).set({ ...values, updatedAt: new Date() }).where(eq(series.id, id));
+    // Il modulo dell'admin cambia solo il pallino: logo, icona e font del tema restano (§14.3).
+    await tx
+      .update(series)
+      .set({ ...values, theme: { ...before.theme, dot: data.dot }, updatedAt: new Date() })
+      .where(eq(series.id, id));
     await audit(tx, ctx, 'series.updated', {
       entityType: 'series',
       entityId: id,

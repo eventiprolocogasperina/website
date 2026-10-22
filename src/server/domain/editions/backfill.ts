@@ -90,7 +90,7 @@ const SERIES: Array<PlannedSeries & { editions: Array<{ slug: string; legacyIds:
     name: 'Zuccaland',
     description: 'Il villaggio delle zucche di Gasperina.',
     landingPath: '/zuccaland',
-    theme: { dot: 'orange' },
+    theme: { dot: 'orange', logo: '/img/zuccaland/Logo.png', mark: '/img/zuccaland/Pumpink.png', fontDisplay: 'cormorant' },
     editions: [
       {
         slug: 'zuccaland-2026',
@@ -104,7 +104,7 @@ const SERIES: Array<PlannedSeries & { editions: Array<{ slug: string; legacyIds:
     name: 'Assaggia e Passeggia',
     description: 'Percorso enogastronomico a tappe nel borgo.',
     landingPath: '/assaggia-e-passeggia',
-    theme: { dot: 'blue' },
+    theme: { dot: 'blue', logo: '/img/LogoAP_GA_nero.png', logoOnDark: '/img/LOGO_ap_ga.png', mark: '/img/AP_letters.png', fontDisplay: 'outfit', fontBody: 'inter' },
     editions: [
       { slug: 'assaggia-e-passeggia-2026', legacyIds: ['assaggia-passeggia-2026', 'assaggia-passeggia'], status: 'archived', modules: ['route-stops', 'reviews', 'landing-page'] },
     ],
@@ -118,6 +118,9 @@ const SERIES: Array<PlannedSeries & { editions: Array<{ slug: string; legacyIds:
     editions: [{ slug: 'baguette-2026', legacyIds: ['baguette-2026'], modules: [] }],
   },
 ];
+
+/** Tema (logo, icona, font) dei format di oggi: lo usa anche scripts/set-series-brand.ts sui format già creati. */
+export const SERIES_THEMES: Record<string, SeriesTheme> = Object.fromEntries(SERIES.map((s) => [s.slug, s.theme]));
 
 /** Stato dedotto dalla data: prima del giorno dell'evento in vendita (o pubblicata), poi conclusa. */
 export function statusFromDate(date: string | null, today: string, bookable = true): EditionStatus {

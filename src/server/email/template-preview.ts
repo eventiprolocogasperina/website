@@ -1,5 +1,6 @@
 import 'server-only';
 import { eq } from 'drizzle-orm';
+import { readBrand } from '@/lib/edition-theme';
 import type { Ctx } from '@/server/auth/context-shared';
 import { can } from '@/server/auth/permissions';
 import { getDb, withTransaction } from '@/server/db/client';
@@ -31,7 +32,7 @@ function exampleOrder(): MyOrder {
     expiresAt: null,
     payable: false,
     accessToken: 'esempio',
-    edition: { slug: 'esempio', title: 'Zuccaland 2026', location: 'Gasperina (CZ)', startsAt: now, endsAt: null, enabledModules: [], coverImage: null, theme: null },
+    edition: { slug: 'esempio', title: 'Zuccaland 2026', location: 'Gasperina (CZ)', startsAt: now, endsAt: null, enabledModules: [], coverImage: null, theme: null, brand: readBrand(null), format: null, rulesUrl: null, map: null },
     session: null,
     customer: { name: 'Maria Rossi', email: 'maria@example.com' },
     lines: [{ name: 'Ingresso', quantity: 3, unitPriceCents: 500, totalCents: 1500, sessionLabel: 'Sab 24 ott' }],

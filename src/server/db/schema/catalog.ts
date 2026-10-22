@@ -21,8 +21,23 @@ const timestamps = {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 };
 
-/** Tema di un format: per ora solo il colore del pallino nell'admin (§14.3). */
-export type SeriesTheme = { dot?: 'orange' | 'blue' | 'gold' | 'gray' };
+/**
+ * Tema di un format (§14.3): colore del pallino (palette delle pagine pubbliche) e identità del format
+ * nelle pagine d'acquisto, nei biglietti e nelle email. Tutti i campi sono facoltativi (jsonb, nessuna
+ * migrazione); src/lib/edition-theme.ts li legge con readBrand e scarta i valori non validi.
+ */
+export type SeriesTheme = {
+  dot?: 'orange' | 'blue' | 'gold' | 'gray';
+  /** Logo del format su fondo chiaro (es. /img/zuccaland/Logo.png). */
+  logo?: string;
+  /** Logo per fondi scuri (testata del PDF); se manca si usa `logo`. */
+  logoOnDark?: string;
+  /** Icona piccola del format (es. la zucca /img/zuccaland/Pumpink.png): biglietti, decorazioni. */
+  mark?: string;
+  /** Font dei titoli e del testo nelle pagine pubbliche del format. */
+  fontDisplay?: 'cormorant' | 'outfit' | 'sans';
+  fontBody?: 'dm-sans' | 'inter';
+};
 
 export const series = pgTable('series', {
   id: uuid('id').primaryKey().defaultRandom(),
