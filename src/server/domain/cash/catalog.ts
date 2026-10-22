@@ -29,7 +29,7 @@ export type PosCatalog = {
   edition: { id: string; slug: string; title: string; status: string; departments: boolean };
   register: { id: string; name: string; issuesNumbers: boolean; printer: ReturnType<typeof printerOf> };
   products: PosProduct[];
-  /** Pulsante "Altro" (importo libero): spento se in Catalogo il prodotto "Altro" non è attivo. */
+  /** Pulsante "Altro" (importo libero): acceso solo sulle casse che lo permettono e se in Catalogo il prodotto "Altro" è attivo. */
   openPrice: { available: boolean; maxCents: number };
   /** Firma delle scorte: cambia quando cambia qualcosa che la cassa mostra (per il tempo reale). */
   version: string;
@@ -49,7 +49,7 @@ export async function getPosCatalog(registerId: string): Promise<PosCatalog> {
     getAvailability(e.id),
   ]);
   const open = all.find((p) => p.openPrice);
-  const openPrice = { available: !open || open.active, maxCents: MAX_OPEN_PRICE_CENTS };
+  const openPrice = { available: r.allowOpenAmount && (!open || open.active), maxCents: MAX_OPEN_PRICE_CENTS };
   const list = all
     .filter((p) => !p.openPrice && p.channels.includes('pos') && !p.requiresSession && (!r.productIds || r.productIds.includes(p.id)))
     .map<PosProduct>((p) => ({
@@ -72,20 +72,40 @@ export async function getPosCatalog(registerId: string): Promise<PosCatalog> {
   };
 }
 
-export type PosProductOption = { id: string; name: string; group: string; department: string | null; priceCents: number; active: boolean };
+export type PosProductOption = {
+  id: string;
+  name: string;
+  group: string;
+  department: string | null;
+  priceCents: number;
+  active: boolean;
+  /** Pezzi rimasti secondo le quote, come li vede la cassa; null = senza limite. */
+  remaining: number | null;
+};
 
-/** Tutti i prodotti vendibili in cassa dell'edizione (per scegliere cosa vende ogni cassa, in admin). */
+/** Tutti i prodotti vendibili in cassa dell'edizione, con i pezzi rimasti (per l'admin: cosa vende ogni cassa, scorte). */
 export async function listPosProducts(editionId: string): Promise<PosProductOption[]> {
-  const all = await getDb().select().from(products).where(eq(products.editionId, editionId)).orderBy(asc(products.sort), asc(products.name));
+  const [all, availability] = await Promise.all([
+    getDb().select().from(products).where(eq(products.editionId, editionId)).orderBy(asc(products.sort), asc(products.name)),
+    getAvailability(editionId),
+  ]);
   return all
     .filter((p) => !p.openPrice && p.channels.includes('pos') && !p.requiresSession)
-    .map((p) => ({ id: p.id, name: p.name, group: p.department?.trim() || KIND_GROUP[p.kind] || 'Altro', department: p.department?.trim() || null, priceCents: p.priceCents, active: p.active }));
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      group: p.department?.trim() || KIND_GROUP[p.kind] || 'Altro',
+      department: p.department?.trim() || null,
+      priceCents: p.priceCents,
+      active: p.active,
+      remaining: availability.products.find((a) => a.productId === p.id && a.sessionId === null)?.remaining ?? null,
+    }));
 }
 
 /**
  * Il prodotto "Altro" dell'edizione (importo libero in cassa), creato alla prima vendita che lo usa.
- * Uno solo per edizione (indice unico): due telefoni insieme ottengono lo stesso. Vale su ogni cassa;
- * per spegnerlo basta disattivarlo in Catalogo. Non si crea mai in un'edizione archiviata (§18.7).
+ * Uno solo per edizione (indice unico): due telefoni insieme ottengono lo stesso. Si vende solo dalle
+ * casse con "Altro" acceso (cash_registers.allow_open_amount); disattivato in Catalogo, spento su tutte. Non si crea mai in un'edizione archiviata (§18.7).
  */
 export async function ensureOpenPriceProduct(ctx: Ctx, editionId: string): Promise<string> {
   const find = async (db: Tx | ReturnType<typeof getDb>) =>

@@ -4,11 +4,14 @@ import { z } from 'zod';
 import type { Ctx } from '@/server/auth/context-shared';
 import { getDb, type Tx } from '@/server/db/client';
 import { cashRegisters, cashSales, cashSessions, editions, orderLines, ordersV2, products } from '@/server/db/schema';
+import { getAvailability } from '@/server/domain/catalog';
 import { DomainError } from '@/server/domain/errors';
 import { createOrder, type CreateOrderHook } from '@/server/domain/orders';
 import { MAX_OPEN_PRICE_CENTS } from '@/lib/cash/open-price';
 import { ensureOpenPriceProduct } from './catalog';
 import { assertCanOn, nextCounter } from './shared';
+
+const openAmountOff = (register: string) => `“Altro” (importo libero) non è attivo su ${register}.`;
 
 /** Una vendita fatta offline si accetta con la sua ora solo se è recente (orologi del telefono sballati). */
 const MAX_OFFLINE_AGE_MS = 48 * 60 * 60_000;
@@ -85,7 +88,7 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
   const soldAt = data.offlineAt && serverNow.getTime() - data.offlineAt.getTime() < MAX_OFFLINE_AGE_MS && data.offlineAt <= serverNow ? data.offlineAt : serverNow;
 
   const [session] = await getDb()
-    .select({ editionId: cashSessions.editionId, edition: editions.slug, allowed: cashRegisters.productIds, register: cashRegisters.name })
+    .select({ editionId: cashSessions.editionId, edition: editions.slug, allowed: cashRegisters.productIds, register: cashRegisters.name, allowOpenAmount: cashRegisters.allowOpenAmount })
     .from(cashSessions)
     .innerJoin(cashRegisters, eq(cashRegisters.id, cashSessions.registerId))
     .innerJoin(editions, eq(editions.id, cashSessions.editionId))
@@ -93,8 +96,10 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
   if (!session) throw new DomainError('NOT_FOUND', { message: 'Turno di cassa non trovato. Riapri il turno.' });
   if (ctx.device && ctx.device.edition !== session.edition) throw new DomainError('FORBIDDEN');
   assertCanOn(ctx, 'pos.sell', session.edition);
-  // "Altro": la riga diventa il prodotto a importo libero dell'edizione, con il prezzo digitato. Vale su ogni cassa.
-  const openProductId = data.lines.some((l) => 'openAmountCents' in l) ? await ensureOpenPriceProduct(ctx, session.editionId) : null;
+  // "Altro": la riga diventa il prodotto a importo libero dell'edizione, con il prezzo digitato. Solo sulle casse che lo permettono.
+  const wantsOpen = data.lines.some((l) => 'openAmountCents' in l);
+  if (wantsOpen && !session.allowOpenAmount) throw new DomainError('VALIDATION', { message: openAmountOff(session.register) });
+  const openProductId = wantsOpen ? await ensureOpenPriceProduct(ctx, session.editionId) : null;
   const lines = data.lines.map((l) => ('openAmountCents' in l ? { productId: openProductId!, quantity: l.quantity, unitPriceCents: l.openAmountCents } : l));
   const fromRegister = (productId: string, allowed: string[] | null) => !allowed || productId === openProductId || allowed.includes(productId);
   // Controllo anticipato (si ripete nella transazione): un prodotto di un'altra cassa non è un "esaurito".
@@ -110,6 +115,10 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
     const [register] = await tx.select().from(cashRegisters).where(eq(cashRegisters.id, s.registerId));
     if (lines.some((l) => !fromRegister(l.productId, register.productIds))) {
       throw new DomainError('VALIDATION', { message: `Uno dei prodotti non si vende da ${register.name}.` });
+    }
+    // Ricontrollo nella transazione: "Altro" spento sulla cassa nel frattempo.
+    if (openProductId && !register.allowOpenAmount && lines.some((l) => l.productId === openProductId)) {
+      throw new DomainError('VALIDATION', { message: openAmountOff(register.name) });
     }
     let received: number | null = null;
     let change: number | null = null;
@@ -138,24 +147,52 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
     await opts.afterSale?.(tx, { order, lines, edition, oversold });
   };
 
-  const result = await createOrder(
-    ctx,
-    {
-      editionId: session.editionId,
-      channel: 'pos',
-      lines,
-      payNow: data.method,
-      complimentaryReason: data.complimentaryReason,
-      cashSessionId: data.cashSessionId,
-      idempotencyKey: data.idempotencyKey,
-      expectedTotalCents: offline ? null : data.expectedTotalCents,
-      sessionId: opts.sessionId ?? null,
-    },
-    { now: soldAt, allowOversell: offline, inTransaction: hook, parentOrderId: opts.parentOrderId },
-  );
+  let result: Awaited<ReturnType<typeof createOrder>>;
+  try {
+    result = await createOrder(
+      ctx,
+      {
+        editionId: session.editionId,
+        channel: 'pos',
+        lines,
+        payNow: data.method,
+        complimentaryReason: data.complimentaryReason,
+        cashSessionId: data.cashSessionId,
+        idempotencyKey: data.idempotencyKey,
+        expectedTotalCents: offline ? null : data.expectedTotalCents,
+        sessionId: opts.sessionId ?? null,
+      },
+      { now: soldAt, allowOversell: offline, inTransaction: hook, parentOrderId: opts.parentOrderId },
+    );
+  } catch (error) {
+    if (error instanceof DomainError && error.code === 'SOLD_OUT') throw await soldOutError(session.editionId, lines, error);
+    throw error;
+  }
   const sale = await loadSale(getDb(), result.id);
   if (!sale) throw new DomainError('CONFLICT', { message: 'Questa chiave è già stata usata per un ordine che non è di cassa.' });
   return { ...sale, created: result.created };
+}
+
+/**
+ * Pezzi non sufficienti: il messaggio dice quali prodotti e quanti ne restano, per il cassiere.
+ * Le scorte sono quelle delle quote (§5.4), lette dopo il rifiuto.
+ */
+async function soldOutError(editionId: string, lines: Array<{ productId: string; quantity: number }>, cause: DomainError): Promise<DomainError> {
+  const wanted = new Map<string, number>();
+  for (const l of lines) wanted.set(l.productId, (wanted.get(l.productId) ?? 0) + l.quantity);
+  const [availability, names] = await Promise.all([
+    getAvailability(editionId),
+    getDb().select({ id: products.id, name: products.name }).from(products).where(inArray(products.id, [...wanted.keys()])),
+  ]);
+  const short = [...wanted]
+    .map(([productId, quantity]) => ({ productId, quantity, remaining: availability.products.find((a) => a.productId === productId && a.sessionId === null)?.remaining ?? null }))
+    .filter((p) => p.remaining !== null && p.remaining < p.quantity)
+    .map((p) => {
+      const name = names.find((n) => n.id === p.productId)?.name ?? 'Un prodotto';
+      return p.remaining === 0 ? `${name} è esaurito` : `${name}: ne ${p.remaining === 1 ? 'resta 1' : `restano ${p.remaining}`}`;
+    });
+  if (!short.length) return cause;
+  return new DomainError('SOLD_OUT', { message: `Pezzi non sufficienti. ${short.join('; ')}. Togli dal carrello quello che manca.`, details: cause.details, cause });
 }
 
 /** Una vendita di cassa con le sue righe, come la stampa lo scontrino. */

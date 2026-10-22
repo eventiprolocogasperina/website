@@ -67,6 +67,7 @@ export function RegistersTab({ data }: { data: CashAdminData }) {
               <div className="flex flex-wrap gap-1.5">
                 <Badge tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Attiva' : 'Spenta'}</Badge>
                 {r.issuesNumbers && <Badge tone="info">Dà il numero</Badge>}
+                {r.allowOpenAmount && <Badge tone="info">Altro (importo libero)</Badge>}
                 {r.openSince && <Badge tone="warning">Turno aperto dal {time(r.openSince)}</Badge>}
               </div>
               {editable && <Switch label="Cassa attiva sui dispositivi" checked={r.active} onCheckedChange={(v) => toggle(r, v)} />}
@@ -104,13 +105,14 @@ function RegisterSheet({ slug, item, onClose }: { slug: string; item: AdminRegis
   const [name, setName] = useState(item?.name ?? '');
   const [issuesNumbers, setIssuesNumbers] = useState(item?.issuesNumbers ?? true);
   const [active, setActive] = useState(item?.active ?? true);
+  const [allowOpenAmount, setAllowOpenAmount] = useState(item?.allowOpenAmount ?? false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function save() {
     setBusy(true);
     setError('');
-    const res = await saveRegisterAction(slug, item?.id ?? null, { name, issuesNumbers, active, productIds: item?.productIds ?? null });
+    const res = await saveRegisterAction(slug, item?.id ?? null, { name, issuesNumbers, active, allowOpenAmount, productIds: item?.productIds ?? null });
     setBusy(false);
     if (!res.ok) return setError(res.error);
     toast.success(item ? 'Cassa aggiornata' : 'Cassa creata');
@@ -137,6 +139,12 @@ function RegisterSheet({ slug, item, onClose }: { slug: string; item: AdminRegis
             <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="Es. Cassa 1, Bar" />
           </Field>
           <Checkbox label="Dà il numero da chiamare" description="Spegnilo per le casse che non preparano niente (es. solo bevande al banco)." checked={issuesNumbers} onCheckedChange={setIssuesNumbers} />
+          <Checkbox
+            label="Pulsante “Altro” (importo libero)"
+            description="Il cassiere digita un importo a mano, per offerte o cose fuori listino. Lascialo spento sulle casse che vendono solo dal listino."
+            checked={allowOpenAmount}
+            onCheckedChange={setAllowOpenAmount}
+          />
           <Checkbox label="Attiva" description="Una cassa spenta non compare sui telefoni. I turni passati restano." checked={active} onCheckedChange={setActive} />
         </div>
       </SheetContent>

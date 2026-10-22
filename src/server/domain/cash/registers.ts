@@ -49,6 +49,8 @@ export const RegisterInput = z.object({
   name: z.string().trim().min(2, 'Dai un nome alla cassa, es. “Cassa 1”.').max(40),
   issuesNumbers: z.boolean(),
   active: z.boolean(),
+  /** Pulsante "Altro" (importo libero) su questa cassa. Omesso: resta com'è (nuova cassa: spento). */
+  allowOpenAmount: z.boolean().optional(),
   /** null = tutti i prodotti con il canale cassa. */
   productIds: z.array(z.uuid()).max(500).nullable(),
   printerSettings: PrinterSettingsInput.nullable().optional(),
@@ -71,6 +73,7 @@ export async function saveRegister(ctx: Ctx, slug: string, id: string | null, in
         issuesNumbers: data.issuesNumbers,
         active: data.active,
         productIds: data.productIds,
+        ...(data.allowOpenAmount !== undefined ? { allowOpenAmount: data.allowOpenAmount } : {}),
         ...(data.printerSettings !== undefined ? { printerSettings: data.printerSettings } : {}),
         updatedAt: new Date(),
       };

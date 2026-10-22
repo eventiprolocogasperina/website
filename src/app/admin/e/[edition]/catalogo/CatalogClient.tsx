@@ -28,7 +28,8 @@ import {
 } from '@/components/ui';
 import { formatDate, romeDateKey } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
-import { deleteDiscountAction, deleteProductAction, deleteQuotaAction, saveDiscountAction, saveProductAction, saveQuotaAction } from '../actions';
+import { isLowStock, stockLabel } from '@/lib/cash/stock';
+import { deleteDiscountAction, deleteProductAction, deleteQuotaAction, saveDiscountAction, saveProductAction, saveQuotaAction, setProductStockAction } from '../actions';
 
 type Kind = 'ticket' | 'addon' | 'food' | 'drink' | 'merch' | 'donation' | 'service';
 type Channel = 'online' | 'pos' | 'paylink' | 'invite';
@@ -46,6 +47,10 @@ export type ProductItem = {
   active: boolean;
   minPerOrder: number | null;
   maxPerOrder: number | null;
+  /** Prodotto di cassa senza data: ha "Pezzi disponibili". */
+  stockField: boolean;
+  /** Pezzi rimasti secondo la sua scorta; null = senza limite. */
+  stockRemaining: number | null;
 };
 export type QuotaItem = { id: string; name: string; size: number; sessionId: string | null; productIds: string[]; used: number };
 export type DiscountItem = {
@@ -186,6 +191,7 @@ function ProductsTab({ data, readOnly, onEdit }: { data: CatalogData; readOnly: 
                           {q.name}
                         </Badge>
                       ))}
+                      {p.stockField && p.stockRemaining !== null && <Badge tone={isLowStock(p.stockRemaining) ? 'danger' : 'neutral'}>{stockLabel(p.stockRemaining)}</Badge>}
                     </div>
                     <span className="w-24 text-right font-medium tabular-nums">{formatMoney(p.priceCents)}</span>
                     {!readOnly && <IconButton icon={Pencil} label={`Modifica ${p.name}`} size="sm" variant="ghost" onClick={() => onEdit(p)} />}
@@ -216,24 +222,33 @@ function ProductSheet({ edition, item, quotas, onClose }: { edition: string; ite
     active: item?.active ?? true,
     minPerOrder: item?.minPerOrder?.toString() ?? '',
     maxPerOrder: item?.maxPerOrder?.toString() ?? '',
+    stock: item?.stockRemaining?.toString() ?? '',
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
   const linked = item ? quotas.filter((q) => q.productIds.includes(item.id)) : [];
+  // "Pezzi disponibili": per i prodotti che si vendono in cassa senza data (come li vede la cassa).
+  const showStock = form.channels.includes('pos') && !form.requiresSession;
+  const stockChanged = showStock && form.stock !== (item?.stockRemaining?.toString() ?? '');
 
   async function submit() {
     setBusy(true);
     setError('');
+    const { stock, ...product } = form;
     await save(
-      () =>
-        saveProductAction(edition, item?.id ?? null, {
-          ...form,
+      async () => {
+        const res = await saveProductAction(edition, item?.id ?? null, {
+          ...product,
           priceCents: form.priceCents ?? Number.NaN,
           minPerOrder: intOrNull(form.minPerOrder),
           maxPerOrder: intOrNull(form.maxPerOrder),
-        }),
+        });
+        const productId = item?.id ?? (res.ok ? res.data?.id : undefined);
+        if (!res.ok || !stockChanged || !productId) return res;
+        return setProductStockAction(edition, { productId, remaining: intOrNull(stock) });
+      },
       item ? 'Prodotto salvato' : 'Prodotto aggiunto',
       onClose,
       setError,
@@ -318,6 +333,17 @@ function ProductSheet({ edition, item, quotas, onClose }: { edition: string; ite
               <Input inputMode="numeric" value={form.maxPerOrder} onChange={(e) => set({ maxPerOrder: e.target.value.replace(/\D/g, '') })} />
             </Field>
           </div>
+          {showStock && (
+            <Field label="Pezzi disponibili" help="Quanti pezzi restano adesso. Ogni vendita in cassa li scala, un annullo li restituisce. Lascia vuoto per non avere limiti.">
+              <Input
+                inputMode="numeric"
+                value={form.stock}
+                onChange={(e) => set({ stock: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                placeholder="Senza limite"
+                className="sm:max-w-40"
+              />
+            </Field>
+          )}
           {linked.length > 0 && (
             <p className="text-label text-muted">
               Quote collegate: {linked.map((q) => `${q.name} (${q.size} posti)`).join(', ')}. Si modificano dalla scheda Quote.

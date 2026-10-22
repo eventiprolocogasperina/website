@@ -1,5 +1,5 @@
 // "Altro" della cassa su un Postgres vero (npm run test:db): importo libero solo dalla cassa con il
-// turno aperto, entro 1000 €, un solo prodotto per edizione, nei pezzi venduti di Z e rendiconto.
+// turno aperto e "Altro" acceso, entro 1000 €, un solo prodotto per edizione, nei pezzi venduti di Z e rendiconto.
 import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -51,8 +51,8 @@ describe.skipIf(!enabled)('cassa: "Altro" a importo libero', () => {
     f = await createEdition();
     phone = await cashier('Anna');
     phone2 = await cashier('Bruno');
-    // Una cassa che vende solo l'acqua: "Altro" vale lo stesso, su ogni cassa.
-    ({ id: registerId } = await saveRegister(owner, f.slug, null, { name: 'Bar', issuesNumbers: true, active: true, productIds: [f.drink.id] }));
+    // Una cassa che vende solo l'acqua, con "Altro" acceso: l'importo libero non dipende dal listino della cassa.
+    ({ id: registerId } = await saveRegister(owner, f.slug, null, { name: 'Bar', issuesNumbers: true, active: true, allowOpenAmount: true, productIds: [f.drink.id] }));
     ({ sessionId } = await openSession(phone, { registerId, openingFloatCents: 0 }));
   });
   afterAll(async () => {
@@ -128,6 +128,26 @@ describe.skipIf(!enabled)('cassa: "Altro" a importo libero', () => {
     expect(closed.session.zTotals?.products).toEqual(live.totals.products);
     const report = await cashReport(owner, f.slug);
     expect(report.totals.products).toEqual(live.totals.products);
+  });
+
+  it('per cassa: spento di default, niente pulsante e il server rifiuta; acceso, si vende', async () => {
+    const { id: plain } = await saveRegister(owner, f.slug, null, { name: 'Cassa senza Altro', issuesNumbers: false, active: true, productIds: null });
+    expect((await getPosCatalog(plain)).openPrice.available).toBe(false);
+    const { sessionId: plainSession } = await openSession(phone2, { registerId: plain, openingFloatCents: 0 });
+    const refused = sell(phone2, sale({ cashSessionId: plainSession }));
+    await expect(refused).rejects.toMatchObject({ code: 'VALIDATION', message: '“Altro” (importo libero) non è attivo su Cassa senza Altro.' });
+    // I prodotti del listino si vendono come sempre dalla stessa cassa.
+    expect((await sell(phone2, sale({ cashSessionId: plainSession, lines: [{ productId: f.drink.id, quantity: 1 }] }))).totalCents).toBe(100);
+
+    // Acceso dall'admin: il pulsante compare e la vendita passa.
+    await saveRegister(owner, f.slug, plain, { name: 'Cassa senza Altro', issuesNumbers: false, active: true, allowOpenAmount: true, productIds: null });
+    expect((await getPosCatalog(plain)).openPrice.available).toBe(true);
+    expect((await sell(phone2, sale({ cashSessionId: plainSession, lines: [{ openAmountCents: 200, quantity: 1 }] }))).totalCents).toBe(200);
+    // Salvare senza indicarlo non lo cambia; spento di nuovo, si rifiuta.
+    await saveRegister(owner, f.slug, plain, { name: 'Cassa senza Altro', issuesNumbers: false, active: true, productIds: null });
+    expect((await getPosCatalog(plain)).openPrice.available).toBe(true);
+    await saveRegister(owner, f.slug, plain, { name: 'Cassa senza Altro', issuesNumbers: false, active: true, allowOpenAmount: false, productIds: null });
+    expect(await errorCode(sell(phone2, sale({ cashSessionId: plainSession })))).toBe('VALIDATION');
   });
 
   it('mai creato in un’edizione archiviata', async () => {

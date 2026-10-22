@@ -58,6 +58,7 @@ export default async function CashAdminPage(props: EditionParams & { searchParam
       name: r.name,
       active: r.active,
       issuesNumbers: r.issuesNumbers,
+      allowOpenAmount: r.allowOpenAmount,
       productIds: r.productIds,
       printer: printerOf(r),
       openSince: open[i]?.openedAt.toISOString() ?? null,
