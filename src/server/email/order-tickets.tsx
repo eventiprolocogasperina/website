@@ -6,7 +6,8 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { eq } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { OrderConfirmationEmail } from '@/emails/OrderConfirmationEmail';
-import { formatDate, formatDateTime } from '@/lib/dates';
+import { formatDate, formatDateTime, romeTime } from '@/lib/dates';
+import { editionTheme } from '@/lib/edition-theme';
 import { formatMoney } from '@/lib/money';
 import { OrderTicketsPdf, type OrderTicketsPdfData } from '@/lib/tickets/OrderTicketsPdf';
 import { getDb } from '@/server/db/client';
@@ -19,24 +20,34 @@ import { resolveTemplate, varsForOrder } from '@/server/domain/email-templates';
 import { sendLoggedEmail } from '@/server/domain/email-templates/log';
 import { PARAGRAPH_STYLE, renderBodyHtml, renderText } from '@/server/domain/email-templates/render';
 
-/** Colore dell'edizione nei biglietti e nell'email. */
-export const accentFor = (slug: string) => (slug.startsWith('zuccaland') ? '#c2410c' : '#283983');
+/** Colori dell'edizione nei biglietti e nell'email: dal tema del format (series.theme), mai dallo slug (§1.1). */
+export const pdfColorsFor = (o: Pick<MyOrder, 'edition'>) => {
+  const t = editionTheme(o.edition.theme);
+  return { accent: t.accent, header: t.pdfHeader, highlight: t.brand };
+};
 
 const qr = (data: string, width = 220) => QRCode.toDataURL(data, { errorCorrectionLevel: 'M', margin: 1, width, color: { dark: '#1a1a1a', light: '#ffffff' } });
 
 export const myTicketsUrl = (token: string) => `${siteUrl()}/i-miei-biglietti/${token}`;
 
-let logoCache: string | undefined;
-async function logo(): Promise<string | undefined> {
-  if (logoCache === undefined) {
+const imageCache = new Map<string, string>();
+/**
+ * Immagine PNG/JPG di public/ come data URI (logo Pro Loco, logo del format). Solo percorsi locali del sito:
+ * un logo remoto non si scarica durante l'invio delle email. Se manca, il PDF esce senza.
+ */
+async function publicImage(src: string | null): Promise<string | undefined> {
+  if (!src || !/^\/img\/[\w\-/.&]+\.(png|jpe?g)$/i.test(src) || src.includes('..')) return undefined;
+  if (!imageCache.has(src)) {
     try {
-      logoCache = `data:image/png;base64,${(await readFile(path.join(process.cwd(), 'public/img/logo_white_fg.png'))).toString('base64')}`;
+      const mime = src.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+      imageCache.set(src, `data:${mime};base64,${(await readFile(path.join(process.cwd(), 'public', src))).toString('base64')}`);
     } catch {
-      logoCache = '';
+      imageCache.set(src, '');
     }
   }
-  return logoCache || undefined;
+  return imageCache.get(src) || undefined;
 }
+const logo = () => publicImage('/img/logo_white_fg.png');
 
 const whenOf = (o: MyOrder) => (o.session ? formatDateTime(o.session.startsAt) : o.edition.startsAt ? formatDateTime(o.edition.startsAt) : null);
 
@@ -56,8 +67,10 @@ export async function renderOrderPdf(o: MyOrder): Promise<Buffer> {
       valid.map(async (t) => ({ id: t.id, name: t.name, when: t.sessionLabel, priceLabel: formatMoney(unit.get(t.name) ?? 0), qrDataUri: await qr(t.qrToken) })),
     ),
     otherLines: o.lines.filter((l) => !valid.some((t) => t.name === l.name)).map((l) => ({ name: l.name, quantity: l.quantity, totalLabel: formatMoney(l.totalCents) })),
-    accent: accentFor(o.edition.slug),
+    ...pdfColorsFor(o),
     logo: await logo(),
+    eventLogo: await publicImage(o.edition.brand.logoOnDark),
+    opening: o.session ? `Ingresso dalle ore ${romeTime(o.session.startsAt)}` : o.edition.startsAt ? `Apertura dalle ore ${romeTime(o.edition.startsAt)}` : null,
   };
   return renderToBuffer(<OrderTicketsPdf data={data} />);
 }
@@ -80,7 +93,7 @@ export async function renderConfirmation(o: MyOrder, reason: 'paid' | 'resent', 
       ticketCount={valid.length}
       myTicketsUrl={myTicketsUrl(o.accessToken)}
       qrSrc={valid[0] ? await qr(valid[0].qrToken, 360) : await qr(o.code, 360)}
-      accent={accentFor(o.edition.slug)}
+      accent={pdfColorsFor(o).accent}
       introHtml={renderBodyHtml(template.body, vars, PARAGRAPH_STYLE)}
     />,
   );

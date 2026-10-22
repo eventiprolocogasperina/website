@@ -14,8 +14,18 @@ export type OrderTicketsPdfData = {
   tickets: Array<{ id: string; name: string; when: string | null; priceLabel: string; qrDataUri: string }>;
   /** Righe senza biglietto (es. consumazioni), solo nel riepilogo. */
   otherLines: Array<{ name: string; quantity: number; totalLabel: string }>;
+  /** Colore del testo in evidenza e della striscia dei biglietti (contrasto AA sul bianco). */
   accent: string;
+  /** Fondo della testata (scuro, dal tema del format). */
+  header: string;
+  /** Colore pieno del format: bordo della testata. */
+  highlight: string;
+  /** Logo Pro Loco (chiaro, per la testata scura). */
   logo?: string;
+  /** Logo del format per fondi scuri, se c'è. */
+  eventLogo?: string;
+  /** "Ingresso dalle ore 10:30": evidenziato sotto la testata. */
+  opening?: string | null;
 };
 
 const c = { dark: '#1a1a1a', muted: '#6b6b6b', light: '#f7f7f5', white: '#ffffff', line: '#dcdcdc' };
@@ -26,6 +36,8 @@ const s = StyleSheet.create({
   title: { color: c.white, fontSize: 24, fontFamily: 'Helvetica-Bold' },
   subtitle: { color: c.white, fontSize: 10, marginTop: 4, opacity: 0.85 },
   logo: { height: 48, objectFit: 'contain' },
+  eventLogo: { height: 54, maxWidth: 260, objectFit: 'contain', marginBottom: 6 },
+  opening: { borderRadius: 6, padding: '10 14', marginBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   body: { padding: '24 40' },
   ref: { fontSize: 9, color: c.muted, marginBottom: 12 },
   box: { backgroundColor: c.white, borderRadius: 6, padding: 14, marginBottom: 14, border: `1 solid ${c.line}` },
@@ -49,10 +61,13 @@ export function OrderTicketsPdf({ data }: { data: OrderTicketsPdfData }) {
   return (
     <Document title={`Biglietti ${data.editionTitle} - ${data.code}`} author="Pro Loco Gasperina">
       <Page size="A4" style={s.page}>
-        <View style={[s.header, { backgroundColor: data.accent }]}>
+        <View style={[s.header, { backgroundColor: data.header, borderBottom: `4 solid ${data.highlight}` }]}>
           <View>
-            <Text style={s.title}>{data.editionTitle}</Text>
-            <Text style={s.subtitle}>Pro Loco Gasperina{data.location ? ` · ${data.location}` : ''}</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image di react-pdf: niente alt nel PDF */}
+            {data.eventLogo ? <Image src={data.eventLogo} style={s.eventLogo} /> : <Text style={s.title}>{data.editionTitle}</Text>}
+            <Text style={s.subtitle}>
+              {data.eventLogo ? `${data.editionTitle} · ` : ''}Pro Loco Gasperina{data.location ? ` · ${data.location}` : ''}
+            </Text>
           </View>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- Image di react-pdf: niente alt nel PDF */}
           {data.logo ? <Image src={data.logo} style={s.logo} /> : null}
@@ -61,6 +76,12 @@ export function OrderTicketsPdf({ data }: { data: OrderTicketsPdfData }) {
           <Text style={s.ref}>
             Ordine {data.code} · emesso il {data.issuedOn}
           </Text>
+          {data.when && data.opening ? (
+            <View style={[s.opening, { backgroundColor: data.accent }]}>
+              <Text style={{ color: c.white, fontSize: 12, fontFamily: 'Helvetica-Bold' }}>{data.when}</Text>
+              <Text style={{ color: c.white, fontSize: 11, fontFamily: 'Helvetica-Bold' }}>{data.opening}</Text>
+            </View>
+          ) : null}
           <View style={s.box}>
             <View style={s.row}>
               <View>
