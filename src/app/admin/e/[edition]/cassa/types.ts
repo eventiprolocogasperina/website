@@ -38,7 +38,15 @@ export type CashAdminData = {
   nextNumber: number;
   departments: Array<{ name: string; products: number }>;
   sessions: AdminSession[] | null;
-  summary: { netCents: number; complimentaryCents: number; sales: number; voided: number; byMethod: Array<{ label: string; netCents: number; count: number }> } | null;
+  summary: {
+    netCents: number;
+    complimentaryCents: number;
+    sales: number;
+    voided: number;
+    byMethod: Array<{ label: string; netCents: number; count: number }>;
+    /** Pezzi venduti per prodotto, senza gli annullati (omaggi compresi). */
+    products: Array<{ id: string; name: string; quantity: number; amountCents: number }>;
+  } | null;
   flagged: AdminFlagged[] | null;
   devices: AdminDevice[] | null;
 };
