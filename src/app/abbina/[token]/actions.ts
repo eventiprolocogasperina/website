@@ -30,5 +30,6 @@ export async function pairDevice(_prev: PairState, formData: FormData): Promise<
     recordFailure(key);
     return { error: isDomainError(error) ? error.message : 'Abbinamento non riuscito. Riprova.' };
   }
-  redirect(kind === 'pos' ? '/cashier' : '/scanner');
+  // Un dispositivo di cassa apre la nuova cassa (§12.1); la vecchia /cashier resta raggiungibile a mano.
+  redirect(kind === 'pos' ? '/cassa' : '/scanner');
 }
