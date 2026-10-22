@@ -6,7 +6,7 @@ import { E2E_MAC_KEY, sql } from './db';
 
 async function fillData(page: Page) {
   await page.getByLabel('Nome e cognome').fill('Maria Prova');
-  await page.getByLabel('Email').fill('maria.prova@example.com');
+  await page.getByLabel('Email per i biglietti').fill('maria.prova@example.com');
 }
 async function acceptPrivacy(page: Page) {
   await page.getByRole('checkbox', { name: /informativa privacy/ }).click();
@@ -23,15 +23,18 @@ test('acquisto completo con data, bambini, attività e promemoria del laboratori
   await page.getByRole('radio', { name: /Sab 17 ott 2099/ }).click();
   await page.getByRole('button', { name: 'Aggiungi un Ingresso' }).click();
   await page.getByRole('button', { name: 'Aggiungi un Ingresso' }).click();
+  // Il contatore dei bambini è nel passo dei biglietti.
+  await page.getByRole('button', { name: 'Aggiungi un bambino' }).click();
   await page.getByRole('button', { name: 'Continua' }).click();
 
-  await fillData(page);
-  await page.getByLabel('Quanti bambini ci sono?').fill('1');
+  // Passo Attività: card selezionabili e promemoria del laboratorio a pagamento, una volta sola.
   await page.getByRole('checkbox', { name: /Zucca in Vaso/ }).click();
-  await acceptPrivacy(page);
   await page.getByRole('button', { name: 'Continua' }).click();
-  // Promemoria del laboratorio a pagamento, una volta sola.
-  await expect(page.getByTestId('errore')).toContainText('Laboratorio zucca');
+  await expect(page.getByRole('dialog')).toContainText('Laboratorio zucca');
+  await page.getByRole('button', { name: /Continua così/ }).click();
+
+  await fillData(page);
+  await acceptPrivacy(page);
   await page.getByRole('button', { name: 'Continua' }).click();
 
   await expect(page.getByTestId('totale')).toHaveText('10,00 €');
@@ -74,6 +77,19 @@ test('edizione senza moduli: un biglietto senza data', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Ordine confermato' })).toBeVisible();
 });
 
+test('errori sotto i campi, non in cima alla pagina', async ({ page }) => {
+  await page.goto('/acquista/e2e-semplice-2099');
+  await page.getByRole('button', { name: 'Continua' }).click();
+  await expect(page.getByText('Scegli almeno un biglietto.')).toBeVisible();
+  await page.getByRole('button', { name: 'Aggiungi un Posto unico' }).click();
+  await page.getByRole('button', { name: 'Continua' }).click();
+  await page.getByRole('button', { name: 'Continua' }).click();
+  await expect(page.getByText('Scrivi nome e cognome.')).toBeVisible();
+  await expect(page.getByLabel('Nome e cognome')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByText('Per continuare serve il consenso al trattamento dei dati.')).toBeVisible();
+  await expect(page.getByTestId('errore')).toHaveCount(0);
+});
+
 test('data esaurita non selezionabile', async ({ page }) => {
   await page.goto('/acquista/e2e-zucche-2099');
   const sold = page.getByRole('radio', { name: /Dom 18 ott 2099/ });
@@ -87,14 +103,17 @@ test('codice sconto ricalcolato dal server', async ({ page }) => {
   await page.getByRole('button', { name: 'Aggiungi un Ingresso' }).click();
   await page.getByRole('button', { name: 'Aggiungi un Laboratorio zucca' }).click();
   await page.getByRole('button', { name: 'Continua' }).click();
+  await page.getByRole('button', { name: 'Continua' }).click(); // passo Attività: nessuna scelta
+  await page.getByRole('button', { name: /Continua così/ }).click(); // promemoria attività
   await fillData(page);
   await acceptPrivacy(page);
   await page.getByRole('button', { name: 'Continua' }).click();
-  await page.getByRole('button', { name: 'Continua' }).click(); // promemoria attività
   await expect(page.getByTestId('totale')).toHaveText('8,00 €');
+  // Il codice sconto è dietro un link e l'esito compare sotto il campo.
+  await page.getByRole('button', { name: /codice sconto/ }).click();
   await page.getByLabel('Codice sconto').fill('nonvale');
   await page.getByRole('button', { name: 'Applica' }).click();
-  await expect(page.getByTestId('errore')).toContainText('codice sconto');
+  await expect(page.getByText(/codice sconto non è valido/)).toBeVisible();
   await page.getByLabel('Codice sconto').fill('e2e10');
   await page.getByRole('button', { name: 'Applica' }).click();
   await expect(page.getByTestId('totale')).toHaveText('7,20 €');

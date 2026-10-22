@@ -126,6 +126,27 @@
   --text-title--line-height: 28px;
   --text-kpi: 28px;
   --text-kpi--line-height: 34px;
+
+  /* Scala del sito pubblico (pagine d'acquisto, conferma, biglietti): più grande e piena di quella
+     dell'admin, come nelle pagine dei format di produzione. 12 · 14 · 16 · 18 · 22 · 28 · 36. */
+  --text-pub-xs: 12px;
+  --text-pub-xs--line-height: 16px;
+  --text-pub-sm: 14px;
+  --text-pub-sm--line-height: 20px;
+  --text-pub-base: 16px;
+  --text-pub-base--line-height: 24px;
+  --text-pub-lg: 18px;
+  --text-pub-lg--line-height: 26px;
+  --text-pub-xl: 22px;
+  --text-pub-xl--line-height: 28px;
+  --text-pub-2xl: 28px;
+  --text-pub-2xl--line-height: 34px;
+  --text-pub-3xl: 36px;
+  --text-pub-3xl--line-height: 40px;
+
+  /* Font del format nelle pagine pubbliche (font-ev-display, font-ev-body): li imposta editionThemeStyle. */
+  --font-ev-display: var(--ev-font-display, 'DM Sans', ui-sans-serif, system-ui, sans-serif);
+  --font-ev-body: var(--ev-font-body, 'DM Sans', ui-sans-serif, system-ui, sans-serif);
 }
 
 /* Contenitore radice dell'admin (e dei popup in portale): font e colori di base.

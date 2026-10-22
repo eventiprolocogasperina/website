@@ -43,7 +43,7 @@ export default function Navbar({ nav = null }: { nav?: ResolvedNav | null }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/scanner') || pathname?.startsWith('/cashier') || pathname?.startsWith('/cassa') || pathname?.startsWith('/assaggia-e-passeggia') || pathname === '/zuccaland/photo' || pathname === '/zuccaland/galleria' || pathname?.startsWith('/paga')) return null;
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/scanner') || pathname?.startsWith('/cashier') || pathname?.startsWith('/cassa') || pathname?.startsWith('/assaggia-e-passeggia') || pathname === '/zuccaland/photo' || pathname === '/zuccaland/galleria' || pathname?.startsWith('/paga') || pathname?.startsWith('/acquista') || pathname?.startsWith('/i-miei-biglietti')) return null;
 
   // Not scrolled: subtle dark gradient → white text always readable (Netflix/Airbnb pattern).
   // Scrolled: solid colored bg → theme text.

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { eventCard } from '@/components/public/event-card';
+import { card } from '@/components/public/checkout/parts';
 import { EventPageShell } from '@/components/public/EventPageShell';
-import { getCheckout } from '@/server/domain/checkout';
+import { PopIn } from '@/components/public/motion';
+import { editionTheme } from '@/lib/edition-theme';
+import { getCheckout, type CheckoutView } from '@/server/domain/checkout';
 import { CheckoutClient } from './CheckoutClient';
 
 type Props = { params: Promise<{ edition: string }> };
@@ -15,28 +17,42 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: view ? `Biglietti ${view.edition.title}` : 'Biglietti', robots: { index: false, follow: true } };
 }
 
-/** Checkout unico (§13.2): scegli, dati, riepilogo, pagamento. Prezzi e posti li decide il server. */
+/** Faccia della pagina quando non si vende, per stato (guida P2.13, PhaseBanner di produzione). */
+function closedLook(view: CheckoutView) {
+  if (view.edition.status === 'published') return { emoji: '⏳', title: 'I biglietti arrivano presto', tone: 'border-warning/30 bg-warning-bg' };
+  if (view.edition.status === 'sold_out') return { emoji: `${editionTheme(view.edition.theme).emoji}🚫`, title: 'Biglietti esauriti', tone: 'border-danger/25 bg-danger-bg' };
+  return { emoji: '🎟️', title: 'Vendita online chiusa', tone: 'border-[var(--ev-border)] bg-white' };
+}
+
+/** Checkout unico (§13.2): scegli, attività, dati, riepilogo, pagamento. Prezzi e posti li decide il server. */
 export default async function CheckoutPage({ params }: Props) {
   const view = await getCheckout((await params).edition);
   if (!view) notFound();
+  const look = closedLook(view);
   return (
     <EventPageShell edition={view.edition}>
       {view.selling ? (
         <CheckoutClient view={view} />
       ) : (
-        <div role="status" className={`${eventCard} mx-auto max-w-2xl p-6 text-center`}>
-          <p aria-hidden className="text-[2.5rem]">
-            🎟️
-          </p>
-          <p className="mt-2 text-section font-bold text-[var(--ev-ink)]">{view.closedReason}</p>
-          <p className="mt-1 text-body text-muted">
-            Per informazioni scrivici dalla pagina{' '}
-            <Link href="/contatti" className="text-primary underline">
-              Contatti
-            </Link>
-            .
-          </p>
-        </div>
+        <PopIn className={`${card} mx-auto max-w-2xl border-2 p-8 text-center ${look.tone}`}>
+          <div role="status">
+            <p aria-hidden className="text-[3rem] leading-none">
+              {look.emoji}
+            </p>
+            <h2 className="mt-3 font-ev-display text-pub-2xl font-bold text-[var(--ev-ink)]">{look.title}</h2>
+            <p className="mt-2 text-pub-base text-fg">{view.closedReason}</p>
+            <p className="mt-4 flex flex-wrap justify-center gap-2">
+              {view.edition.format && (
+                <Link href={view.edition.format.path} className="inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-pub-sm font-bold text-primary-fg hover:bg-primary-hover">
+                  Scopri {view.edition.format.name}
+                </Link>
+              )}
+              <Link href="/contatti" className="inline-flex min-h-11 items-center rounded-full border-2 border-[var(--ev-border)] bg-white px-5 text-pub-sm font-bold text-[var(--ev-ink)] hover:bg-[var(--ev-softer)]">
+                Scrivici
+              </Link>
+            </p>
+          </div>
+        </PopIn>
       )}
     </EventPageShell>
   );

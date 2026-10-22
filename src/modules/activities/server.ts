@@ -75,6 +75,29 @@ export async function validateActivities(
   if (problem) throw new DomainError('VALIDATION', { message: problem });
 }
 
+/**
+ * Posti liberi delle attività con un limite, per data, per la pagina d'acquisto (solo numeri, nessun dato
+ * degli ordini). È un'indicazione: il controllo vero resta validateActivities dentro createOrder.
+ */
+export async function activityPlacesLeft(
+  editionId: string,
+  rawSettings: Record<string, unknown> | null,
+  sessionIds: string[],
+  now = new Date(),
+): Promise<Record<string, Record<string, number>>> {
+  const settings = moduleSettings('activities', rawSettings) as ActivitiesSettings;
+  const limited = settings.activities.filter((a) => a.maxPlaces > 0);
+  if (!limited.length || !sessionIds.length) return {};
+  const choices = await activeChoices(getDb(), editionId, now);
+  return Object.fromEntries(
+    sessionIds.map((id) => {
+      const used = usedPlaces(settings, choices.filter((c) => c.sessionId === id));
+      const here = limited.filter((a) => !a.sessionIds.length || a.sessionIds.includes(id));
+      return [id, Object.fromEntries(here.map((a) => [a.key, Math.max(0, a.maxPlaces - (used.get(a.key) ?? 0))]))];
+    }),
+  );
+}
+
 export type ActivityDay = {
   sessionId: string;
   label: string;

@@ -1,5 +1,7 @@
 import 'server-only';
 import { and, asc, eq, inArray } from 'drizzle-orm';
+import { readBrand, type EditionBrand } from '@/lib/edition-theme';
+import { editionLinks, type EditionLinks } from '@/lib/public/edition-links';
 import { moduleSettings } from '@/modules/registry';
 import { postponementRefundRight } from '@/modules/postponement/server';
 import { getDb } from '@/server/db/client';
@@ -19,7 +21,18 @@ export type MyOrder = {
   /** In attesa e non ancora scaduto: si può (ri)provare a pagare. */
   payable: boolean;
   accessToken: string;
-  edition: { slug: string; title: string; location: string | null; startsAt: Date | null; endsAt: Date | null; enabledModules: string[]; coverImage: string | null; theme: string | null };
+  edition: {
+    slug: string;
+    title: string;
+    location: string | null;
+    startsAt: Date | null;
+    endsAt: Date | null;
+    enabledModules: string[];
+    coverImage: string | null;
+    theme: string | null;
+    brand: EditionBrand;
+    format: { name: string; path: string } | null;
+  } & EditionLinks;
   session: { id: string; label: string; startsAt: Date; endsAt: Date | null; status: string; rescheduledTo: string | null } | null;
   customer: { name: string | null; email: string } | null;
   lines: Array<{ name: string; quantity: number; unitPriceCents: number; totalCents: number; sessionLabel: string | null }>;
@@ -40,7 +53,7 @@ export async function getOrderByToken(token: string, now = new Date()): Promise<
   if (!/^[A-Za-z0-9_-]{16,100}$/.test(token)) return null;
   const db = getDb();
   const [row] = await db
-    .select({ order: ordersV2, edition: editions, theme: series.theme, customer: { name: customers.name, email: customers.email } })
+    .select({ order: ordersV2, edition: editions, theme: series.theme, seriesName: series.name, seriesPath: series.landingPath, seriesBlocks: series.pageBlocks, customer: { name: customers.name, email: customers.email } })
     .from(ordersV2)
     .innerJoin(editions, eq(editions.id, ordersV2.editionId))
     .leftJoin(series, eq(series.id, editions.seriesId))
@@ -80,7 +93,12 @@ export async function getOrderByToken(token: string, now = new Date()): Promise<
     expiresAt: order.expiresAt,
     payable: order.status === 'pending' && (!order.expiresAt || order.expiresAt.getTime() > now.getTime()),
     accessToken: order.accessToken,
-    edition: { slug: edition.slug, title: edition.title, location: edition.location, startsAt: edition.startsAt, endsAt: edition.endsAt, enabledModules: edition.enabledModules, coverImage: edition.coverImage, theme: row.theme?.dot ?? null },
+    edition: { slug: edition.slug, title: edition.title, location: edition.location, startsAt: edition.startsAt, endsAt: edition.endsAt, enabledModules: edition.enabledModules, coverImage: edition.coverImage,
+      theme: row.theme?.dot ?? null,
+      brand: readBrand(row.theme),
+      format: row.seriesName && row.seriesPath ? { name: row.seriesName, path: row.seriesPath } : null,
+      ...editionLinks(edition.pageBlocks, row.seriesBlocks),
+    },
     session: s ? { id: s.id, label: s.label, startsAt: s.startsAt, endsAt: s.endsAt, status: s.status, rescheduledTo: label(s.rescheduledToSessionId) } : null,
     customer: row.customer?.email ? { name: row.customer.name, email: row.customer.email } : null,
     lines: lineRows.map(({ line, name }) => ({ name, quantity: line.quantity, unitPriceCents: line.unitPriceCents, totalCents: line.totalCents, sessionLabel: label(line.sessionId) })),

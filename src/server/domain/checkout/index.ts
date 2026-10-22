@@ -1,8 +1,11 @@
 import 'server-only';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
+import { readBrand, type EditionBrand } from '@/lib/edition-theme';
+import { editionLinks, type EditionLinks } from '@/lib/public/edition-links';
 import { moduleSettings } from '@/modules/registry';
 import type { ActivitiesSettings } from '@/modules/activities/module';
+import { activityPlacesLeft } from '@/modules/activities/server';
 import { publicCtx } from '@/server/auth/context-shared';
 import { getDb } from '@/server/db/client';
 import { discountsV2, editions, legacyIdMap, ordersV2, products, series, sessions } from '@/server/db/schema';
@@ -31,6 +34,8 @@ export type CheckoutProduct = {
 };
 export type CheckoutActivities = Pick<ActivitiesSettings, 'askChildren' | 'labProductId' | 'remindIfMissing' | 'questions'> & {
   activities: Array<Pick<ActivitiesSettings['activities'][number], 'key' | 'label' | 'details' | 'target' | 'sessionIds' | 'maxPlaces'>>;
+  /** Posti liberi per data e attività (solo attività con un limite): indicativi, li ricontrolla createOrder. */
+  placesLeft: Record<string, Record<string, number>>;
 };
 export type CheckoutView = {
   edition: {
@@ -45,7 +50,11 @@ export type CheckoutView = {
     endsAt: string | null;
     /** Pallino del format: decide i colori della pagina (src/lib/edition-theme.ts). */
     theme: string | null;
-  };
+    /** Logo, icona e font del format (series.theme). */
+    brand: EditionBrand;
+    /** Pagina del format, per "Torna a Zuccaland". */
+    format: { name: string; path: string } | null;
+  } & EditionLinks;
   /** Vende ora? Se no, `closedReason` dice perché. */
   selling: boolean;
   closedReason: string | null;
@@ -85,7 +94,7 @@ export async function getCheckout(slug: string, now = new Date()): Promise<Check
   const [sessionRows, productRows, [format]] = await Promise.all([
     db.select().from(sessions).where(eq(sessions.editionId, edition.id)).orderBy(asc(sessions.startsAt), asc(sessions.sort)),
     db.select().from(products).where(eq(products.editionId, edition.id)).orderBy(asc(products.sort), asc(products.name)),
-    edition.seriesId ? db.select({ theme: series.theme }).from(series).where(eq(series.id, edition.seriesId)) : Promise.resolve([]),
+    edition.seriesId ? db.select({ theme: series.theme, name: series.name, landingPath: series.landingPath, pageBlocks: series.pageBlocks }).from(series).where(eq(series.id, edition.seriesId)) : Promise.resolve([]),
   ]);
   const online = productRows.filter((p) => p.active && channelAllows(p, 'online'));
   const availability = await getAvailability(edition.id);
@@ -127,6 +136,7 @@ export async function getCheckout(slug: string, now = new Date()): Promise<Check
       remindIfMissing: a.remindIfMissing,
       questions: a.questions,
       activities: a.activities.map(({ key, label, details, target, sessionIds, maxPlaces }) => ({ key, label, details, target, sessionIds, maxPlaces })),
+      placesLeft: await activityPlacesLeft(edition.id, edition.moduleSettings, shownSessions.filter((s) => s.open).map((s) => s.id), now),
     };
   }
 
@@ -142,6 +152,9 @@ export async function getCheckout(slug: string, now = new Date()): Promise<Check
       startsAt: edition.startsAt?.toISOString() ?? null,
       endsAt: edition.endsAt?.toISOString() ?? null,
       theme: format?.theme.dot ?? null,
+      brand: readBrand(format?.theme),
+      format: format?.landingPath ? { name: format.name, path: format.landingPath } : null,
+      ...editionLinks(edition.pageBlocks, format?.pageBlocks),
     },
     selling: closedReason === null,
     closedReason,
