@@ -27,7 +27,17 @@ export async function createEdition(opts: { status?: (typeof editions.$inferSele
   const slug = `test-${randomUUID().slice(0, 8)}`;
   const [edition] = await db
     .insert(editions)
-    .values({ slug, title: `Test ${slug}`, year: 2026, status: opts.status ?? 'on_sale', enabledModules: opts.modules ?? MODULE_KEYS })
+    .values({
+      slug,
+      title: `Test ${slug}`,
+      year: 2026,
+      status: opts.status ?? 'on_sale',
+      enabledModules: opts.modules ?? MODULE_KEYS,
+      // Pronta per le vendite (procedura guidata): luogo, data, pagina salvata e regolamento.
+      location: 'Gasperina',
+      startsAt: new Date('2026-10-24T08:00:00Z'),
+      pageBlocks: [{ id: 'regole', type: 'Allegati', hidden: false, props: { title: 'Allegati', items: [{ label: 'Regolamento', url: 'https://example.com/regolamento.pdf' }] } }],
+    })
     .returning();
   const [day1, day2] = await db
     .insert(sessions)

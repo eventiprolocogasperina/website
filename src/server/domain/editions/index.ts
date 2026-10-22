@@ -7,14 +7,16 @@ import { romeDateKey, romeDateTime } from '@/lib/dates';
 import { systemCtx, type Ctx } from '@/server/auth/context-shared';
 import { can, type Permission } from '@/server/auth/permissions';
 import { getDb, withTransaction, type Tx } from '@/server/db/client';
-import { editions, legacyIdMap, products, quotaProducts, quotas, series, sessions } from '@/server/db/schema';
+import { cashRegisters, checkinLists, editions, legacyIdMap, products, quotaProducts, quotas, series, sessions } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
 import '@/server/domain/pages/handlers';
 import { assertClosingComplete } from './closing';
-import { bumpYear, shiftInstant, shiftSession, weekdayPreservingShift } from './duplicate';
+import { bumpYear, prepareCopiedBlocks, remapIds, shiftInstant, shiftSession, weekdayPreservingShift } from './duplicate';
 import { isReadOnly, transitionFor } from './lifecycle';
+import { opensSales, SETUP_SETTINGS_KEY } from '@/lib/edition-setup';
+import { assertSalesReady } from './setup';
 import { ACTIVE_STATUSES, EDITION_STATUSES, NAV_MODULES, type EditionDot, type EditionSummary } from './types';
 
 export type { EditionModule, EditionStatus, EditionSummary } from './types';
@@ -209,8 +211,10 @@ export async function createEdition(ctx: Ctx, input: CreateEditionInput): Promis
 }
 
 /**
- * "Duplica Zuccaland 2026 come 2027": copia date, prodotti, quote e moduli, spostando le date allo
- * stesso giorno della settimana dell'anno di destinazione. Non copia ordini, sconti né pagina.
+ * "Duplica Zuccaland 2026 come 2027": copia pagina, moduli e impostazioni, notifiche, date, prodotti con i
+ * prezzi, quote, liste di check-in e casse con i loro prodotti, spostando le date allo stesso giorno della
+ * settimana dell'anno di destinazione. Non copia ordini, venduti, ingressi, turni di cassa né codici sconto
+ * (sono unici e hanno i loro utilizzi). L'edizione di partenza si legge soltanto: anche se archiviata resta com'era.
  */
 export async function duplicateEdition(ctx: Ctx, sourceSlug: string, target: { title: string; slug: string; year: number }): Promise<{ slug: string }> {
   assertCan(ctx, 'editions.create');
@@ -222,6 +226,8 @@ export async function duplicateEdition(ctx: Ctx, sourceSlug: string, target: { t
     const years = target.year - fromYear;
     const refDay = source.startsAt ? romeDateKey(source.startsAt) : `${fromYear}-06-01`;
     const days = weekdayPreservingShift(refDay, years);
+    // Lo stato della procedura guidata (passi saltati) è dell'edizione di partenza, non della copia.
+    const sourceSettings = Object.fromEntries(Object.entries(source.moduleSettings ?? {}).filter(([k]) => k !== SETUP_SETTINGS_KEY));
 
     const [copy] = await tx
       .insert(editions)
@@ -236,14 +242,16 @@ export async function duplicateEdition(ctx: Ctx, sourceSlug: string, target: { t
         endsAt: source.endsAt ? shiftInstant(source.endsAt, days) : null,
         location: source.location,
         coverImage: source.coverImage,
+        category: source.category,
         timezone: source.timezone,
         publicPageMode: source.publicPageMode,
         enabledModules: source.enabledModules,
-        moduleSettings: source.moduleSettings,
+        notificationSettings: source.notificationSettings,
       })
       .returning();
 
-    const sessionMap = new Map<string, string>();
+    // Vecchio ID → nuovo ID, per date, prodotti, liste e casse: serve a impostazioni dei moduli e blocchi.
+    const ids = new Map<string, string>();
     const srcSessions = await tx.select().from(sessions).where(eq(sessions.editionId, source.id)).orderBy(asc(sessions.sort));
     for (const s of srcSessions) {
       const moved = shiftSession(s, days);
@@ -251,13 +259,11 @@ export async function duplicateEdition(ctx: Ctx, sourceSlug: string, target: { t
         .insert(sessions)
         .values({ editionId: copy.id, label: moved.label, startsAt: moved.startsAt, endsAt: moved.endsAt, capacity: s.capacity, status: s.status === 'closed' ? 'closed' : 'open', sort: s.sort })
         .returning({ id: sessions.id });
-      sessionMap.set(s.id, row.id);
+      ids.set(s.id, row.id);
     }
 
-    const productMap = new Map<string, string>();
     const srcProducts = await tx.select().from(products).where(eq(products.editionId, source.id)).orderBy(asc(products.sort));
     for (const p of srcProducts) {
-      // Le liste di check-in arrivano con il prompt 09: non si copiano.
       const copyOf = {
         kind: p.kind,
         name: p.name,
@@ -276,25 +282,63 @@ export async function duplicateEdition(ctx: Ctx, sourceSlug: string, target: { t
         openPrice: p.openPrice,
       };
       const [row] = await tx.insert(products).values({ ...copyOf, editionId: copy.id }).returning({ id: products.id });
-      productMap.set(p.id, row.id);
+      ids.set(p.id, row.id);
     }
+    const mapIds = (list: readonly string[]) => list.map((id) => ids.get(id)).filter((x): x is string => !!x);
 
     const srcQuotas = await tx.select().from(quotas).where(eq(quotas.editionId, source.id));
     const links = srcQuotas.length ? await tx.select().from(quotaProducts).where(inArray(quotaProducts.quotaId, srcQuotas.map((q) => q.id))) : [];
     for (const q of srcQuotas) {
       const [row] = await tx
         .insert(quotas)
-        .values({ editionId: copy.id, name: q.name, size: q.size, sessionId: q.sessionId ? (sessionMap.get(q.sessionId) ?? null) : null })
+        .values({ editionId: copy.id, name: q.name, size: q.size, sessionId: q.sessionId ? (ids.get(q.sessionId) ?? null) : null })
         .returning({ id: quotas.id });
-      const ps = links.filter((l) => l.quotaId === q.id).map((l) => productMap.get(l.productId)).filter((x): x is string => !!x);
+      const ps = mapIds(links.filter((l) => l.quotaId === q.id).map((l) => l.productId));
       if (ps.length) await tx.insert(quotaProducts).values(ps.map((productId) => ({ quotaId: row.id, productId })));
     }
+
+    const srcLists = await tx.select().from(checkinLists).where(eq(checkinLists.editionId, source.id));
+    for (const l of srcLists) {
+      const [row] = await tx
+        .insert(checkinLists)
+        .values({ editionId: copy.id, name: l.name, productIds: mapIds(l.productIds), sessionId: l.sessionId ? (ids.get(l.sessionId) ?? null) : null, allowMultiple: l.allowMultiple })
+        .returning({ id: checkinLists.id });
+      ids.set(l.id, row.id);
+    }
+    for (const p of srcProducts) {
+      if (p.checkinListIds.length) await tx.update(products).set({ checkinListIds: mapIds(p.checkinListIds) }).where(eq(products.id, ids.get(p.id)!));
+    }
+
+    const srcRegisters = await tx.select().from(cashRegisters).where(eq(cashRegisters.editionId, source.id)).orderBy(asc(cashRegisters.sort));
+    for (const r of srcRegisters) {
+      const [row] = await tx
+        .insert(cashRegisters)
+        .values({ editionId: copy.id, name: r.name, productIds: r.productIds ? mapIds(r.productIds) : null, printerSettings: r.printerSettings, issuesNumbers: r.issuesNumbers, active: r.active, sort: r.sort })
+        .returning({ id: cashRegisters.id });
+      ids.set(r.id, row.id);
+    }
+
+    const pageBlocks = remapIds(prepareCopiedBlocks(source.pageBlocks, { fromYear, toYear: target.year, days }), ids);
+    await tx
+      .update(editions)
+      .set({ moduleSettings: remapIds(sourceSettings, ids), pageBlocks })
+      .where(eq(editions.id, copy.id));
 
     await audit(tx, ctx, 'edition.duplicated', {
       entityType: 'edition',
       entityId: copy.id,
       edition: copy.slug,
-      after: { from: source.slug, title: copy.title, sessions: srcSessions.length, products: srcProducts.length, quotas: srcQuotas.length, shiftDays: days },
+      after: {
+        from: source.slug,
+        title: copy.title,
+        sessions: srcSessions.length,
+        products: srcProducts.length,
+        quotas: srcQuotas.length,
+        checkinLists: srcLists.length,
+        registers: srcRegisters.length,
+        blocks: pageBlocks.length,
+        shiftDays: days,
+      },
     });
     return { slug: copy.slug };
   });
@@ -357,6 +401,8 @@ export async function changeEditionStatus(ctx: Ctx, slug: string, input: z.input
     if (!transition) throw new DomainError('CONFLICT', { message: 'Questo passaggio di stato non è possibile.' });
     assertCan(ctx, transition.permission, slug);
     if (data.to === 'archived') await assertClosingComplete(tx, before);
+    // Le vendite si aprono solo con i passi necessari fatti (date con capienza, biglietto, pagina, regolamento).
+    if (opensSales(before.status, data.to)) await assertSalesReady(tx, before);
     const now = new Date();
     await tx
       .update(editions)

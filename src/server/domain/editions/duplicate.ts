@@ -47,3 +47,38 @@ export function bumpYear(text: string, from: number | null, to: number): string 
   if (from && text.includes(String(from))) return text.split(String(from)).join(String(to));
   return text;
 }
+
+/**
+ * Sostituisce in profondità ogni stringa che è un ID copiato (date, prodotti, casse, liste) con l'ID
+ * della copia: impostazioni dei moduli e blocchi della pagina puntano così alla nuova edizione.
+ */
+export function remapIds<T>(value: T, map: ReadonlyMap<string, string>): T {
+  if (typeof value === 'string') return (map.get(value) ?? value) as T;
+  if (Array.isArray(value)) return value.map((v) => remapIds(v, map)) as T;
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, remapIds(v, map)])) as T;
+  return value;
+}
+
+const HERO_TEXT = ['badge', 'title', 'subtitle'] as const;
+
+/**
+ * Blocchi della pagina per la copia: l'anno nei testi della copertina passa al nuovo, il conto alla
+ * rovescia si sposta come le date. Il resto (programma, numeri dell'anno scorso…) resta da rivedere.
+ */
+export function prepareCopiedBlocks(blocks: unknown, opts: { fromYear: number | null; toYear: number; days: number }): unknown[] {
+  if (!Array.isArray(blocks)) return [];
+  return blocks.map((b) => {
+    if (!b || typeof b !== 'object') return b;
+    const block = b as { type?: unknown; props?: Record<string, unknown> };
+    if (!block.props || typeof block.props !== 'object') return b;
+    const props = { ...block.props };
+    if (block.type === 'Hero') {
+      for (const k of HERO_TEXT) if (typeof props[k] === 'string') props[k] = bumpYear(props[k] as string, opts.fromYear, opts.toYear);
+    }
+    if (block.type === 'Countdown' && typeof props.target === 'string') {
+      const m = (props.target as string).match(/^(\d{4}-\d{2}-\d{2})(.*)$/);
+      if (m) props.target = addDaysToKey(m[1], opts.days) + m[2];
+    }
+    return { ...block, props };
+  });
+}
