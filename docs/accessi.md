@@ -23,7 +23,7 @@ L'interfaccia nasconde le voci di menu non permesse (il client riceve solo l'ele
 
 ## Dispositivi e PIN
 
-- **Abbinare**: Sistema › Utenti › Dispositivi › "Abbina dispositivo". Il QR vale 10 minuti e una volta sola; sul telefono si apre `/abbina/<token>` e si conferma. Il dispositivo riceve un cookie `pl_device` httpOnly (circa 13 mesi); nel database c'è solo l'hash.
+- **Abbinare**: Sistema › Utenti › Dispositivi › "Abbina dispositivo" (oppure Cassa › Dispositivi e Check-in dell'edizione). Nel dialogo si sceglie il nome e il **ruolo** del dispositivo (Cassa o Varco); insieme al QR compare un **PIN di 6 cifre**. QR e PIN valgono 10 minuti e una volta sola; sul telefono si apre `/abbina/<token>`, si digita il PIN e si conferma. Il dispositivo riceve il ruolo scelto e un cookie `pl_device` httpOnly (circa 13 mesi); nel database ci sono solo gli hash di token e PIN. Al quinto PIN sbagliato il QR non vale più (ne serve uno nuovo) e i tentativi finiscono nel registro; c'è anche un limite per IP.
 - **PIN**: ogni volontario ha un PIN di 4–6 cifre (con hash). Dopo 5 errori consecutivi si blocca finché un responsabile non lo reimposta. La sessione PIN scade dopo 30 minuti senza attività.
 - **Revocare**: un clic nella tabella dei dispositivi; il dispositivo perde subito l'accesso.
 - **Cassa** (`/cashier`): con un dispositivo di cassa si entra con nome e PIN; senza dispositivo resta il codice evento finché `site_settings.legacy_event_code` non è `false` (lo spegne il prompt 14).

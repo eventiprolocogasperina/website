@@ -24,7 +24,8 @@ parallelo per evento. La vecchia `/cashier` resta attiva finché Zuccaland è in
 2. Scelta della cassa. Se ha già un turno aperto ci si entra (un cassetto, un turno); altrimenti chi ha
    `pos.open_close_session` apre il turno dichiarando il fondo cassa.
 3. Griglia per gruppo (reparto del prodotto, altrimenti il tipo), carrello, pagamento: contanti con
-   tastierino, importi rapidi e resto; carta sul POS; omaggio con motivo.
+   tastierino, importi rapidi e resto; carta sul POS; omaggio con motivo. In fondo alla griglia il
+   pulsante **Altro** apre il tastierino per un importo libero (vedi sotto).
 4. La vendita è `createOrder` con canale `pos`, `payNow`, `cashSessionId` e la chiave di idempotenza
    generata dal telefono. Prezzi e scorte li decide il server (§18.1): due telefoni sull'ultima porzione
    → uno vende, l'altro riceve `SOLD_OUT`.
@@ -35,6 +36,19 @@ parallelo per evento. La vecchia `/cashier` resta attiva finché Zuccaland è in
    nulla si cancella.
 7. Chiusura: conteggio per taglio da 500 € a 1 centesimo, atteso contro contato, nota obbligatoria se la
    differenza supera 1 €, chiusura Z numerata (contatore per edizione) in PDF con react-pdf.
+
+## Altro (importo libero)
+
+- Il cassiere digita un importo e lo aggiunge al carrello come riga "Altro". Stesso importo due volte →
+  una riga con quantità 2.
+- Sul server è una riga del prodotto "Altro" dell'edizione (`products.open_price`, uno per edizione):
+  il server lo crea alla prima vendita, con il registro. Non compare nella griglia né in Prodotti per
+  cassa e vale su ogni cassa. Per spegnere il pulsante si disattiva il prodotto "Altro" in Catalogo.
+- Regole del server (`pricing/cart.ts`, `orders`, `cash/sales.ts`): il prezzo della riga si accetta solo
+  per quel prodotto, solo sul canale `pos` con il turno di cassa e da chi ha `pos.sell`, da 0,01 a
+  1000 € per riga. Per ogni altro prodotto un prezzo inviato dal telefono si rifiuta (§18.1).
+- Nel registro `order.created` riporta `openPriceCents`. Z, rendiconto e CSV contano "Altro" come un
+  prodotto: pezzi e importo.
 
 ## Offline
 
@@ -57,7 +71,8 @@ ricollega): funziona con più istanze, a differenza di `/api/cashier/realtime` c
 
 ## Rendiconto
 
-Per giorno (ora italiana), cassa, operatore, metodo e prodotto, in PDF e CSV (`;`, virgola decimale, BOM
+Per giorno (ora italiana), cassa, operatore, metodo e prodotto (pezzi venduti e importo, anche nella
+tab Rendiconto dell'admin, nella chiusura del turno sul telefono e nel PDF della Z), in PDF e CSV (`;`, virgola decimale, BOM
 per Excel). Usa gli stessi movimenti della Z, quindi la somma delle Z quadra con il rendiconto. Gli omaggi
 sono indicati a parte e non entrano nei contributi. Sostituisce il vecchio "per data" con "salvataggio
 storico e azzeramento": non si azzera niente, si filtra per data; per una nuova giornata si fa ripartire

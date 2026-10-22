@@ -382,7 +382,7 @@ export interface EditionModule<S extends z.ZodTypeAny> {
 
 - **Admin**: `/login` con email e password (hash argon2id o bcrypt), più TOTP facoltativo per `owner` e `admin`. La sessione è un cookie `httpOnly`, `Secure`, `SameSite=Lax` e firmato, con durata di 12 ore. Il logout la invalida sul server.
 - **App da campo** (cassa e scanner):
-  - il dispositivo viene autorizzato una sola volta dall'admin, tramite un QR di abbinamento che genera un `device token`;
+  - il dispositivo viene autorizzato una sola volta dall'admin, tramite un QR di abbinamento con un PIN di 6 cifre mostrato accanto, che genera un `device token` con il ruolo scelto dall'admin (cassa o varco);
   - poi ogni volontario entra con il proprio **PIN di 4–6 cifre**;
   - le sessioni del PIN scadono dopo 30 minuti di inattività;
   - un dispositivo si revoca dall'admin in un clic.
@@ -945,6 +945,9 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-20 | Prompt 18: modelli email predefiniti nel codice, in `email_templates` solo le versioni modificate (globale o per edizione); il testo modificabile è l'apertura dell'email, QR, righe e PDF restano fissi | Claude, esecuzione fase 4 |
 | 2026-10-20 | Prompt 18: le impostazioni di Sistema restano in `site_settings` con le chiavi di prima (`contact_email`, `whatsapp_topics`, `wa_*`, `zuccaland_postponed_*`) perché le rotte di oggi le leggono; i token si leggono solo dall'env e la pagina mostra "impostato/mancante" | Claude, esecuzione fase 4 |
 | 2026-10-20 | Prompt 18: l'invio WhatsApp a un segmento è idempotente su un `request_id` scelto dal browser e rifiuta l'invio se i destinatari sono cambiati dopo l'anteprima | Claude, esecuzione fase 4 |
+| 2026-10-22 | Cassa, pulsante "Altro": l'importo libero è una riga di un prodotto `open_price` (uno per edizione, creato dal server alla prima vendita, si spegne disattivandolo in Catalogo). Il server accetta il prezzo della riga solo per quel prodotto, solo sul canale `pos` con il turno, da 0,01 a 1000 €; per ogni altro prodotto un prezzo dal browser si rifiuta (§18.1). Vale su ogni cassa, anche su quelle con i prodotti limitati | Niccolo / Claude |
+| 2026-10-22 | Cassa: chiusura del turno, Z, rendiconto (admin e PDF) mostrano i pezzi venduti per prodotto, senza gli annullati e con gli omaggi | Niccolo / Claude |
+| 2026-10-22 | Abbinamento dei dispositivi: insieme al QR si genera un PIN di 6 cifre (hash scrypt, mai in chiaro nel database o nel registro) da digitare sul telefono; al quinto PIN sbagliato il QR non vale più, più un limite per IP. Il ruolo del dispositivo (Cassa o Varco) si sceglie nello stesso dialogo, anche da Cassa e Check-in dell'edizione. I QR senza PIN non si accettano più | Niccolo / Claude |
 
 ---
 
