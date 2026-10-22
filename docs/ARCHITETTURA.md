@@ -949,6 +949,7 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-22 | Cassa: chiusura del turno, Z, rendiconto (admin e PDF) mostrano i pezzi venduti per prodotto, senza gli annullati e con gli omaggi | Niccolo / Claude |
 | 2026-10-22 | Abbinamento dei dispositivi: insieme al QR si genera un PIN di 6 cifre (hash scrypt, mai in chiaro nel database o nel registro) da digitare sul telefono; al quinto PIN sbagliato il QR non vale più, più un limite per IP. Il ruolo del dispositivo (Cassa o Varco) si sceglie nello stesso dialogo, anche da Cassa e Check-in dell'edizione. I QR senza PIN non si accettano più | Niccolo / Claude |
 | 2026-10-22 | Scanner: un ingresso si annulla anche dopo i 30 secondi, con conferma, dalla ricerca o dall'esito "Già entrato"; stesso `revertCheckin` (segna `reverted_at`, audit con il motivo), mai una cancellazione | Claude, richiesta di Niccolo |
+| 2026-10-22 | Cassa: "Altro" (importo libero) si accende cassa per cassa (`cash_registers.allow_open_amount`, spento di default, rifiutato dal server). "Pezzi disponibili" dei prodotti di cassa = quota personale del prodotto (§5.4, nessuna colonna `stock_quantity`). Un dispositivo di cassa abbinato apre `/cassa`. Un ingresso si annulla anche dal dettaglio ordine e dai partecipanti (`checkin.revert`). Logo del format caricabile da Admin › Format, con ripiego sul logo Pro Loco | Claude, richiesta di Niccolo |
 
 ---
 
