@@ -7,7 +7,7 @@ import { editions, notifySignups, series } from '@/server/db/schema';
 import { changeEditionStatus } from '@/server/domain/editions';
 import { DomainError } from '@/server/domain/errors';
 import * as send from '@/server/email/send';
-import { createEdition, owner, roleOn } from '@/test/fixtures';
+import { createEdition, makeSalesReady, owner, roleOn } from '@/test/fixtures';
 import { closeTestDb, getDb } from '@/test/pg-client';
 import { blocksVersion, getEditionYearPage, getFormatPage, saveEditionBlocks, saveSeriesBlocks } from './index';
 import { notifyEditionOnSale, subscribeNotify, unsubscribeNotify } from './notify';
@@ -66,6 +66,7 @@ describe.skipIf(!enabled)('pagine a blocchi', () => {
     expect(rows).toHaveLength(2);
 
     const f = await createEdition({ status: 'published' });
+    await makeSalesReady(f.edition.id);
     await getDb().update(editions).set({ seriesId: s.id }).where(eq(editions.id, f.edition.id));
     const sent = await Promise.all([notifyEditionOnSale(f.edition.id), notifyEditionOnSale(f.edition.id)]);
     expect(sent[0] + sent[1]).toBe(2);
@@ -78,6 +79,7 @@ describe.skipIf(!enabled)('pagine a blocchi', () => {
     expect(await unsubscribeNotify(rows[0].unsubscribeToken)).toBe(s.name);
     expect(await unsubscribeNotify('token-che-non-esiste-affatto')).toBeNull();
     const g = await createEdition({ status: 'published' });
+    await makeSalesReady(g.edition.id);
     await getDb().update(editions).set({ seriesId: s.id }).where(eq(editions.id, g.edition.id));
     await changeEditionStatus(owner, g.slug, { to: 'on_sale' });
     expect(spy).toHaveBeenCalledTimes(3); // solo chi è ancora iscritto

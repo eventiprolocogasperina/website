@@ -1,5 +1,6 @@
 // Dati di prova per i test sul database: un'edizione con date, prodotti e quote, e i contesti dei ruoli.
 import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import type { Ctx } from '@/server/auth/context-shared';
 import type { RoleGrant } from '@/server/auth/permissions';
 import { checkinLists, editions, products, quotaProducts, quotas, sessions, discountsV2 } from '@/server/db/schema';
@@ -33,10 +34,8 @@ export async function createEdition(opts: { status?: (typeof editions.$inferSele
       year: 2026,
       status: opts.status ?? 'on_sale',
       enabledModules: opts.modules ?? MODULE_KEYS,
-      // Pronta per le vendite (procedura guidata): luogo, data, pagina salvata e regolamento.
       location: 'Gasperina',
       startsAt: new Date('2026-10-24T08:00:00Z'),
-      pageBlocks: [{ id: 'regole', type: 'Allegati', hidden: false, props: { title: 'Allegati', items: [{ label: 'Regolamento', url: 'https://example.com/regolamento.pdf' }] } }],
     })
     .returning();
   const [day1, day2] = await db
@@ -58,6 +57,14 @@ export async function createEdition(opts: { status?: (typeof editions.$inferSele
   await db.insert(quotaProducts).values({ quotaId: labQuota.id, productId: lab.id });
   const [entrance] = await db.insert(checkinLists).values({ editionId: edition.id, name: 'Ingresso', productIds: [ticket.id] }).returning();
   return { edition, slug, day1, day2, ticket, lab, drink, labQuota, entrance };
+}
+
+/** Completa ciò che serve per aprire le vendite (procedura guidata): descrizione e regolamento. */
+export async function makeSalesReady(editionId: string) {
+  await getDb()
+    .update(editions)
+    .set({ subtitle: 'Edizione di prova', pageBlocks: [{ id: 'regole', type: 'Allegati', hidden: false, props: { title: 'Allegati', items: [{ label: 'Regolamento', url: 'https://example.com/regolamento.pdf' }] } }] })
+    .where(eq(editions.id, editionId));
 }
 
 export async function createDiscount(values: Partial<typeof discountsV2.$inferInsert> & { code: string }) {
