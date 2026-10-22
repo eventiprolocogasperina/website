@@ -53,19 +53,19 @@ function CassaLoaded({ session, logout, adminEdition }: { session: FieldSession;
   }
   if (state.status === 'forbidden') {
     return (
-      <Shell onLogout={session.device ? logout : undefined}>
+      <Shell onLogout={session.user ? logout : undefined}>
         <ForbiddenState />
       </Shell>
     );
   }
   if (state.status === 'error') {
     return (
-      <Shell onLogout={session.device ? logout : undefined}>
+      <Shell onLogout={session.user ? logout : undefined}>
         <ErrorState message={state.message} onRetry={reload} />
       </Shell>
     );
   }
-  return <SellScreen api={api} state={state.data} cached={state.cached} reloadState={reload} logout={session.device ? logout : null} />;
+  return <SellScreen api={api} state={state.data} cached={state.cached} reloadState={reload} logout={session.user ? logout : null} />;
 }
 
 export function Shell({ children, onLogout }: { children: React.ReactNode; onLogout?: () => void }) {

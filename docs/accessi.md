@@ -24,9 +24,10 @@ L'interfaccia nasconde le voci di menu non permesse (il client riceve solo l'ele
 ## Dispositivi e PIN
 
 - **Abbinare**: Sistema › Utenti › Dispositivi › "Abbina dispositivo" (oppure Cassa › Dispositivi e Check-in dell'edizione). Nel dialogo si sceglie il nome e il **ruolo** del dispositivo (Cassa o Varco); insieme al QR compare un **PIN di 6 cifre**. QR e PIN valgono 10 minuti e una volta sola; sul telefono si apre `/abbina/<token>`, si digita il PIN e si conferma. Il dispositivo riceve il ruolo scelto e un cookie `pl_device` httpOnly (circa 13 mesi); nel database ci sono solo gli hash di token e PIN. Al quinto PIN sbagliato il QR non vale più (ne serve uno nuovo) e i tentativi finiscono nel registro; c'è anche un limite per IP.
-- **PIN**: ogni volontario ha un PIN di 4–6 cifre (con hash). Dopo 5 errori consecutivi si blocca finché un responsabile non lo reimposta. La sessione PIN scade dopo 30 minuti senza attività.
+- **Niente PIN personale sui dispositivi** (decisione del 22-10-2026): il dispositivo abbinato vale da solo come Cassa o Varco sulla sua edizione, senza la schermata "Chi sei?". Le operazioni si registrano a nome del dispositivo; revocarlo dall'admin toglie subito l'accesso. L'annullo di una vendita chiede ancora il PIN di un responsabile.
+- **PIN** (responsabili, per approvare gli annulli): PIN di 4–6 cifre (con hash). Dopo 5 errori consecutivi si blocca finché un responsabile non lo reimposta. La sessione PIN scade dopo 30 minuti senza attività.
 - **Revocare**: un clic nella tabella dei dispositivi; il dispositivo perde subito l'accesso.
-- **Cassa**: dopo l'abbinamento un dispositivo di cassa apre la nuova cassa `/cassa`, dove si entra con nome e PIN. La vecchia `/cashier` resta raggiungibile a mano: anche lì con un dispositivo si entra con nome e PIN; senza dispositivo resta il codice evento finché `site_settings.legacy_event_code` non è `false` (lo spegne il prompt 14).
+- **Cassa**: dopo l'abbinamento un dispositivo di cassa apre direttamente la nuova cassa `/cassa`. La vecchia `/cashier` resta raggiungibile a mano: anche lì con un dispositivo si entra con nome e PIN; senza dispositivo resta il codice evento finché `site_settings.legacy_event_code` non è `false` (lo spegne il prompt 14).
 - **Scanner** (`/scanner`): con un dispositivo scanner si entra con nome e PIN; senza dispositivo serve la sessione dell'admin.
 
 Un cassiere assegnato a Zuccaland 2026 non può entrare su un dispositivo di un'altra edizione, e le rotte della cassa rifiutano gli eventi diversi da quello del dispositivo.

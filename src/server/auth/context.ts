@@ -77,18 +77,25 @@ export const getDevice = cache(async (): Promise<CtxDevice | null> => {
 });
 
 /**
- * Volontario entrato con il PIN su un dispositivo abbinato. I suoi ruoli valgono solo
- * sull'edizione del dispositivo, qualunque sia l'ambito con cui sono stati assegnati.
+ * Contesto di un dispositivo abbinato. Il ruolo si sceglie quando si genera il QR (decisione di
+ * Niccolo, 22-10-2026): il dispositivo da solo vale come cassiere (pos) o varco (scanner) sulla sua
+ * edizione, senza "Chi sei?" né PIN personale. Le operazioni restano registrate a nome del
+ * dispositivo; revocarlo dall'admin toglie subito l'accesso. Se qualcuno è entrato anche con il PIN
+ * (vecchie sessioni), valgono i suoi ruoli, sempre solo sull'edizione del dispositivo.
  */
 export const getFieldCtx = cache(async (): Promise<Ctx | null> => {
   const device = await getDevice();
   if (!device) return null;
+  const ip = await requestIp();
   const pin = verifyToken((await cookies()).get(PIN_COOKIE)?.value, secret());
-  if (!pin || pin.role !== 'pin' || pin.did !== device.id) return null;
-  const loaded = await loadUser(pin.sub);
-  if (!loaded) return null;
-  const grants = loaded.grants.filter((g) => g.edition === null || g.edition === device.edition).map((g) => ({ role: g.role, edition: device.edition }));
-  return { user: loaded.user, device, legacy: false, grants, ip: await requestIp() };
+  if (pin && pin.role === 'pin' && pin.did === device.id) {
+    const loaded = await loadUser(pin.sub);
+    if (loaded) {
+      const grants = loaded.grants.filter((g) => g.edition === null || g.edition === device.edition).map((g) => ({ role: g.role, edition: device.edition }));
+      return { user: loaded.user, device, legacy: false, grants, ip };
+    }
+  }
+  return { user: null, device, legacy: false, grants: [{ role: device.kind === 'pos' ? 'cashier' : 'gate', edition: device.edition }], ip };
 });
 
 /** Rinnova la sessione PIN (30 minuti dall'ultima attività). Solo nei route handler. */
