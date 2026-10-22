@@ -33,6 +33,8 @@ export type AttendeeRow = {
   productName: string;
   sessionLabel: string | null;
   ticketStatus: string;
+  /** Passaggio valido da annullare (checkin.revert), se è entrato. */
+  checkinId: string | null;
   checkedInAt: string | null;
   checkinList: string | null;
   answers: string;
@@ -118,7 +120,7 @@ export async function listAttendees(ctx: Ctx, slug: string, f: AttendeeFilters, 
   const [entries, answers] = await Promise.all([
     ids.length
       ? db
-          .select({ ticketId: checkins.ticketId, at: checkins.at, list: checkinLists.name })
+          .select({ id: checkins.id, ticketId: checkins.ticketId, at: checkins.at, list: checkinLists.name })
           .from(checkins)
           .innerJoin(checkinLists, eq(checkinLists.id, checkins.checkinListId))
           .where(and(inArray(checkins.ticketId, ids), isNull(checkins.revertedAt)))
@@ -132,6 +134,7 @@ export async function listAttendees(ctx: Ctx, slug: string, f: AttendeeFilters, 
       const e = entries.find((x) => x.ticketId === r.ticketId);
       return {
         ...r,
+        checkinId: e?.id ?? null,
         checkedInAt: e?.at.toISOString() ?? null,
         checkinList: e?.list ?? null,
         answers: [answers.order.get(r.orderId), answers.ticket.get(r.ticketId)].filter(Boolean).join(' · '),
