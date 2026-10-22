@@ -44,6 +44,8 @@ export const cashRegisters = pgTable(
     printerSettings: jsonb('printer_settings').$type<RegisterPrinterSettings>(),
     /** La cassa dà il numero progressivo da chiamare (la "cassa principale" di oggi). */
     issuesNumbers: boolean('issues_numbers').default(true).notNull(),
+    /** Pulsante "Altro" (importo libero) su questa cassa. Spento di default: si accende cassa per cassa. */
+    allowOpenAmount: boolean('allow_open_amount').default(false).notNull(),
     /** Una cassa spenta non compare sui dispositivi; i turni passati restano. */
     active: boolean('active').default(true).notNull(),
     sort: integer('sort').default(0).notNull(),

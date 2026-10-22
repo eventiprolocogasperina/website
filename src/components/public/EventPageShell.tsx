@@ -38,6 +38,9 @@ function dateRange(start: string | Date | null, end?: string | Date | null): str
  * Navbar del sito, logo del format, fondo crema con macchie di colore (come l'hero di produzione) e fondo
  * chiaro anche quando il resto del sito è in tema scuro.
  */
+/** Logo di ripiego quando il format non ha un logo (series.theme.logo). */
+const PROLOCO_LOGO = '/img/Logo_color_sm.png';
+
 export function EventPageShell({ edition, eyebrow = 'Biglietteria ufficiale', children }: { edition: ShellEdition; eyebrow?: string; children: ReactNode }) {
   const t = editionTheme(edition.theme);
   const brand = edition.brand ?? null;
@@ -99,7 +102,9 @@ export function EventPageShell({ edition, eyebrow = 'Biglietteria ufficiale', ch
               </>
             ) : (
               <Reveal delay={0.05}>
-                <h1 className="mt-4 font-ev-display text-[clamp(2rem,6vw,3.25rem)] font-bold leading-tight tracking-tight text-[var(--ev-ink)]">
+                {/* Senza logo del format, il marchio della Pro Loco: un logo c'è sempre (si carica da Admin, Format). */}
+                <Image src={PROLOCO_LOGO} alt="Pro Loco Gasperina" width={72} height={72} className="mx-auto mt-5 size-16 object-contain sm:size-[72px]" />
+                <h1 className="mt-3 font-ev-display text-[clamp(2rem,6vw,3.25rem)] font-bold leading-tight tracking-tight text-[var(--ev-ink)]">
                   {edition.title} <span aria-hidden>{t.emoji}</span>
                 </h1>
               </Reveal>

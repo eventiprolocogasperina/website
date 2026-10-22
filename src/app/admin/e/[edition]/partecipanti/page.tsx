@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui';
 import { LoadError } from '@/components/admin/orders/LoadError';
 import { getAdminCtx } from '@/server/auth/context';
 import { pageDenied } from '@/server/auth/guard';
+import { can } from '@/server/auth/permissions';
 import { orderEditionContext } from '@/server/domain/orders/admin-context';
 import { ATTENDEES_PAGE_SIZE, listAttendees, type AttendeeFilters } from '@/server/domain/orders/attendees';
 import { log } from '@/server/log';
@@ -35,7 +36,7 @@ export default async function Page({ params, searchParams }: Props) {
   return (
     <AdminPage wide>
       <PageHeader title="Partecipanti" count={total} subtitle={`${context.edition.title} · un biglietto per riga`} />
-      <AttendeesList rows={rows} total={total} page={filters.page} pageSize={ATTENDEES_PAGE_SIZE} filters={filters} sessions={context.sessions} base={`/admin/e/${edition}`} />
+      <AttendeesList rows={rows} total={total} page={filters.page} pageSize={ATTENDEES_PAGE_SIZE} filters={filters} sessions={context.sessions} base={`/admin/e/${edition}`} canRevert={!context.edition.readOnly && can(ctx, 'checkin.revert', { edition })} />
     </AdminPage>
   );
 }

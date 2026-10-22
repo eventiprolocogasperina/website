@@ -4,10 +4,12 @@ import { Calculator, PackageOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn, EmptyState, focusRing } from '@/components/ui';
 import { OPEN_PRICE_NAME } from '@/lib/cash/open-price';
+import { isLowStock, piecesLeft, stockLabel } from '@/lib/cash/stock';
 import type { PosProduct } from '@/lib/cash/types';
 import { formatMoney } from '@/lib/money';
 
 const ALL = '__tutti__';
+
 
 type Props = {
   products: PosProduct[];
@@ -17,7 +19,7 @@ type Props = {
   onOther?: () => void;
 };
 
-/** Griglia dei prodotti per gruppo (reparto o tipo), con gli esauriti spenti e le ultime porzioni in evidenza. */
+/** Griglia dei prodotti per gruppo (reparto o tipo): i pezzi rimasti su ogni pulsante, in rosso gli ultimi, spenti gli esauriti. */
 export function ProductGrid({ products, inCart, onAdd, onOther }: Props) {
   const groups = useMemo(() => [...new Set(products.map((p) => p.group))], [products]);
   const [group, setGroup] = useState(ALL);
@@ -57,8 +59,9 @@ export function ProductGrid({ products, inCart, onAdd, onOther }: Props) {
       )}
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {shown.map((p) => {
-          const soldOut = p.remaining !== null && p.remaining - (inCart[p.id] ?? 0) <= 0;
-          const few = p.remaining !== null && p.remaining > 0 && p.remaining <= 5;
+          const left = piecesLeft(p.remaining, inCart[p.id] ?? 0);
+          const soldOut = left === 0;
+          const few = isLowStock(left);
           return (
             <li key={p.id}>
               <button
@@ -76,11 +79,11 @@ export function ProductGrid({ products, inCart, onAdd, onOther }: Props) {
                 </span>
                 <span className="flex w-full items-end justify-between gap-1">
                   <span className="text-body tabular-nums">{formatMoney(p.priceCents)}</span>
-                  {p.remaining !== null && p.remaining <= 0 ? (
-                    <span className="text-caption font-semibold text-danger">Esaurito</span>
-                  ) : few ? (
-                    <span className="text-caption font-semibold text-warning">Ultimi {p.remaining}</span>
-                  ) : null}
+                  {left !== null && (
+                    <span data-testid="pezzi-rimasti" className={cn('text-caption tabular-nums', few ? 'font-semibold text-danger' : 'text-muted')}>
+                      {stockLabel(left)}
+                    </span>
+                  )}
                 </span>
                 {inCart[p.id] ? (
                   <span className="absolute -top-2 -right-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-1 text-label font-bold text-primary-fg" aria-label={`${inCart[p.id]} nel carrello`}>

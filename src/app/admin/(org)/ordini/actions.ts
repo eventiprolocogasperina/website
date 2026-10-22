@@ -6,6 +6,7 @@ import { runAction } from '@/server/admin/run-action';
 import { setOrdersV2Enabled } from '@/server/admin/flags';
 import { cancelOrder, createOrder, moveSession, resendTickets, type CreateOrderInput } from '@/server/domain/orders';
 import { addOrderNote, markOrderPaid, moveSessionBulk, refundOrder, resendTicketsBulk, setOrderBlacklist, updateOrderCustomer, type RefundOrderInput } from '@/server/domain/orders/admin';
+import { revertCheckin } from '@/server/domain/checkin';
 import { deleteView, saveView } from '@/server/domain/views';
 import { createPaylinkFromOrder } from '@/modules/paylink/admin';
 import { createPaylinkOrder } from '@/modules/paylink/server';
@@ -31,6 +32,13 @@ export async function refundAction(input: z.input<typeof RefundOrderInput>) {
 }
 export async function cancelOrderAction(orderId: string, reason: string) {
   return runAction(PATHS, (ctx) => cancelOrder(ctx, { orderId, reason }));
+}
+/** Motivo nel registro: lo sceglie il server, il client dice solo da quale pagina arriva. */
+const REVERT_REASONS = { ordine: 'Annullato dall’admin, dal dettaglio ordine', partecipanti: 'Annullato dall’admin, dall’elenco partecipanti' } as const;
+
+/** Annulla un ingresso dall'admin: stesso servizio dello scanner (checkin.revert, registro, mai cancellato). */
+export async function revertCheckinAction(checkinId: string, from: keyof typeof REVERT_REASONS) {
+  return runAction(PATHS, (ctx) => revertCheckin(ctx, { checkinId, reason: REVERT_REASONS[from] ?? REVERT_REASONS.ordine }));
 }
 export async function resendTicketsAction(orderId: string) {
   return runAction(PATHS, (ctx) => resendTickets(ctx, { orderId }));

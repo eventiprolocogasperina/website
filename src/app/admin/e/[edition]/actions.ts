@@ -15,6 +15,7 @@ import {
   type QuotaInput,
   type SessionInput,
 } from '@/server/domain/catalog';
+import { setProductStock, type StockInput } from '@/server/domain/catalog/stock';
 import { changeEditionStatus, updateEdition, type UpdateEditionInput } from '@/server/domain/editions';
 import { skipClosingCheck, unskipClosingCheck } from '@/server/domain/editions/closing';
 import { generateFinalReport } from '@/server/domain/editions/final-report';
@@ -35,6 +36,11 @@ export async function saveProductAction(edition: string, id: string | null, inpu
 }
 export async function deleteProductAction(edition: string, id: string) {
   return runAction(paths(edition), (ctx) => deleteProduct(ctx, edition, id));
+}
+
+/** "Pezzi disponibili" di un prodotto di cassa: aggiorna anche la cassa, che legge le stesse quote. */
+export async function setProductStockAction(edition: string, input: StockInput) {
+  return runAction(paths(edition), (ctx) => setProductStock(ctx, edition, input));
 }
 
 export async function saveQuotaAction(edition: string, id: string | null, input: QuotaInput) {

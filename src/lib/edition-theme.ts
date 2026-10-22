@@ -56,7 +56,7 @@ export type EditionBrand = {
 };
 
 /** Percorso del sito (/img/…) o indirizzo https: niente javascript:, data:, // o percorsi relativi. */
-const assetPath = (v: unknown): string | null => (typeof v === 'string' && v.length <= 300 && /^(\/(?!\/)|https:\/\/)[^\s"'<>()\\]+$/.test(v) ? v : null);
+export const assetPath = (v: unknown): string | null => (typeof v === 'string' && v.length <= 300 && /^(\/(?!\/)|https:\/\/)[^\s"'<>()\\]+$/.test(v) ? v : null);
 const oneOf = <T extends string>(v: unknown, values: readonly T[], fallback: T): T => (values.includes(v as T) ? (v as T) : fallback);
 
 /**

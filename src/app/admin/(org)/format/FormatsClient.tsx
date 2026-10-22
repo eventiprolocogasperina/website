@@ -9,6 +9,7 @@ import { Button, DataTable, dataTableColumns, EmptyState, Field, Input, PageHead
 import type { SeriesRow } from '@/server/domain/editions/series';
 import { saveSeriesAction } from '../edizioni/actions';
 import { setPublicV2Action } from './actions';
+import { LogoField } from './LogoField';
 
 const DOTS = [
   { value: 'orange', label: 'Arancione' },
@@ -115,6 +116,8 @@ function FormatSheet({ row, onClose }: { row: SeriesRow | null; onClose: () => v
     description: row?.description ?? '',
     landingPath: row?.landingPath ?? '',
     dot: row?.dot ?? 'gray',
+    logo: row?.logo ?? null,
+    logoOnDark: row?.logoOnDark ?? null,
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -167,6 +170,19 @@ function FormatSheet({ row, onClose }: { row: SeriesRow | null; onClose: () => v
               options={DOTS.map((d) => ({ value: d.value, label: <span className="flex items-center gap-1.5"><EditionDot dot={d.value} /> {d.label}</span> }))}
             />
           </Field>
+          <LogoField
+            label="Logo"
+            help="Compare nelle pagine d’acquisto, di conferma e in “I miei biglietti”. Meglio un PNG trasparente. Senza logo si vede quello della Pro Loco."
+            value={form.logo}
+            onChange={(logo) => set({ logo })}
+          />
+          <LogoField
+            label="Logo su fondo scuro"
+            help="Per la testata scura del PDF dei biglietti, di solito la versione bianca. Se manca si usa il logo normale."
+            value={form.logoOnDark}
+            onChange={(logoOnDark) => set({ logoOnDark })}
+            dark
+          />
           {error && (
             <p role="alert" className="text-body text-danger">
               {error}

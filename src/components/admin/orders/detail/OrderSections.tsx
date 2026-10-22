@@ -6,6 +6,7 @@ import { formatDate, formatDateTime, romeTime } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { AUDIT_ACTION_LABELS } from '@/server/domain/audit/labels';
 import type { OrderDetail } from '@/server/domain/orders/admin-detail';
+import { RevertCheckinButton } from '../RevertCheckinButton';
 
 // Riquadri della pagina ordine (§10.5) che si limitano a mostrare: righe, biglietti, cliente,
 // pagamenti, rimborsi e cronologia. Le azioni stanno nei componenti client accanto.
@@ -76,8 +77,11 @@ export function TicketsCard({ d }: { d: OrderDetail }) {
               {t.status === 'void' ? (
                 <StatusBadge status="void" />
               ) : t.checkedInAt ? (
-                <span className="inline-flex items-center gap-1 text-label text-success">
-                  <Check size={14} aria-hidden /> {`entrato ${romeTime(t.checkedInAt)}${t.checkinList ? ` (${t.checkinList})` : ''}`}
+                <span className="inline-flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-label text-success">
+                    <Check size={14} aria-hidden /> {`entrato ${romeTime(t.checkedInAt)}${t.checkinList ? ` (${t.checkinList})` : ''}`}
+                  </span>
+                  {d.can.revertCheckin && t.checkinId && <RevertCheckinButton checkinId={t.checkinId} label={`${t.attendeeName ?? t.productName} (#${i + 1})`} from="ordine" />}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-label text-muted">

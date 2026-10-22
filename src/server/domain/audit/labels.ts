@@ -42,6 +42,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'product.created': 'Prodotto aggiunto',
   'product.updated': 'Prodotto modificato',
   'product.deleted': 'Prodotto eliminato',
+  'product.stock_set': 'Pezzi disponibili modificati',
   'quota.created': 'Quota aggiunta',
   'quota.updated': 'Quota modificata',
   'quota.deleted': 'Quota eliminata',

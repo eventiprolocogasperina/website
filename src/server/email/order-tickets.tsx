@@ -1,6 +1,4 @@
 import 'server-only';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { render } from '@react-email/render';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { eq } from 'drizzle-orm';
@@ -14,6 +12,7 @@ import { getDb } from '@/server/db/client';
 import { ordersV2 } from '@/server/db/schema';
 import { getOrderByToken, type MyOrder } from '@/server/domain/checkout/my-tickets';
 import { log } from '@/server/log';
+import { pdfImage } from './pdf-image';
 import { siteUrl } from './send';
 import type { TemplateVars } from '@/server/domain/email-templates/defaults';
 import { resolveTemplate, varsForOrder } from '@/server/domain/email-templates';
@@ -30,24 +29,8 @@ const qr = (data: string, width = 220) => QRCode.toDataURL(data, { errorCorrecti
 
 export const myTicketsUrl = (token: string) => `${siteUrl()}/i-miei-biglietti/${token}`;
 
-const imageCache = new Map<string, string>();
-/**
- * Immagine PNG/JPG di public/ come data URI (logo Pro Loco, logo del format). Solo percorsi locali del sito:
- * un logo remoto non si scarica durante l'invio delle email. Se manca, il PDF esce senza.
- */
-async function publicImage(src: string | null): Promise<string | undefined> {
-  if (!src || !/^\/img\/[\w\-/.&]+\.(png|jpe?g)$/i.test(src) || src.includes('..')) return undefined;
-  if (!imageCache.has(src)) {
-    try {
-      const mime = src.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-      imageCache.set(src, `data:${mime};base64,${(await readFile(path.join(process.cwd(), 'public', src))).toString('base64')}`);
-    } catch {
-      imageCache.set(src, '');
-    }
-  }
-  return imageCache.get(src) || undefined;
-}
-const logo = () => publicImage('/img/logo_white_fg.png');
+/** Logo Pro Loco (bianco, per la testata scura): c'è sempre, anche quando il format non ha un logo. */
+const logo = () => pdfImage('/img/logo_white_fg.png');
 
 const whenOf = (o: MyOrder) => (o.session ? formatDateTime(o.session.startsAt) : o.edition.startsAt ? formatDateTime(o.edition.startsAt) : null);
 
@@ -69,7 +52,8 @@ export async function renderOrderPdf(o: MyOrder): Promise<Buffer> {
     otherLines: o.lines.filter((l) => !valid.some((t) => t.name === l.name)).map((l) => ({ name: l.name, quantity: l.quantity, totalLabel: formatMoney(l.totalCents) })),
     ...pdfColorsFor(o),
     logo: await logo(),
-    eventLogo: await publicImage(o.edition.brand.logoOnDark),
+    // Logo del format per fondo scuro (o quello normale): locale o https, scaricato con un limite di tempo.
+    eventLogo: await pdfImage(o.edition.brand.logoOnDark),
     opening: o.session ? `Ingresso dalle ore ${romeTime(o.session.startsAt)}` : o.edition.startsAt ? `Apertura dalle ore ${romeTime(o.edition.startsAt)}` : null,
   };
   return renderToBuffer(<OrderTicketsPdf data={data} />);

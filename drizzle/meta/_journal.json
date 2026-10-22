@@ -120,6 +120,13 @@
       "when": 1792657525901,
       "tag": "0016_cassa_altro_pin_abbinamento",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792691458634,
+      "tag": "0017_cassa_altro_per_cassa",
+      "breakpoints": true
     }
   ]
 }

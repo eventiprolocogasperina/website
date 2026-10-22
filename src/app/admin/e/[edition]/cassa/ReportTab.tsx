@@ -1,8 +1,9 @@
 'use client';
 
-import { Download, FileText, PackageOpen } from 'lucide-react';
+import { Boxes, Download, FileText, PackageOpen } from 'lucide-react';
 import { useState } from 'react';
-import { ButtonLink, Card, EmptyState, Field, Input, Stat } from '@/components/ui';
+import { Badge, ButtonLink, Card, EmptyState, Field, Input, Stat } from '@/components/ui';
+import { isLowStock, stockLabel } from '@/lib/cash/stock';
 import { formatMoney } from '@/lib/money';
 import type { CashAdminData } from './types';
 
@@ -33,6 +34,7 @@ export function ReportTab({ data }: { data: CashAdminData }) {
         <Stat label="Vendite / annullate" value={`${s.sales} / ${s.voided}`} />
       </div>
       <SoldProducts products={s.products} />
+      <StockLeft products={data.products} />
       <Card title="Scarica il rendiconto" description="Tutta l’edizione, oppure solo i giorni che scegli (ora italiana). Gli omaggi sono indicati a parte e non entrano nei contributi.">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <Field label="Dal">
@@ -89,6 +91,27 @@ function SoldProducts({ products }: { products: Sold }) {
             ))}
           </tbody>
         </table>
+      )}
+    </Card>
+  );
+}
+
+/** Pezzi rimasti adesso dei prodotti di cassa con una scorta (quelli senza limite non compaiono). */
+function StockLeft({ products }: { products: CashAdminData['products'] }) {
+  const limited = products.filter((p) => p.remaining !== null);
+  return (
+    <Card flush title="Pezzi rimasti" description="Le scorte dei prodotti di cassa, come le vedono i telefoni. Si cambiano in Catalogo, nel prodotto, alla voce Pezzi disponibili.">
+      {limited.length === 0 ? (
+        <EmptyState icon={Boxes} title="Nessun prodotto con una scorta" description="Tutti i prodotti della cassa si vendono senza limite di pezzi." />
+      ) : (
+        <ul className="divide-y divide-border">
+          {limited.map((p) => (
+            <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-2 text-body">
+              <span className="min-w-0 truncate">{p.name}</span>
+              <Badge tone={isLowStock(p.remaining) ? 'danger' : 'neutral'}>{stockLabel(p.remaining)}</Badge>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

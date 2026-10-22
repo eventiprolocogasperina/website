@@ -16,7 +16,7 @@ type Props = {
   kind: 'pos' | 'scanner';
   /** Contenuto dell'app; riceve chi è entrato (null se si usa il vecchio codice evento o l'admin). */
   children: (session: FieldSession, logout: () => Promise<void>) => ReactNode;
-  /** Indirizzo dell'app di cassa a cui rimandare un dispositivo pos (default la vecchia /cashier). */
+  /** Indirizzo dell'app di cassa a cui rimandare un dispositivo pos (default la nuova /cassa). */
   posHref?: string;
   /** La vecchia cassa accetta anche il codice evento; la nuova /cassa no. */
   allowLegacyCode?: boolean;
@@ -53,7 +53,7 @@ function writeCache(key: string | undefined, session: FieldSession) {
  * Senza dispositivo la cassa resta accessibile con il codice evento (flag legacy_event_code)
  * e lo scanner con la sessione dell'admin.
  */
-export function FieldGate({ kind, children, posHref = '/cashier', allowLegacyCode = true, offlineCacheKey }: Props) {
+export function FieldGate({ kind, children, posHref = '/cassa', allowLegacyCode = true, offlineCacheKey }: Props) {
   const [session, setSession] = useState<FieldSession | null>(null);
   const [failed, setFailed] = useState(false);
 

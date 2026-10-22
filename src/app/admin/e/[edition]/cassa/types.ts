@@ -6,12 +6,15 @@ export type AdminRegister = {
   name: string;
   active: boolean;
   issuesNumbers: boolean;
+  /** Pulsante "Altro" (importo libero) su questa cassa. */
+  allowOpenAmount: boolean;
   productIds: string[] | null;
   printer: PrinterSettings;
   openSince: string | null;
 };
 
-export type AdminPosProduct = { id: string; name: string; group: string; priceCents: number; active: boolean };
+/** remaining: pezzi rimasti secondo le quote (null = senza limite). */
+export type AdminPosProduct = { id: string; name: string; group: string; priceCents: number; active: boolean; remaining: number | null };
 
 export type AdminSession = {
   id: string;

@@ -72,7 +72,7 @@ export async function getOrderDetail(ctx: Ctx, code: string, edition: string | n
   const [entries, customerOrders, history, editionSessions] = await Promise.all([
     ticketIds.length
       ? db
-          .select({ ticketId: checkins.ticketId, at: checkins.at, list: checkinLists.name })
+          .select({ id: checkins.id, ticketId: checkins.ticketId, at: checkins.at, list: checkinLists.name })
           .from(checkins)
           .innerJoin(checkinLists, eq(checkinLists.id, checkins.checkinListId))
           .where(and(inArray(checkins.ticketId, ticketIds), isNull(checkins.revertedAt)))
@@ -86,6 +86,8 @@ export async function getOrderDetail(ctx: Ctx, code: string, edition: string | n
         or(
           and(eq(auditLog.entityType, 'order'), eq(auditLog.entityId, order.id)),
           refunds.length ? and(eq(auditLog.entityType, 'refund'), inArray(auditLog.entityId, refunds.map((r) => r.id))) : undefined,
+          // Ingressi e annulli dei biglietti dell'ordine (scanner e admin).
+          ticketIds.length ? and(eq(auditLog.entityType, 'ticket'), inArray(auditLog.entityId, ticketIds)) : undefined,
         ),
       )
       .orderBy(desc(auditLog.at))
@@ -127,7 +129,7 @@ export async function getOrderDetail(ctx: Ctx, code: string, edition: string | n
     lines,
     tickets: tickets.map((t) => {
       const first = entries.find((e) => e.ticketId === t.id);
-      return { ...t, checkedInAt: first?.at.toISOString() ?? null, checkinList: first?.list ?? null };
+      return { ...t, checkinId: first?.id ?? null, checkedInAt: first?.at.toISOString() ?? null, checkinList: first?.list ?? null };
     }),
     payments: pays.map((p) => ({ id: p.id, method: p.method, status: p.status, amountCents: p.amountCents, receivedAt: p.receivedAt.toISOString() })),
     refunds: refunds.map((r) => ({ id: r.id, status: r.status, method: r.method, amountCents: r.amountCents, reason: r.reason, holderName: r.holderName, iban: maskedIbanOf(r.ibanEncrypted), requestedAt: r.requestedAt.toISOString() })),
@@ -146,6 +148,7 @@ export async function getOrderDetail(ctx: Ctx, code: string, edition: string | n
       resend: !readOnly && allowed('orders.resend'),
       markPaid: !readOnly && allowed('orders.edit') && allowed('pos.sell'),
       viewIban: allowed('refunds.view_iban'),
+      revertCheckin: !readOnly && allowed('checkin.revert'),
       customer: can(ctx, 'customers.read'),
     },
   };

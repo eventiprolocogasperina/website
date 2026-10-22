@@ -43,12 +43,31 @@ parallelo per evento. La vecchia `/cashier` resta attiva finché Zuccaland è in
   una riga con quantità 2.
 - Sul server è una riga del prodotto "Altro" dell'edizione (`products.open_price`, uno per edizione):
   il server lo crea alla prima vendita, con il registro. Non compare nella griglia né in Prodotti per
-  cassa e vale su ogni cassa. Per spegnere il pulsante si disattiva il prodotto "Altro" in Catalogo.
+  cassa.
+- Si accende **cassa per cassa** (Cassa › Casse › modifica › "Pulsante Altro", colonna
+  `cash_registers.allow_open_amount`, spento di default, migrazione `0017`). Su una cassa spenta il
+  pulsante non compare e il server rifiuta la riga ("“Altro” (importo libero) non è attivo su …"),
+  anche se nel frattempo il turno era già aperto. Disattivando il prodotto "Altro" in Catalogo si
+  spegne su tutte le casse.
 - Regole del server (`pricing/cart.ts`, `orders`, `cash/sales.ts`): il prezzo della riga si accetta solo
   per quel prodotto, solo sul canale `pos` con il turno di cassa e da chi ha `pos.sell`, da 0,01 a
   1000 € per riga. Per ogni altro prodotto un prezzo inviato dal telefono si rifiuta (§18.1).
 - Nel registro `order.created` riporta `openPriceCents`. Z, rendiconto e CSV contano "Altro" come un
   prodotto: pezzi e importo.
+
+## Pezzi disponibili (scorte)
+
+- In Catalogo, nel prodotto con il canale **Cassa** e senza data, il campo **Pezzi disponibili** dice
+  quanti pezzi restano adesso (vuoto = senza limite). Sotto è la quota personale del prodotto
+  (`Scorta: <prodotto>`, senza data e con quel solo prodotto, §5.4): nessuna colonna nuova, lo stesso
+  meccanismo di ogni altra quota (`src/server/domain/catalog/stock.ts`). Salvando, la quota diventa
+  venduti + rimasti, calcolata con la quota bloccata.
+- Ogni vendita la consuma nella transazione di `createOrder` (quota `FOR UPDATE`): se non basta, la
+  cassa riceve `SOLD_OUT` con il messaggio "Pezzi non sufficienti. Panino: ne restano 2…". L'annullo
+  restituisce i pezzi (l'ordine annullato non conta più tra i venduti).
+- Sul telefono ogni pulsante mostra "12 rimasti" (tolti quelli nel carrello), in rosso da 5 in giù
+  (`LOW_STOCK` in `src/lib/cash/stock.ts`), spento a 0. In admin i pezzi rimasti sono in Catalogo,
+  in Cassa › Prodotti per cassa e in Cassa › Rendiconto (riquadro "Pezzi rimasti").
 
 ## Offline
 

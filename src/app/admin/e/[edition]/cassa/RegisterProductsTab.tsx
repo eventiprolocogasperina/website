@@ -3,6 +3,7 @@
 import { PackageOpen } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Card, Checkbox, EmptyState, RadioGroup, Select, toast } from '@/components/ui';
+import { stockLabel } from '@/lib/cash/stock';
 import { formatMoney } from '@/lib/money';
 import { saveRegisterAction } from './actions';
 import type { AdminRegister, CashAdminData } from './types';
@@ -105,7 +106,7 @@ function ProductsEditor({ slug, register, data }: { slug: string; register: Admi
                     <Checkbox
                       key={p.id}
                       label={p.name}
-                      description={`${formatMoney(p.priceCents)}${p.active ? '' : ' · non attivo'}`}
+                      description={`${formatMoney(p.priceCents)}${p.remaining !== null ? ` · ${stockLabel(p.remaining)}` : ''}${p.active ? '' : ' · non attivo'}`}
                       checked={selected.has(p.id)}
                       onCheckedChange={(v) => toggle(p.id, v)}
                       disabled={!editable}

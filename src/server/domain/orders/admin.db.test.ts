@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { EMPTY_FILTERS, type OrderFilters } from '@/lib/admin/order-filters';
 import { auditLog, customers, editions, ordersV2, products, refundsV2 } from '@/server/db/schema';
+import { revertCheckin, scan } from '@/server/domain/checkin';
 import { DomainError } from '@/server/domain/errors';
 import { createOrder, type CreateOrderInput } from '@/server/domain/orders';
 import { createPaylinkFromOrder } from '@/modules/paylink/admin';
@@ -109,6 +110,21 @@ describe.skipIf(!enabled)('admin ordini sul database', () => {
       expect(d.history.map((h) => h.action)).toEqual(expect.arrayContaining(['order.created', 'order.note_added']));
       expect(await errorCode(getOrderDetail(owner, r.code, other.slug))).toBe('NOT_FOUND');
       expect(await errorCode(getOrderDetail(roleOn('event_manager', other.slug), r.code, null))).toBe('FORBIDDEN');
+    });
+
+    it('annulla un ingresso dal dettaglio: stesso servizio dello scanner, nel registro e nella cronologia', async () => {
+      const r = await order();
+      const [t] = (await getOrderDetail(owner, r.code, f.slug)).tickets;
+      await scan(roleOn('gate', f.slug), { ticketId: t.id, checkinListId: f.entrance.id, sessionId: f.day2.id });
+      const entered = await getOrderDetail(owner, r.code, f.slug);
+      expect(entered.can.revertCheckin).toBe(true);
+      expect(entered.tickets[0].checkinId).toBeTruthy();
+      expect((await getOrderDetail(roleOn('event_manager', f.slug), r.code, f.slug)).can.revertCheckin).toBe(true);
+      expect(await errorCode(revertCheckin(roleOn('editor', f.slug), { checkinId: entered.tickets[0].checkinId! }))).toBe('FORBIDDEN');
+      await revertCheckin(owner, { checkinId: entered.tickets[0].checkinId!, reason: 'Annullato dall’admin, dal dettaglio ordine' });
+      const after = await getOrderDetail(owner, r.code, f.slug);
+      expect(after.tickets[0]).toMatchObject({ checkinId: null, checkedInAt: null });
+      expect(after.history.find((h) => h.action === 'ticket.checkin_reverted')).toMatchObject({ reason: 'Annullato dall’admin, dal dettaglio ordine' });
     });
 
     it('note e blacklist chiedono orders.edit e finiscono nel registro', async () => {
