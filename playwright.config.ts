@@ -4,8 +4,13 @@
 //   npm run test:e2e
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 3210;
-import { E2E_DB, E2E_MAC_KEY } from './e2e/db';
+import { E2E_DB, E2E_DB_NAME, E2E_MAC_KEY } from './e2e/db';
+
+// Porte e nome del proxy si possono cambiare per far girare i test di più worktree insieme
+// (es. E2E_PORT=3266 E2E_PROXY_PORT=4466 E2E_DB_NAME=agentcheckout_e2e). Predefiniti: 3210, 4455.
+const PORT = Number(process.env.E2E_PORT || 3210);
+const PROXY_PORT = Number(process.env.E2E_PROXY_PORT || 4455);
+const PROXY_NAME = PROXY_PORT === 4455 ? 'proloco-e2e-proxy' : `proloco-e2e-proxy-${PROXY_PORT}`;
 
 export default defineConfig({
   testDir: 'e2e',
@@ -20,8 +25,8 @@ export default defineConfig({
     {
       // Proxy Neon verso il database e2e (stessa immagine di dev/docker-compose.yml).
       command:
-        'docker rm -f proloco-e2e-proxy >/dev/null 2>&1; docker run --rm --name proloco-e2e-proxy --network proloco-dev_default -e PG_CONNECTION_STRING=postgres://postgres:postgres@postgres:5432/proloco_e2e -p 4455:4444 proloco-dev-neon-proxy',
-      port: 4455,
+        `docker rm -f ${PROXY_NAME} >/dev/null 2>&1; docker run --rm --name ${PROXY_NAME} --network proloco-dev_default -e PG_CONNECTION_STRING=postgres://postgres:postgres@postgres:5432/${E2E_DB_NAME} -p ${PROXY_PORT}:4444 proloco-dev-neon-proxy`,
+      port: PROXY_PORT,
       reuseExistingServer: true,
       timeout: 60_000,
     },
@@ -32,7 +37,7 @@ export default defineConfig({
       timeout: 240_000,
       env: {
         LOCAL_DB: '1',
-        LOCAL_DB_PORT: '4455',
+        LOCAL_DB_PORT: String(PROXY_PORT),
         POSTGRES_URL: E2E_DB,
         NEXT_PUBLIC_BASE_URL: `http://localhost:${PORT}`,
         NEXI_MODE: 'simulatore',
