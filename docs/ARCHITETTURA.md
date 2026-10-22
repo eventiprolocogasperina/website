@@ -949,6 +949,7 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-22 | Cassa: chiusura del turno, Z, rendiconto (admin e PDF) mostrano i pezzi venduti per prodotto, senza gli annullati e con gli omaggi | Niccolo / Claude |
 | 2026-10-22 | Abbinamento dei dispositivi: insieme al QR si genera un PIN di 6 cifre (hash scrypt, mai in chiaro nel database o nel registro) da digitare sul telefono; al quinto PIN sbagliato il QR non vale più, più un limite per IP. Il ruolo del dispositivo (Cassa o Varco) si sceglie nello stesso dialogo, anche da Cassa e Check-in dell'edizione. I QR senza PIN non si accettano più | Niccolo / Claude |
 | 2026-10-22 | Scanner: un ingresso si annulla anche dopo i 30 secondi, con conferma, dalla ricerca o dall'esito "Già entrato"; stesso `revertCheckin` (segna `reverted_at`, audit con il motivo), mai una cancellazione | Claude, richiesta di Niccolo |
+| 2026-10-22 | Procedura guidata "Nuova edizione" e checklist "Da completare": stato dei passi calcolato dai dati, solo tipo e passi saltati in `editions.module_settings._setup` (nessuna migrazione). Aprire le vendite (da pubblicata o sospesa) richiede date con capienza e luogo, un biglietto online, la pagina e il regolamento; il server lo rifiuta con il motivo. La duplicazione copia anche pagina, notifiche, liste di check-in e casse, rimappando gli ID; mai ordini né codici sconto. Guida in `docs/GUIDA-EVENTI.md` e `/admin/guida` | Niccolo / Claude |
 
 ---
 

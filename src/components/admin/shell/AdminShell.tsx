@@ -16,6 +16,7 @@ import { CommandPalette } from './CommandPalette';
 import { EditionSwitcher } from './EditionSwitcher';
 import { editionNav, filterNav, findActive, ORG_NAV, type NavGroup } from './nav.config';
 import { NotificationsBell } from './NotificationsBell';
+import { SectionHelp } from './SectionHelp';
 import { Sidebar } from './Sidebar';
 import { useShortcuts } from './useShortcuts';
 import { UserMenu, type ShellUser } from './UserMenu';
@@ -153,8 +154,9 @@ export function AdminShell({ editions, counts, cookieEdition, user, access, chil
           </div>
         </header>
 
-        <div className="ui-root bg-transparent px-4 pt-4 sm:px-6 lg:px-8">
+        <div className="ui-root flex items-start justify-between gap-3 bg-transparent px-4 pt-4 sm:px-6 lg:px-8">
           <Breadcrumbs items={crumbs} />
+          <SectionHelp />
         </div>
         {/* Non <main>: il layout del sito avvolge già tutto in <main>. */}
         <div id="contenuto" className="admin-main">

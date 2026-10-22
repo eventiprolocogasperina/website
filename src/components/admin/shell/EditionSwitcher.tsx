@@ -103,7 +103,7 @@ export function EditionSwitcher({ editions, current, inEdition, className }: Edi
               value="nuova edizione"
               onSelect={() => {
                 setOpen(false);
-                router.push('/admin/edizioni');
+                router.push('/admin/edizioni/nuova');
               }}
               className="flex h-9 cursor-default items-center gap-2 rounded-md px-2.5 text-body text-primary outline-none data-[selected=true]:bg-surface-sunken"
             >

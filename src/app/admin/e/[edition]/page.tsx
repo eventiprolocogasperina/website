@@ -16,6 +16,8 @@ import { getClosingChecklist } from '@/server/domain/editions/closing';
 import { editionFromParams, type EditionParams } from '@/server/domain/editions/page-params';
 import { editionOverview, nextAction } from '@/server/domain/stats/overview';
 import { DeclareConcluded } from './DeclareConcluded';
+import { SetupChecklistCard } from '@/components/admin/edition/SetupChecklist';
+import { getSetupChecklist } from '@/server/domain/editions/setup';
 
 export async function generateMetadata(props: EditionParams) {
   return { title: (await editionFromParams(props)).title };
@@ -36,10 +38,13 @@ export default async function EditionOverviewPage(props: EditionParams) {
   const sections = editionNav(edition.slug, edition.modules)
     .flatMap((g) => g.items)
     .filter((i) => i.href !== `/admin/e/${edition.slug}`);
-  const [detail, overview, closing] = await Promise.all([
+  // Prima delle vendite la panoramica guida con la checklist "Da completare" (procedura guidata).
+  const inSetup = ['draft', 'published', 'suspended'].includes(edition.status) && can(ctx, 'editions.edit', scope);
+  const [detail, overview, closing, setup] = await Promise.all([
     getEditionDetail(edition.slug),
     canNumbers ? editionOverview(edition.id, edition.slug) : null,
     edition.status === 'concluded' && can(ctx, 'editions.edit', scope) ? getClosingChecklist(ctx, edition.slug) : null,
+    inSetup ? getSetupChecklist(ctx, edition.slug) : null,
   ]);
   const next = can(ctx, 'editions.edit', scope) ? nextAction(edition.slug, edition.status, closing) : null;
   const canConclude = (edition.status === 'live' || edition.status === 'suspended') && can(ctx, 'editions.edit', scope);
@@ -69,7 +74,8 @@ export default async function EditionOverviewPage(props: EditionParams) {
           <span>Edizione archiviata: i dati restano consultabili ma non si modificano.</span>
         </div>
       )}
-      {next && (
+      {setup && <SetupChecklistCard edition={edition.slug} list={setup} />}
+      {next && !setup && (
         <div className="flex flex-col gap-3 rounded-xl border border-info/30 bg-info-bg px-4 py-3 sm:flex-row sm:items-center">
           <Lightbulb size={18} aria-hidden className="shrink-0 text-info" />
           <p className="flex-1 text-body text-fg">{next.text}</p>
