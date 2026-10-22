@@ -87,11 +87,12 @@ export function CashReportDocument({ report, generatedAt }: { report: CashReport
         <Group title="Per cassa" rows={report.byRegister} />
         <Group title="Per operatore" rows={report.byOperator} />
         <View style={s.section}>
-          <Text style={s.h}>Per prodotto</Text>
-          <Row head cells={['Prodotto', 'Quantità', 'Importo']} />
+          <Text style={s.h}>Pezzi venduti per prodotto</Text>
+          <Row head cells={['Prodotto', 'Pezzi', 'Importo']} />
           {totals.products.map((p) => (
             <Row key={p.productId} cells={[p.name, p.quantity, formatMoney(p.amountCents)]} />
           ))}
+          {totals.products.length > 0 && <Row head cells={['Totale pezzi', totals.products.reduce((n, p) => n + p.quantity, 0), formatMoney(totals.products.reduce((n, p) => n + p.amountCents, 0))]} />}
         </View>
         {report.flagged.length > 0 && (
           <View style={s.section}>

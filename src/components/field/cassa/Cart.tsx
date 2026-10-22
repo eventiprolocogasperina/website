@@ -5,7 +5,7 @@ import { cn, focusRing } from '@/components/ui';
 import type { PosCatalog } from '@/lib/cash/types';
 import { formatMoney } from '@/lib/money';
 import { BigButton } from './Keypad';
-import type { CartLine } from './useSaleQueue';
+import { lineInfo, type CartLine } from './useSaleQueue';
 
 type Props = {
   catalog: PosCatalog;
@@ -28,20 +28,23 @@ export function CartLines({ catalog, cart, onChange }: Pick<Props, 'catalog' | '
   return (
     <ul className="divide-y divide-border">
       {cart.map((l) => {
-        const p = catalog.products.find((x) => x.id === l.productId);
+        const p = lineInfo(catalog, l);
         if (!p) return null;
         const max = p.remaining ?? 50;
         return (
           <li key={l.productId} className="flex items-center gap-2 py-2">
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-body font-medium">{p.name}</span>
+              <span className="block truncate text-body font-medium">
+                {p.name}
+                {l.openAmountCents !== undefined && l.quantity > 1 && <span className="font-normal text-muted"> · {formatMoney(p.priceCents)} l’uno</span>}
+              </span>
               <span className="block text-label text-muted tabular-nums">{formatMoney(p.priceCents * l.quantity)}</span>
             </span>
-            <QtyButton label={l.quantity === 1 ? `Togli ${p.name}` : `Uno in meno di ${p.name}`} onClick={() => onChange(p.id, l.quantity - 1)}>
+            <QtyButton label={l.quantity === 1 ? `Togli ${p.name}` : `Uno in meno di ${p.name}`} onClick={() => onChange(l.productId, l.quantity - 1)}>
               {l.quantity === 1 ? <Trash2 size={18} aria-hidden /> : <Minus size={18} aria-hidden />}
             </QtyButton>
             <span className="w-8 text-center text-section font-semibold tabular-nums">{l.quantity}</span>
-            <QtyButton label={`Uno in più di ${p.name}`} onClick={() => onChange(p.id, l.quantity + 1)} disabled={l.quantity >= Math.min(50, max)}>
+            <QtyButton label={`Uno in più di ${p.name}`} onClick={() => onChange(l.productId, l.quantity + 1)} disabled={l.quantity >= Math.min(50, max)}>
               <Plus size={18} aria-hidden />
             </QtyButton>
           </li>

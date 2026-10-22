@@ -39,12 +39,12 @@ import {
   Field,
   IconButton,
   Input,
-  RadioGroup,
   Select,
   StatusBadge,
   Tabs,
   toast,
 } from "@/components/ui";
+import { DeviceRoleField, PairingPin } from "@/components/admin/devices/Pairing";
 import { formatDateTime, formatRelative } from "@/lib/dates";
 import type { RoleGrant } from "@/server/auth/permissions";
 import {
@@ -635,7 +635,7 @@ function PinDialog({ user, onClose }: { user: UserRow; onClose: () => void }) {
 
 // ─── Dispositivi ────────────────────────────────────────────────────────────
 
-const KIND_LABEL = { pos: "Cassa", scanner: "Scanner" } as const;
+const KIND_LABEL = { pos: "Cassa", scanner: "Varco" } as const;
 
 function DevicesTab({
   devices,
@@ -813,6 +813,7 @@ function PairingDialog({
   const [result, setResult] = useState<{
     url: string;
     qr: string;
+    pin: string;
     expiresAt: string;
   } | null>(null);
 
@@ -824,8 +825,8 @@ function PairingDialog({
         }
         description={
           result
-            ? "Apri la fotocamera del telefono o del tablet e inquadra il codice. Il QR si usa una volta sola."
-            : "Il QR vale 10 minuti e una sola volta."
+            ? "Apri la fotocamera del telefono o del tablet, inquadra il codice e digita il PIN. Il QR si usa una volta sola."
+            : "Il QR e il PIN valgono 10 minuti e una sola volta."
         }
         footer={
           result ? (
@@ -854,14 +855,17 @@ function PairingDialog({
       >
         {result ? (
           <div className="flex flex-col items-center gap-3 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={result.qr}
-              alt="QR di abbinamento"
-              width={240}
-              height={240}
-              className="rounded-lg border border-border bg-white p-2"
-            />
+            <div className="flex w-full flex-col items-center gap-3 sm:flex-row">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={result.qr}
+                alt="QR di abbinamento"
+                width={240}
+                height={240}
+                className="rounded-lg border border-border bg-white p-2"
+              />
+              <PairingPin pin={result.pin} />
+            </div>
             <p className="text-label text-muted">
               <Countdown until={result.expiresAt} />
             </p>
@@ -888,17 +892,7 @@ function PairingDialog({
                 maxLength={60}
               />
             </Field>
-            <Field label="Serve per">
-              <RadioGroup
-                value={kind}
-                onValueChange={(v) => setKind(v as "pos" | "scanner")}
-                orientation="horizontal"
-                options={[
-                  { value: "pos", label: "Cassa" },
-                  { value: "scanner", label: "Scanner biglietti" },
-                ]}
-              />
-            </Field>
+            <DeviceRoleField value={kind} onChange={setKind} />
             <Field label="Edizione">
               <Select
                 value={edition}

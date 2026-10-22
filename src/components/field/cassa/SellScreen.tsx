@@ -8,6 +8,7 @@ import { CassaError, type CassaState, type PosProduct, type Sale } from '@/lib/c
 import type { ApiFn } from './api';
 import { CartBar, CartLines, CartPanel } from './Cart';
 import { CloseShift } from './CloseShift';
+import { OpenAmount } from './OpenAmount';
 import { Payment, type PaymentChoice } from './Payment';
 import { ProductGrid } from './ProductGrid';
 import { RecentSales } from './RecentSales';
@@ -15,10 +16,10 @@ import { SaleDone } from './SaleDone';
 import { ShiftStart } from './ShiftStart';
 import { OfflineBanner, PrinterButton } from './StatusBars';
 import { usePosCatalog } from './useCassaData';
-import { cartTotal, useSaleQueue, type CartLine } from './useSaleQueue';
+import { cartTotal, openLine, useSaleQueue, type CartLine } from './useSaleQueue';
 
 type Current = { registerId: string; sessionId: string };
-type View = 'sell' | 'cart' | 'pay' | 'done' | 'recent' | 'close';
+type View = 'sell' | 'cart' | 'pay' | 'done' | 'recent' | 'close' | 'other';
 
 type Props = { api: ApiFn; state: CassaState; cached: boolean; reloadState: () => Promise<void>; logout: (() => Promise<void>) | null };
 
@@ -63,6 +64,13 @@ export function SellScreen({ api, state, cached, reloadState, logout }: Props) {
 
   const add = (p: PosProduct) =>
     setCart((c) => (c.some((l) => l.productId === p.id) ? c.map((l) => (l.productId === p.id ? { ...l, quantity: Math.min(50, l.quantity + 1) } : l)) : [...c, { productId: p.id, quantity: 1 }]));
+
+  // "Altro": stesso importo → stessa riga, una in più.
+  const addOpen = (cents: number) => {
+    const line = openLine(cents);
+    setCart((c) => (c.some((l) => l.productId === line.productId) ? c.map((l) => (l.productId === line.productId ? { ...l, quantity: Math.min(50, l.quantity + 1) } : l)) : [...c, line]));
+    setView('sell');
+  };
 
   async function pay(choice: PaymentChoice) {
     if (!catalog || !current) return;
@@ -135,6 +143,7 @@ export function SellScreen({ api, state, cached, reloadState, logout }: Props) {
         {view === 'done' && sale && catalog && (
           <SaleDone sale={sale} printer={catalog.register.printer} editionTitle={state.edition.title} operatorName={state.user?.name} onNext={() => setView('sell')} />
         )}
+        {view === 'other' && catalog?.openPrice && <OpenAmount maxCents={catalog.openPrice.maxCents} onBack={() => setView('sell')} onAdd={addOpen} />}
         {view === 'pay' && <Payment totalCents={total} busy={busy} error={payError} onBack={() => setView('sell')} onConfirm={pay} />}
         {(view === 'sell' || view === 'cart') &&
           (!catalog ? (
@@ -158,7 +167,7 @@ export function SellScreen({ api, state, cached, reloadState, logout }: Props) {
                     <CartLines catalog={catalog} cart={cart} onChange={setQty} />
                   </div>
                 ) : (
-                  <ProductGrid products={catalog.products} inCart={inCart} onAdd={add} />
+                  <ProductGrid products={catalog.products} inCart={inCart} onAdd={add} onOther={catalog.openPrice?.available ? () => setView('other') : undefined} />
                 )}
               </div>
               <div className="hidden lg:block">

@@ -5,7 +5,8 @@
 
 export type QueuedSalePayload = {
   cashSessionId: string;
-  lines: Array<{ productId: string; quantity: number }>;
+  /** Prodotti del listino, oppure "Altro" con l'importo digitato. */
+  lines: Array<{ productId: string; quantity: number } | { openAmountCents: number; quantity: number }>;
   method: 'cash' | 'card_pos' | 'complimentary';
   cashReceivedCents?: number | null;
   complimentaryReason?: string | null;

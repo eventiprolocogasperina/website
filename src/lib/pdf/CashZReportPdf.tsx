@@ -105,11 +105,12 @@ export function CashZReportDocument({ z }: { z: ZReportData }) {
         </View>
 
         <View style={s.section}>
-          <Text style={s.h}>Prodotti</Text>
-          <Row head cells={['Prodotto', 'Quantità', 'Importo']} />
-          {z.totals.products.map((p) => (
-            <Row key={p.name} cells={[p.name, p.quantity, formatMoney(p.amountCents)]} />
+          <Text style={s.h}>Pezzi venduti per prodotto</Text>
+          <Row head cells={['Prodotto', 'Pezzi', 'Importo']} />
+          {z.totals.products.map((p, i) => (
+            <Row key={`${i}-${p.name}`} cells={[p.name, p.quantity, formatMoney(p.amountCents)]} />
           ))}
+          {z.totals.products.length > 0 && <Row head cells={['Totale pezzi', z.totals.products.reduce((n, p) => n + p.quantity, 0), formatMoney(z.totals.products.reduce((n, p) => n + p.amountCents, 0))]} />}
         </View>
 
         <Text style={s.footer} fixed>

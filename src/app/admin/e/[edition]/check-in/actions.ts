@@ -18,13 +18,13 @@ export async function deleteCheckinListAction(edition: string, id: string) {
   return runAction(paths(edition), (ctx) => deleteCheckinList(ctx, edition, id));
 }
 
-/** QR di abbinamento di un telefono o tablet come scanner di questa edizione (10 minuti, una volta). */
-export async function pairScannerAction(edition: string, name: string) {
+/** QR e PIN di abbinamento di un telefono o tablet di questa edizione, con il ruolo scelto (10 minuti, una volta). */
+export async function pairScannerAction(edition: string, name: string, kind: 'pos' | 'scanner' = 'scanner') {
   return runAction(paths(edition), async (ctx) => {
-    const { token, expiresAt } = await createPairing(ctx, { name, edition, kind: 'scanner' });
+    const { token, pin, expiresAt } = await createPairing(ctx, { name, edition, kind });
     const url = `${siteUrl()}/abbina/${token}`;
     const qr = await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 280 });
-    return { url, qr, expiresAt };
+    return { url, qr, pin, expiresAt };
   });
 }
 

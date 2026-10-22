@@ -74,6 +74,7 @@ export default async function CashAdminPage(props: EditionParams & { searchParam
           sales: report.totals.sales,
           voided: report.totals.voided,
           byMethod: report.totals.byMethod.map((m) => ({ label: m.label, netCents: m.netCents, count: m.count })),
+          products: report.totals.products.map((p) => ({ id: p.productId, name: p.name, quantity: p.quantity, amountCents: p.amountCents })),
         }
       : null,
     flagged: report?.flagged ?? null,

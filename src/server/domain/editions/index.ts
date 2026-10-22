@@ -273,6 +273,7 @@ export async function duplicateEdition(ctx: Ctx, sourceSlug: string, target: { t
         sort: p.sort,
         minPerOrder: p.minPerOrder,
         maxPerOrder: p.maxPerOrder,
+        openPrice: p.openPrice,
       };
       const [row] = await tx.insert(products).values({ ...copyOf, editionId: copy.id }).returning({ id: products.id });
       productMap.set(p.id, row.id);

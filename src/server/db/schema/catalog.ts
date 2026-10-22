@@ -113,10 +113,16 @@ export const products = pgTable(
     sort: integer('sort').default(0).notNull(),
     minPerOrder: integer('min_per_order'),
     maxPerOrder: integer('max_per_order'),
+    /**
+     * "Altro" della cassa: importo libero digitato dal cassiere. Uno per edizione, creato dal server alla
+     * prima vendita; il prezzo della riga arriva dalla cassa, solo canale `pos` (pricing/cart.ts).
+     */
+    openPrice: boolean('open_price').default(false).notNull(),
     ...timestamps,
   },
   (t) => [
     index('products_edition_idx').on(t.editionId),
+    uniqueIndex('products_open_price_unique').on(t.editionId).where(sql`${t.openPrice}`),
     check('products_price_positive', sql`${t.priceCents} >= 0`),
     check('products_min_max', sql`${t.minPerOrder} IS NULL OR ${t.maxPerOrder} IS NULL OR ${t.minPerOrder} <= ${t.maxPerOrder}`),
   ],

@@ -2,6 +2,7 @@
 
 import { Smartphone } from 'lucide-react';
 import { useState } from 'react';
+import { DeviceRoleField, PairingPin, type DeviceKind } from '@/components/admin/devices/Pairing';
 import { Badge, Button, Card, ConfirmDialog, Dialog, DialogContent, EmptyState, Field, Input, toast } from '@/components/ui';
 import { pairPosDeviceAction, revokePosDeviceAction } from './actions';
 import type { AdminDevice, CashAdminData } from './types';
@@ -75,14 +76,15 @@ export function DevicesTab({ data }: { data: CashAdminData }) {
 
 function PairingDialog({ slug, onClose }: { slug: string; onClose: () => void }) {
   const [name, setName] = useState('');
+  const [kind, setKind] = useState<DeviceKind>('pos');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<{ url: string; qr: string; expiresAt: string } | null>(null);
+  const [result, setResult] = useState<{ url: string; qr: string; pin: string; expiresAt: string } | null>(null);
 
   async function create() {
     setBusy(true);
     setError('');
-    const res = await pairPosDeviceAction(slug, name);
+    const res = await pairPosDeviceAction(slug, name, kind);
     setBusy(false);
     if (res.ok && res.data) setResult(res.data);
     else if (!res.ok) setError(res.error);
@@ -91,8 +93,8 @@ function PairingDialog({ slug, onClose }: { slug: string; onClose: () => void })
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        title={result ? `Inquadra il QR con “${name}”` : 'Abbina un dispositivo di cassa'}
-        description={result ? 'Apri la fotocamera del telefono o del tablet e inquadra il codice. Vale 10 minuti e una sola volta.' : 'Il dispositivo potrà aprire solo la cassa di questa edizione.'}
+        title={result ? `Inquadra il QR con “${name}”` : 'Abbina un dispositivo'}
+        description={result ? 'Apri la fotocamera del telefono o del tablet, inquadra il codice e digita il PIN. Vale 10 minuti e una sola volta.' : 'Il dispositivo lavorerà solo per questa edizione, con il ruolo che scegli.'}
         footer={
           result ? (
             <Button onClick={onClose}>Fatto</Button>
@@ -110,14 +112,24 @@ function PairingDialog({ slug, onClose }: { slug: string; onClose: () => void })
       >
         {result ? (
           <div className="flex flex-col items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={result.qr} alt="QR di abbinamento" width={240} height={240} className="rounded-lg border border-border bg-white p-2" />
-            <p className="text-label text-muted">Dopo l’abbinamento apri {typeof window !== 'undefined' ? window.location.origin : ''}/cassa sul dispositivo.</p>
+            <div className="flex w-full flex-col items-center gap-3 sm:flex-row">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={result.qr} alt="QR di abbinamento" width={240} height={240} className="rounded-lg border border-border bg-white p-2" />
+              <PairingPin pin={result.pin} />
+            </div>
+            <p className="text-label text-muted">
+              {kind === 'pos'
+                ? `Dopo l’abbinamento apri ${typeof window !== 'undefined' ? window.location.origin : ''}/cassa sul dispositivo.`
+                : 'È un varco: lo trovi in Check-in, non in questo elenco.'}
+            </p>
           </div>
         ) : (
-          <Field label="Nome del dispositivo" error={error || undefined}>
-            <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Es. Telefono cassa 1" />
-          </Field>
+          <div className="flex flex-col gap-4">
+            <Field label="Nome del dispositivo" error={error || undefined}>
+              <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Es. Telefono cassa 1" />
+            </Field>
+            <DeviceRoleField value={kind} onChange={setKind} />
+          </div>
         )}
       </DialogContent>
     </Dialog>

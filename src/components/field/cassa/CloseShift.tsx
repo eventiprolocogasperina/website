@@ -4,7 +4,7 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { ErrorState, Skeleton, Textarea } from '@/components/ui';
 import { countTotal, DENOMINATIONS_CENTS, denominationLabel, isBanknote, needsDifferenceNote, type DenominationCounts } from '@/lib/cash/denominations';
-import { CassaError, cassaFetch, type SessionInfo } from '@/lib/cash/types';
+import { CassaError, cassaFetch, type ProductTotal, type SessionInfo } from '@/lib/cash/types';
 import { formatMoney } from '@/lib/money';
 import type { ApiFn } from './api';
 import { BigButton } from './Keypad';
@@ -51,6 +51,7 @@ export function CloseShift({ api, sessionId, pendingQueue, onBack, onClosed }: P
           <dt className="text-muted">Differenza</dt>
           <dd className="text-right font-semibold tabular-nums">{formatMoney(closed.differenceCents)}</dd>
         </dl>
+        {info && <SoldProducts products={info.totals.products} />}
         <a href={api(`sessions/${sessionId}/z`)} target="_blank" rel="noopener" className="mt-5 flex min-h-14 items-center justify-center gap-2 rounded-xl border border-border-strong bg-surface text-section font-semibold">
           <FileText size={20} aria-hidden /> Apri il PDF della chiusura
         </a>
@@ -74,6 +75,8 @@ export function CloseShift({ api, sessionId, pendingQueue, onBack, onClosed }: P
     setError('');
     try {
       setClosed(await cassaFetch<Closed>(api(`sessions/${sessionId}`), { method: 'POST', body: JSON.stringify({ denominations: counts, notes: notes.trim() || null }) }));
+      // Pezzi venduti come nella Z (totali congelati alla chiusura).
+      load();
     } catch (e) {
       setError((e as CassaError).message);
     } finally {
@@ -131,6 +134,7 @@ export function CloseShift({ api, sessionId, pendingQueue, onBack, onClosed }: P
             .join(' · ')}
         </p>
       )}
+      <SoldProducts products={info.totals.products} />
       <label htmlFor="close-notes" className="mt-4 mb-1 block text-label font-medium">
         Note {noteNeeded ? '(obbligatorie: la differenza supera 1 €)' : '(facoltative)'}
       </label>
@@ -145,5 +149,27 @@ export function CloseShift({ api, sessionId, pendingQueue, onBack, onClosed }: P
         {busy ? 'Chiusura…' : 'Chiudi il turno e crea la Z'}
       </BigButton>
     </div>
+  );
+}
+
+/** Pezzi venduti nel turno per prodotto (senza gli annullati), con l'importo: per i conti dello stand. */
+function SoldProducts({ products }: { products: ProductTotal[] }) {
+  if (!products?.length) return null;
+  const pieces = products.reduce((n, p) => n + p.quantity, 0);
+  return (
+    <section className="mt-4 rounded-xl border border-border bg-surface p-4 text-left" aria-labelledby="sold-products">
+      <h3 id="sold-products" className="mb-2 flex items-baseline justify-between text-section font-semibold">
+        Pezzi venduti <span className="text-label font-normal text-muted tabular-nums">{pieces} in tutto</span>
+      </h3>
+      <ul className="divide-y divide-border text-body">
+        {products.map((p) => (
+          <li key={p.productId} className="flex items-baseline gap-3 py-1.5">
+            <span className="w-10 shrink-0 text-right font-semibold tabular-nums">{p.quantity}×</span>
+            <span className="min-w-0 flex-1 truncate">{p.name}</span>
+            <span className="text-muted tabular-nums">{formatMoney(p.amountCents)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
