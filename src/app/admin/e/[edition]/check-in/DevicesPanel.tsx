@@ -3,6 +3,7 @@
 import { QrCode, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { DeviceRoleField, PairingPin, type DeviceKind } from '@/components/admin/devices/Pairing';
 import { Notice } from '@/components/admin/edition/common';
 import { Button, Card, ConfirmDialog, Dialog, DialogContent, EmptyState, Field, Input, StatusBadge, Switch, toast } from '@/components/ui';
 import { formatDateTime, formatRelative } from '@/lib/dates';
@@ -107,15 +108,16 @@ export function DevicesPanel({ edition, devices, stats, canManage, scannerV2 }: 
 
 function PairDialog({ edition, onClose }: { edition: string; onClose: () => void }) {
   const [name, setName] = useState('');
+  const [kind, setKind] = useState<DeviceKind>('scanner');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<{ url: string; qr: string; expiresAt: string } | null>(null);
+  const [result, setResult] = useState<{ url: string; qr: string; pin: string; expiresAt: string } | null>(null);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        title={result ? `Inquadra il QR con “${name}”` : 'Abbina uno scanner'}
-        description={result ? 'Apri la fotocamera del telefono o del tablet e inquadra il codice. Vale una volta sola.' : 'Il QR vale 10 minuti e una sola volta.'}
+        title={result ? `Inquadra il QR con “${name}”` : 'Abbina un dispositivo'}
+        description={result ? 'Apri la fotocamera del telefono o del tablet, inquadra il codice e digita il PIN. Vale una volta sola.' : 'Il QR e il PIN valgono 10 minuti e una sola volta.'}
         footer={
           result ? (
             <Button onClick={onClose}>Fatto</Button>
@@ -129,7 +131,7 @@ function PairDialog({ edition, onClose }: { edition: string; onClose: () => void
                 onClick={async () => {
                   setBusy(true);
                   setError('');
-                  const res = await pairScannerAction(edition, name);
+                  const res = await pairScannerAction(edition, name, kind);
                   setBusy(false);
                   if (!res.ok) return setError(res.error);
                   if (res.data) setResult(res.data);
@@ -143,18 +145,25 @@ function PairDialog({ edition, onClose }: { edition: string; onClose: () => void
       >
         {result ? (
           <div className="flex flex-col items-center gap-3 text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={result.qr} alt="QR di abbinamento" width={240} height={240} className="rounded-lg border border-border bg-white p-2" />
+            <div className="flex w-full flex-col items-center gap-3 sm:flex-row">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={result.qr} alt="QR di abbinamento" width={240} height={240} className="rounded-lg border border-border bg-white p-2" />
+              <PairingPin pin={result.pin} />
+            </div>
             <Countdown until={result.expiresAt} />
+            {kind === 'pos' && <p className="text-label text-muted">È una cassa: la trovi in Cassa › Dispositivi, non in questo elenco.</p>}
             <details className="w-full text-left text-caption text-muted">
               <summary className="cursor-pointer">Non riesci a inquadrarlo?</summary>
               <p className="mt-1 break-all">Apri questo indirizzo sul dispositivo: {result.url}</p>
             </details>
           </div>
         ) : (
-          <Field label="Nome dello scanner" help="Come lo riconosci all’evento, es. “Ingresso nord” o “Telefono di Anna”." required error={error || undefined}>
-            <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={60} />
-          </Field>
+          <div className="flex flex-col gap-4">
+            <Field label="Nome del dispositivo" help="Come lo riconosci all’evento, es. “Ingresso nord” o “Telefono di Anna”." required error={error || undefined}>
+              <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={60} />
+            </Field>
+            <DeviceRoleField value={kind} onChange={setKind} />
+          </div>
         )}
       </DialogContent>
     </Dialog>

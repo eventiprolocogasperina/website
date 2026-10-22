@@ -53,10 +53,10 @@ export async function sendInviteAction(userId: string) {
 
 export async function createPairingAction(input: { name: string; edition: string; kind: 'pos' | 'scanner' }) {
   return run(async (ctx) => {
-    const { token, expiresAt } = await createPairing(ctx, input);
+    const { token, pin, expiresAt } = await createPairing(ctx, input);
     const url = `${siteUrl()}/abbina/${token}`;
     const qr = await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 280 });
-    return { url, qr, expiresAt };
+    return { url, qr, pin, expiresAt };
   });
 }
 

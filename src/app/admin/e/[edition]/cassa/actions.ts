@@ -23,13 +23,13 @@ export async function resetNumberingAction(edition: string, startFrom: number) {
   return runAction(paths(edition), (ctx) => resetOrderNumbering(ctx, edition, startFrom));
 }
 
-/** QR di abbinamento di un dispositivo di cassa per questa edizione (come in Sistema › Utenti). */
-export async function pairPosDeviceAction(edition: string, name: string) {
+/** QR e PIN di abbinamento di un dispositivo per questa edizione, con il ruolo scelto (come in Sistema › Utenti). */
+export async function pairPosDeviceAction(edition: string, name: string, kind: 'pos' | 'scanner' = 'pos') {
   return runAction(paths(edition), async (ctx) => {
-    const { token, expiresAt } = await createPairing(ctx, { name, edition, kind: 'pos' });
+    const { token, pin, expiresAt } = await createPairing(ctx, { name, edition, kind });
     const url = `${siteUrl()}/abbina/${token}`;
     const qr = await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 280 });
-    return { url, qr, expiresAt };
+    return { url, qr, pin, expiresAt };
   });
 }
 
