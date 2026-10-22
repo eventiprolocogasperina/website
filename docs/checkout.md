@@ -38,3 +38,5 @@ npm run test:e2e                # Playwright: acquisto completo, senza moduli, d
 ```
 
 I test end-to-end ricreano il database locale `proloco_e2e`, avviano un secondo proxy Neon su `:4455` e il sito su `:3210` con il simulatore.
+Per lanciarli accanto a un'altra copia: `E2E_PORT=3474 E2E_PROXY_PORT=4462 E2E_DATABASE_URL=postgres://postgres:postgres@localhost:5432/altro_e2e npm run test:e2e` (il nome del database deve finire in `_e2e`).
+`e2e/editor-blocchi.spec.ts` prova l'editor dei blocchi (Modifica dal menu, Aggiungi blocco, salvataggio), `e2e/scanner-annullo.spec.ts` l'annullo di un ingresso dallo scanner.

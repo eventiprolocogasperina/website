@@ -98,7 +98,7 @@ Rotte dello scanner nuovo (prompt 15, `src/app/api/scanner/*`, vedi [check-in.md
 |---|---|
 | `/api/scanner/bootstrap` | GET: checkin.scan |
 | `/api/scanner/scan` | POST: checkin.scan |
-| `/api/scanner/revert` | POST: checkin.revert |
+| `/api/scanner/revert` | POST: checkin.revert (`from`: `ultimo`, `ricerca` o `esito`; il motivo nel registro lo sceglie il server) |
 | `/api/scanner/action` | POST: checkin.scan (pulsanti dei moduli, es. "+1 Bambino") |
 | `/api/scanner/search` | GET: checkin.scan (nome o codice; niente email/telefono) |
 | `/api/scanner/counters` | GET: checkin.scan |

@@ -20,7 +20,8 @@ export type SearchOrder = {
   holderName: string | null;
   /** false se l'ordine non è pagato, è annullato o è in blacklist: i biglietti non entrano. */
   admitted: boolean;
-  tickets: Array<{ id: string; productName: string; sessionLabel: string | null; validOn: string | null; inList: boolean; enteredAt: string | null }>;
+  /** `checkinId`: il passaggio attivo in questa lista, per annullare l'entrata anche dopo. */
+  tickets: Array<{ id: string; productName: string; sessionLabel: string | null; validOn: string | null; inList: boolean; enteredAt: string | null; checkinId: string | null }>;
 };
 
 /** Escape dei caratteri jolly di LIKE. */
@@ -74,7 +75,7 @@ export async function searchTickets(ctx: Ctx, input: z.input<typeof SearchInput>
   const ticketIds = tickets.map((t) => t.t.id);
   const passes = ticketIds.length
     ? await db
-        .select({ ticketId: checkins.ticketId, at: checkins.at })
+        .select({ id: checkins.id, ticketId: checkins.ticketId, at: checkins.at })
         .from(checkins)
         .where(and(inArray(checkins.ticketId, ticketIds), eq(checkins.checkinListId, list.list.id), isNull(checkins.revertedAt)))
     : [];
@@ -89,13 +90,17 @@ export async function searchTickets(ctx: Ctx, input: z.input<typeof SearchInput>
       admitted: ADMITTING_STATUSES.includes(o.status as OrderStatus) && !o.blacklisted,
       tickets: tickets
         .filter((t) => t.t.orderId === o.id)
-        .map((t) => ({
-          id: t.t.id,
-          productName: t.productName,
-          sessionLabel: label(t.t.sessionId),
-          validOn: label(effectiveSession(graph, t.t.sessionId)),
-          inList: listAcceptsProduct(list.list, t.t.productId),
-          enteredAt: passes.find((p) => p.ticketId === t.t.id)?.at.toISOString() ?? null,
-        })),
+        .map((t) => {
+          const pass = passes.find((p) => p.ticketId === t.t.id);
+          return {
+            id: t.t.id,
+            productName: t.productName,
+            sessionLabel: label(t.t.sessionId),
+            validOn: label(effectiveSession(graph, t.t.sessionId)),
+            inList: listAcceptsProduct(list.list, t.t.productId),
+            enteredAt: pass?.at.toISOString() ?? null,
+            checkinId: pass?.id ?? null,
+          };
+        }),
     }));
 }

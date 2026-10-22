@@ -1,11 +1,12 @@
 'use client';
 
-import { CheckCircle2, Clock3, Plus, XOctagon } from 'lucide-react';
+import { CheckCircle2, Clock3, Plus, Undo2, XOctagon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn, focusRing } from '@/components/ui';
 import { formatMoney } from '@/lib/money';
 import { PayActionDialog } from './PayActionDialog';
 import { present, type Tone } from './present';
+import { RevertCheckinDialog, type RevertTarget } from './RevertCheckinDialog';
 import { UndoBar } from './UndoBar';
 import type { Outcome, ScannerSetup } from './types';
 
@@ -28,10 +29,12 @@ type Props = {
   onClose: () => void;
   undo: { until: number } | null;
   onUndo: () => Promise<boolean | undefined | void>;
+  /** "Già entrato": annulla quell'ingresso (con conferma), anche se è passato più di mezzo minuto. */
+  onRevert: (checkinId: string) => Promise<unknown>;
 };
 
 /** Esito a tutto schermo (§12.3) con i pulsanti dei moduli sotto, es. "+1 Bambino". */
-export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, undo, onUndo }: Props) {
+export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, undo, onUndo, onRevert }: Props) {
   const p = present(outcome);
   const Icon = ICON[p.tone];
   const [busy, setBusy] = useState<string | null>(null);
@@ -41,6 +44,8 @@ export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, und
   const closeRef = useRef<HTMLButtonElement>(null);
   const withActions = outcome.source === 'online' && (outcome.data.result === 'valid' || outcome.data.result === 'already_used') && actions.length > 0;
   const answers = outcome.source === 'online' ? outcome.data.answers : {};
+  const [reverting, setReverting] = useState<RevertTarget | null>(null);
+  const used = outcome.source === 'online' && outcome.data.result === 'already_used' ? outcome.data : null;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -107,6 +112,21 @@ export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, und
           <PayActionDialog orderId={outcome.data.ticket.orderId} action={paying} onClose={() => setPaying(null)} onPaid={(r) => onPaid(r.questionKey, r.after)} />
         )}
         {p.tone === 'success' && undo && <UndoBar until={undo.until} onUndo={onUndo} />}
+        {used && (
+          <button
+            type="button"
+            onClick={() => setReverting({ checkinId: used.checkinId, what: `${used.ticket.productName} · ${used.ticket.orderCode}`, at: used.at })}
+            className={cn('flex min-h-12 items-center justify-center gap-2 rounded-xl bg-bg/95 px-4 text-body font-semibold text-fg', focusRing)}
+          >
+            <Undo2 size={18} aria-hidden /> Annulla questo ingresso
+          </button>
+        )}
+        {actionError && !withActions && (
+          <p role="alert" className="rounded-lg bg-bg/95 px-3 py-2 text-body text-danger">
+            {actionError}
+          </p>
+        )}
+        <RevertCheckinDialog target={reverting} onClose={() => setReverting(null)} onRevert={onRevert} onError={setActionError} />
         <button ref={closeRef} type="button" onClick={onClose} className={cn('min-h-16 rounded-xl border-2 border-current text-title font-semibold', focusRing)}>
           Continua
         </button>

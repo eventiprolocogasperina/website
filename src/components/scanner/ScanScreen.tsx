@@ -142,8 +142,10 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
         </form>
       </main>
 
-      {s.outcome && <ResultOverlay outcome={s.outcome} actions={setup.actions} onAction={s.runAction} onPaid={s.setAnswer} onClose={s.dismiss} undo={s.undo} onUndo={s.revertLast} />}
-      {search !== null && <SearchSheet listId={choice.listId} initial={search} onClose={() => setSearch(null)} onCheckIn={(ticketId) => (setSearch(null), s.submit({ ticketId }))} />}
+      {s.outcome && (
+        <ResultOverlay outcome={s.outcome} actions={setup.actions} onAction={s.runAction} onPaid={s.setAnswer} onClose={s.dismiss} undo={s.undo} onUndo={s.revertLast} onRevert={(id) => s.revertLater(id, 'esito')} />
+      )}
+      {search !== null && <SearchSheet listId={choice.listId} initial={search} onClose={() => setSearch(null)} onCheckIn={(ticketId) => (setSearch(null), s.submit({ ticketId }))} onRevert={(id) => s.revertLater(id, 'ricerca')} />}
     </div>
   );
 }
