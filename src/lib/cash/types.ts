@@ -28,6 +28,8 @@ export type PosCatalog = {
   edition: { id: string; slug: string; title: string; status: string; departments: boolean };
   register: { id: string; name: string; issuesNumbers: boolean; printer: PrinterSettings };
   products: PosProduct[];
+  /** Pulsante "Altro" (importo libero). Assente nei listini salvati prima che esistesse. */
+  openPrice?: { available: boolean; maxCents: number };
   version: string;
 };
 
@@ -67,6 +69,7 @@ export type CassaState = {
 export type RecentSale = { orderId: string; code: string; number: number | null; totalCents: number; at: string; voided: boolean; summary: string };
 
 export type MethodTotal = { method: PayMethod; label: string; count: number; amountCents: number; refundedCents: number; netCents: number };
+export type ProductTotal = { productId: string; name: string; quantity: number; amountCents: number };
 
 export type SessionInfo = {
   id: string;
@@ -77,7 +80,7 @@ export type SessionInfo = {
   openingFloatCents: number;
   expectedCashCents: number;
   zReportNumber: number | null;
-  totals: { sales: number; voided: number; flagged: number; netCents: number; complimentaryCents: number; byMethod: MethodTotal[] };
+  totals: { sales: number; voided: number; flagged: number; netCents: number; complimentaryCents: number; byMethod: MethodTotal[]; products: ProductTotal[] };
 };
 
 export const METHOD_LABEL: Record<PayMethod, string> = { cash: 'Contanti', card_pos: 'Carta (POS)', complimentary: 'Omaggio' };

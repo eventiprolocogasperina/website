@@ -2,12 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushQueue, indexedDbStore, memoryStore, outcomeOf, type QueuedSale, type QueueStore } from '@/lib/cash/offline-queue';
+import { OPEN_PRICE_NAME } from '@/lib/cash/open-price';
 import { CassaError, cassaFetch, type PayMethod, type PosCatalog, type Sale } from '@/lib/cash/types';
 import { isOffline, newIdempotencyKey, type ApiFn } from './api';
 
 const FLUSH_EVERY_MS = 15_000;
 
-export type CartLine = { productId: string; quantity: number };
+/**
+ * Una riga del carrello. Per "Altro" `productId` è solo una chiave del telefono (`altro:<centesimi>`):
+ * al server va l'importo, e il prodotto lo sceglie lui.
+ */
+export type CartLine = { productId: string; quantity: number; openAmountCents?: number };
+
+export const openLine = (cents: number): CartLine => ({ productId: `altro:${cents}`, quantity: 1, openAmountCents: cents });
+
+/** Nome e prezzo unitario di una riga, dal listino in memoria o dall'importo di "Altro". */
+export function lineInfo(catalog: PosCatalog, l: CartLine): { name: string; priceCents: number; department: string | null; remaining: number | null } | null {
+  if (l.openAmountCents !== undefined) return { name: OPEN_PRICE_NAME, priceCents: l.openAmountCents, department: null, remaining: null };
+  const p = catalog.products.find((x) => x.id === l.productId);
+  return p ? { name: p.name, priceCents: p.priceCents, department: p.department, remaining: p.remaining } : null;
+}
 
 export type SaleRequest = {
   sessionId: string;
@@ -20,7 +34,7 @@ export type SaleRequest = {
 
 /** Totale del carrello con i prezzi del listino in memoria (il server ricalcola sempre, §18.1). */
 export function cartTotal(catalog: PosCatalog, cart: CartLine[]): number {
-  return cart.reduce((sum, l) => sum + (catalog.products.find((p) => p.id === l.productId)?.priceCents ?? 0) * l.quantity, 0);
+  return cart.reduce((sum, l) => sum + (lineInfo(catalog, l)?.priceCents ?? 0) * l.quantity, 0);
 }
 
 /**
@@ -104,7 +118,7 @@ export function useSaleQueue(api: ApiFn) {
       const totalCents = cartTotal(req.catalog, req.cart);
       const payload = {
         cashSessionId: req.sessionId,
-        lines: req.cart,
+        lines: req.cart.map((l) => (l.openAmountCents !== undefined ? { openAmountCents: l.openAmountCents, quantity: l.quantity } : { productId: l.productId, quantity: l.quantity })),
         method: req.method,
         cashReceivedCents: req.method === 'cash' ? req.cashReceivedCents : null,
         complimentaryReason: req.method === 'complimentary' ? req.complimentaryReason : null,
@@ -142,8 +156,8 @@ function localSale(req: SaleRequest, totalCents: number, at: string): Sale {
     complimentaryReason: req.complimentaryReason,
     registerName: req.catalog.register.name,
     lines: req.cart.map((l) => {
-      const p = req.catalog.products.find((x) => x.id === l.productId)!;
-      return { productId: p.id, name: p.name, quantity: l.quantity, unitPriceCents: p.priceCents, totalCents: p.priceCents * l.quantity, department: p.department };
+      const p = lineInfo(req.catalog, l)!;
+      return { productId: l.productId, name: p.name, quantity: l.quantity, unitPriceCents: p.priceCents, totalCents: p.priceCents * l.quantity, department: p.department };
     }),
     at,
     created: true,

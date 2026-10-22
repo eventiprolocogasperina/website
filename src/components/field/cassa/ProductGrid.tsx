@@ -1,20 +1,29 @@
 'use client';
 
-import { PackageOpen } from 'lucide-react';
+import { Calculator, PackageOpen } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { cn, EmptyState, focusRing } from '@/components/ui';
+import { OPEN_PRICE_NAME } from '@/lib/cash/open-price';
 import type { PosProduct } from '@/lib/cash/types';
 import { formatMoney } from '@/lib/money';
 
 const ALL = '__tutti__';
 
+type Props = {
+  products: PosProduct[];
+  inCart: Record<string, number>;
+  onAdd: (p: PosProduct) => void;
+  /** Pulsante "Altro" (importo libero), in fondo alla griglia di ogni gruppo. Assente se spento. */
+  onOther?: () => void;
+};
+
 /** Griglia dei prodotti per gruppo (reparto o tipo), con gli esauriti spenti e le ultime porzioni in evidenza. */
-export function ProductGrid({ products, inCart, onAdd }: { products: PosProduct[]; inCart: Record<string, number>; onAdd: (p: PosProduct) => void }) {
+export function ProductGrid({ products, inCart, onAdd, onOther }: Props) {
   const groups = useMemo(() => [...new Set(products.map((p) => p.group))], [products]);
   const [group, setGroup] = useState(ALL);
   const shown = group === ALL ? products : products.filter((p) => p.group === group);
 
-  if (products.length === 0) {
+  if (products.length === 0 && !onOther) {
     return (
       <EmptyState
         icon={PackageOpen}
@@ -82,6 +91,20 @@ export function ProductGrid({ products, inCart, onAdd }: { products: PosProduct[
             </li>
           );
         })}
+        {onOther && (
+          <li>
+            <button
+              type="button"
+              onClick={onOther}
+              className={cn('flex min-h-20 w-full flex-col items-start justify-between gap-1 rounded-xl border border-dashed border-border-strong bg-surface p-3 text-left active:bg-surface-sunken', focusRing)}
+            >
+              <span className="flex items-center gap-1 text-body font-semibold">
+                <Calculator size={18} aria-hidden /> {OPEN_PRICE_NAME}
+              </span>
+              <span className="text-label text-muted">Importo libero</span>
+            </button>
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -94,7 +94,7 @@ export const devices = pgTable(
   (t) => [uniqueIndex('devices_token_hash_unique').on(t.tokenHash)],
 );
 
-/** QR di abbinamento: monouso, valido 10 minuti. */
+/** QR di abbinamento: monouso, valido 10 minuti, con un PIN da digitare sul dispositivo. */
 export const devicePairings = pgTable(
   'device_pairings',
   {
@@ -103,6 +103,10 @@ export const devicePairings = pgTable(
     name: text('name').notNull(),
     editionSlug: text('edition_slug').notNull(),
     kind: deviceKind('kind').notNull(),
+    /** Hash (scrypt) del PIN mostrato accanto al QR. NULL solo per i QR creati prima del PIN: non si usano più. */
+    pinHash: text('pin_hash'),
+    /** PIN sbagliati; al quinto il QR non vale più. */
+    pinFailedAttempts: integer('pin_failed_attempts').default(0).notNull(),
     createdBy: uuid('created_by').references(() => users.id),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     usedAt: timestamp('used_at', { withTimezone: true }),

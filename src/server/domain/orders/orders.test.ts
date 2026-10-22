@@ -112,6 +112,38 @@ describe('priceCart (catalogo delle edizioni)', () => {
     expect(discountProblem(discount({ maxUses: 2, usedCount: 2 }), ED, now)).toBe('esaurito');
   });
 
+  it('"Altro" della cassa: importo della riga solo in cassa, tra 0,01 e 1000 €; mai per i prodotti del listino', () => {
+    const altro = product({ id: 'altro', name: 'Altro', priceCents: 0, channels: ['pos', 'online'], openPrice: true });
+    const pos = { ...base, channel: 'pos' as const, products: [product(), altro] };
+    const r = priceCart({
+      ...pos,
+      lines: [
+        { productId: 'altro', quantity: 1, unitPriceCents: 350 },
+        { productId: 'altro', quantity: 2, unitPriceCents: 350 },
+        { productId: 'altro', quantity: 1, unitPriceCents: 1200 },
+        { productId: 'p1', quantity: 1 },
+      ],
+    });
+    // Stesso importo → una riga; importi diversi restano separati.
+    expect(r.lines.map((l) => [l.productId, l.quantity, l.unitPriceCents, l.totalCents])).toEqual([
+      ['altro', 3, 350, 1050],
+      ['altro', 1, 1200, 1200],
+      ['p1', 1, 500, 500],
+    ]);
+    expect(r.totalCents).toBe(2750);
+    expect(priceCart({ ...pos, lines: [{ productId: 'altro', quantity: 1, unitPriceCents: 100_000 }] }).totalCents).toBe(100_000);
+    for (const unitPriceCents of [undefined, null, 0, -5, 100_001, 1.5]) {
+      expect(code(() => priceCart({ ...pos, lines: [{ productId: 'altro', quantity: 1, unitPriceCents }] }))).toBe('VALIDATION');
+    }
+    // Fuori dalla cassa non si vende, nemmeno se il canale online è acceso o dall'admin.
+    for (const channel of ['online', 'admin', 'paylink'] as const) {
+      expect(code(() => priceCart({ ...pos, channel, lines: [{ productId: 'altro', quantity: 1, unitPriceCents: 350 }] }))).toBe('SALES_CLOSED');
+    }
+    expect(code(() => priceCart({ ...pos, products: [product(), { ...altro, active: false }], lines: [{ productId: 'altro', quantity: 1, unitPriceCents: 350 }] }))).toBe('SALES_CLOSED');
+    // Un prezzo inviato dal browser per un prodotto del listino si rifiuta (§18.1).
+    expect(code(() => priceCart({ ...pos, lines: [{ productId: 'p1', quantity: 1, unitPriceCents: 1 }] }))).toBe('VALIDATION');
+  });
+
   it('allocate restituisce sempre esattamente l’importo', () => {
     expect(allocate(10, [1, 1, 1])).toEqual([4, 3, 3]);
     expect(allocate(0, [1, 2])).toEqual([0, 0]);

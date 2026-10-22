@@ -6,7 +6,9 @@ import { getDb, type Tx } from '@/server/db/client';
 import { cashRegisters, cashSales, cashSessions, editions, orderLines, ordersV2, products } from '@/server/db/schema';
 import { DomainError } from '@/server/domain/errors';
 import { createOrder, type CreateOrderHook } from '@/server/domain/orders';
-import { nextCounter } from './shared';
+import { MAX_OPEN_PRICE_CENTS } from '@/lib/cash/open-price';
+import { ensureOpenPriceProduct } from './catalog';
+import { assertCanOn, nextCounter } from './shared';
 
 /** Una vendita fatta offline si accetta con la sua ora solo se è recente (orologi del telefono sballati). */
 const MAX_OFFLINE_AGE_MS = 48 * 60 * 60_000;
@@ -14,8 +16,14 @@ const MAX_OFFLINE_AGE_MS = 48 * 60 * 60_000;
 export const SellInput = z
   .object({
     cashSessionId: z.uuid(),
+    /** Prodotti del listino (il prezzo lo decide il server) oppure "Altro" con l'importo digitato in cassa. */
     lines: z
-      .array(z.object({ productId: z.uuid(), quantity: z.number().int().min(1).max(50) }))
+      .array(
+        z.union([
+          z.object({ productId: z.uuid(), quantity: z.number().int().min(1).max(50) }),
+          z.object({ openAmountCents: z.number().int().min(1, 'Scrivi un importo per Altro.').max(MAX_OPEN_PRICE_CENTS, 'Altro: al massimo 1000 € per riga.'), quantity: z.number().int().min(1).max(50) }),
+        ]),
+      )
       .min(1, 'Il carrello è vuoto.')
       .max(30),
     method: z.enum(['cash', 'card_pos', 'complimentary']),
@@ -77,13 +85,20 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
   const soldAt = data.offlineAt && serverNow.getTime() - data.offlineAt.getTime() < MAX_OFFLINE_AGE_MS && data.offlineAt <= serverNow ? data.offlineAt : serverNow;
 
   const [session] = await getDb()
-    .select({ editionId: cashSessions.editionId, allowed: cashRegisters.productIds, register: cashRegisters.name })
+    .select({ editionId: cashSessions.editionId, edition: editions.slug, allowed: cashRegisters.productIds, register: cashRegisters.name })
     .from(cashSessions)
     .innerJoin(cashRegisters, eq(cashRegisters.id, cashSessions.registerId))
+    .innerJoin(editions, eq(editions.id, cashSessions.editionId))
     .where(eq(cashSessions.id, data.cashSessionId));
   if (!session) throw new DomainError('NOT_FOUND', { message: 'Turno di cassa non trovato. Riapri il turno.' });
+  if (ctx.device && ctx.device.edition !== session.edition) throw new DomainError('FORBIDDEN');
+  assertCanOn(ctx, 'pos.sell', session.edition);
+  // "Altro": la riga diventa il prodotto a importo libero dell'edizione, con il prezzo digitato. Vale su ogni cassa.
+  const openProductId = data.lines.some((l) => 'openAmountCents' in l) ? await ensureOpenPriceProduct(ctx, session.editionId) : null;
+  const lines = data.lines.map((l) => ('openAmountCents' in l ? { productId: openProductId!, quantity: l.quantity, unitPriceCents: l.openAmountCents } : l));
+  const fromRegister = (productId: string, allowed: string[] | null) => !allowed || productId === openProductId || allowed.includes(productId);
   // Controllo anticipato (si ripete nella transazione): un prodotto di un'altra cassa non è un "esaurito".
-  if (session.allowed && data.lines.some((l) => !session.allowed!.includes(l.productId))) {
+  if (lines.some((l) => !fromRegister(l.productId, session.allowed))) {
     throw new DomainError('VALIDATION', { message: `Uno dei prodotti non si vende da ${session.register}.` });
   }
 
@@ -93,7 +108,7 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
     if (!s || s.editionId !== edition.id) throw new DomainError('VALIDATION', { message: 'Il turno non è di questa edizione.' });
     if (s.closedAt && !offline) throw new DomainError('CONFLICT', { message: 'Il turno è stato chiuso. Apri un nuovo turno per continuare.' });
     const [register] = await tx.select().from(cashRegisters).where(eq(cashRegisters.id, s.registerId));
-    if (register.productIds && lines.some((l) => !register.productIds!.includes(l.productId))) {
+    if (lines.some((l) => !fromRegister(l.productId, register.productIds))) {
       throw new DomainError('VALIDATION', { message: `Uno dei prodotti non si vende da ${register.name}.` });
     }
     let received: number | null = null;
@@ -128,7 +143,7 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
     {
       editionId: session.editionId,
       channel: 'pos',
-      lines: data.lines,
+      lines,
       payNow: data.method,
       complimentaryReason: data.complimentaryReason,
       cashSessionId: data.cashSessionId,

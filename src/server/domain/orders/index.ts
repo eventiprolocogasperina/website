@@ -11,6 +11,7 @@ import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
 import { summarizePayments } from '@/server/domain/payments/status';
 import { ORDER_CHANNELS, priceCart, type OrderChannel } from '@/server/domain/pricing/cart';
+import { MAX_OPEN_PRICE_CENTS } from '@/lib/cash/open-price';
 // Collega gli handler dei moduli agli eventi pubblicati da qui (es. email del modulo rinvio).
 import '@/modules/handlers';
 import '@/server/notifications/handlers';
@@ -41,7 +42,13 @@ const CHANNEL_PERMISSION: Record<OrderChannel, Permission | null> = {
   admin: 'orders.edit',
 };
 
-const LineInput = z.object({ productId: z.string().uuid(), quantity: z.number().int(), sessionId: z.string().uuid().nullish() });
+const LineInput = z.object({
+  productId: z.string().uuid(),
+  quantity: z.number().int(),
+  sessionId: z.string().uuid().nullish(),
+  /** Solo per l'"Altro" della cassa (prodotto `openPrice`): lo controllano qui sotto e priceCart. */
+  unitPriceCents: z.number().int().min(1).max(MAX_OPEN_PRICE_CENTS).nullish(),
+});
 const LinesInput = z.array(LineInput).min(1, 'Il carrello è vuoto.').max(30);
 
 const IMMEDIATE_METHODS = ['cash', 'card_pos', 'bank_transfer'] as const;
@@ -90,6 +97,10 @@ export const CreateOrderInput = z
     if (v.payNow === 'complimentary' && v.channel !== 'pos') c.addIssue({ code: 'custom', path: ['payNow'], message: 'L’omaggio si registra solo in cassa.' });
     if (v.payNow === 'complimentary' && (v.complimentaryReason ?? '').length < 3) c.addIssue({ code: 'custom', path: ['complimentaryReason'], message: 'Scrivi il motivo dell’omaggio.' });
     if (v.cashSessionId && v.channel !== 'pos') c.addIssue({ code: 'custom', path: ['cashSessionId'], message: 'Il turno di cassa vale solo per il canale cassa.' });
+    // Un importo scelto da chi vende solo dalla cassa, dentro un turno (il turno lo verifica cash/sales).
+    if (v.lines.some((l) => l.unitPriceCents != null) && (v.channel !== 'pos' || !v.cashSessionId)) {
+      c.addIssue({ code: 'custom', path: ['lines'], message: 'Un importo libero si registra solo in cassa, con il turno aperto.' });
+    }
   });
 export type CreateOrderInput = z.input<typeof CreateOrderInput>;
 
@@ -289,12 +300,13 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
   }
 
   if (opts.inTransaction) await opts.inTransaction(tx, { order, lines: lineRows, edition, oversold });
+  const openPriceCents = lineRows.filter((l) => catalog.find((p) => p.id === l.productId)?.openPrice).reduce((sum, l) => sum + l.totalCents, 0);
 
   await audit(tx, ctx, 'order.created', {
     entityType: 'order',
     entityId: order.id,
     edition: edition.slug,
-    after: { code: order.code, channel: order.channel, status: order.status, totalCents: order.totalCents, lines: lineRows.length, tickets: ticketRows.length, parentOrderId, ...(oversold ? { oversold } : {}) },
+    after: { code: order.code, channel: order.channel, status: order.status, totalCents: order.totalCents, lines: lineRows.length, tickets: ticketRows.length, parentOrderId, ...(oversold ? { oversold } : {}), ...(openPriceCents ? { openPriceCents } : {}) },
     reason: payNow === 'complimentary' ? data.complimentaryReason : null,
   });
   events.push({ type: 'order.created', orderId: order.id, code: order.code, edition: edition.slug, status: order.status });
