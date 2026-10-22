@@ -10,6 +10,8 @@ import { getClosingChecklist } from '@/server/domain/editions/closing';
 import { TRANSITIONS } from '@/server/domain/editions/lifecycle';
 import type { EditionParams } from '@/server/domain/editions/page-params';
 import { listSeries } from '@/server/domain/editions/series';
+import { getSetupChecklist } from '@/server/domain/editions/setup';
+import { opensSales, salesBlockedMessage } from '@/lib/edition-setup';
 import { SettingsClient } from './SettingsClient';
 
 export const metadata = { title: 'Impostazioni' };
@@ -23,6 +25,7 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
   if (!e) notFound();
   const moduleOptions = await moduleFieldOptions(e.id);
   const closing = e.status === 'concluded' || e.status === 'archived' ? await getClosingChecklist(ctx, slug) : null;
+  const blockers = TRANSITIONS[e.status].some((t) => opensSales(e.status, t.to)) ? (await getSetupChecklist(ctx, slug)).salesBlockers : [];
   const transitions = TRANSITIONS[e.status]
     .filter((t) => can(ctx, t.permission, { edition: slug }))
     .map(({ to, label, description, typeToConfirm }) => ({
@@ -30,7 +33,12 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
       label,
       description,
       typeToConfirm: !!typeToConfirm,
-      disabledReason: to === 'archived' && !closing?.complete ? 'Completa prima la checklist di chiusura.' : null,
+      disabledReason:
+        to === 'archived' && !closing?.complete
+          ? 'Per archiviare completa prima la checklist qui sotto.'
+          : opensSales(e.status, to) && blockers.length
+            ? salesBlockedMessage(blockers)
+            : null,
     }));
   return (
     <AdminPage>

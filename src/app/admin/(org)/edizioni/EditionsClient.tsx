@@ -1,30 +1,22 @@
 'use client';
 
-import { CalendarDays, CalendarRange, Copy, Layers, Plus } from 'lucide-react';
+import { BookOpen, CalendarDays, CalendarRange, Layers, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useTransition } from 'react';
 import { EditionDot } from '@/components/admin/shell/EditionDot';
 import {
-  Button,
   ButtonLink,
   DataTable,
   dataTableColumns,
   EmptyState,
-  Field,
   FilterBar,
-  Input,
   PageHeader,
-  RadioGroup,
   Select,
-  Sheet,
-  SheetContent,
   STATUS_META,
   StatusBadge,
-  toast,
 } from '@/components/ui';
 import { formatDate } from '@/lib/dates';
 import type { EditionListRow } from '@/server/domain/editions';
-import { createEditionAction } from './actions';
 
 type Filters = { q: string; stato: string; format: string };
 type FormatOption = { id: string; slug: string; name: string };
@@ -36,7 +28,6 @@ export function EditionsClient({ rows, formats, canCreate, canCalendar, filters 
   const router = useRouter();
   const pathname = usePathname();
   const [pending, start] = useTransition();
-  const [creating, setCreating] = useState(false);
 
   function go(next: Partial<Filters>) {
     const merged = { ...filters, ...next };
@@ -138,13 +129,16 @@ export function EditionsClient({ rows, formats, canCreate, canCalendar, filters 
         subtitle="Ogni edizione ha le sue date, il suo catalogo e il suo stato. I format raccolgono le edizioni dello stesso evento negli anni."
         primaryAction={
           canCreate ? (
-            <Button icon={Plus} onClick={() => setCreating(true)}>
+            <ButtonLink href="/admin/edizioni/nuova" icon={Plus}>
               Nuova edizione
-            </Button>
+            </ButtonLink>
           ) : undefined
         }
         secondaryActions={
           <>
+            <ButtonLink href="/admin/guida" variant="secondary" icon={BookOpen}>
+              Guida
+            </ButtonLink>
             <ButtonLink href="/admin/format" variant="secondary" icon={Layers}>
               Format
             </ButtonLink>
@@ -202,149 +196,13 @@ export function EditionsClient({ rows, formats, canCreate, canCalendar, filters 
               icon={CalendarDays}
               title="Nessuna edizione ancora"
               description="Crea la prima edizione, oppure importa quelle di oggi con lo script di backfill."
-              action={canCreate ? <Button onClick={() => setCreating(true)}>Nuova edizione</Button> : undefined}
+              action={canCreate ? <ButtonLink href="/admin/edizioni/nuova">Nuova edizione</ButtonLink> : undefined}
             />
           ) : (
             <EmptyState icon={CalendarDays} title="Nessuna edizione con questi filtri" description="Prova a togliere qualche filtro." />
           )
         }
       />
-      {creating && <NewEditionSheet onClose={() => setCreating(false)} formats={formats} editions={rows} />}
     </>
-  );
-}
-
-type Mode = 'empty' | 'series' | 'duplicate';
-
-const slugFrom = (title: string) =>
-  title
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-function NewEditionSheet({ onClose, formats, editions }: { onClose: () => void; formats: FormatOption[]; editions: EditionListRow[] }) {
-  const router = useRouter();
-  const nextYear = new Date().getFullYear() + 1;
-  const [mode, setMode] = useState<Mode>(formats.length ? 'series' : 'empty');
-  const [seriesId, setSeriesId] = useState(formats[0]?.id ?? '');
-  const [source, setSource] = useState(editions.find((e) => e.format)?.slug ?? editions[0]?.slug ?? '');
-  const [year, setYear] = useState(String(nextYear));
-  const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  // Titolo proposto dal format o dall'edizione da duplicare, finché la persona non lo cambia.
-  const suggested =
-    mode === 'series'
-      ? `${formats.find((f) => f.id === seriesId)?.name ?? ''} ${year}`.trim()
-      : mode === 'duplicate'
-        ? (editions.find((e) => e.slug === source)?.title ?? '').replace(/20\d\d/, year)
-        : '';
-  const shownTitle = title || suggested;
-  const shownSlug = slugTouched ? slug : slugFrom(shownTitle);
-
-  async function submit() {
-    setBusy(true);
-    setError('');
-    const base = { title: shownTitle, slug: shownSlug };
-    const res = await createEditionAction(mode === 'duplicate' ? { mode, ...base, source, year: Number(year) } : mode === 'series' ? { mode, ...base, seriesId } : { mode, ...base, seriesId: null });
-    setBusy(false);
-    if (!res.ok) return setError(res.error);
-    toast.success(mode === 'duplicate' ? 'Edizione duplicata' : 'Edizione creata');
-    router.push(`/admin/e/${res.data!.slug}/impostazioni`);
-  }
-
-  return (
-    <Sheet open onOpenChange={(o) => !o && onClose()}>
-      <SheetContent
-        title="Nuova edizione"
-        description="Nasce in bozza: non compare sul sito finché non la pubblichi."
-        footer={
-          <>
-            <Button variant="secondary" onClick={onClose}>
-              Annulla
-            </Button>
-            <Button onClick={submit} loading={busy} icon={mode === 'duplicate' ? Copy : Plus}>
-              {mode === 'duplicate' ? 'Duplica' : 'Crea edizione'}
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <RadioGroup
-            aria-label="Come vuoi crearla"
-            value={mode}
-            onValueChange={(v) => setMode(v as Mode)}
-            options={[
-              {
-                value: 'series',
-                label: 'Da un format',
-                description: 'Nuova edizione di un evento che si ripete, con gli stessi moduli.',
-                disabled: !formats.length,
-              },
-              {
-                value: 'duplicate',
-                label: 'Duplicando un’edizione',
-                description: 'Copia date, prodotti, quote e moduli. Le date si spostano allo stesso giorno della settimana.',
-                disabled: !editions.length,
-              },
-              {
-                value: 'empty',
-                label: 'Vuota',
-                description: 'Un evento singolo, da configurare da zero.',
-              },
-            ]}
-          />
-          {mode === 'series' && (
-            <Field label="Format" required>
-              <Select value={seriesId} onValueChange={setSeriesId} options={formats.map((f) => ({ value: f.id, label: f.name }))} />
-            </Field>
-          )}
-          {mode === 'duplicate' && (
-            <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
-              <Field label="Edizione da copiare" required>
-                <Select
-                  value={source}
-                  onValueChange={setSource}
-                  options={editions.map((e) => ({
-                    value: e.slug,
-                    label: e.title,
-                  }))}
-                />
-              </Field>
-              <Field label="Anno" required>
-                <Input inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))} />
-              </Field>
-            </div>
-          )}
-          {mode === 'series' && (
-            <Field label="Anno" required>
-              <Input inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, '').slice(0, 4))} className="w-32" />
-            </Field>
-          )}
-          <Field label="Titolo" required>
-            <Input value={shownTitle} onChange={(e) => setTitle(e.target.value)} placeholder="Es. Zuccaland 2027" />
-          </Field>
-          <Field label="Slug" help="Compare negli indirizzi dell’admin e, più avanti, del sito. Non si può cambiare dopo." required>
-            <Input
-              value={shownSlug}
-              onChange={(e) => {
-                setSlugTouched(true);
-                setSlug(e.target.value.toLowerCase());
-              }}
-            />
-          </Field>
-          {error && (
-            <p role="alert" className="text-body text-danger">
-              {error}
-            </p>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 }

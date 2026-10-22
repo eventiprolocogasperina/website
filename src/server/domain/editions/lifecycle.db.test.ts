@@ -18,7 +18,7 @@ import { recordPayment } from '@/server/domain/payments';
 import { createRefund, requestRefund } from '@/server/domain/refunds';
 import { moveAllOrders, postponeSession } from '@/modules/postponement/server';
 import { createPaylinkOrder } from '@/modules/paylink/server';
-import { anon, buyer, createEdition, key, owner, roleOn, system, type Fixture } from '@/test/fixtures';
+import { anon, buyer, createEdition, key, makeSalesReady, owner, roleOn, system, type Fixture } from '@/test/fixtures';
 import { closeTestDb, getDb } from '@/test/pg-client';
 import { changeEditionStatus, updateEdition } from './index';
 import { saveModuleSettings, setModuleEnabled } from './modules';
@@ -60,6 +60,7 @@ describe.skipIf(!enabled)('ciclo di vita delle edizioni', () => {
 
   it('percorre bozza → archiviata: ogni passaggio emette il suo evento, l’archivio aspetta la checklist', async () => {
     const f = await createEdition({ status: 'draft', modules: ['time-slots', 'visitor-photos'] });
+    await makeSalesReady(f.edition.id);
     for (const to of ['published', 'on_sale', 'live', 'concluded'] as const) await changeEditionStatus(owner, f.slug, { to });
     expect(events.filter((e) => e.type.startsWith('edition.') && 'editionId' in e && e.editionId === f.edition.id).map((e) => e.type)).toEqual([
       'edition.published',

@@ -216,7 +216,13 @@ export function SettingsClient({
               !ro && <p className="text-label text-muted">Non hai i permessi per cambiare lo stato.</p>
             )}
             {dirty && transitions.length > 0 && <p className="text-label text-muted">Salva le modifiche prima di cambiare lo stato.</p>}
-            {transitions.some((t) => t.disabledReason) && <p className="text-label text-muted">Per archiviare completa prima la checklist qui sotto.</p>}
+            {transitions
+              .filter((t) => t.disabledReason)
+              .map((t) => (
+                <p key={t.to} className="text-label text-muted">
+                  {t.disabledReason}
+                </p>
+              ))}
           </div>
         </AnnotatedSection>
 

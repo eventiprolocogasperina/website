@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   Bell,
   CalendarDays,
   Camera,
@@ -68,6 +69,7 @@ export const ORG_NAV: NavGroup[] = [
     items: [
       { label: 'Edizioni', href: '/admin/edizioni', permission: 'editions.edit', icon: CalendarDays, shortcut: 'g e', keywords: ['eventi', 'calendario'] },
       { label: 'Format', href: '/admin/format', permission: 'editions.create', icon: Layers },
+      { label: 'Guida agli eventi', href: '/admin/guida', icon: BookOpen, keywords: ['aiuto', 'come si fa', 'procedura', 'nuova edizione'] },
     ],
   },
   {
