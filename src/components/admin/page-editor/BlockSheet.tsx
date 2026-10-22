@@ -41,6 +41,9 @@ export function BlockSheet({ block, onChange, onClose }: { block: Block; onChang
         side="left"
         title={meta.label}
         description={meta.description}
+        // Aperta da "Modifica" o "Aggiungi blocco": il menu che si chiude riporta il focus sul suo pulsante.
+        // Senza questo la Sheet non modale si chiudeva subito e il blocco non si poteva modificare.
+        onFocusOutside={(e) => e.preventDefault()}
         footer={
           <>
             <Button variant="secondary" onClick={cancel}>

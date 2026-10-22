@@ -21,15 +21,21 @@ export type SheetContentProps = {
   /** Larghezza su desktop. Su mobile occupa tutto lo schermo. */
   size?: 'md' | 'lg';
   className?: string;
+  /**
+   * Il focus esce dal pannello. Un pannello non modale aperto da un menu va tenuto aperto con
+   * `e.preventDefault()`: il menu, chiudendosi, rimette il focus sul suo pulsante e chiuderebbe il pannello.
+   */
+  onFocusOutside?: (event: Event) => void;
 };
 
 /** Pannello laterale per modifiche rapide senza lasciare l'elenco (§11.7). */
-export function SheetContent({ title, description, footer, children, side = 'right', size = 'md', className }: SheetContentProps) {
+export function SheetContent({ title, description, footer, children, side = 'right', size = 'md', className, onFocusOutside }: SheetContentProps) {
   return (
     <RadixDialog.Portal>
       <RadixDialog.Overlay className="fixed inset-0 z-50 bg-overlay" />
       <RadixDialog.Content
         {...(!description && { 'aria-describedby': undefined })}
+        onFocusOutside={onFocusOutside}
         className={cn(
           'ui-root fixed inset-y-0 z-50 flex w-full flex-col border-border bg-surface-raised shadow-lg outline-none',
           side === 'right' ? 'right-0 border-l' : 'left-0 border-r',
