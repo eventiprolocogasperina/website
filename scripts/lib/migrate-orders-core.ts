@@ -434,38 +434,63 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
       count('rimborsi', false);
       continue;
     }
-    let orderId: string | null = null;
-    for (const token of r.booking_numbers.split(/[\s,;]+/).filter(Boolean)) {
-      const legacy = await one<{ id: string }>('select id from orders where lower(id) = lower($1)', [token]);
-      orderId = legacy ? await mapped('order', legacy.id) : null;
-      if (orderId) break;
+    // Il modulo di oggi chiedeva "codici biglietto o codice ordine": nelle richieste vere ci sono
+    // i primi 16 caratteri dell'ID biglietto (es. 1a2b3c4d-5e6f-7a) o "#" + i primi 8 dell'ordine.
+    // Si accetta anche l'ID intero. Un prefisso vale solo se indica un'unica riga.
+    const wanted = new Map<string, { legacyOrderId: string; ticketCents: number | null }>();
+    for (const raw of r.booking_numbers.split(/[\s,;]+/).filter(Boolean)) {
+      const token = raw.replace(/^#/, '').toLowerCase();
+      if (token.length < 8) continue;
+      const tickets = await q<{ id: string; orderId: string; price: string | number }>('select id, "orderId", price from tickets where lower(id) like $1 limit 2', [`${token}%`]);
+      const orders = tickets.length ? [] : await q<{ id: string }>('select id from orders where lower(id) like $1 limit 2', [`${token}%`]);
+      if (tickets.length === 1) {
+        const t = tickets[0];
+        const prev = wanted.get(t.orderId);
+        if (prev?.ticketCents !== null) wanted.set(t.orderId, { legacyOrderId: t.orderId, ticketCents: (prev?.ticketCents ?? 0) + toCents(t.price) });
+      } else if (orders.length === 1) {
+        wanted.set(orders[0].id, { legacyOrderId: orders[0].id, ticketCents: null });
+      }
     }
-    if (!orderId) {
-      report.skipped.push({ what: 'richiesta di rimborso', id: r.id, reason: 'nessun ordine migrato corrisponde al numero indicato' });
+    const targets: { orderId: string; ticketCents: number | null }[] = [];
+    for (const w of wanted.values()) {
+      const orderId = await mapped('order', w.legacyOrderId);
+      if (orderId) targets.push({ orderId, ticketCents: w.ticketCents });
+    }
+    if (!targets.length) {
+      report.skipped.push({ what: 'richiesta di rimborso', id: r.id, reason: 'nessun ordine migrato corrisponde ai codici indicati' });
       continue;
     }
-    const order = (await one<{ id: string; edition_id: string; total_cents: number; status: string }>('select id, edition_id, total_cents, status from orders_v2 where id = $1', [orderId]))!;
-    const e = editionById.get(order.edition_id)!;
-    if (!allowed(e)) continue;
     const status = LEGACY_REFUND_STATUS[r.status as keyof typeof LEGACY_REFUND_STATUS] ?? 'requested';
-    const already = Number((await one<{ n: string }>(`select coalesce(sum(amount_cents), 0) as n from refunds_v2 where order_id = $1 and status <> 'rejected'`, [orderId]))!.n);
-    const amount = order.total_cents - already;
-    if (amount <= 0) {
-      report.skipped.push({ what: 'richiesta di rimborso', id: r.id, reason: 'ordine gratuito o già rimborsato per intero' });
-      continue;
+    let first: string | null = null;
+    for (const target of targets) {
+      const orderId = target.orderId;
+      const order = (await one<{ id: string; edition_id: string; total_cents: number; status: string }>('select id, edition_id, total_cents, status from orders_v2 where id = $1', [orderId]))!;
+      const e = editionById.get(order.edition_id)!;
+      if (!allowed(e)) continue;
+      const already = Number((await one<{ n: string }>(`select coalesce(sum(amount_cents), 0) as n from refunds_v2 where order_id = $1 and status <> 'rejected'`, [orderId]))!.n);
+      const amount = Math.min(target.ticketCents ?? order.total_cents, order.total_cents - already);
+      if (amount <= 0) {
+        report.skipped.push({ what: 'richiesta di rimborso', id: r.id, reason: 'ordine gratuito o già rimborsato per intero' });
+        continue;
+      }
+      // Il vecchio modulo non chiedeva l'importo: si usa il prezzo dei biglietti indicati, o l'intero ordine.
+      report.anomalies.push({ edition: e.slug, id: r.id, text: `importo non indicato nella richiesta: assunto ${target.ticketCents === null ? "l'intero ordine" : 'il prezzo dei biglietti indicati'} (${amount / 100} €)` });
+      const row = (await one<{ id: string }>(
+        `insert into refunds_v2 (order_id, amount_cents, reason, method, status, iban_encrypted, holder_name, requested_at, processed_at)
+         values ($1, $2, $3, 'bank_transfer', $4, $5, $6, $7, $8) returning id`,
+        [orderId, amount, r.reason, status, r.iban ? encryptIban(r.iban.replace(/\s/g, '').toUpperCase()) : null, r.account_holder ?? r.full_name, r.created_at ?? now, ['paid', 'rejected'].includes(status) ? (r.updated_at ?? now) : null],
+      ))!;
+      if (status === 'paid' && ['paid', 'partially_refunded'].includes(order.status)) {
+        const whole = already + amount >= order.total_cents;
+        await db.query(`update orders_v2 set status = $2, updated_at = now() where id = $1`, [orderId, whole ? 'refunded' : 'partially_refunded']);
+        if (whole) await db.query(`update tickets_v2 set status = 'void', updated_at = now() where order_id = $1`, [orderId]);
+      }
+      // Una richiesta che copre più ordini diventa più rimborsi: il primo tiene l'ID della richiesta.
+      if (first) await remember('refund_request_extra', `${r.id}:${orderId}`, row.id);
+      else first = row.id;
     }
-    // Il vecchio modulo non chiedeva l'importo: si assume il rimborso dell'intero ordine.
-    report.anomalies.push({ edition: e.slug, id: r.id, text: `importo non indicato nella richiesta: assunto l'intero ordine (${amount / 100} €)` });
-    const row = (await one<{ id: string }>(
-      `insert into refunds_v2 (order_id, amount_cents, reason, method, status, iban_encrypted, holder_name, requested_at, processed_at)
-       values ($1, $2, $3, 'bank_transfer', $4, $5, $6, $7, $8) returning id`,
-      [orderId, amount, r.reason, status, r.iban ? encryptIban(r.iban.replace(/\s/g, '').toUpperCase()) : null, r.account_holder ?? r.full_name, r.created_at ?? now, ['paid', 'rejected'].includes(status) ? (r.updated_at ?? now) : null],
-    ))!;
-    if (status === 'paid' && ['paid', 'partially_refunded'].includes(order.status)) {
-      await db.query(`update orders_v2 set status = 'refunded', updated_at = now() where id = $1`, [orderId]);
-      await db.query(`update tickets_v2 set status = 'void', updated_at = now() where order_id = $1`, [orderId]);
-    }
-    await remember('refund_request', r.id, row.id);
+    if (!first) continue;
+    await remember('refund_request', r.id, first);
     count('rimborsi', true);
   }
 

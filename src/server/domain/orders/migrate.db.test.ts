@@ -56,6 +56,29 @@ describe.skipIf(!enabled)('migrazione degli ordini esistenti', () => {
     expect(again.counts['ordini online']).toEqual({ created: 0, existing: 2 });
   });
 
+  it('aggancia le richieste di rimborso ai codici biglietto abbreviati o al "#" dell\'ordine', async () => {
+    const g = await createEdition({ status: 'concluded' });
+    await db.query(`insert into legacy_id_map (legacy_kind, legacy_id, new_id) values ('legacy_event_id', 'rimborsi-test', $1)`, [g.edition.id]);
+    await db.query(`insert into orders (id, "buyerName", "buyerEmail", "totalAmount", status) values ('ab12cd34ef56gh78', 'A', 'a@example.com', 8, 'PAID'), ('zz99yy88xx77ww66', 'B', 'b@example.com', 5, 'PAID')`);
+    await db.query(
+      `insert into tickets (id, "orderId", "eventId", type, price, "qrCodeData") values
+        ('1a2b3c4d-5e6f-7a8b-9c0d-000000000001', 'ab12cd34ef56gh78', 'rimborsi-test', 'Ingresso', 5, 'QR-R1'),
+        ('9f8e7d6c-5b4a-3f2e-1d0c-000000000002', 'ab12cd34ef56gh78', 'rimborsi-test', 'Laboratorio', 3, 'QR-R2'),
+        ('77777777-6666-5555-4444-000000000003', 'zz99yy88xx77ww66', 'rimborsi-test', 'Ingresso', 5, 'QR-R3')`,
+    );
+    await db.query(
+      `insert into refund_requests (id, full_name, email, booking_numbers, status) values
+        ('rr_ticket', 'A', 'a@example.com', ' 1A2B3C4D-5E6F-7A, ', 'pending'),
+        ('rr_order', 'B', 'b@example.com', '#ZZ99YY88', 'pending')`,
+    );
+    const report = await migrateOrders(db, { edition: g.slug });
+    expect(report.counts['rimborsi']).toEqual({ created: 2, existing: 0 });
+    const rows = (await db.query<{ legacy_id: string; amount_cents: number }>(
+      `select m.legacy_id, r.amount_cents from refunds_v2 r join legacy_id_map m on m.new_id = r.id and m.legacy_kind = 'refund_request' order by m.legacy_id`,
+    )).rows;
+    expect(rows).toEqual([{ legacy_id: 'rr_order', amount_cents: 500 }, { legacy_id: 'rr_ticket', amount_cents: 500 }]);
+  });
+
   it('salta le edizioni non concluse, se non richiesto', async () => {
     const active = await createEdition();
     await db.query(`insert into legacy_id_map (legacy_kind, legacy_id, new_id) values ('legacy_event_id', 'attiva', $1)`, [active.edition.id]);
