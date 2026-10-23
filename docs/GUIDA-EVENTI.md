@@ -97,7 +97,7 @@ Dichiara conclusa, chiudi i conti, poi archivia.
 
 Le spese di ogni edizione (Costi e rendiconto) e quelle generali dell’associazione (Costi generali), con la ricevuta se c’è.
 
-- Costi e rendiconto dell’edizione: aggiungi data, categoria, descrizione, fornitore, importo, pagamento e allegato. In alto vedi Entrate, Costi e Saldo.
+- Costi e rendiconto dell’edizione: aggiungi data, categoria, descrizione, fornitore, importo, pagamento e ricevuta (resta privata: la apre solo chi può leggere i costi, e ogni apertura finisce nel registro). In alto vedi Entrate, Costi e Saldo.
 - Si modificano finché l’edizione non è dichiarata conclusa; dopo sono in sola lettura, come il rendiconto.
 - Un costo sbagliato non si cancella: “Annulla costo” con il motivo. Resta barrato e non conta nei totali.
 - Costi generali: le spese fuori dagli eventi e il riepilogo per anno (entrate e costi di ogni edizione, costi generali, saldo), anche in CSV.

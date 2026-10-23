@@ -46,7 +46,7 @@ export function CostsManager({ edition, rows, canWrite, locked, items }: CostsMa
           return (
             <span className={r.voidedAt ? 'text-muted line-through' : 'text-fg'}>
               {c.getValue()}
-              {r.attachmentUrl && <Paperclip size={13} aria-label="con allegato" className="ml-1 inline text-muted" />}
+              {(r.attachmentPublicId || r.attachmentUrl) && <Paperclip size={13} aria-label="con allegato" className="ml-1 inline text-muted" />}
               {r.supplier && <span className="block text-label text-muted no-underline">{r.supplier}</span>}
             </span>
           );

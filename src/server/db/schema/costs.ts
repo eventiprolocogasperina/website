@@ -84,8 +84,14 @@ export const costs = pgTable(
     paymentMethod: costPaymentMethod('payment_method').notNull(),
     paid: boolean('paid').default(false).notNull(),
     paidAt: date('paid_at'),
-    /** Ricevuta o fattura (PDF o immagine) su Cloudinary. */
+    /** Ricevuta caricata prima delle ricevute private: URL pubblico, resta in sola lettura. */
     attachmentUrl: text('attachment_url'),
+    /** Ricevuta o fattura privata su Cloudinary (asset `authenticated`): mai un URL pubblico. */
+    attachmentPublicId: text('attachment_public_id'),
+    /** `image` o `raw` (i PDF). */
+    attachmentResourceType: text('attachment_resource_type'),
+    /** Formato delle immagini (jpg, png…); null per i PDF, che hanno l'estensione nel public_id. */
+    attachmentFormat: text('attachment_format'),
     notes: text('notes'),
     /** Acquisto di materiale dell'inventario. */
     inventoryItemId: uuid('inventory_item_id').references(() => inventoryItems.id),

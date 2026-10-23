@@ -6,7 +6,7 @@ import { Button, Field } from '@/components/ui';
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
-/** Allegato (ricevuta in PDF o immagine, foto del materiale): va su Cloudinary come gli altri caricamenti dell'admin. */
+/** Allegato pubblico (foto del materiale): va su Cloudinary come gli altri caricamenti dell'admin. Le ricevute dei costi usano ReceiptField (private). */
 export function FileField({ label, help, value, onChange, folder, accept = 'application/pdf,image/png,image/jpeg,image/webp' }: { label: string; help?: string; value: string | null; onChange: (url: string | null) => void; folder: string; accept?: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
