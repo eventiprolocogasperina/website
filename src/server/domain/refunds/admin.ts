@@ -13,7 +13,14 @@ export const REFUND_STATUSES = ['requested', 'approved', 'paid', 'rejected'] as 
 export type RefundStatusKey = (typeof REFUND_STATUSES)[number];
 export const REFUNDS_PAGE_SIZE = 50;
 
-export type RefundFilters = { status: RefundStatusKey | ''; q: string; page: number };
+/**
+ * Canale dell'ordine rimborsato. La logica cambia: un ordine online (o con link di pagamento) si
+ * rimborsa con bonifico o storno Nexi; uno di cassa in contanti alla cassa; uno dall'admin come è stato pagato.
+ */
+export const REFUND_CHANNELS = { online: ['online', 'paylink'], cassa: ['pos'], admin: ['admin', 'invite'] } as const;
+export type RefundChannelKey = keyof typeof REFUND_CHANNELS;
+
+export type RefundFilters = { status: RefundStatusKey | ''; channel: RefundChannelKey | ''; q: string; page: number };
 
 export type RefundRow = {
   id: string;
@@ -21,6 +28,7 @@ export type RefundRow = {
   orderCode: string;
   editionSlug: string;
   editionTitle: string;
+  channel: string;
   customerName: string | null;
   customerEmail: string | null;
   amountCents: number;
@@ -33,12 +41,13 @@ export type RefundRow = {
   processedAt: string | null;
 };
 
-function conditions(scope: 'all' | string[], f: Pick<RefundFilters, 'status' | 'q'>) {
+function conditions(scope: 'all' | string[], f: Pick<RefundFilters, 'status' | 'q'> & { channel?: RefundFilters['channel'] }) {
   const q = f.q ? `%${likeEscape(f.q)}%` : null;
   return and(
     isNull(ordersV2.deletedAt),
     scope === 'all' ? undefined : inArray(editions.slug, scope),
     f.status ? eq(refundsV2.status, f.status) : undefined,
+    f.channel ? inArray(ordersV2.channel, [...REFUND_CHANNELS[f.channel]]) : undefined,
     q ? or(ilike(ordersV2.code, q), ilike(customers.name, q), ilike(customers.email, q), ilike(refundsV2.holderName, q)) : undefined,
   );
 }
@@ -51,6 +60,7 @@ const query = () =>
       orderCode: ordersV2.code,
       editionSlug: editions.slug,
       editionTitle: editions.title,
+      channel: ordersV2.channel,
       customerName: customers.name,
       customerEmail: customers.email,
       amountCents: refundsV2.amountCents,
@@ -98,7 +108,7 @@ export async function listRefunds(ctx: Ctx, edition: string | null, f: RefundFil
       .from(refundsV2)
       .innerJoin(ordersV2, eq(ordersV2.id, refundsV2.orderId))
       .innerJoin(editions, eq(editions.id, ordersV2.editionId))
-      .where(conditions(scope, { status: '', q: '' }))
+      .where(conditions(scope, { status: '', q: '', channel: f.channel }))
       .groupBy(refundsV2.status),
   ]);
   const byStatus = Object.fromEntries(REFUND_STATUSES.map((s) => [s, counts.find((c) => c.status === s)?.n ?? 0])) as Record<RefundStatusKey, number>;

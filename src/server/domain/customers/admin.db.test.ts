@@ -108,10 +108,19 @@ describe.skipIf(!enabled)('admin clienti, rimborsi e viste sul database', () => 
       const fx = await createEdition();
       const r = await order({}, fx);
       await requestRefund(anon, { orderCode: r.code, accessToken: r.accessToken, reason: 'Non vengo', iban: IBAN, holderName: 'Mario Rossi' });
-      const queue = await listRefunds(owner, fx.slug, { status: '', q: '', page: 0 });
+      const queue = await listRefunds(owner, fx.slug, { status: '', channel: '', q: '', page: 0 });
       expect(queue.counts.requested).toBe(1);
       expect(queue.rows[0]).toMatchObject({ orderCode: r.code, status: 'requested', iban: 'IT60 •••• •••• 3456', holderName: 'Mario Rossi' });
       expect(JSON.stringify(queue)).not.toContain(IBAN);
+      // Filtro per canale: l'ordine fatto dall'admin compare tra gli Admin, non tra Online né Cassa.
+      expect(queue.rows[0].channel).toBe('admin');
+      const ch = 'admin';
+      expect((await listRefunds(owner, fx.slug, { status: '', channel: ch, q: '', page: 0 })).total).toBe(1);
+      for (const other of (['online', 'cassa', 'admin'] as const).filter((c) => c !== ch)) {
+        const res = await listRefunds(owner, fx.slug, { status: '', channel: other, q: '', page: 0 });
+        expect(res.total).toBe(0);
+        expect(res.counts.requested).toBe(0);
+      }
 
       const r2 = await order({}, fx);
       await createRefund(owner, { orderId: r2.id, amountCents: 500, method: 'bank_transfer', reason: 'Annullato', iban: IBAN, holderName: 'Mario Rossi' });
@@ -124,7 +133,7 @@ describe.skipIf(!enabled)('admin clienti, rimborsi e viste sul database', () => 
       const exported = await getDb().select().from(auditLog).where(and(eq(auditLog.action, 'refund.iban_exported'), eq(auditLog.editionSlug, fx.slug)));
       expect(exported).toHaveLength(1);
       expect(JSON.stringify(exported)).not.toContain(IBAN);
-      expect(await errorCode(listRefunds(roleOn('event_manager', f.slug), fx.slug, { status: '', q: '', page: 0 }))).toBe('FORBIDDEN');
+      expect(await errorCode(listRefunds(roleOn('event_manager', f.slug), fx.slug, { status: '', channel: '', q: '', page: 0 }))).toBe('FORBIDDEN');
     });
   });
 

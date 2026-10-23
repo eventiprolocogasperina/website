@@ -4,11 +4,11 @@ import { Download, Undo2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTransition } from 'react';
-import { ButtonLink, DataTable, dataTableColumns, EmptyState, FilterBar, StatusBadge, Tabs } from '@/components/ui';
+import { Badge, ButtonLink, DataTable, dataTableColumns, EmptyState, FilterBar, StatusBadge, Tabs } from '@/components/ui';
 import { refundMethodLabel } from '@/lib/admin/order-labels';
 import { formatDateTime } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
-import type { RefundFilters, RefundRow, RefundStatusKey } from '@/server/domain/refunds/admin';
+import type { RefundChannelKey, RefundFilters, RefundRow, RefundStatusKey } from '@/server/domain/refunds/admin';
 import { RefundRowActions, type RefundPermissions } from './RefundRowActions';
 
 // Coda dei rimborsi (prompt 12): prima le richieste da gestire. Approva → esegui (bonifico o storno) → fatto;
@@ -21,6 +21,14 @@ const TABS: Array<{ value: RefundStatusKey | ''; label: string }> = [
   { value: 'rejected', label: 'Rifiutati' },
   { value: '', label: 'Tutti' },
 ];
+const CHANNELS: Array<{ value: RefundChannelKey | ''; label: string }> = [
+  { value: '', label: 'Tutti i canali' },
+  { value: 'online', label: 'Online' },
+  { value: 'cassa', label: 'Cassa' },
+  { value: 'admin', label: 'Admin' },
+];
+/** Etichetta del canale dell'ordine (online e link di pagamento = Online; inviti = Admin). */
+const channelLabel = (c: string) => (c === 'pos' ? 'Cassa' : c === 'admin' || c === 'invite' ? 'Admin' : 'Online');
 const col = dataTableColumns<RefundRow>();
 
 export function RefundQueue({ rows, total, counts, filters, pageSize, perms, global, exportHref }: { rows: RefundRow[]; total: number; counts: Record<RefundStatusKey, number>; filters: RefundFilters; pageSize: number; perms: RefundPermissions; global: boolean; exportHref: string }) {
@@ -32,6 +40,7 @@ export function RefundQueue({ rows, total, counts, filters, pageSize, perms, glo
     const f = { ...filters, page: 0, ...next };
     const p = new URLSearchParams();
     p.set('stato', f.status || 'tutti');
+    if (f.channel) p.set('canale', f.channel);
     if (f.q) p.set('q', f.q);
     if (f.page) p.set('pagina', String(f.page + 1));
     start(() => router.push(`${pathname}?${p}`, { scroll: false }));
@@ -42,6 +51,7 @@ export function RefundQueue({ rows, total, counts, filters, pageSize, perms, glo
     col.accessor('orderCode', { header: 'Ordine', meta: { label: 'Ordine' }, size: 120, enableSorting: false, cell: (c) => <Link className="font-mono text-primary hover:underline" href={orderHref(c.row.original)} onClick={(e) => e.stopPropagation()}>{c.getValue()}</Link> }),
     col.accessor('requestedAt', { header: 'Richiesto', meta: { label: 'Richiesto' }, size: 150, enableSorting: false, cell: (c) => formatDateTime(c.getValue()) }),
     col.display({ id: 'customer', header: 'Cliente', meta: { label: 'Cliente' }, size: 200, cell: (c) => <span className="truncate">{c.row.original.customerName ?? c.row.original.customerEmail ?? '—'}</span> }),
+    col.accessor('channel', { header: 'Canale', meta: { label: 'Canale' }, size: 90, enableSorting: false, cell: (c) => <Badge tone={c.getValue() === 'pos' ? 'warning' : 'neutral'}>{channelLabel(c.getValue())}</Badge> }),
     ...(global ? [col.accessor('editionTitle', { header: 'Edizione', meta: { label: 'Edizione' }, size: 160, enableSorting: false })] : []),
     col.accessor('amountCents', { header: 'Importo', meta: { label: 'Importo', align: 'right' }, size: 100, enableSorting: false, cell: (c) => <span className="tabular-nums">{formatMoney(c.getValue())}</span> }),
     col.display({
@@ -65,6 +75,7 @@ export function RefundQueue({ rows, total, counts, filters, pageSize, perms, glo
   return (
     <div className="flex flex-col gap-4">
       <Tabs aria-label="Stato dei rimborsi" items={TABS.map((t) => ({ value: t.value || 'tutti', label: t.label, count: t.value ? counts[t.value] : undefined }))} value={filters.status || 'tutti'} onValueChange={(v) => go({ status: v === 'tutti' ? '' : (v as RefundStatusKey) })} />
+      <Tabs aria-label="Canale dell'ordine" items={CHANNELS.map((c) => ({ value: c.value || 'tutti', label: c.label }))} value={filters.channel || 'tutti'} onValueChange={(v) => go({ channel: v === 'tutti' ? '' : (v as RefundChannelKey) })} />
       <FilterBar
         search={filters.q}
         onSearchChange={(q) => go({ q })}
@@ -87,7 +98,7 @@ export function RefundQueue({ rows, total, counts, filters, pageSize, perms, glo
               <span className="font-semibold tabular-nums">{formatMoney(r.amountCents)}</span>
             </span>
             <span className="truncate">{r.customerName ?? r.customerEmail ?? '—'}</span>
-            <span className="text-caption text-muted">{[formatDateTime(r.requestedAt), global ? r.editionTitle : null, refundMethodLabel(r.method), r.iban].filter(Boolean).join(' · ')}</span>
+            <span className="text-caption text-muted">{[formatDateTime(r.requestedAt), channelLabel(r.channel), global ? r.editionTitle : null, refundMethodLabel(r.method), r.iban].filter(Boolean).join(' · ')}</span>
             {r.reason && <span className="text-label">{r.reason}</span>}
             <span className="flex flex-wrap items-center justify-between gap-2">
               <StatusBadge status={r.status} />
