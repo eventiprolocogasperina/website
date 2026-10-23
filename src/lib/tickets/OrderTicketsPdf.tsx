@@ -11,6 +11,10 @@ export type OrderTicketsPdfData = {
   buyerName: string | null;
   issuedOn: string;
   totalLabel: string;
+  /** "Totale pagato" se l'ordine è pagato, altrimenti "Totale". */
+  totalTitle?: string;
+  /** "Codice SPONSOR26: −5,00 €" se l'ordine ha usato un codice sconto. */
+  discountLabel?: string | null;
   tickets: Array<{ id: string; name: string; when: string | null; priceLabel: string; qrDataUri: string }>;
   /** Righe senza biglietto (es. consumazioni), solo nel riepilogo. */
   otherLines: Array<{ name: string; quantity: number; totalLabel: string }>;
@@ -93,10 +97,11 @@ export function OrderTicketsPdf({ data }: { data: OrderTicketsPdfData }) {
                 <Text style={s.value}>{data.when ?? 'Vedi i biglietti'}</Text>
               </View>
               <View>
-                <Text style={s.label}>Totale</Text>
+                <Text style={s.label}>{data.totalTitle ?? 'Totale'}</Text>
                 <Text style={s.value}>{data.totalLabel}</Text>
               </View>
             </View>
+            {data.discountLabel && <Text style={s.meta}>{data.discountLabel}</Text>}
             {data.otherLines.map((l, i) => (
               <Text key={i} style={s.meta}>
                 {l.quantity}× {l.name} · {l.totalLabel}

@@ -13,6 +13,7 @@ process.env.NEXI_MAC_KEY = 'chiave-di-test';
 
 const { getCheckout, placeOrder, quoteCart } = await import('./index');
 const { getOrderByToken } = await import('./my-tickets');
+const { orderSummary } = await import('@/lib/tickets/order-summary');
 const { paymentForm, processResult } = await import('@/server/integrations/nexi');
 const { customerMoveSession } = await import('@/server/domain/orders');
 const { setTelegramClient } = await import('@/server/integrations/telegram');
@@ -141,6 +142,16 @@ describe.skipIf(!enabled)('checkout pubblico e Nexi', () => {
     expect(retry.fields.codTrans).not.toBe(first.fields.codTrans);
     expect(await processResult(nexiResult(retry.fields), 'browser')).toMatchObject({ outcome: 'succeeded', order: { status: 'paid' } });
     expect((await paymentsOf(r.id)).map((x) => x.status).sort()).toEqual(['failed', 'succeeded']);
+  });
+
+  it('biglietti ed email mostrano il codice sconto usato e il totale pagato, letti dall’ordine', async () => {
+    await createDiscount({ code: 'SPONSOR26', editionId: f.edition.id, kind: 'fixed', value: 500 });
+    const r = await order({ discountCode: 'sponsor26', expectedTotalCents: 500 });
+    const form = paymentForm({ code: r.code, totalCents: r.totalCents });
+    await processResult(nexiResult(form.fields), 'server');
+    const mine = (await getOrderByToken(r.accessToken))!;
+    expect(mine).toMatchObject({ discountCode: 'SPONSOR26', discountCents: 500, totalCents: 500, status: 'paid' });
+    expect(orderSummary(mine)).toEqual({ discountLabel: 'Codice SPONSOR26: −5,00\u00a0€', totalTitle: 'Totale pagato', totalLabel: '5,00\u00a0€' });
   });
 
   it('"I miei biglietti": biglietti dell’ordine e cambio data solo se il modulo lo consente', async () => {

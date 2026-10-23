@@ -5,7 +5,7 @@ import { editionLinks, type EditionLinks } from '@/lib/public/edition-links';
 import { moduleSettings } from '@/modules/registry';
 import { postponementRefundRight } from '@/modules/postponement/server';
 import { getDb } from '@/server/db/client';
-import { customers, editions, orderLines, ordersV2, payments, products, refundsV2, series, sessions, ticketsV2 } from '@/server/db/schema';
+import { customers, discountsV2, editions, orderLines, ordersV2, payments, products, refundsV2, series, sessions, ticketsV2 } from '@/server/db/schema';
 import { summarizePayments } from '@/server/domain/payments/status';
 
 export type MyOrder = {
@@ -15,6 +15,8 @@ export type MyOrder = {
   channel: string;
   totalCents: number;
   discountCents: number;
+  /** Codice sconto usato dall'ordine (letto dal database), se c'è. */
+  discountCode: string | null;
   createdAt: Date;
   paidAt: Date | null;
   expiresAt: Date | null;
@@ -53,11 +55,12 @@ export async function getOrderByToken(token: string, now = new Date()): Promise<
   if (!/^[A-Za-z0-9_-]{16,100}$/.test(token)) return null;
   const db = getDb();
   const [row] = await db
-    .select({ order: ordersV2, edition: editions, theme: series.theme, seriesName: series.name, seriesPath: series.landingPath, seriesBlocks: series.pageBlocks, customer: { name: customers.name, email: customers.email } })
+    .select({ order: ordersV2, edition: editions, theme: series.theme, seriesName: series.name, seriesPath: series.landingPath, seriesBlocks: series.pageBlocks, customer: { name: customers.name, email: customers.email }, discountCode: discountsV2.code })
     .from(ordersV2)
     .innerJoin(editions, eq(editions.id, ordersV2.editionId))
     .leftJoin(series, eq(series.id, editions.seriesId))
     .leftJoin(customers, eq(customers.id, ordersV2.customerId))
+    .leftJoin(discountsV2, eq(discountsV2.id, ordersV2.discountId))
     .where(eq(ordersV2.accessToken, token));
   if (!row || row.order.deletedAt) return null;
   const { order, edition } = row;
@@ -88,6 +91,7 @@ export async function getOrderByToken(token: string, now = new Date()): Promise<
     channel: order.channel,
     totalCents: order.totalCents,
     discountCents: order.discountCents,
+    discountCode: row.discountCode ?? null,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
     expiresAt: order.expiresAt,
