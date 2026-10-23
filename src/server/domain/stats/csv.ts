@@ -8,8 +8,8 @@ const METHOD: Record<string, string> = { nexi: 'Carta online (Nexi)', cash: 'Con
 export const channelLabel = (c: string) => CHANNEL[c] ?? c;
 export const methodLabel = (m: string) => METHOD[m] ?? m;
 
-/** Una sola tabella a 4 colonne: sezione, voce, quantità, importo. Si filtra bene in Excel. */
-export function statsCsv(stats: EditionStats): string {
+/** Una sola tabella a 4 colonne: sezione, voce, quantità, importo. Si filtra bene in Excel. `extra`: righe in coda (rendiconto). */
+export function statsCsv(stats: EditionStats, extra: CsvCell[][] = []): string {
   const rows: CsvCell[][] = [];
   const t = stats.totals;
   rows.push(
@@ -28,5 +28,5 @@ export function statsCsv(stats: EditionStats): string {
   for (const h of stats.byHour) rows.push(['Ora', `${String(h.hour).padStart(2, '0')}:00`, h.orders, csvMoney(h.cents)]);
   for (const h of stats.cashByHour) rows.push(['Cassa per ora', `${String(h.hour).padStart(2, '0')}:00`, h.orders, csvMoney(h.cents)]);
   for (const d of stats.cashByDepartment) rows.push(['Cassa per reparto', d.department, d.quantity, csvMoney(d.cents)]);
-  return toCsv(['Sezione', 'Voce', 'Quantità', 'Importo (€)'], rows);
+  return toCsv(['Sezione', 'Voce', 'Quantità', 'Importo (€)'], [...rows, ...extra]);
 }

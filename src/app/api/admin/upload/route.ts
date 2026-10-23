@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import { requireAnyPermission } from '@/server/auth/context';
+import { getAdminCtx } from '@/server/auth/context';
+import { can, canSomewhere, type Permission } from '@/server/auth/permissions';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -14,8 +15,12 @@ cloudinary.config({
  * Returns: { url, publicId }
  */
 export async function POST(request: Request) {
-  const denied = await requireAnyPermission(['content.edit', 'editions.edit']);
-  if (denied) return denied;
+  // Contenuti, edizioni, foto del materiale e ricevute dei costi (anche per chi gestisce una sola edizione).
+  const ctx = await getAdminCtx();
+  if (!ctx) return NextResponse.json({ error: 'Accedi per continuare.' }, { status: 401 });
+  if (!(['content.edit', 'editions.edit', 'inventory.write'] as Permission[]).some((p) => can(ctx, p)) && !canSomewhere(ctx, 'costs.write')) {
+    return NextResponse.json({ error: 'Non hai i permessi per questa operazione.' }, { status: 403 });
+  }
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;

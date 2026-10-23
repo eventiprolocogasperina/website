@@ -134,6 +134,13 @@
       "when": 1792745149431,
       "tag": "0018_ordini_bozza",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792745403409,
+      "tag": "0019_costi_inventario",
+      "breakpoints": true
     }
   ]
 }

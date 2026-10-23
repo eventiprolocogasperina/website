@@ -21,6 +21,7 @@ import {
   Mail,
   Menu as MenuIcon,
   Newspaper,
+  Package,
   Palette,
   Receipt,
   ScanLine,
@@ -34,6 +35,7 @@ import {
   Undo2,
   User,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import type { Permission } from '@/server/auth/permissions';
@@ -81,7 +83,14 @@ export const ORG_NAV: NavGroup[] = [
     ],
   },
   { label: 'Clienti', items: [{ label: 'Clienti', href: '/admin/clienti', permission: 'customers.read', icon: User }] },
-  { label: 'Associazione', items: [{ label: 'Soci', href: '/admin/soci', permission: 'members.manage', icon: Users, keywords: ['iscritti', 'quote'] }] },
+  {
+    label: 'Associazione',
+    items: [
+      { label: 'Soci', href: '/admin/soci', permission: 'members.manage', icon: Users, keywords: ['iscritti', 'quote'] },
+      { label: 'Costi generali', href: '/admin/costi', permission: 'costs.read', icon: Wallet, keywords: ['spese', 'saldo', 'bilancio', 'riepilogo'] },
+      { label: 'Inventario', href: '/admin/inventario', permission: 'inventory.read', icon: Package, keywords: ['materiale', 'magazzino', 'attrezzatura'] },
+    ],
+  },
   {
     label: 'Sito',
     items: [
@@ -148,6 +157,7 @@ export function editionNav(slug: string, modules: EditionModule[]): NavGroup[] {
         { label: 'Cassa', href: `${base}/cassa`, permission: 'catalog.edit', icon: Store, shortcut: 'g c', keywords: ['pos', 'stand'] },
         { label: 'Rimborsi', href: `${base}/rimborsi`, permission: 'orders.read', icon: Undo2 },
         { label: 'Statistiche', href: `${base}/statistiche`, permission: 'orders.read', icon: BarChart3, keywords: ['analytics'] },
+        { label: 'Costi e rendiconto', href: `${base}/costi`, permission: 'costs.read', icon: Wallet, keywords: ['spese', 'saldo', 'materiale'] },
       ],
     },
     { label: 'Sito', items: [{ label: 'Pagina pubblica', href: `${base}/pagina`, permission: 'editions.edit', icon: LayoutTemplate, keywords: ['cms', 'landing'] }] },

@@ -81,8 +81,30 @@ export const GUIDE: GuideSection[] = [
     points: [
       'Recensioni: chiedile con il link alla galleria delle foto.',
       'Rimborsi (pochi, con bonifico) nella sezione Rimborsi.',
-      'Rendiconto per il direttivo (PDF e CSV): a edizione conclusa, da Impostazioni → Chiusura e archivio; puoi rigenerarlo finché non archivi. I costi non ci sono ancora.',
+      'Rendiconto per il direttivo (PDF e CSV): a edizione conclusa, da Impostazioni → Chiusura e archivio; puoi rigenerarlo finché non archivi. Contiene entrate, costi per categoria, saldo e materiale usato.',
       'Archivia: l’edizione diventa di sola lettura per sempre.',
+    ],
+  },
+  {
+    id: 'costi',
+    title: '9. Costi',
+    summary: 'Le spese di ogni edizione (Costi e rendiconto) e quelle generali dell’associazione (Costi generali), con la ricevuta se c’è.',
+    points: [
+      'Costi e rendiconto dell’edizione: aggiungi data, categoria, descrizione, fornitore, importo, pagamento e allegato. In alto vedi Entrate, Costi e Saldo.',
+      'Si modificano finché l’edizione non è dichiarata conclusa; dopo sono in sola lettura, come il rendiconto.',
+      'Un costo sbagliato non si cancella: “Annulla costo” con il motivo. Resta barrato e non conta nei totali.',
+      'Costi generali: le spese fuori dagli eventi e il riepilogo per anno (entrate e costi di ogni edizione, costi generali, saldo), anche in CSV.',
+    ],
+  },
+  {
+    id: 'inventario',
+    title: '10. Inventario',
+    summary: 'Il materiale della Pro Loco: quanti pezzi, dove si trova, in che stato.',
+    points: [
+      'Aggiungi materiale con nome, categoria, quantità, posto e stato (buono, da riparare, fuori uso); foto e valore d’acquisto se servono.',
+      '“Porta a un evento” assegna dei pezzi a un’edizione; dopo l’evento, in Costi e rendiconto, “Segna rientrato” dice quanti sono tornati. I mancanti escono come persi.',
+      'Persi, rotti o comprati fuori dagli eventi: “Rettifica quantità”, sempre con il motivo.',
+      'Il materiale che non c’è più si dismette: esce dall’elenco ma resta nello storico.',
     ],
   },
 ];
@@ -102,6 +124,7 @@ const EDITION_HELP: Record<string, SectionHelp> = {
   partecipanti: { text: 'Partecipanti: biglietti, persone e risposte alle domande, con l’esportazione.', guide: 'durante' },
   rimborsi: { text: 'Rimborsi: richieste e bonifici dell’edizione.', guide: 'dopo' },
   statistiche: { text: 'Statistiche: vendite per canale, prodotto e giorno, confronto con l’anno scorso.', guide: 'dopo' },
+  costi: { text: 'Costi e rendiconto: spese dell’edizione, saldo con le entrate e materiale usato. Modificabili finché l’edizione non è conclusa.', guide: 'costi' },
   impostazioni: { text: 'Impostazioni: dati generali, stato (pubblica, apri le vendite), moduli, chiusura e archivio.', guide: 'dopo' },
   m: { text: 'Modulo: una funzione in più dell’edizione (inviti, rinvio, foto…). Si accende in Impostazioni → Moduli.', guide: 'biglietti' },
 };
@@ -110,6 +133,8 @@ const ORG_HELP: Record<string, SectionHelp> = {
   '/admin/edizioni/nuova': { text: 'Nuova edizione: scegli il format e parti dall’edizione precedente; i passi dopo si possono saltare.', guide: 'edizione' },
   '/admin/edizioni': { text: 'Edizioni: un’edizione per anno di ogni format. “Nuova edizione” apre la procedura guidata.', guide: 'edizione' },
   '/admin/format': { text: 'Format: gli eventi che si ripetono, con logo, colori e pagina pubblica stabile.', guide: 'format' },
+  '/admin/costi': { text: 'Costi generali: spese fuori dalle edizioni e riepilogo per anno di entrate, costi e saldo.', guide: 'costi' },
+  '/admin/inventario': { text: 'Inventario: il materiale, dove si trova, in che stato e a quali eventi è andato.', guide: 'inventario' },
 };
 
 /** Aiuto della pagina, o null dove non serve. */
