@@ -33,7 +33,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottom: '4 solid #E8C042'
   },
-  headerLeft: { flexDirection: 'column' },
+  headerLeft: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    flex: 1,
+    marginRight: 16,
+  },
+  headerRight: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
   eventTitle: {
     color: palette.white,
     fontSize: 28,
@@ -55,20 +66,26 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   logoImage: {
-    height: 70, // Fatto più grande
+    height: 70,
+    maxWidth: 260,
+    objectFit: 'contain',
+  },
+  proLocoLogoImage: {
+    height: 60,
+    maxWidth: 140,
     objectFit: 'contain',
   },
   body: {
-    padding: '25 40',
+    padding: '24 40 60 40',
     flexDirection: 'column',
-    gap: 15,
+    gap: 12,
   },
   ticketCard: {
     backgroundColor: palette.white,
     borderRadius: 8,
     overflow: 'hidden',
     flexDirection: 'row',
-    marginBottom: 8, // Margini ridotti per farne stare di più
+    marginBottom: 8,
     border: `1 solid #e5ddd4`,
   },
   ticketStripe: {
@@ -82,7 +99,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  ticketLeft: { flexDirection: 'column', flex: 1 },
+  ticketLeft: {
+    flexDirection: 'column',
+    flex: 1,
+    paddingRight: 14,
+  },
   ticketLabel: {
     fontSize: 8,
     color: palette.muted,
@@ -91,36 +112,37 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   ticketType: {
-    fontSize: 16,
+    fontSize: 15,
     color: palette.dark,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   ticketMeta: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: palette.muted,
     marginBottom: 2,
   },
   ticketPrice: {
-    fontSize: 14,
+    fontSize: 13,
     color: palette.primary,
     fontFamily: 'Helvetica-Bold',
-    marginTop: 4,
+    marginTop: 3,
   },
   qrContainer: {
     alignItems: 'center',
-    padding: '5 10',
+    padding: '4 8',
     borderLeft: `1 dashed #e5ddd4`,
     flexDirection: 'column',
     justifyContent: 'center',
     marginLeft: 10,
+    width: 80,
   },
   qrImage: {
-    width: 65,
-    height: 65,
+    width: 64,
+    height: 64,
   },
   qrId: {
-    fontSize: 6,
+    fontSize: 6.5,
     color: palette.muted,
     marginTop: 4,
     textAlign: 'center',
@@ -128,46 +150,53 @@ const styles = StyleSheet.create({
   buyerSection: {
     backgroundColor: palette.white,
     borderRadius: 8,
-    padding: '12 16',
+    padding: '14 16',
     border: `1 solid #e5ddd4`,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   buyerTitle: {
     fontSize: 8,
     color: palette.muted,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   buyerRow: {
     flexDirection: 'row',
-    gap: 30,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  buyerField: { flexDirection: 'column' },
+  buyerCol: {
+    width: '48%',
+    flexDirection: 'column',
+  },
   buyerFieldLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: palette.muted,
-    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 3,
   },
   buyerFieldValue: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: palette.dark,
     fontFamily: 'Helvetica-Bold',
+    lineHeight: 1.3,
   },
   infoBox: {
     backgroundColor: '#fff4e5',
     borderRadius: 8,
-    padding: '12 16',
+    padding: '10 14',
     border: `1 solid #ffd8a8`,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    marginTop: 10,
+    gap: 8,
+    marginTop: 4,
   },
   infoText: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: '#92400e',
-    lineHeight: 1.5,
+    lineHeight: 1.45,
     flex: 1,
   },
   footer: {
@@ -192,25 +221,25 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   orderId: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: palette.muted,
-    marginBottom: 10,
+    marginBottom: 6,
     letterSpacing: 0.5,
   },
   cutLineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 5,
-    marginBottom: 5,
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 4,
   },
   cutLine: {
     flex: 1,
-    borderBottom: '1 dashed #ccc',
+    borderBottom: '1 dashed #d1c7bc',
   },
   cutText: {
     fontSize: 7,
-    color: '#ccc',
+    color: '#9ca3af',
     textTransform: 'uppercase',
     letterSpacing: 1,
   }
@@ -235,7 +264,6 @@ interface TicketPdfProps {
   proLocoLogoBase64?: string;
 }
 
-
 export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoLogoBase64 }: TicketPdfProps) {
   const orderRef = order.id.replace(/-/g, '').substring(0, 8).toUpperCase();
   const paidDate = order.paidAt
@@ -257,7 +285,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
   const priceColor = isZuccaland ? '#f97316' : palette.primary;
   const eventTitle = isZuccaland ? 'Zuccaland 2026' : 'Assaggia & Passeggia';
   const eventSubtitle = isZuccaland 
-    ? (parsedNotes.dayKey !== 'unspecified' ? `Pro Loco Gasperina · ${parsedNotes.eventDate}` : 'Pro Loco Gasperina · Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026') 
+    ? (parsedNotes.dayKey !== 'unspecified' ? `Pro Loco Gasperina · ${parsedNotes.eventDate}${parsedNotes.dayKey === '24' ? ' (Ore 11:00 - 17:00)' : ''}` : 'Pro Loco Gasperina · Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026') 
     : 'Pro Loco Gasperina · Gasperina (CZ)';
   const eventDate = isZuccaland ? parsedNotes.fullDateWithTime : '10 Agosto 2026 - Ritiro dalle ore 19:00';
 
@@ -279,9 +307,9 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
               </>
             )}
           </View>
-          <View>
+          <View style={styles.headerRight}>
             {proLocoLogoBase64 ? (
-              <Image src={proLocoLogoBase64} style={{ height: 60, objectFit: 'contain' }} />
+              <Image src={proLocoLogoBase64} style={styles.proLocoLogoImage} />
             ) : (
               <Text style={styles.logoText}>PRO LOCO{'\n'}GASPERINA</Text>
             )}
@@ -296,32 +324,41 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
             Ricevuta Prenotazione: #{orderRef} · Emessa il {paidDate}
           </Text>
 
-          {/* Buyer info */}
-          <View style={styles.buyerSection}>
+          {/* Buyer info — Structured 2x2 Grid so fields never collide or overlap */}
+          <View style={styles.buyerSection} wrap={false}>
             <Text style={styles.buyerTitle}>Dati acquirente</Text>
+            
+            {/* Riga 1: Nome e Cognome + Email */}
             <View style={styles.buyerRow}>
-              <View style={styles.buyerField}>
+              <View style={styles.buyerCol}>
                 <Text style={styles.buyerFieldLabel}>Nome e Cognome</Text>
                 <Text style={styles.buyerFieldValue}>{order.buyerName}</Text>
               </View>
-              <View style={styles.buyerField}>
+              <View style={styles.buyerCol}>
                 <Text style={styles.buyerFieldLabel}>Email</Text>
                 <Text style={styles.buyerFieldValue}>{order.buyerEmail}</Text>
               </View>
-              {isZuccaland && (
-                <View style={styles.buyerField}>
-                  <Text style={styles.buyerFieldLabel}>Giorno & Orario Ingresso</Text>
-                  <Text style={[styles.buyerFieldValue, { color: '#ea580c' }]}>
-                    {parsedNotes.fullDateWithTime || (parsedNotes.eventDate ? `${parsedNotes.eventDate} · Ore 10:30` : 'Sabato 17, Domenica 18 o Domenica 25 Ottobre · Ore 10:30')}
+            </View>
+
+            {/* Riga 2: Data/Orario Ingresso + N° Biglietti */}
+            <View style={[styles.buyerRow, { marginTop: 10 }]}>
+              <View style={styles.buyerCol}>
+                <Text style={styles.buyerFieldLabel}>
+                  {isZuccaland ? 'Giorno & Orario Ingresso' : 'Data & Orario Ritiro'}
+                </Text>
+                <Text style={[styles.buyerFieldValue, { color: isZuccaland ? '#ea580c' : priceColor }]}>
+                  {isZuccaland 
+                    ? (parsedNotes.fullDateWithTime || (parsedNotes.eventDate ? `${parsedNotes.eventDate} · Ore 10:30` : 'Sabato 17, Domenica 18 o Domenica 25 Ottobre · Ore 10:30'))
+                    : eventDate}
+                </Text>
+                {isZuccaland && parsedNotes.isPostponed && (
+                  <Text style={{ fontSize: 7.5, color: '#c2410c', marginTop: 2, fontFamily: 'Helvetica-Bold' }}>
+                    (Data di recupero dal {parsedNotes.originalDayKey === '10' ? '10' : '11'} Ottobre)
                   </Text>
-                  {parsedNotes.isPostponed && (
-                    <Text style={{ fontSize: 7, color: '#c2410c', marginTop: 2, fontFamily: 'Helvetica-Bold' }}>
-                      (Data di recupero dal {parsedNotes.originalDayKey === '10' ? '10' : '11'} Ottobre)
-                    </Text>
-                  )}
-                </View>
-              )}
-              <View style={styles.buyerField}>
+                )}
+              </View>
+
+              <View style={styles.buyerCol}>
                 <Text style={styles.buyerFieldLabel}>{isZuccaland ? 'N° Ingressi & Extra' : 'N° Biglietti'}</Text>
                 <Text style={styles.buyerFieldValue}>
                   {isZuccaland ? (
@@ -336,9 +373,9 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
 
           {/* Selected Activities Box */}
           {parsedNotes.activities.length > 0 && (
-            <View style={[styles.buyerSection, { backgroundColor: isZuccaland ? '#fff9f5' : '#f4f6fa', borderColor: isZuccaland ? '#fed7aa' : '#dbe2ef' }]}>
+            <View style={[styles.buyerSection, { backgroundColor: isZuccaland ? '#fff9f5' : '#f4f6fa', borderColor: isZuccaland ? '#fed7aa' : '#dbe2ef' }]} wrap={false}>
               <Text style={[styles.buyerTitle, { color: isZuccaland ? '#ea580c' : palette.primary, marginBottom: 4 }]}>
-                🎨 Attività e Laboratori Riservati
+                Attività e Laboratori Riservati
               </Text>
               {parsedNotes.target ? (
                 <Text style={{ fontSize: 8, color: isZuccaland ? '#9a3412' : '#4b5563', marginBottom: 6 }}>
@@ -349,7 +386,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                 {parsedNotes.activities.map((act, idx) => (
                   <View key={idx} style={{ backgroundColor: isZuccaland ? '#ffedd5' : '#e0e7ff', borderRadius: 4, padding: '3 8' }}>
                     <Text style={{ fontSize: 8, color: isZuccaland ? '#9a3412' : '#1e3a8a', fontFamily: 'Helvetica-Bold' }}>
-                      ✓ {act}
+                      • {act}
                     </Text>
                   </View>
                 ))}
@@ -376,7 +413,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                 <View key={ticket.id} wrap={false}>
                   <View style={styles.cutLineContainer}>
                     <View style={styles.cutLine} />
-                    <Text style={styles.cutText}>✂ Taglia qui</Text>
+                    <Text style={styles.cutText}>Taglia qui</Text>
                     <View style={styles.cutLine} />
                   </View>
 
@@ -388,10 +425,10 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
                         <Text style={styles.ticketType}>{ticket.type}</Text>
                         {isExtra && (
                           <Text style={{ fontSize: 8.5, color: '#c2410c', marginBottom: 4, fontFamily: 'Helvetica-Bold' }}>
-                            ✓ Include 1 sola zucca da intagliare o dipingere
+                            • Include 1 sola zucca da intagliare o dipingere
                           </Text>
                         )}
-                        <Text style={{ fontSize: 9, color: priceColor, marginBottom: 6, fontFamily: 'Helvetica-Bold' }}>Data: {eventDate}</Text>
+                        <Text style={{ fontSize: 9, color: priceColor, marginBottom: 5, fontFamily: 'Helvetica-Bold' }}>Data: {eventDate}</Text>
                         <Text style={styles.ticketMeta}>ID: {ticket.id.substring(0, 16).toUpperCase()}</Text>
                         <Text style={[styles.ticketPrice, { color: priceColor }]}>€{ticket.price.toFixed(2)}</Text>
                       </View>
@@ -409,24 +446,37 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
           })()}
 
           {/* Location & GPS in PDF */}
-          <View style={[styles.infoBox, { backgroundColor: isZuccaland ? '#fffaf5' : '#f0f4fc', borderColor: isZuccaland ? '#fed7aa' : '#dbe2ef', marginTop: 4 }]} wrap={false}>
+          <View style={[styles.infoBox, { backgroundColor: isZuccaland ? '#fffaf5' : '#f0f4fc', borderColor: isZuccaland ? '#fed7aa' : '#dbe2ef' }]} wrap={false}>
             <Text style={[styles.infoText, { color: isZuccaland ? '#9a3412' : '#1e3a8a' }]}>
-              📍 Luogo dell&apos;evento: Gasperina (CZ) · Coordinate GPS per navigatore: 38.743791, 16.481122
+              <Text style={{ fontFamily: 'Helvetica-Bold' }}>Luogo dell&apos;evento: </Text>
+              Gasperina (CZ) · Coordinate GPS per navigatore: 38.743791, 16.481122
             </Text>
           </View>
 
+          {/* Day 24 Special Opening Time Alert */}
+          {isZuccaland && parsedNotes.dayKey === '24' && (
+            <View style={[styles.infoBox, { backgroundColor: '#fff7ed', borderColor: '#ea580c', borderWidth: 1.5 }]} wrap={false}>
+              <Text style={[styles.infoText, { color: '#c2410c' }]}>
+                <Text style={{ fontFamily: 'Helvetica-Bold' }}>ORARIO INGRESSO SABATO 24 OTTOBRE: </Text>
+                L&apos;orario ufficiale di apertura cancelli e svolgimento dell&apos;evento per Sabato 24 Ottobre è dalle ore 11:00 alle ore 17:00.
+              </Text>
+            </View>
+          )}
+
           {/* Info box */}
           {isZuccaland && youPickCount > 0 && (
-            <View style={[styles.infoBox, { backgroundColor: '#fff7ed', borderColor: '#fed7aa', marginTop: 4 }]} wrap={false}>
+            <View style={[styles.infoBox, { backgroundColor: '#fff7ed', borderColor: '#fed7aa' }]} wrap={false}>
               <Text style={[styles.infoText, { color: '#9a3412' }]}>
-                🎃 NOTA YOU PICK LAB: Ogni biglietto You Pick Lab dà diritto ad una sola zucca da scegliere nel campo e intagliare o dipingere nell&apos;area laboratorio.
+                <Text style={{ fontFamily: 'Helvetica-Bold' }}>NOTA YOU PICK LAB: </Text>
+                Ogni biglietto You Pick Lab dà diritto ad una sola zucca da scegliere nel campo e intagliare o dipingere nell&apos;area laboratorio.
               </Text>
             </View>
           )}
 
           <View style={styles.infoBox} wrap={false}>
             <Text style={styles.infoText}>
-              ⚠ ATTENZIONE: Questo documento non è il biglietto finale. 
+              <Text style={{ fontFamily: 'Helvetica-Bold' }}>AVVISO IMPORTANTE: </Text>
+              Questo documento non è il biglietto finale. 
               Presenta questo documento al botteghino il giorno dell&apos;evento
               per ritirare i tuoi biglietti fisici. La ricevuta è strettamente personale e non cedibile.
             </Text>
@@ -434,7 +484,7 @@ export function TicketPdfDocument({ order, qrDataUris, eventLogoBase64, proLocoL
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} fixed>
           <Text style={styles.footerText}>prolocogasperina.it · info@prolocogasperina.it</Text>
           <Text style={styles.footerBrand}>PRO LOCO GASPERINA</Text>
         </View>

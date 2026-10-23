@@ -96,11 +96,12 @@ export async function sendTicketsEmail(order: OrderWithTickets): Promise<void> {
                 ? 'Domenica 11 Ottobre'
                 : '17, 18 o 25 Ottobre';
 
+    const timeLabel = parsedNotes.dayKey === '24' ? 'ore 11:00 - 17:00' : 'ore 10:30';
     const { error } = await resend.emails.send({
       from: 'Pro Loco Gasperina <biglietti@prolocogasperina.it>',
       to: order.buyerEmail,
       replyTo: 'info@prolocogasperina.it',
-      subject: `🎃 I tuoi biglietti - Zuccaland 2026 · ${dayLabel} (ore 10:30) - Ord. #${orderRef}`,
+      subject: `🎃 I tuoi biglietti - Zuccaland 2026 · ${dayLabel} (${timeLabel}) - Ord. #${orderRef}`,
       html: buildZuccalandEmailHtml(order, orderRef, admissionCount, youPickCount, ticketsListHtml, primaryQrCode),
       attachments: [
         {
@@ -396,7 +397,7 @@ function buildZuccalandEmailHtml(
               <img src="cid:event_header_logo" alt="Zuccaland 2026" style="height:85px;margin-bottom:12px;object-fit:contain;" />
               <div style="color:#7c2d12;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Il villaggio delle zucche di Gasperina</div>
               <div style="display:inline-block;background:#fff7ed;border:1px solid #fdba74;color:#ea580c;font-size:12px;margin-top:10px;font-weight:800;padding:4px 14px;border-radius:999px;">
-                🎃 ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10, 11 o 25 Ottobre 2026'} · Ingresso dalle ore 10:30 · Gasperina (CZ)
+                🎃 ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : 'Sabato 24 o Domenica 25 Ottobre 2026'} · ${parsedNotes.dayKey === '24' ? 'Orario di ingresso 11:00 - 17:00' : 'Ingresso dalle ore 10:30'} · Gasperina (CZ)
               </div>
             </td>
           </tr>
@@ -411,6 +412,18 @@ function buildZuccalandEmailHtml(
                   <div style="color:#047857;font-size:13px;">Il tuo QR Code e i biglietti sono pronti.</div>
                 </div>
               </div>
+
+              ${parsedNotes.dayKey === '24' ? `
+              <!-- Special Time Notice Box for Day 24 -->
+              <div style="background:#fff7ed;border:2px solid #ea580c;border-radius:14px;padding:16px 20px;margin-bottom:24px;">
+                <div style="font-size:15px;font-weight:900;color:#c2410c;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                  ⏰ Orario Speciale di Ingresso Sabato 24 Ottobre: 11:00 - 17:00
+                </div>
+                <p style="margin:0;font-size:13px;color:#7c2d12;line-height:1.5;">
+                  Ti ricordiamo che esclusivamente per la giornata di <strong>Sabato 24 Ottobre</strong> i cancelli apriranno alle <strong>ore 11:00</strong> e le attività si concluderanno alle <strong>ore 17:00</strong> (anziché 10:30 - 16:30).
+                </p>
+              </div>
+              ` : ''}
 
               <p style="margin:0 0 8px;font-size:20px;font-weight:800;color:#431407;">Ciao ${order.buyerName}!</p>
               <p style="margin:0 0 24px;font-size:14px;color:#7c2d12;line-height:1.6;">
@@ -428,7 +441,7 @@ function buildZuccalandEmailHtml(
                     <td style="font-size:12.5px;color:#9a3412;padding-bottom:10px;font-weight:700;">📅 Data di Ingresso:</td>
                     <td style="text-align:right;font-size:12.5px;color:#ea580c;font-weight:800;padding-bottom:10px;">
                       ${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : '10, 11 o 25 Ottobre 2026'}<br/>
-                      <span style="font-size:11.5px;color:#c2410c;font-weight:600;">Ingresso dalle ore 10:30</span>
+                      <span style="font-size:11.5px;color:#c2410c;font-weight:700;">${parsedNotes.dayKey === '24' ? '⏰ Orario di ingresso: 11:00 - 17:00' : 'Ingresso dalle ore 10:30'}</span>
                     </td>
                   </tr>
                   <tr>
@@ -520,7 +533,7 @@ function buildZuccalandEmailHtml(
               <div style="background:#ffedd5;border-radius:14px;padding:18px 20px;border:1px solid #fdba74;margin-bottom:24px;">
                 <div style="font-size:14px;font-weight:800;color:#c2410c;margin-bottom:8px;">📋 Informazioni per l'ingresso</div>
                 <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#9a3412;line-height:1.7;font-weight:500;">
-                  <li><strong>Orario di apertura cancelli:</strong> dalle <strong>ore 10:30</strong> per la giornata di <strong>${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : 'Sabato 10, Domenica 11 o Domenica 25 Ottobre'}</strong></li>
+                  <li><strong>Orario di apertura cancelli:</strong> ${parsedNotes.dayKey === '24' ? 'dalle <strong>ore 11:00 alle 17:00</strong>' : 'dalle <strong>ore 10:30</strong>'} per la giornata di <strong>${parsedNotes.dayKey !== 'unspecified' ? parsedNotes.eventDate : 'Sabato 24 o Domenica 25 Ottobre'}</strong></li>
                   <li>Mostra il <strong>QR Code</strong> presente in questa email o nel PDF allegato direttamente dallo smartphone</li>
                   <li>Presentalo all'ingresso dedicato alle prenotazioni online per ritirare i braccialetti/biglietti</li>
                   <li>La ricevuta è personale e valida per tutto il tuo gruppo</li>

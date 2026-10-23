@@ -42,12 +42,12 @@ export default function ZuccalandAdminPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [liveCounts, setLiveCounts] = useState<{
-    '17'?: { admissionTickets: number; totalTickets: number; orders: number };
-    '18'?: { admissionTickets: number; totalTickets: number; orders: number };
-    '24'?: { admissionTickets: number; totalTickets: number; orders: number };
-    '25'?: { admissionTickets: number; totalTickets: number; orders: number };
-    '10'?: { admissionTickets: number; totalTickets: number; orders: number };
-    '11'?: { admissionTickets: number; totalTickets: number; orders: number };
+    '17'?: { admissionTickets: number; totalTickets: number; orders: number; youPickTickets?: number };
+    '18'?: { admissionTickets: number; totalTickets: number; orders: number; youPickTickets?: number };
+    '24'?: { admissionTickets: number; totalTickets: number; orders: number; youPickTickets?: number };
+    '25'?: { admissionTickets: number; totalTickets: number; orders: number; youPickTickets?: number };
+    '10'?: { admissionTickets: number; totalTickets: number; orders: number; youPickTickets?: number };
+    '11'?: { admissionTickets: number; totalTickets: number; orders: number; youPickTickets?: number };
   } | null>(null);
   const [loadingCounts, setLoadingCounts] = useState(false);
 
@@ -403,7 +403,7 @@ export default function ZuccalandAdminPage() {
               const dayConfig = {
                 '17': { label: 'Sabato 17 Ottobre', emoji: '🎃', tag: 'Nuova data attiva', hasVisibilityToggle: false },
                 '18': { label: 'Domenica 18 Ottobre', emoji: '🎃', tag: 'Nuova data attiva', hasVisibilityToggle: false },
-                '24': { label: 'Sabato 24 Ottobre', emoji: '🎃', tag: 'In preparazione (Non attiva)', hasVisibilityToggle: true },
+                '24': { label: 'Sabato 24 Ottobre', emoji: '🎃', tag: 'Data attiva (Ore 11:00 - 17:00)', hasVisibilityToggle: true },
                 '25': { label: 'Domenica 25 Ottobre', emoji: '🎃', tag: 'Nuova data attiva', hasVisibilityToggle: true },
                 '10': { label: 'Sabato 10 Ottobre', emoji: '🌧️', tag: 'Data precedente (Rinviata)', hasVisibilityToggle: true },
                 '11': { label: 'Domenica 11 Ottobre', emoji: '🌧️', tag: 'Data precedente (Rinviata)', hasVisibilityToggle: true },
@@ -543,6 +543,17 @@ export default function ZuccalandAdminPage() {
                       <span>Totale biglietti (inclusi extra): {counts.totalTickets}</span>
                     </div>
 
+                    {/* You-Pick Lab stats for day 24 */}
+                    {dayKey === '24' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', paddingTop: '0.5rem', borderTop: '1px solid var(--neutral-700)' }}>
+                        <span style={{ color: 'var(--neutral-400)' }}>🎃 You Pick Lab venduti:</span>
+                        <strong style={{ color: '#fb923c', fontSize: '1.05rem' }}>
+                          {counts.youPickTickets ?? 0}
+                          <span style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', fontWeight: 500 }}> / {limits.maxYouPickTickets ?? 50} max</span>
+                        </strong>
+                      </div>
+                    )}
+
                     {/* Progress Bar se il limite è abilitato */}
                     {isLimitActive && (
                       <div style={{ marginTop: '0.25rem' }}>
@@ -625,6 +636,29 @@ export default function ZuccalandAdminPage() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Input Limite You-Pick Lab (solo per giorno 24) */}
+                  {dayKey === '24' && (
+                    <div style={{ marginBottom: '0.85rem' }}>
+                      <label style={labelStyle}>
+                        🎃 Limite Biglietti You Pick Lab (solo Sabato 24)
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          style={{ ...fieldStyle, fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem' }}
+                          value={(limits as any).maxYouPickTickets ?? 50}
+                          onChange={e => updateDateLimit(dayKey, 'maxYouPickTickets' as any, parseInt(e.target.value) || 50)}
+                          placeholder="Es. 50"
+                        />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', whiteSpace: 'nowrap' }}>
+                          You Pick max (attuale: {liveCounts?.['24']?.youPickTickets ?? 0} venduti)
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Toggle 2: Forza Sold Out Manuale */}
                   <div style={{

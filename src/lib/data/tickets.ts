@@ -580,7 +580,9 @@ export function parseOrderNotes(notes?: string | null): ParsedNotes {
   }
 
   const numChildren = children || 0;
-  const fullDateWithTime = eventDate ? `${eventDate} · Ore 10:30` : 'Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026 · Ore 10:30';
+  const fullDateWithTime = eventDate
+    ? (dayKey === '24' ? `${eventDate} · Ore 11:00 - 17:00` : `${eventDate} · Ore 10:30`)
+    : 'Sabato 17, Domenica 18 o Domenica 25 Ottobre 2026 · Ore 10:30';
 
   return { 
     children, 
@@ -638,23 +640,23 @@ export interface ZuccalandStatsResult {
 }
 
 export interface ZuccalandDateCounts {
-  '17': { admissionTickets: number; totalTickets: number; orders: number };
-  '18': { admissionTickets: number; totalTickets: number; orders: number };
-  '24': { admissionTickets: number; totalTickets: number; orders: number };
-  '25': { admissionTickets: number; totalTickets: number; orders: number };
-  '10': { admissionTickets: number; totalTickets: number; orders: number };
-  '11': { admissionTickets: number; totalTickets: number; orders: number };
+  '17': { admissionTickets: number; youPickTickets: number; totalTickets: number; orders: number };
+  '18': { admissionTickets: number; youPickTickets: number; totalTickets: number; orders: number };
+  '24': { admissionTickets: number; youPickTickets: number; totalTickets: number; orders: number };
+  '25': { admissionTickets: number; youPickTickets: number; totalTickets: number; orders: number };
+  '10': { admissionTickets: number; youPickTickets: number; totalTickets: number; orders: number };
+  '11': { admissionTickets: number; youPickTickets: number; totalTickets: number; orders: number };
 }
 
 export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
   const sql = getDb();
   const counts: ZuccalandDateCounts = {
-    '17': { admissionTickets: 0, totalTickets: 0, orders: 0 },
-    '18': { admissionTickets: 0, totalTickets: 0, orders: 0 },
-    '24': { admissionTickets: 0, totalTickets: 0, orders: 0 },
-    '25': { admissionTickets: 0, totalTickets: 0, orders: 0 },
-    '10': { admissionTickets: 0, totalTickets: 0, orders: 0 },
-    '11': { admissionTickets: 0, totalTickets: 0, orders: 0 },
+    '17': { admissionTickets: 0, youPickTickets: 0, totalTickets: 0, orders: 0 },
+    '18': { admissionTickets: 0, youPickTickets: 0, totalTickets: 0, orders: 0 },
+    '24': { admissionTickets: 0, youPickTickets: 0, totalTickets: 0, orders: 0 },
+    '25': { admissionTickets: 0, youPickTickets: 0, totalTickets: 0, orders: 0 },
+    '10': { admissionTickets: 0, youPickTickets: 0, totalTickets: 0, orders: 0 },
+    '11': { admissionTickets: 0, youPickTickets: 0, totalTickets: 0, orders: 0 },
   };
 
   try {
@@ -685,11 +687,13 @@ export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
 
       const oTickets = tickets.filter(t => t.orderId === o.id);
       const oAdmissionTix = oTickets.filter(t => !t.type.toLowerCase().includes('you pick') && !t.type.toLowerCase().includes('laboratorio')).length;
+      const oYouPickTix = oTickets.filter(t => t.type.toLowerCase().includes('you pick') || t.type.toLowerCase().includes('laboratorio')).length;
       
       if (counts[parsed.dayKey]) {
         counts[parsed.dayKey].orders++;
         counts[parsed.dayKey].totalTickets += oTickets.length;
         counts[parsed.dayKey].admissionTickets += (oAdmissionTix || oTickets.length);
+        counts[parsed.dayKey].youPickTickets += oYouPickTix;
       }
     }
   } catch (error) {

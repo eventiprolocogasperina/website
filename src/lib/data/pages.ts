@@ -116,13 +116,15 @@ export interface ZuccalandDateLimit {
   enabled: boolean;          // Toggle: abilita/disabilita il limite di capienza
   maxTickets: number;        // Numero massimo di biglietti consentiti (capienza)
   manualSoldOut?: boolean;   // Toggle: forza la data come Sold Out manuale
-  active?: boolean;          // Toggle: attiva/mostra la data sul sito (per date aggiuntive come il 25 ottobre)
+  active?: boolean;          // Toggle: attiva/mostra la data sul sito
+  maxYouPickTickets?: number; // Limite specifico biglietti You-Pick per la data (es. 50 per il 24 Ottobre)
+  manualYouPickSoldOut?: boolean; // Toggle: forza You-Pick come Terminato manuale
 }
 
 export interface ZuccalandDateLimits {
   '17'?: ZuccalandDateLimit; // Sabato 17 Ottobre (Nuova data attiva)
   '18'?: ZuccalandDateLimit; // Domenica 18 Ottobre (Nuova data attiva)
-  '24'?: ZuccalandDateLimit; // Sabato 24 Ottobre (Nel CMS, MA NON ATTIVA per ora: active: false)
+  '24'?: ZuccalandDateLimit; // Sabato 24 Ottobre (Attiva, orario 11:00-17:00, max 50 You-Pick)
   '25'?: ZuccalandDateLimit; // Domenica 25 Ottobre (Attiva)
   '10'?: ZuccalandDateLimit; // Sabato 10 Ottobre (Storica / Recupero)
   '11'?: ZuccalandDateLimit; // Domenica 11 Ottobre (Storica / Recupero)
@@ -162,7 +164,7 @@ export interface ZuccalandContent {
 
 export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
   hero: {
-    badge: '17-18 e 25 Ottobre 2026 • Gasperina',
+    badge: '17-18, 24 e 25 Ottobre 2026 • Gasperina',
     title: 'Zuccaland',
     subtitle: 'Il villaggio delle zucche di Gasperina',
     description: 'Un\'esperienza incantata tra colori autunnali, laboratori per grandi e piccini, e tante degustazioni da leccarsi i baffi.',
@@ -176,7 +178,7 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
   dateLimits: {
     '17': { enabled: true, maxTickets: 300, manualSoldOut: true, active: true }, // Recupero del 10 - Non acquistabile
     '18': { enabled: true, maxTickets: 300, manualSoldOut: true, active: true }, // Recupero dell'11 - Non acquistabile
-    '24': { enabled: false, maxTickets: 300, manualSoldOut: false, active: false }, // Sabato 24 Ottobre - SENZA RENDERLA ATTIVA
+    '24': { enabled: true, maxTickets: 300, manualSoldOut: false, active: true, maxYouPickTickets: 50 }, // Sabato 24 Ottobre - Attiva (Orario 11:00-17:00, max 50 You-Pick)
     '25': { enabled: true, maxTickets: 300, manualSoldOut: true, active: true }, // Domenica 25 Ottobre - Sold Out
     '10': { enabled: false, maxTickets: 300, manualSoldOut: true, active: false },
     '11': { enabled: false, maxTickets: 300, manualSoldOut: true, active: false },
@@ -252,7 +254,7 @@ export const DEFAULT_ZUCCALAND_CONTENT: ZuccalandContent = {
     },
     {
       question: "A che ora apre il villaggio e per quale data sono validi i biglietti?",
-      answer: "I cancelli del villaggio Zuccaland aprono alle **ore 10:30** sia nella giornata di **Sabato 10 Ottobre** che in quella di **Domenica 11 Ottobre 2026**.\n\nI biglietti acquistati sono validi per l'accesso e per le attività **esclusivamente nella giornata selezionata in fase di prenotazione** (Sabato 10 o Domenica 11, chiaramente specificata sulla ricevuta e sul biglietto PDF) a partire dalle ore 10:30 e per tutta la durata dell'evento."
+      answer: "I cancelli del villaggio Zuccaland aprono alle **ore 10:30** per le giornate del 17, 18 e 25 Ottobre. **Esclusivamente per la giornata di Sabato 24 Ottobre**, l'orario ufficiale di apertura varchi e svolgimento delle attività è dalle **ore 11:00 alle ore 17:00**.\n\nI biglietti acquistati sono validi per l'accesso e per le attività **esclusivamente nella giornata selezionata in fase di prenotazione** a partire dall'orario di apertura previsto per quella specifica data e per tutta la durata dell'evento."
     }
   ]
 };

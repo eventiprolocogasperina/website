@@ -32,9 +32,16 @@ export default function ZuccalandSuccessClient({
 }: ZuccalandSuccessClientProps) {
   const [downloading, setDownloading] = useState(false);
 
-  let dayLabel = '10, 11 o 25 Ottobre 2026';
-  if (notes?.includes('25 Ottobre') || notes?.includes('25')) {
+  let dayLabel = 'Sabato 24 o Domenica 25 Ottobre 2026';
+  const is24 = Boolean(notes?.includes('24 Ottobre') || notes?.includes('24'));
+  if (is24) {
+    dayLabel = 'Sabato 24 Ottobre 2026';
+  } else if (notes?.includes('25 Ottobre') || notes?.includes('25')) {
     dayLabel = 'Domenica 25 Ottobre 2026';
+  } else if (notes?.includes('17 Ottobre')) {
+    dayLabel = 'Sabato 17 Ottobre 2026';
+  } else if (notes?.includes('18 Ottobre')) {
+    dayLabel = 'Domenica 18 Ottobre 2026';
   } else if (notes?.includes('10 Ottobre') || notes?.toLowerCase().includes('sabato')) {
     dayLabel = 'Sabato 10 Ottobre 2026';
   } else if (notes?.includes('11 Ottobre') || notes?.toLowerCase().includes('domenica')) {
@@ -138,7 +145,11 @@ export default function ZuccalandSuccessClient({
                 {dayLabel}
               </div>
               <div style={{ color: '#7c2d12', fontSize: '0.82rem', fontWeight: 600, marginTop: '0.15rem' }}>
-                ⏰ Apertura cancelli e ingresso dalle <strong>ore 10:30</strong>
+                ⏰ {is24 ? (
+                  <>Apertura cancelli e ingresso dalle <strong>ore 11:00 alle 17:00</strong></>
+                ) : (
+                  <>Apertura cancelli e ingresso dalle <strong>ore 10:30</strong></>
+                )}
               </div>
             </div>
           </div>
