@@ -2,6 +2,7 @@ import 'server-only';
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Ctx } from '@/server/auth/context-shared';
+import { can } from '@/server/auth/permissions';
 import { getDb, type Tx } from '@/server/db/client';
 import { cashRegisters, cashSales, cashSessions, editions, orderLines, ordersV2, products } from '@/server/db/schema';
 import { getAvailability } from '@/server/domain/catalog';
@@ -9,7 +10,7 @@ import { DomainError } from '@/server/domain/errors';
 import { createOrder, type CreateOrderHook } from '@/server/domain/orders';
 import { MAX_OPEN_PRICE_CENTS } from '@/lib/cash/open-price';
 import { ensureOpenPriceProduct } from './catalog';
-import { assertCanOn, nextCounter } from './shared';
+import { assertCanOn, assertDeviceRegister, nextCounter } from './shared';
 
 const openAmountOff = (register: string) => `“Altro” (importo libero) non è attivo su ${register}.`;
 
@@ -88,7 +89,7 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
   const soldAt = data.offlineAt && serverNow.getTime() - data.offlineAt.getTime() < MAX_OFFLINE_AGE_MS && data.offlineAt <= serverNow ? data.offlineAt : serverNow;
 
   const [session] = await getDb()
-    .select({ editionId: cashSessions.editionId, edition: editions.slug, allowed: cashRegisters.productIds, register: cashRegisters.name, allowOpenAmount: cashRegisters.allowOpenAmount })
+    .select({ editionId: cashSessions.editionId, edition: editions.slug, registerId: cashSessions.registerId, allowed: cashRegisters.productIds, register: cashRegisters.name, allowOpenAmount: cashRegisters.allowOpenAmount })
     .from(cashSessions)
     .innerJoin(cashRegisters, eq(cashRegisters.id, cashSessions.registerId))
     .innerJoin(editions, eq(editions.id, cashSessions.editionId))
@@ -96,8 +97,13 @@ export async function sell(ctx: Ctx, input: SellInput, opts: SellOptions = {}): 
   if (!session) throw new DomainError('NOT_FOUND', { message: 'Turno di cassa non trovato. Riapri il turno.' });
   if (ctx.device && ctx.device.edition !== session.edition) throw new DomainError('FORBIDDEN');
   assertCanOn(ctx, 'pos.sell', session.edition);
+  assertDeviceRegister(ctx, session.registerId);
+  if (data.method === 'complimentary' && !can(ctx, 'pos.complimentary', { edition: session.edition })) {
+    throw new DomainError('FORBIDDEN', { message: 'Questo dispositivo non può registrare omaggi.' });
+  }
   // "Altro": la riga diventa il prodotto a importo libero dell'edizione, con il prezzo digitato. Solo sulle casse che lo permettono.
   const wantsOpen = data.lines.some((l) => 'openAmountCents' in l);
+  if (wantsOpen && !can(ctx, 'pos.open_amount', { edition: session.edition })) throw new DomainError('FORBIDDEN', { message: 'Questo dispositivo non può usare «Altro».' });
   if (wantsOpen && !session.allowOpenAmount) throw new DomainError('VALIDATION', { message: openAmountOff(session.register) });
   const openProductId = wantsOpen ? await ensureOpenPriceProduct(ctx, session.editionId) : null;
   const lines = data.lines.map((l) => ('openAmountCents' in l ? { productId: openProductId!, quantity: l.quantity, unitPriceCents: l.openAmountCents } : l));

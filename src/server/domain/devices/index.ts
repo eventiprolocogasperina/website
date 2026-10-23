@@ -6,7 +6,9 @@ import type { Ctx, CtxDevice } from '@/server/auth/context-shared';
 import { hashPassword, hashToken, randomToken, verifyPassword } from '@/server/auth/password';
 import { can } from '@/server/auth/permissions';
 import { getDb, withTransaction } from '@/server/db/client';
-import { devicePairings, devices, roleAssignments, users } from '@/server/db/schema';
+import { cashRegisters, devicePairings, devices, editions, roleAssignments, users } from '@/server/db/schema';
+import { effectiveDevicePermissions, validateDevicePermissions } from '@/lib/devices/permissions';
+import type { Permission } from '@/server/auth/permissions';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { MAX_PIN_ATTEMPTS } from '@/server/domain/users';
@@ -25,17 +27,70 @@ function assertCanManage(ctx: Ctx) {
   if (!can(ctx, 'settings.manage')) throw new DomainError('FORBIDDEN');
 }
 
-export const PairingInput = z.object({
+const optionalText = (max: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, message)
+    .nullish()
+    .transform((v) => v || null);
+
+/** Dettagli e permessi del dispositivo: si scelgono con il QR e si cambiano dopo (DeviceUpdateInput). */
+const DeviceConfig = z.object({
   name: z.string().trim().min(2, 'Dai un nome al dispositivo, es. “Cassa 1”.').max(60),
+  holderName: optionalText(80, 'Il nome di chi lo usa è troppo lungo.'),
+  holderPhone: optionalText(30, 'Il telefono è troppo lungo.').refine((v) => !v || /^\+?[\d\s./-]{6,}$/.test(v), 'Scrivi il telefono solo con cifre, es. 333 1234567.'),
+  /** Cassa assegnata: obbligatoria per un dispositivo di cassa, ignorata per un varco. */
+  registerId: z.uuid('Scegli la cassa.').nullish(),
+  /** Chiavi dei permessi; senza, quelli del ruolo. */
+  permissions: z.array(z.string().max(60)).max(30).nullish(),
+});
+
+export const PairingInput = DeviceConfig.extend({
   edition: z.string().trim().min(1, 'Scegli l’edizione.').max(80),
   kind: z.enum(['pos', 'scanner']),
 });
+
+export const DeviceUpdateInput = DeviceConfig;
+export type DeviceConfigInput = z.input<typeof DeviceConfig>;
+
+type Db = Parameters<Parameters<typeof withTransaction>[0]>[0];
+export type RegisterOption = { id: string; name: string; active: boolean; allowOpenAmount: boolean };
+
+/**
+ * Controlla cassa e permessi contro l'edizione e il ruolo: la cassa dev'essere dell'edizione del
+ * dispositivo, i permessi solo quelli del ruolo, «Altro» solo se la cassa lo permette.
+ */
+async function resolveConfig(db: Db, kind: 'pos' | 'scanner', edition: string, input: { registerId?: string | null; permissions?: string[] | null }) {
+  const checked = validateDevicePermissions(kind, input.permissions ?? effectiveDevicePermissions(kind, null));
+  if (!checked.ok) throw new DomainError('VALIDATION', { message: checked.error });
+  if (kind === 'scanner') return { registerId: null, permissions: checked.permissions };
+  if (!input.registerId) throw new DomainError('VALIDATION', { message: 'Scegli la cassa su cui lavora il dispositivo.' });
+  const [register] = await db
+    .select({ id: cashRegisters.id, name: cashRegisters.name, allowOpenAmount: cashRegisters.allowOpenAmount })
+    .from(cashRegisters)
+    .innerJoin(editions, eq(editions.id, cashRegisters.editionId))
+    .where(and(eq(cashRegisters.id, input.registerId), eq(editions.slug, edition)));
+  if (!register) throw new DomainError('VALIDATION', { message: 'La cassa scelta non è di questa edizione.' });
+  if (checked.permissions.includes('pos.open_amount') && !register.allowOpenAmount) {
+    throw new DomainError('VALIDATION', { message: `«Altro» è spento su ${register.name}: accendilo nella cassa o togli il permesso.` });
+  }
+  return { registerId: register.id, permissions: checked.permissions };
+}
 
 export type DeviceRow = {
   id: string;
   name: string;
   edition: string;
   kind: 'pos' | 'scanner';
+  registerId: string | null;
+  registerName: string | null;
+  holderName: string | null;
+  holderPhone: string | null;
+  /** Permessi effettivi (quelli del ruolo se non sono mai stati scelti). */
+  permissions: Permission[];
+  /** false = dispositivo abbinato prima dei permessi: vale il ruolo. */
+  customPermissions: boolean;
   pairedBy: string | null;
   createdAt: string;
   lastSeenAt: string | null;
@@ -45,15 +100,22 @@ export type DeviceRow = {
 export async function listDevices(ctx: Ctx): Promise<DeviceRow[]> {
   assertCanManage(ctx);
   const rows = await getDb()
-    .select({ d: devices, by: users.name })
+    .select({ d: devices, by: users.name, register: cashRegisters.name })
     .from(devices)
     .leftJoin(users, eq(users.id, devices.pairedBy))
+    .leftJoin(cashRegisters, eq(cashRegisters.id, devices.registerId))
     .orderBy(asc(devices.revokedAt), desc(devices.createdAt));
-  return rows.map(({ d, by }) => ({
+  return rows.map(({ d, by, register }) => ({
     id: d.id,
     name: d.name,
     edition: d.editionSlug,
     kind: d.kind,
+    registerId: d.registerId,
+    registerName: register,
+    holderName: d.holderName,
+    holderPhone: d.holderPhone,
+    permissions: effectiveDevicePermissions(d.kind, d.permissions),
+    customPermissions: d.permissions !== null,
     pairedBy: by,
     createdAt: d.createdAt.toISOString(),
     lastSeenAt: d.lastSeenAt?.toISOString() ?? null,
@@ -72,11 +134,30 @@ export async function createPairing(ctx: Ctx, input: z.input<typeof PairingInput
   const pin = newPairingPin();
   const expiresAt = new Date(Date.now() + PAIRING_TTL_MS);
   await withTransaction(async (tx) => {
+    const config = await resolveConfig(tx, data.kind, data.edition, data);
     const [row] = await tx
       .insert(devicePairings)
-      .values({ tokenHash: hashToken(token), pinHash: hashPassword(pin), name: data.name, editionSlug: data.edition, kind: data.kind, createdBy: ctx.user?.id ?? null, expiresAt })
+      .values({
+        tokenHash: hashToken(token),
+        pinHash: hashPassword(pin),
+        name: data.name,
+        editionSlug: data.edition,
+        kind: data.kind,
+        registerId: config.registerId,
+        holderName: data.holderName,
+        holderPhone: data.holderPhone,
+        permissions: config.permissions,
+        createdBy: ctx.user?.id ?? null,
+        expiresAt,
+      })
       .returning({ id: devicePairings.id });
-    await audit(tx, ctx, 'device.pairing_created', { entityType: 'device_pairing', entityId: row.id, edition: data.edition, after: data });
+    // Nel registro niente telefono (dato personale): solo se c'è.
+    await audit(tx, ctx, 'device.pairing_created', {
+      entityType: 'device_pairing',
+      entityId: row.id,
+      edition: data.edition,
+      after: { name: data.name, kind: data.kind, registerId: config.registerId, holderName: data.holderName, holderPhone: !!data.holderPhone, permissions: config.permissions },
+    });
   });
   return { token, pin, expiresAt: expiresAt.toISOString() };
 }
@@ -132,25 +213,75 @@ export async function completePairing(token: string, pin: string, ip: string | n
     const deviceToken = randomToken();
     const [device] = await tx
       .insert(devices)
-      .values({ name: pairing.name, tokenHash: hashToken(deviceToken), editionSlug: pairing.editionSlug, kind: pairing.kind, pairedBy: pairing.createdBy })
+      .values({
+        name: pairing.name,
+        tokenHash: hashToken(deviceToken),
+        editionSlug: pairing.editionSlug,
+        kind: pairing.kind,
+        // Dettagli e permessi scelti con il QR passano al dispositivo.
+        registerId: pairing.registerId,
+        holderName: pairing.holderName,
+        holderPhone: pairing.holderPhone,
+        permissions: pairing.permissions,
+        pairedBy: pairing.createdBy,
+      })
       .returning();
     await tx.update(devicePairings).set({ usedAt: new Date(), deviceId: device.id, updatedAt: new Date() }).where(eq(devicePairings.id, pairing.id));
     if (previousDeviceToken) {
       await tx.update(devices).set({ revokedAt: new Date(), updatedAt: new Date() }).where(and(eq(devices.tokenHash, hashToken(previousDeviceToken)), isNull(devices.revokedAt)));
     }
-    const ctxDevice: CtxDevice = { id: device.id, name: device.name, edition: device.editionSlug, kind: device.kind };
+    const ctxDevice: CtxDevice = { id: device.id, name: device.name, edition: device.editionSlug, kind: device.kind, registerId: device.registerId, permissions: device.permissions as Permission[] | null };
     const [creator] = pairing.createdBy ? await tx.select({ id: users.id, name: users.name, email: users.email }).from(users).where(eq(users.id, pairing.createdBy)) : [];
     await audit(tx, { user: creator ?? null, device: ctxDevice, legacy: false, grants: [], ip }, 'device.paired', {
       entityType: 'device',
       entityId: device.id,
       edition: device.editionSlug,
-      after: { name: device.name, kind: device.kind },
+      after: { name: device.name, kind: device.kind, registerId: device.registerId, permissions: device.permissions },
     });
     return { deviceToken, device: ctxDevice };
   });
   // L'errore si lancia fuori dalla transazione, così il conteggio dei tentativi resta salvato.
   if ('error' in outcome) throw new DomainError('VALIDATION', { message: outcome.error });
   return outcome;
+}
+
+/**
+ * Cambia nome, persona, cassa e permessi di un dispositivo già abbinato. Vale dalla richiesta
+ * successiva del telefono (il contesto si legge dal database a ogni richiesta). Tutto nel registro.
+ * `edition` limita la modifica ai dispositivi di quell'edizione (pagine Cassa e Check-in).
+ */
+export async function updateDevice(ctx: Ctx, deviceId: string, input: DeviceConfigInput, opts: { edition?: string } = {}): Promise<void> {
+  assertCanManage(ctx);
+  const data = DeviceUpdateInput.parse(input);
+  await withTransaction(async (tx) => {
+    const [before] = await tx.select().from(devices).where(eq(devices.id, deviceId)).for('update');
+    if (!before || (opts.edition && before.editionSlug !== opts.edition)) throw new DomainError('NOT_FOUND', { message: 'Dispositivo non trovato.' });
+    if (before.revokedAt) throw new DomainError('CONFLICT', { message: 'Il dispositivo è revocato: abbinane uno nuovo.' });
+    const config = await resolveConfig(tx, before.kind, before.editionSlug, data);
+    await tx
+      .update(devices)
+      .set({ name: data.name, holderName: data.holderName, holderPhone: data.holderPhone, registerId: config.registerId, permissions: config.permissions, updatedAt: new Date() })
+      .where(eq(devices.id, deviceId));
+    const was = { name: before.name, holderName: before.holderName, holderPhone: !!before.holderPhone, registerId: before.registerId, permissions: effectiveDevicePermissions(before.kind, before.permissions) };
+    const now = { name: data.name, holderName: data.holderName, holderPhone: !!data.holderPhone, registerId: config.registerId, permissions: config.permissions };
+    const permissionsChanged = before.permissions === null || was.permissions.join() !== now.permissions.join();
+    await audit(tx, ctx, permissionsChanged ? 'device.permissions_changed' : 'device.updated', { entityType: 'device', entityId: deviceId, edition: before.editionSlug, before: was, after: now });
+  });
+}
+
+/** Casse delle edizioni indicate, per scegliere quella del dispositivo. */
+export async function listDeviceRegisters(ctx: Ctx, editionSlugs: string[]): Promise<Record<string, RegisterOption[]>> {
+  assertCanManage(ctx);
+  if (!editionSlugs.length) return {};
+  const rows = await getDb()
+    .select({ id: cashRegisters.id, name: cashRegisters.name, active: cashRegisters.active, allowOpenAmount: cashRegisters.allowOpenAmount, slug: editions.slug })
+    .from(cashRegisters)
+    .innerJoin(editions, eq(editions.id, cashRegisters.editionId))
+    .where(inArray(editions.slug, editionSlugs))
+    .orderBy(asc(cashRegisters.sort), asc(cashRegisters.name));
+  const out: Record<string, RegisterOption[]> = {};
+  for (const { slug, ...r } of rows) (out[slug] ??= []).push(r);
+  return out;
 }
 
 export async function revokeDevice(ctx: Ctx, deviceId: string): Promise<void> {

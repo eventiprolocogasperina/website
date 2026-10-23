@@ -36,7 +36,7 @@ export async function searchTickets(ctx: Ctx, input: z.input<typeof SearchInput>
   const db = getDb();
   const [list] = await db.select({ list: checkinLists, slug: editions.slug }).from(checkinLists).innerJoin(editions, eq(editions.id, checkinLists.editionId)).where(eq(checkinLists.id, data.checkinListId));
   if (!list) throw new DomainError('NOT_FOUND');
-  assertCanOn(ctx, 'checkin.scan', list.slug);
+  assertCanOn(ctx, 'checkin.search', list.slug);
   const editionId = list.list.editionId;
   const q = data.q;
   const code = q.toUpperCase().replace(/^#/, '');

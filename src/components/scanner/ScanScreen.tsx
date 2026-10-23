@@ -26,6 +26,9 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [manual, setManual] = useState('');
   const [search, setSearch] = useState<string | null>(null);
+  const [manualError, setManualError] = useState<string | null>(null);
+  // Setup salvati prima dei permessi: tutto come prima.
+  const perms = setup.permissions ?? { revert: true, search: true, stats: true, sell: true };
   const s = useScanner(setup, choice.listId, choice.sessionId, muted);
   const list = setup.lists.find((l) => l.id === choice.listId);
   const session = setup.sessions.find((x) => x.id === (list?.sessionId ?? choice.sessionId));
@@ -34,9 +37,11 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
     const v = manual.trim();
     if (!v) return;
     setManual('');
+    setManualError(null);
     // Un QR letto da un lettore esterno (tastiera) è una parola lunga; il resto è una ricerca.
     if (/^\S{16,}$/.test(v)) s.onCode(v);
-    else setSearch(v);
+    else if (perms.search) setSearch(v);
+    else setManualError('Questo dispositivo non può cercare per nome: inquadra il QR.');
   }
 
   return (
@@ -48,7 +53,9 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
               {list?.name ?? 'Lista'} · {session?.label ?? 'Tutte le date'}
             </p>
             <p className="text-title font-semibold tabular-nums" aria-live="polite">
-              {s.counter ? (
+              {!perms.stats ? (
+                <span className="text-section text-muted">Varco</span>
+              ) : s.counter ? (
                 <>
                   {s.counter.entered} <span className="text-section font-normal text-muted">/ {s.counter.expected} entrati</span>
                 </>
@@ -126,7 +133,7 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
           </p>
         )}
 
-        {s.undo && <UndoBar until={s.undo.until} onUndo={s.revertLast} />}
+        {s.undo && perms.revert && <UndoBar until={s.undo.until} onUndo={s.revertLast} />}
 
         <form
           className="mx-auto flex w-full max-w-md gap-2"
@@ -135,17 +142,36 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
             submitManual();
           }}
         >
-          <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Nome, codice ordine o QR" aria-label="Cerca per nome o codice" enterKeyHint="search" autoComplete="off" />
+          <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={perms.search ? 'Nome, codice ordine o QR' : 'Codice del QR'} aria-label={perms.search ? 'Cerca per nome o codice' : 'Codice del QR'} enterKeyHint="search" autoComplete="off" />
           <Button type="submit" icon={Search} variant="secondary" disabled={!s.online && !/^\S{16,}$/.test(manual.trim())}>
             Cerca
           </Button>
         </form>
+        {manualError && (
+          <p role="alert" className="text-center text-body text-danger">
+            {manualError}
+          </p>
+        )}
       </main>
 
       {s.outcome && (
-        <ResultOverlay outcome={s.outcome} actions={setup.actions} onAction={s.runAction} onPaid={s.setAnswer} onClose={s.dismiss} undo={s.undo} onUndo={s.revertLast} onRevert={(id) => s.revertLater(id, 'esito')} />
+        <ResultOverlay outcome={s.outcome} actions={setup.actions}
+          canSell={perms.sell}
+          onAction={s.runAction}
+          onPaid={s.setAnswer}
+          onClose={s.dismiss}
+          undo={perms.revert ? s.undo : null}
+          onUndo={s.revertLast}
+          onRevert={perms.revert ? (id) => s.revertLater(id, 'esito') : null}
+        />
       )}
-      {search !== null && <SearchSheet listId={choice.listId} initial={search} onClose={() => setSearch(null)} onCheckIn={(ticketId) => (setSearch(null), s.submit({ ticketId }))} onRevert={(id) => s.revertLater(id, 'ricerca')} />}
+      {search !== null && <SearchSheet
+          listId={choice.listId}
+          initial={search}
+          onClose={() => setSearch(null)}
+          onCheckIn={(ticketId) => (setSearch(null), s.submit({ ticketId }))}
+          onRevert={perms.revert ? (id) => s.revertLater(id, 'ricerca') : null}
+        />}
     </div>
   );
 }

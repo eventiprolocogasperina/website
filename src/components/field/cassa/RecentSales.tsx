@@ -73,8 +73,8 @@ export function RecentSales({ api, sessionId, state, onBack }: Props) {
 }
 
 function VoidDialog({ api, sale, sessionId, state, onClose, onDone }: { api: ApiFn; sale: RecentSale; sessionId: string; state: CassaState; onClose: () => void; onDone: () => void }) {
-  // Dall'admin (senza dispositivo) chi ha pos.void annulla senza PIN; dal telefono serve un responsabile.
-  const needsPin = state.device !== null;
+  // Senza PIN: dall'admin chi ha pos.void, sul telefono solo un dispositivo a cui è concesso l'annullo.
+  const needsPin = state.permissions ? !state.permissions.voidWithoutPin : state.device !== null;
   const [manager, setManager] = useState(state.managers.length === 1 ? state.managers[0].id : '');
   const [pin, setPin] = useState('');
   const [reason, setReason] = useState('');

@@ -4,7 +4,7 @@ import { History, LockKeyhole, LogOut, MoreVertical, Repeat } from 'lucide-react
 import { useCallback, useEffect, useState } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, ErrorState, Skeleton, cn } from '@/components/ui';
 import { kv } from '@/lib/cash/offline-queue';
-import { CassaError, type CassaState, type PosProduct, type Sale } from '@/lib/cash/types';
+import { CassaError, LEGACY_CASSA_PERMISSIONS, type CassaState, type PosProduct, type Sale } from '@/lib/cash/types';
 import type { ApiFn } from './api';
 import { CartBar, CartLines, CartPanel } from './Cart';
 import { CloseShift } from './CloseShift';
@@ -33,6 +33,7 @@ export function SellScreen({ api, state, cached, reloadState, logout }: Props) {
   const [busy, setBusy] = useState(false);
   const [payError, setPayError] = useState('');
   const queue = useSaleQueue(api);
+  const perms = state.permissions ?? LEGACY_CASSA_PERMISSIONS;
   const { catalog, error: catalogError, live, reload: reloadCatalog } = usePosCatalog(api, current?.registerId ?? null);
 
   // Ripresa del turno dopo una ricarica: vale se il turno è ancora aperto (o se siamo offline).
@@ -131,20 +132,22 @@ export function SellScreen({ api, state, cached, reloadState, logout }: Props) {
                 Chiudi il turno
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem icon={Repeat} onSelect={leave}>
-              Cambia cassa
-            </DropdownMenuItem>
+            {!state.assignedRegister && (
+              <DropdownMenuItem icon={Repeat} onSelect={leave}>
+                Cambia cassa
+              </DropdownMenuItem>
+            )}
           </>
         }
       />
       <main className={cn('px-4 py-4', (view === 'sell' || view === 'cart') && 'pb-28 lg:pb-4')}>
         {view === 'recent' && <RecentSales api={api} sessionId={current.sessionId} state={state} onBack={() => setView('sell')} />}
-        {view === 'close' && <CloseShift api={api} sessionId={current.sessionId} pendingQueue={queue.pending} onBack={() => setView('sell')} onClosed={leave} />}
+        {view === 'close' && <CloseShift api={api} sessionId={current.sessionId} pendingQueue={queue.pending} canViewTotals={perms.viewTotals} onBack={() => setView('sell')} onClosed={leave} />}
         {view === 'done' && sale && catalog && (
-          <SaleDone sale={sale} printer={catalog.register.printer} editionTitle={state.edition.title} operatorName={state.user?.name} onNext={() => setView('sell')} />
+          <SaleDone sale={sale} printer={catalog.register.printer} editionTitle={state.edition.title} operatorName={state.user?.name} canReprint={perms.reprint} onNext={() => setView('sell')} />
         )}
         {view === 'other' && catalog?.openPrice && <OpenAmount maxCents={catalog.openPrice.maxCents} onBack={() => setView('sell')} onAdd={addOpen} />}
-        {view === 'pay' && <Payment totalCents={total} busy={busy} error={payError} onBack={() => setView('sell')} onConfirm={pay} />}
+        {view === 'pay' && <Payment totalCents={total} busy={busy} error={payError} allowComplimentary={perms.complimentary} onBack={() => setView('sell')} onConfirm={pay} />}
         {(view === 'sell' || view === 'cart') &&
           (!catalog ? (
             catalogError ? (

@@ -7,13 +7,14 @@ import { formatMoney } from '@/lib/money';
 import { BigButton } from './Keypad';
 import { printSale, usePrinter } from './printing';
 
-type Props = { sale: Sale; printer: PrinterSettings; editionTitle: string; operatorName?: string; onNext: () => void };
+type Props = { sale: Sale; printer: PrinterSettings; editionTitle: string; operatorName?: string; /** Stampare di nuovo dopo la prima stampa (pos.reprint). */ canReprint?: boolean; onNext: () => void };
 
 /** Vendita fatta: numero grande da dire al cliente, resto, stampa (§12.1 punto 6). */
-export function SaleDone({ sale, printer, editionTitle, operatorName, onNext }: Props) {
+export function SaleDone({ sale, printer, editionTitle, operatorName, canReprint = true, onNext }: Props) {
   const printerState = usePrinter();
   const [printError, setPrintError] = useState('');
   const [printing, setPrinting] = useState(false);
+  const [printed, setPrinted] = useState(false);
   const autoPrinted = useRef(false);
 
   async function print() {
@@ -21,6 +22,7 @@ export function SaleDone({ sale, printer, editionTitle, operatorName, onNext }: 
     setPrintError('');
     try {
       await printSale(sale, printer, editionTitle, operatorName);
+      setPrinted(true);
     } catch (e) {
       setPrintError(e instanceof Error ? e.message : 'Stampa non riuscita.');
     } finally {
@@ -64,9 +66,9 @@ export function SaleDone({ sale, printer, editionTitle, operatorName, onNext }: 
           </li>
         ))}
       </ul>
-      {printerState.connected && (
+      {printerState.connected && (!printed || canReprint) && (
         <BigButton tone="secondary" className="mt-4" onClick={print} disabled={printing}>
-          <Printer size={20} aria-hidden /> {printing ? 'Stampa…' : 'Stampa'}
+          <Printer size={20} aria-hidden /> {printing ? 'Stampa…' : printed ? 'Ristampa' : 'Stampa'}
         </BigButton>
       )}
       {printError && (

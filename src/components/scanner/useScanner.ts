@@ -37,7 +37,9 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     [muted],
   );
 
+  const canStats = setup.permissions?.stats ?? true;
   const refreshCounter = useCallback(async () => {
+    if (!canStats) return;
     if (!online) {
       if (offline.manifest) setCounter(offlineCounter(offline.manifest, effectiveSession, store.used(listId)));
       return;
@@ -47,7 +49,7 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     } catch {
       // I contatori si riprovano al prossimo giro.
     }
-  }, [online, offline.manifest, effectiveSession, listId]);
+  }, [canStats, online, offline.manifest, effectiveSession, listId]);
 
   const scanOffline = useCallback(
     async (code: string) => {

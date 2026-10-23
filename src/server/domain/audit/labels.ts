@@ -21,6 +21,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'device.pairing_pin_failed': 'PIN di abbinamento sbagliato',
   'device.pairing_blocked': 'QR di abbinamento bloccato (troppi PIN sbagliati)',
   'device.revoked': 'Dispositivo revocato',
+  'device.updated': 'Dispositivo modificato',
+  'device.permissions_changed': 'Permessi del dispositivo cambiati',
   'series.created': 'Format creato',
   'series.updated': 'Format modificato',
   'series.page_saved': 'Pagina del format salvata',

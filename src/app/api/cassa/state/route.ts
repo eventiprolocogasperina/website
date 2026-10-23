@@ -5,7 +5,7 @@ import { listRegisters } from '@/server/domain/cash/registers';
 import { openSessionOf } from '@/server/domain/cash/sessions';
 import { listManagers } from '@/server/domain/cash/void';
 import { getEditionDetail } from '@/server/domain/editions';
-import { cassaAccess, errorResponse, noStore } from '../_lib';
+import { cassaAccess, cassaPermissions, errorResponse, noStore } from '../_lib';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,9 @@ export async function GET(request: Request) {
   try {
     const e = await getEditionDetail(edition);
     if (!e) return NextResponse.json({ code: 'NOT_FOUND', error: 'Edizione non trovata.' }, { status: 404 });
-    const registers = await listRegisters(e.id, { activeOnly: true });
+    // Un dispositivo con la cassa assegnata vede solo quella: niente scelta della cassa.
+    const assigned = ctx.device?.registerId ?? null;
+    const registers = (await listRegisters(e.id, { activeOnly: true })).filter((r) => !assigned || r.id === assigned);
     const sessions = await Promise.all(registers.map((r) => openSessionOf(r.id)));
     return NextResponse.json(
       {
@@ -24,6 +26,8 @@ export async function GET(request: Request) {
         user: ctx.user ? { id: ctx.user.id, name: ctx.user.name } : null,
         device: ctx.device ? { name: ctx.device.name } : null,
         canClose: can(ctx, 'pos.open_close_session', { edition }),
+        permissions: cassaPermissions(ctx, edition),
+        assignedRegister: !!assigned,
         registers: registers.map((r, i) => ({
           id: r.id,
           name: r.name,

@@ -15,6 +15,11 @@ export function assertCanOn(ctx: Ctx, permission: Permission, edition: string) {
   if (!can(ctx, permission, { edition })) throw new DomainError('FORBIDDEN');
 }
 
+/** Un dispositivo con la cassa assegnata lavora solo su quella (turno, vendite, listino). */
+export function assertDeviceRegister(ctx: Ctx, registerId: string) {
+  if (ctx.device?.registerId && ctx.device.registerId !== registerId) throw new DomainError('FORBIDDEN', { message: 'Questo dispositivo lavora su un’altra cassa.' });
+}
+
 /** Contatore per edizione (numero da chiamare, chiusure Z): incremento atomico, crea la riga se manca. */
 export async function nextCounter(tx: Tx, editionId: string, kind: 'order_number' | 'z_report'): Promise<number> {
   const [row] = await tx

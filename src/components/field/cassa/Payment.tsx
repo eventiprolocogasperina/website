@@ -20,6 +20,8 @@ type Props = {
   totalCents: number;
   busy: boolean;
   error: string;
+  /** Omaggi permessi a chi usa la cassa (pos.complimentary). */
+  allowComplimentary?: boolean;
   onBack: () => void;
   onConfirm: (choice: PaymentChoice) => void;
 };
@@ -28,7 +30,8 @@ type Props = {
  * Pagamento (§12.1 punto 5): contanti con tastierino, importi rapidi e resto; carta sul POS della
  * Pro Loco; omaggio con il motivo. Si registra un contributo, non uno scontrino.
  */
-export function Payment({ totalCents, busy, error, onBack, onConfirm }: Props) {
+export function Payment({ totalCents, busy, error, allowComplimentary = true, onBack, onConfirm }: Props) {
+  const methods = allowComplimentary ? METHODS : METHODS.filter((m) => m.id !== 'complimentary');
   const [method, setMethod] = useState<PayMethod>('cash');
   const [received, setReceived] = useState(0);
   const [reason, setReason] = useState('');
@@ -54,8 +57,8 @@ export function Payment({ totalCents, busy, error, onBack, onConfirm }: Props) {
       <p className="text-body text-muted">Da incassare</p>
       <p className="mb-4 text-[2.5rem] leading-tight font-bold tabular-nums">{formatMoney(totalCents)}</p>
 
-      <div className="mb-4 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Metodo di pagamento">
-        {METHODS.map(({ id, icon: Icon }) => (
+      <div className={cn('mb-4 grid gap-2', methods.length === 3 ? 'grid-cols-3' : 'grid-cols-2')} role="radiogroup" aria-label="Metodo di pagamento">
+        {methods.map(({ id, icon: Icon }) => (
           <button
             key={id}
             type="button"

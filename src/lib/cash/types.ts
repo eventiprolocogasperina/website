@@ -61,12 +61,21 @@ export type CassaState = {
   user: { id: string; name: string } | null;
   device: { name: string } | null;
   canClose: boolean;
+  /** Cosa può fare chi usa la cassa (dispositivo o admin). Assente nelle copie salvate prima. */
+  permissions?: CassaPermissions;
+  /** Il dispositivo ha la sua cassa: niente scelta, `registers` ha solo quella. */
+  assignedRegister?: boolean;
   registers: Array<{ id: string; name: string; openSession: { id: string; openedAt: string; openingFloatCents: number } | null }>;
   departments: string[];
   managers: Array<{ id: string; name: string }>;
 };
 
-export type RecentSale = { orderId: string; code: string; number: number | null; totalCents: number; at: string; voided: boolean; summary: string };
+export type CassaPermissions = { openAmount: boolean; complimentary: boolean; voidWithoutPin: boolean; openClose: boolean; viewTotals: boolean; reprint: boolean };
+
+/** Per le copie dello stato salvate prima dei permessi: come il cassiere di prima. */
+export const LEGACY_CASSA_PERMISSIONS: CassaPermissions = { openAmount: true, complimentary: true, voidWithoutPin: false, openClose: true, viewTotals: true, reprint: true };
+
+export type RecentSale ={ orderId: string; code: string; number: number | null; totalCents: number; at: string; voided: boolean; summary: string };
 
 export type MethodTotal = { method: PayMethod; label: string; count: number; amountCents: number; refundedCents: number; netCents: number };
 export type ProductTotal = { productId: string; name: string; quantity: number; amountCents: number };
@@ -78,9 +87,10 @@ export type SessionInfo = {
   openedByName: string | null;
   closedAt: string | null;
   openingFloatCents: number;
-  expectedCashCents: number;
+  /** null: chi chiude non può vedere i totali (chiusura alla cieca). */
+  expectedCashCents: number | null;
   zReportNumber: number | null;
-  totals: { sales: number; voided: number; flagged: number; netCents: number; complimentaryCents: number; byMethod: MethodTotal[]; products: ProductTotal[] };
+  totals: null | { sales: number; voided: number; flagged: number; netCents: number; complimentaryCents: number; byMethod: MethodTotal[]; products: ProductTotal[] };
 };
 
 export const METHOD_LABEL: Record<PayMethod, string> = { cash: 'Contanti', card_pos: 'Carta (POS)', complimentary: 'Omaggio' };

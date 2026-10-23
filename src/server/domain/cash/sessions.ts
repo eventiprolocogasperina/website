@@ -11,7 +11,7 @@ import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
 import '@/server/notifications/handlers';
 import { lockEdition } from '@/server/domain/orders/shared';
-import { assertCanOn, loadCashData, nextCounter, type CashSessionRow, type Db } from './shared';
+import { assertCanOn, assertDeviceRegister, loadCashData, nextCounter, type CashSessionRow, type Db } from './shared';
 import { cashTotals, expectedCash, type CashTotals } from './totals';
 
 /** La cassa si apre solo quando l'edizione vende (stessi stati del canale pos in createOrder). */
@@ -36,6 +36,7 @@ export async function openSession(ctx: Ctx, input: z.input<typeof OpenSessionInp
     const edition = await lockEdition(tx, register.editionId);
     assertCanOn(ctx, 'pos.open_close_session', edition.slug);
     if (ctx.device && ctx.device.edition !== edition.slug) throw new DomainError('FORBIDDEN');
+    assertDeviceRegister(ctx, register.id);
     if (!register.active) throw new DomainError('CONFLICT', { message: 'Questa cassa è spenta. Chiedi a un responsabile di attivarla.' });
     if (!POS_OPEN_STATUSES.includes(edition.status)) throw new DomainError('SALES_CLOSED', { message: 'La cassa si apre solo quando l’edizione è in vendita o in corso.' });
 
@@ -101,7 +102,7 @@ export async function sessionSummary(ctx: Ctx, sessionId: string): Promise<Sessi
 
 function canSeeSession(ctx: Ctx, slug: string) {
   if (ctx.device && ctx.device.edition !== slug) return false;
-  return can(ctx, 'pos.open_close_session', { edition: slug }) || can(ctx, 'reports.export', { edition: slug });
+  return can(ctx, 'pos.open_close_session', { edition: slug }) || can(ctx, 'pos.view_totals', { edition: slug }) || can(ctx, 'reports.export', { edition: slug });
 }
 
 export const CloseSessionInput = z.object({
@@ -130,6 +131,7 @@ export async function closeSession(ctx: Ctx, input: z.input<typeof CloseSessionI
     const edition = await lockEdition(tx, session.editionId);
     assertCanOn(ctx, 'pos.open_close_session', edition.slug);
     if (ctx.device && ctx.device.edition !== edition.slug) throw new DomainError('FORBIDDEN');
+    assertDeviceRegister(ctx, session.registerId);
     if (session.closedAt) throw new DomainError('CONFLICT', { message: 'Il turno è già chiuso.' });
 
     const cash = await loadCashData(tx, { editionId: edition.id, sessionId: session.id });

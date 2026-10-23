@@ -64,7 +64,7 @@ describe.skipIf(!enabled)('abbinamento dei dispositivi sul database', () => {
   });
 
   it('al quinto PIN sbagliato il QR non vale più, nemmeno con il PIN giusto', async () => {
-    const { token, pin } = await createPairing(owner, { name: 'Cassa 1', edition, kind: 'pos' });
+    const { token, pin } = await createPairing(owner, { name: 'Varco 3', edition, kind: 'scanner' });
     for (let i = 1; i < MAX_PAIRING_PIN_ATTEMPTS; i++) await errorOf(completePairing(token, wrong(pin), null));
     expect((await errorOf(completePairing(token, wrong(pin), null))).message).toMatch(/questo QR non vale più/);
     expect(await checkPairing(token)).toBeNull();
