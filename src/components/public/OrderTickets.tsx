@@ -6,6 +6,7 @@ import type { MyOrder } from '@/server/domain/checkout/my-tickets';
 import { card } from './checkout/parts';
 
 const STATUS_LABEL: Record<string, string> = {
+  draft: 'In preparazione',
   pending: 'In attesa di pagamento',
   paid: 'Pagato',
   partially_refunded: 'Rimborsato in parte',

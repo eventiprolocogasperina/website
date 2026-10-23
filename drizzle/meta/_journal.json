@@ -127,6 +127,13 @@
       "when": 1792691458634,
       "tag": "0017_cassa_altro_per_cassa",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792745149431,
+      "tag": "0018_ordini_bozza",
+      "breakpoints": true
     }
   ]
 }

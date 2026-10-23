@@ -266,7 +266,7 @@ members, news, gallery_items, sponsors, reviews, site_settings, transparency_doc
 
 ```
 edition_status: draft | published | on_sale | sold_out | live | concluded | archived | suspended
-order_status:   pending | paid | partially_refunded | refunded | cancelled | expired
+order_status:   draft | pending | paid | partially_refunded | refunded | cancelled | expired
 order_channel:  online | pos | paylink | invite | admin
 product_kind:   ticket | addon | food | drink | merch | donation | service
 user_role:      owner | admin | event_manager | editor | cashier | gate
@@ -952,6 +952,7 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-22 | Procedura guidata "Nuova edizione" e checklist "Da completare": stato dei passi calcolato dai dati, solo tipo e passi saltati in `editions.module_settings._setup` (nessuna migrazione). Aprire le vendite (da pubblicata o sospesa) richiede date con capienza e luogo, un biglietto online, la pagina e il regolamento; il server lo rifiuta con il motivo. La duplicazione copia anche pagina, notifiche, liste di check-in e casse, rimappando gli ID; mai ordini né codici sconto. Guida in `docs/GUIDA-EVENTI.md` e `/admin/guida` | Niccolo / Claude |
 | 2026-10-22 | Cassa: "Altro" (importo libero) si accende cassa per cassa (`cash_registers.allow_open_amount`, spento di default, rifiutato dal server). "Pezzi disponibili" dei prodotti di cassa = quota personale del prodotto (§5.4, nessuna colonna `stock_quantity`). Un dispositivo di cassa abbinato apre `/cassa`. Un ingresso si annulla anche dal dettaglio ordine e dai partecipanti (`checkin.revert`). Logo del format caricabile da Admin › Format, con ripiego sul logo Pro Loco | Claude, richiesta di Niccolo |
 | 2026-10-22 | Dispositivi da campo senza "Chi sei?": il ruolo si sceglie al QR e il dispositivo abbinato vale da solo come cassiere o varco sulla sua edizione (`getFieldCtx`); operazioni registrate a nome del dispositivo, revoca immediata. Il PIN di un responsabile resta per approvare gli annulli in cassa. Scelta di Niccolo. |
+| 2026-10-23 | Ordini in bozza dall'admin (`order_status = draft`, migrazione 0018): la bozza non tiene posti né quote, non ha scadenza, biglietti, pagamenti o email e non conta nelle statistiche; prezzi, sconto e posti si ricalcolano alla conferma, che sceglie il pagamento (pay-link via email, in loco con `orders_v2.pay_on_site` e senza scadenza, contanti, omaggio con motivo). Le righe di una bozza si riscrivono alla modifica; la bozza si annulla, mai cancellata. Omaggio ammesso anche dal canale admin (`orders.edit`) | Niccolo / Claude |
 
 ---
 

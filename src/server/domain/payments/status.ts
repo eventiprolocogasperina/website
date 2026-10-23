@@ -1,7 +1,7 @@
 // Stato di pagamento di un ordine (§5.4): sempre derivato da pagamenti e rimborsi, mai impostato a mano.
 // Funzioni pure.
 
-export type OrderStatus = 'pending' | 'paid' | 'partially_refunded' | 'refunded' | 'cancelled' | 'expired';
+export type OrderStatus = 'pending' | 'paid' | 'partially_refunded' | 'refunded' | 'cancelled' | 'expired' | 'draft';
 
 export type PaymentLike = { status: string; amountCents: number };
 export type RefundLike = { status: string; amountCents: number };
@@ -39,7 +39,7 @@ export function summarizePayments(totalCents: number, payments: PaymentLike[], r
  * pagamenti, che prima controlla che i posti ci siano ancora (vedi recordPayment).
  */
 export function derivePaymentStatus(current: OrderStatus, totalCents: number, payments: PaymentLike[], refunds: RefundLike[] = []): OrderStatus {
-  if (current === 'cancelled' || current === 'expired') return current;
+  if (current === 'cancelled' || current === 'expired' || current === 'draft') return current;
   const s = summarizePayments(totalCents, payments, refunds);
   const covered = s.paidCents >= totalCents && (s.paidCents > 0 || totalCents === 0);
   if (!covered) return 'pending';
