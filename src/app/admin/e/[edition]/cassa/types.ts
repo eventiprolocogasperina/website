@@ -1,5 +1,6 @@
 // Dati della pagina Cassa dell'admin, già serializzati per il client.
 import type { PrinterSettings } from '@/lib/cash/types';
+import type { DeviceRow } from '@/server/domain/devices';
 
 export type AdminRegister = {
   id: string;
@@ -31,7 +32,8 @@ export type AdminSession = {
 
 export type AdminFlagged = { orderId: string; code: string; number: number | null; register: string; at: string; totalCents: number; oversold: boolean; afterClose: boolean };
 
-export type AdminDevice = { id: string; name: string; lastSeenAt: string | null; createdAt: string; revokedAt: string | null };
+/** Dispositivo di cassa dell'edizione, con persona, cassa e permessi. */
+export type AdminDevice = DeviceRow;
 
 export type CashAdminData = {
   edition: { slug: string; title: string; status: string; readOnly: boolean; departmentsModule: boolean; readyScreen: boolean };

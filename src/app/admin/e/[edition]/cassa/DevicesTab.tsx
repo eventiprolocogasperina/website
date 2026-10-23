@@ -2,22 +2,26 @@
 
 import { Smartphone } from 'lucide-react';
 import { useState } from 'react';
-import { DeviceRoleField, PairingPin, type DeviceKind } from '@/components/admin/devices/Pairing';
-import { Badge, Button, Card, ConfirmDialog, Dialog, DialogContent, EmptyState, Field, Input, toast } from '@/components/ui';
-import { pairPosDeviceAction, revokePosDeviceAction } from './actions';
+import { EditDeviceDialog, PairDeviceDialog, permissionSummary } from '@/components/admin/devices/Pairing';
+import { Badge, Button, Card, ConfirmDialog, EmptyState, toast } from '@/components/ui';
+import { pairDeviceAction, updateDeviceAction } from '@/app/admin/devices-actions';
+import { revokePosDeviceAction } from './actions';
 import type { AdminDevice, CashAdminData } from './types';
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'mai');
 
 /**
- * Dispositivi di cassa di questa edizione: abbinamento con QR e revoca (come in Sistema › Utenti,
- * filtrato sull'edizione). Dopo l'abbinamento il telefono apre la cassa con nome e PIN.
+ * Dispositivi di cassa di questa edizione: abbinamento con QR (già con persona, cassa e permessi),
+ * modifica e revoca, come in Sistema › Utenti ma filtrati sull'edizione.
  */
 export function DevicesTab({ data }: { data: CashAdminData }) {
   const [pairing, setPairing] = useState(false);
+  const [editing, setEditing] = useState<AdminDevice | null>(null);
   const [revoke, setRevoke] = useState<AdminDevice | null>(null);
   const devices = data.devices ?? [];
   const editable = !data.edition.readOnly;
+  const registers = data.registers.map((r) => ({ id: r.id, name: r.name, active: r.active, allowOpenAmount: r.allowOpenAmount }));
+  const slug = data.edition.slug;
 
   return (
     <div className="flex flex-col gap-4 pt-4">
@@ -33,9 +37,15 @@ export function DevicesTab({ data }: { data: CashAdminData }) {
         <ul className="grid gap-3 md:grid-cols-2">
           {devices.map((d) => (
             <li key={d.id} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-surface p-4 shadow-sm">
-              <div>
+              <div className="min-w-0">
                 <p className="text-section font-semibold">{d.name}</p>
                 <p className="text-label text-muted">
+                  {d.registerName ?? 'Nessuna cassa assegnata'}
+                  {d.holderName ? ` · ${d.holderName}` : ''}
+                  {d.holderPhone ? ` · ${d.holderPhone}` : ''}
+                </p>
+                <p className="text-label text-muted">{permissionSummary(d.kind, d.permissions)}</p>
+                <p className="text-caption text-muted">
                   Abbinato {when(d.createdAt)} · ultimo uso {when(d.lastSeenAt)}
                 </p>
                 {d.revokedAt && (
@@ -45,15 +55,40 @@ export function DevicesTab({ data }: { data: CashAdminData }) {
                 )}
               </div>
               {!d.revokedAt && editable && (
-                <Button variant="secondary" size="sm" onClick={() => setRevoke(d)}>
-                  Revoca
-                </Button>
+                <div className="flex shrink-0 flex-col gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => setEditing(d)}>
+                    Modifica
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-danger" onClick={() => setRevoke(d)}>
+                    Revoca
+                  </Button>
+                </div>
               )}
             </li>
           ))}
         </ul>
       )}
-      {pairing && <PairingDialog slug={data.edition.slug} onClose={() => setPairing(false)} />}
+      {pairing && (
+        <PairDeviceDialog
+          editions={[{ slug, title: data.edition.title }]}
+          registersByEdition={{ [slug]: registers }}
+          defaultKind="pos"
+          onPair={pairDeviceAction}
+          onClose={() => setPairing(false)}
+        />
+      )}
+      {editing && (
+        <EditDeviceDialog
+          device={editing}
+          registers={registers}
+          onSave={async (input) => {
+            const res = await updateDeviceAction(editing.id, slug, input, true);
+            if (res.ok) toast.success(`“${input.name}” aggiornato: vale da subito.`);
+            return res;
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
       <ConfirmDialog
         open={!!revoke}
         onOpenChange={(o) => !o && setRevoke(null)}
@@ -71,67 +106,5 @@ export function DevicesTab({ data }: { data: CashAdminData }) {
         }}
       />
     </div>
-  );
-}
-
-function PairingDialog({ slug, onClose }: { slug: string; onClose: () => void }) {
-  const [name, setName] = useState('');
-  const [kind, setKind] = useState<DeviceKind>('pos');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<{ url: string; qr: string; pin: string; expiresAt: string } | null>(null);
-
-  async function create() {
-    setBusy(true);
-    setError('');
-    const res = await pairPosDeviceAction(slug, name, kind);
-    setBusy(false);
-    if (res.ok && res.data) setResult(res.data);
-    else if (!res.ok) setError(res.error);
-  }
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent
-        title={result ? `Inquadra il QR con “${name}”` : 'Abbina un dispositivo'}
-        description={result ? 'Apri la fotocamera del telefono o del tablet, inquadra il codice e digita il PIN. Vale 10 minuti e una sola volta.' : 'Il dispositivo lavorerà solo per questa edizione, con il ruolo che scegli.'}
-        footer={
-          result ? (
-            <Button onClick={onClose}>Fatto</Button>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={onClose}>
-                Annulla
-              </Button>
-              <Button onClick={create} loading={busy}>
-                Genera QR
-              </Button>
-            </>
-          )
-        }
-      >
-        {result ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex w-full flex-col items-center gap-3 sm:flex-row">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={result.qr} alt="QR di abbinamento" width={240} height={240} className="rounded-lg border border-border bg-white p-2" />
-              <PairingPin pin={result.pin} />
-            </div>
-            <p className="text-label text-muted">
-              {kind === 'pos'
-                ? `Dopo l’abbinamento apri ${typeof window !== 'undefined' ? window.location.origin : ''}/cassa sul dispositivo.`
-                : 'È un varco: lo trovi in Check-in, non in questo elenco.'}
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <Field label="Nome del dispositivo" error={error || undefined}>
-              <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Es. Telefono cassa 1" />
-            </Field>
-            <DeviceRoleField value={kind} onChange={setKind} />
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
   );
 }

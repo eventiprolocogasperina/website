@@ -1,10 +1,8 @@
 'use server';
 
-import QRCode from 'qrcode';
 import { runAction } from '@/server/admin/run-action';
 import { deleteCheckinList, saveCheckinList, setScannerV2 } from '@/server/domain/checkin';
-import { createPairing, revokeDevice } from '@/server/domain/devices';
-import { siteUrl } from '@/server/email/send';
+import { revokeDevice } from '@/server/domain/devices';
 
 type ListInput = { name: string; productIds: string[]; sessionId: string | null; allowMultiple: boolean };
 
@@ -18,15 +16,7 @@ export async function deleteCheckinListAction(edition: string, id: string) {
   return runAction(paths(edition), (ctx) => deleteCheckinList(ctx, edition, id));
 }
 
-/** QR e PIN di abbinamento di un telefono o tablet di questa edizione, con il ruolo scelto (10 minuti, una volta). */
-export async function pairScannerAction(edition: string, name: string, kind: 'pos' | 'scanner' = 'scanner') {
-  return runAction(paths(edition), async (ctx) => {
-    const { token, pin, expiresAt } = await createPairing(ctx, { name, edition, kind });
-    const url = `${siteUrl()}/abbina/${token}`;
-    const qr = await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 280 });
-    return { url, qr, pin, expiresAt };
-  });
-}
+// QR di abbinamento e modifica dei dispositivi: app/admin/devices-actions.ts (comuni a Sistema, Cassa e Check-in).
 
 export async function revokeScannerAction(edition: string, deviceId: string) {
   return runAction(paths(edition), (ctx) => revokeDevice(ctx, deviceId));

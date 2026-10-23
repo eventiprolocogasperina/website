@@ -80,9 +80,7 @@ export default async function CashAdminPage(props: EditionParams & { searchParam
       : null,
     flagged: report?.flagged ?? null,
     devices:
-      devices
-        ?.filter((d) => d.kind === 'pos' && d.edition === edition.slug)
-        .map((d) => ({ id: d.id, name: d.name, lastSeenAt: d.lastSeenAt, createdAt: d.createdAt, revokedAt: d.revokedAt })) ?? null,
+devices?.filter((d) => d.kind === 'pos' && d.edition === edition.slug) ?? null,
   };
   const { tab } = await props.searchParams;
   return (
