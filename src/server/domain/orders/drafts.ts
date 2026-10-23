@@ -175,6 +175,8 @@ export const ConfirmDraftInput = z
     /** Motivo dell'omaggio: obbligatorio con `complimentary`. */
     reason: z.string().trim().max(200).nullish(),
     note: Note,
+    /** Conferma anche se i posti sono finiti (date esaurite): resta nel registro come `oversold`. */
+    overCapacity: z.boolean().nullish(),
   })
   .refine((v) => v.mode !== 'complimentary' || (v.reason ?? '').length >= 3, { path: ['reason'], message: 'Scrivi il motivo dell’omaggio.' });
 
@@ -218,11 +220,13 @@ export async function confirmDraftOrder(ctx: Ctx, input: z.input<typeof ConfirmD
       discount: discount ?? null,
       now,
     });
+    let oversold = false;
     try {
       await reserveSeats(tx, edition.id, priced.lines, { now, excludeOrderId: order.id });
     } catch (error) {
-      if (error instanceof DomainError && error.code === 'SOLD_OUT') throw new DomainError('SOLD_OUT', { message: 'Non ci sono più abbastanza posti per confermare la bozza. Cambia data o quantità e riprova.' });
-      throw error;
+      if (!(error instanceof DomainError && error.code === 'SOLD_OUT')) throw error;
+      if (!data.overCapacity) throw new DomainError('SOLD_OUT', { message: 'Non ci sono più abbastanza posti per confermare la bozza. Spunta “Conferma anche oltre i posti” oppure cambia data o quantità.' });
+      oversold = true;
     }
 
     const paidNow = data.mode === 'cash' || data.mode === 'complimentary' || priced.totalCents === 0;
@@ -262,7 +266,7 @@ export async function confirmDraftOrder(ctx: Ctx, input: z.input<typeof ConfirmD
       entityId: order.id,
       edition: edition.slug,
       before: { status: 'draft', totalCents: order.totalCents },
-      after: { status, mode: data.mode, channel, totalCents: priced.totalCents, tickets: ticketValues.length },
+      after: { status, mode: data.mode, channel, totalCents: priced.totalCents, tickets: ticketValues.length, ...(oversold ? { oversold } : {}) },
       reason: data.mode === 'complimentary' ? data.reason : null,
     });
     events.push({ type: 'order.created', orderId: order.id, code: order.code, edition: edition.slug, status });

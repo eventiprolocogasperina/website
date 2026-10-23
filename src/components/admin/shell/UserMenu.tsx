@@ -20,9 +20,11 @@ export function UserMenu({ user }: { user: ShellUser }) {
           <span className="block">{name}</span>
           {user.email && <span className="block text-caption font-normal text-muted">{user.email}</span>}
         </DropdownMenuLabel>
-        <DropdownMenuItem icon={User} disabled shortcut="presto">
-          Profilo
-        </DropdownMenuItem>
+        {!user.legacy && (
+          <DropdownMenuItem icon={User} onSelect={() => (window.location.href = '/admin/profilo')}>
+            Profilo e PIN
+          </DropdownMenuItem>
+        )}
         {!user.legacy && user.email && (
           <DropdownMenuItem
             icon={KeyRound}

@@ -488,7 +488,7 @@ function UserDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         title={user ? `Modifica ${user.name}` : "Nuovo utente"}
-        description="I volontari di cassa e ingresso possono non avere un’email: entrano solo con il PIN."
+        description="I volontari di cassa e ingresso possono non avere un’email: usano il dispositivo abbinato col QR."
         size="lg"
         footer={
           <>
@@ -596,7 +596,7 @@ function PinDialog({ user, onClose }: { user: UserRow; onClose: () => void }) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         title={`PIN di ${user.name}`}
-        description="Da 4 a 6 cifre. Serve per entrare in cassa e allo scanner sui dispositivi abbinati. Dopo 5 errori si blocca."
+        description="Da 4 a 6 cifre. È il PIN da responsabile per autorizzare gli annulli in cassa; ognuno può cambiarlo anche da Profilo. Dopo 5 errori si blocca."
         size="sm"
         footer={
           <>

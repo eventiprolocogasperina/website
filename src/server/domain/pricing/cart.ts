@@ -140,7 +140,8 @@ export function priceCart(input: {
       if (!sessionId) throw invalid(`Scegli la data per ${product.name}.`);
       const session = sessions.find((s) => s.id === sessionId);
       if (!session) throw invalid('La data scelta non esiste.');
-      if (session.status === 'sold_out') throw new DomainError('SOLD_OUT');
+      // L'admin può vendere anche su una data segnata come esaurita: i posti li controlla reserveSeats.
+      if (session.status === 'sold_out' && channel !== 'admin') throw new DomainError('SOLD_OUT');
       if (session.status !== 'open' && channel !== 'admin') throw new DomainError('SALES_CLOSED', { message: 'La data scelta non è in vendita.' });
     }
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { confirmDraftAction } from '@/app/admin/(org)/ordini/actions';
-import { Field, Input, RadioGroup, Textarea, toast } from '@/components/ui';
+import { Checkbox, Field, Input, RadioGroup, Textarea, toast } from '@/components/ui';
 import { formatMoney } from '@/lib/money';
 import type { DraftConfirmMode } from '@/server/domain/orders/drafts';
 import { ActionDialog, type Props } from './OrderDialogs';
@@ -22,6 +22,7 @@ export function ConfirmDraftDialog({ d, onClose, canCash }: Props & { canCash: b
   const [mode, setMode] = useState<DraftConfirmMode>(hasEmail && paylinkOn ? 'paylink' : 'on_site');
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
+  const [overCapacity, setOverCapacity] = useState(false);
   const paylinkHint = !paylinkOn ? 'Attiva il modulo Pay-link per questa edizione.' : !hasEmail ? 'Serve l’email del cliente: aggiungila con “Modifica bozza”.' : 'L’ordine resta in attesa fino al pagamento online, poi arrivano i biglietti.';
   return (
     <ActionDialog
@@ -29,7 +30,7 @@ export function ConfirmDraftDialog({ d, onClose, canCash }: Props & { canCash: b
       description={`Totale indicativo ${formatMoney(d.order.totalCents)}: alla conferma prezzi e posti si ricalcolano.`}
       confirm="Conferma ordine"
       ready={mode !== 'complimentary' || reason.trim().length >= 3}
-      run={() => confirmDraftAction({ orderId: d.order.id, mode, reason: mode === 'complimentary' ? reason : null, note: note || null })}
+      run={() => confirmDraftAction({ orderId: d.order.id, mode, reason: mode === 'complimentary' ? reason : null, note: note || null, overCapacity })}
       onSuccess={(data) => {
         const r = data as { emailSent: boolean | null };
         if (r.emailSent === false) toast.warning('Ordine confermato, ma l’email non è partita: riprova da “Reinvia biglietti” o controlla il registro email.');
@@ -58,6 +59,12 @@ export function ConfirmDraftDialog({ d, onClose, canCash }: Props & { canCash: b
       <Field label="Note" help="Nota interna: la vedono solo gli operatori.">
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={2000} />
       </Field>
+      <Checkbox
+        checked={overCapacity}
+        onCheckedChange={setOverCapacity}
+        label="Conferma anche oltre i posti"
+        description="Per una data esaurita: l’ordine passa lo stesso e il superamento resta nel registro attività."
+      />
     </ActionDialog>
   );
 }

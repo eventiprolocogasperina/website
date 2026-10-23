@@ -4,7 +4,7 @@ import { Minus, Pencil, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createDraftAction, createOrderAction, updateDraftAction } from '@/app/admin/(org)/ordini/actions';
-import { Button, Field, IconButton, Input, RadioGroup, Select, Sheet, SheetContent, SheetTrigger, Textarea, toast } from '@/components/ui';
+import { Button, Checkbox, Field, IconButton, Input, RadioGroup, Select, Sheet, SheetContent, SheetTrigger, Textarea, toast } from '@/components/ui';
 import { formatMoney } from '@/lib/money';
 import type { OrderEditionContext } from '@/server/domain/orders/admin-context';
 
@@ -38,6 +38,7 @@ export function NewOrderSheet({ context, detailBase = '', draft }: Props) {
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<'admin' | 'paylink'>('admin');
   const [qty, setQty] = useState<Record<string, number>>(() => qtyOf(draft));
+  const [overCapacity, setOverCapacity] = useState(false);
   const [sessionId, setSessionId] = useState(draft?.sessionId ?? draft?.lines.find((l) => l.sessionId)?.sessionId ?? '');
   const [customer, setCustomer] = useState(draft?.customer ?? { name: '', email: '', phone: '' });
   const [pay, setPay] = useState('cash');
@@ -94,6 +95,7 @@ export function NewOrderSheet({ context, detailBase = '', draft }: Props) {
             note: note || null,
             payNow: channel === 'admin' && pay !== 'none' ? (pay as 'cash' | 'card_pos' | 'bank_transfer' | 'complimentary') : null,
             complimentaryReason: channel === 'admin' && pay === 'complimentary' ? reason : null,
+            overCapacity: channel === 'admin' && overCapacity,
           });
     setBusy(null);
     if (!res.ok) return toast.error(res.error);
@@ -166,7 +168,7 @@ export function NewOrderSheet({ context, detailBase = '', draft }: Props) {
           </fieldset>
           {needsSession && (
             <Field label="Data" required>
-              <Select value={sessionId} onValueChange={setSessionId} options={context.sessions.filter((s) => s.status === 'open' || s.id === sessionId).map((s) => ({ value: s.id, label: s.label }))} />
+              <Select value={sessionId} onValueChange={setSessionId} options={context.sessions.filter((s) => s.status === 'open' || s.status === 'sold_out' || s.id === sessionId).map((s) => ({ value: s.id, label: s.status === 'sold_out' ? `${s.label} · esaurita` : s.label }))} />
             </Field>
           )}
           <fieldset className="grid gap-3 sm:grid-cols-2">
@@ -188,6 +190,14 @@ export function NewOrderSheet({ context, detailBase = '', draft }: Props) {
             <Field label="Pagamento" help="Vale per “Crea ordine”. Una bozza sceglie il pagamento quando la confermi.">
               <Select value={pay} onValueChange={setPay} options={PAY_OPTIONS} />
             </Field>
+          )}
+          {!editing && channel === 'admin' && (
+            <Checkbox
+              checked={overCapacity}
+              onCheckedChange={setOverCapacity}
+              label="Crea anche oltre i posti"
+              description="Per una data esaurita: l’ordine passa lo stesso e il superamento resta nel registro attività. Una bozza lo chiede quando la confermi."
+            />
           )}
           {!editing && channel === 'admin' && pay === 'complimentary' && (
             <Field label="Motivo dell’omaggio" required>

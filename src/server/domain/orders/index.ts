@@ -90,8 +90,11 @@ export const CreateOrderInput = z
     complimentaryReason: z.string().trim().max(200).nullish(),
     /** Turno di cassa (solo canale `pos`). Lo controlla il servizio della cassa, che passa da qui (cash/sales). */
     cashSessionId: uuid.nullish(),
+    /** Solo canale `admin`: accetta l'ordine anche se i posti sono finiti. Resta nel registro come `oversold`. */
+    overCapacity: z.boolean().nullish(),
   })
   .superRefine((v, c) => {
+    if (v.overCapacity && v.channel !== 'admin') c.addIssue({ code: 'custom', path: ['overCapacity'], message: 'Oltre i posti si può andare solo con un ordine admin.' });
     if (['online', 'paylink', 'invite'].includes(v.channel) && !v.customer) c.addIssue({ code: 'custom', path: ['customer'], message: 'Servono nome ed email.' });
     if (v.payNow && !['pos', 'admin'].includes(v.channel)) c.addIssue({ code: 'custom', path: ['payNow'], message: 'Pagamento immediato solo da cassa o admin.' });
     if (v.payNow === 'complimentary' && !['pos', 'admin'].includes(v.channel)) c.addIssue({ code: 'custom', path: ['payNow'], message: 'L’omaggio si registra solo dalla cassa o dall’admin.' });
@@ -219,7 +222,8 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
   try {
     await reserveSeats(tx, edition.id, priced.lines, { now });
   } catch (error) {
-    if (!(opts.allowOversell && data.channel === 'pos' && error instanceof DomainError && error.code === 'SOLD_OUT')) throw error;
+    const allowed = (opts.allowOversell && data.channel === 'pos') || (data.overCapacity && data.channel === 'admin');
+    if (!(allowed && error instanceof DomainError && error.code === 'SOLD_OUT')) throw error;
     oversold = true;
   }
   if (edition.enabledModules.includes('activities') && data.answers?.length) {

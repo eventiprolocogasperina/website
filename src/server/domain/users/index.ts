@@ -162,6 +162,27 @@ export async function setUserPin(ctx: Ctx, userId: string, pin: string): Promise
   });
 }
 
+export type OwnProfile = { name: string; email: string | null; hasPin: boolean; pinLocked: boolean; grants: RoleGrant[] };
+
+/** Il proprio profilo: nome, email, ruoli e stato del PIN (mai il PIN). */
+export async function getOwnProfile(ctx: Ctx): Promise<OwnProfile> {
+  if (!ctx.user || ctx.legacy) throw new DomainError('FORBIDDEN');
+  const [row] = await getDb().select({ name: users.name, email: users.email, pinHash: users.pinHash, pinLockedAt: users.pinLockedAt }).from(users).where(eq(users.id, ctx.user.id));
+  if (!row) throw new DomainError('NOT_FOUND');
+  return { name: row.name, email: row.email, hasPin: !!row.pinHash, pinLocked: !!row.pinLockedAt, grants: ctx.grants };
+}
+
+/** Il proprio PIN (es. il responsabile che autorizza gli annulli in cassa): chi è entrato nell'admin lo imposta per sé. */
+export async function setOwnPin(ctx: Ctx, pin: string): Promise<void> {
+  if (!ctx.user || ctx.legacy) throw new DomainError('FORBIDDEN');
+  if (!isValidPin(pin)) throw new DomainError('VALIDATION', { message: 'Il PIN deve avere da 4 a 6 cifre.' });
+  const userId = ctx.user.id;
+  await withTransaction(async (tx) => {
+    await tx.update(users).set({ pinHash: hashPassword(pin), pinFailedAttempts: 0, pinLockedAt: null, updatedAt: new Date() }).where(eq(users.id, userId));
+    await audit(tx, ctx, 'user.pin_set', { entityType: 'user', entityId: userId });
+  });
+}
+
 // ─── Accesso con email e password ────────────────────────────────────────────
 
 /** Utente attivo con queste credenziali, oppure null. Stesso tempo di risposta se l'email non esiste. */

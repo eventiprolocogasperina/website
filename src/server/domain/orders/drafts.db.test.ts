@@ -128,4 +128,18 @@ describe.skipIf(!enabled)('ordini in bozza', () => {
     const gift = await createOrder(owner, { editionId: f.edition.id, channel: 'admin', lines: [{ productId: f.ticket.id, quantity: 1, sessionId: f.day2.id }], idempotencyKey: key(), payNow: 'complimentary', complimentaryReason: 'Volontario' });
     expect(gift.status).toBe('paid');
   });
+  it('su una data esaurita l’admin va oltre i posti solo se lo chiede, e resta nel registro', async () => {
+    const full = { editionId: f.edition.id, channel: 'admin' as const, lines: [{ productId: f.ticket.id, quantity: 1, sessionId: f.day1.id }], payNow: 'cash' as const };
+    expect((await errorOf(createOrder(owner, { ...full, idempotencyKey: key() }))).code).toBe('SOLD_OUT');
+    const over = await createOrder(owner, { ...full, idempotencyKey: key(), overCapacity: true });
+    expect(over.status).toBe('paid');
+    // Solo il canale admin: online no.
+    expect((await errorOf(createOrder(owner, { ...full, channel: 'online', payNow: null, customer: buyer, idempotencyKey: key(), overCapacity: true }))).code).toBe('ZOD');
+
+    const d = await draft(1);
+    expect((await errorOf(confirmDraftOrder(owner, { orderId: d.id, mode: 'cash' }))).code).toBe('SOLD_OUT');
+    expect((await confirmDraftOrder(owner, { orderId: d.id, mode: 'cash', overCapacity: true })).status).toBe('paid');
+    const [log] = await db().select({ after: auditLog.after }).from(auditLog).where(and(eq(auditLog.entityId, d.id), eq(auditLog.action, 'order.draft_confirmed')));
+    expect(log.after).toMatchObject({ oversold: true });
+  });
 });
