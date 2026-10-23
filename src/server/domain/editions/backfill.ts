@@ -225,6 +225,15 @@ export function planBackfill(input: { events: LegacyEventRow[]; zuccaland: Zucca
   // 4. Cassa: ogni evento della configurazione porta i suoi prodotti con il canale "pos".
   for (const evt of input.cashier?.events ?? []) {
     let edition = plan.editions.find((e) => e.legacy.some((l) => l.id === evt.id));
+    // L'ID dell'evento di cassa può non c'entrare con l'edizione (es. "sagra-tradizioni-2026" con il nome
+    // "Zuccaland_2026"): si prova allora il nome, così prodotti e vendite finiscono nell'edizione giusta.
+    if (!edition) {
+      const byName = plan.editions.find((e) => e.slug === slugify(evt.name));
+      if (byName) {
+        edition = byName;
+        plan.notes.push(`Cassa "${evt.name}" (ID ${evt.id}): unita all'edizione ${byName.slug} per nome.`);
+      }
+    }
     if (!edition) {
       const slug = slugify(evt.id);
       if (slug !== evt.id) plan.notes.push(`Cassa "${evt.name}": l'ID ${evt.id} diventa lo slug ${slug}.`);

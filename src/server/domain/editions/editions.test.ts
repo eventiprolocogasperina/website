@@ -92,6 +92,31 @@ describe('backfill delle edizioni', () => {
     expect(zs.find((s) => s.legacy.id.endsWith(':17'))!.rescheduledTo).toBeUndefined();
   });
 
+  it("un evento di cassa con un ID diverso si unisce all'edizione con lo stesso nome", () => {
+    const p = planBackfill({
+      events,
+      zuccaland,
+      today: '2026-10-19',
+      cashier: {
+        events: [
+          {
+            id: 'sagra-tradizioni-2026',
+            name: 'Zuccaland_2026',
+            eventCode: 'Z',
+            active: true,
+            categories: [],
+            createdAt: '',
+            updatedAt: '',
+            items: [{ id: 'zeppola', name: 'Zeppola', category: 'Dolci', price: 2, isAvailable: true }],
+          },
+        ],
+      },
+    });
+    expect(p.editions.find((e) => e.slug === 'sagra-tradizioni-2026')).toBeUndefined();
+    expect(p.editions.find((e) => e.slug === 'zuccaland-2026')!.legacy).toContainEqual({ kind: 'cashier_event', id: 'sagra-tradizioni-2026' });
+    expect(p.products.filter((x) => x.edition === 'zuccaland-2026' && x.channels.includes('pos')).map((x) => x.name)).toEqual(['Zeppola']);
+  });
+
   it('la cassa porta i prodotti con canale pos e le scorte come quote', () => {
     const withCashier = planBackfill({
       events,
