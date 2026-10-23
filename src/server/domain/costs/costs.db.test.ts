@@ -10,7 +10,7 @@ import { recordPayment } from '@/server/domain/payments';
 import { editionTotals } from '@/server/domain/stats';
 import { anon, buyer, createEdition, key, owner, roleOn, system } from '@/test/fixtures';
 import { closeTestDb, getDb } from '@/test/pg-client';
-import { createCost, editionCostTotals, listCosts, updateCost, voidCost, yearlySummary, type CostInput } from './index';
+import { costsCsv, createCost, editionCostTotals, listCosts, openReceipt, updateCost, voidCost, yearlySummary, type CostInput } from './index';
 
 const enabled = !!process.env.TEST_DATABASE_URL;
 
@@ -158,5 +158,55 @@ describe.skipIf(!enabled)('inventario', () => {
     const [row] = await getDb().select().from(costs).where(eq(costs.id, c.id));
     expect(row.inventoryItemId).toBe(id);
     expect((await listCosts(owner, null)).find((r) => r.id === c.id)?.inventoryItemName).toBe('Friggitrice');
+  });
+
+  describe('ricevute private', () => {
+    const receipt = { publicId: 'pro-loco-gasperina/costi/abc123', resourceType: 'image' as const, format: 'jpg' };
+    const views = (id: string) => getDb().select().from(auditLog).where(eq(auditLog.entityId, id));
+
+    it('si salva il public_id, mai un URL; un URL pubblico o un public_id fuori cartella non si accettano', async () => {
+      const f = await createEdition();
+      const { id } = await createCost(owner, f.slug, cost({ attachment: receipt }));
+      const [row] = await getDb().select().from(costs).where(eq(costs.id, id));
+      expect(row).toMatchObject({ attachmentPublicId: receipt.publicId, attachmentResourceType: 'image', attachmentFormat: 'jpg', attachmentUrl: null });
+      await updateCost(owner, id, cost({ amountCents: 9_000 }));
+      expect((await getDb().select().from(costs).where(eq(costs.id, id)))[0].attachmentPublicId).toBe(receipt.publicId);
+      expect(await errorCode(createCost(owner, f.slug, cost({ attachment: { ...receipt, publicId: 'altro/abc' } })))).toBe('ZOD');
+      const spoofed = await createCost(owner, f.slug, { ...cost(), attachmentUrl: 'https://res.cloudinary.com/x/raw/upload/r.pdf' } as CostInput);
+      expect((await getDb().select().from(costs).where(eq(costs.id, spoofed.id)))[0].attachmentUrl).toBeNull();
+      const csv = costsCsv(await listCosts(owner, f.slug));
+      expect(csv).not.toContain('cloudinary');
+      expect(csv).not.toContain(receipt.publicId);
+      await updateCost(owner, id, cost({ attachment: null }));
+      expect((await getDb().select().from(costs).where(eq(costs.id, id)))[0].attachmentPublicId).toBeNull();
+    });
+
+    it('si apre solo con costs.read sull’edizione del costo, e ogni apertura va nel registro', async () => {
+      const f = await createEdition();
+      const other = await createEdition();
+      const { id } = await createCost(owner, f.slug, cost({ attachment: receipt }));
+      expect(await errorCode(openReceipt(roleOn('event_manager', other.slug), id))).toBe('FORBIDDEN');
+      expect(await errorCode(openReceipt(roleOn('editor', null), id))).toBe('FORBIDDEN');
+      expect(await errorCode(openReceipt(anon, id))).toBe('FORBIDDEN');
+      expect((await views(id)).some((a) => a.action === 'cost.receipt_viewed')).toBe(false);
+
+      expect(await openReceipt(roleOn('event_manager', f.slug), id)).toEqual({ private: receipt });
+      const logged = (await views(id)).filter((a) => a.action === 'cost.receipt_viewed');
+      expect(logged).toHaveLength(1);
+      expect(logged[0].editionSlug).toBe(f.slug);
+    });
+
+    it('costi generali: serve il permesso a livello di associazione; le ricevute di prima restano leggibili', async () => {
+      const f = await createEdition();
+      const { id } = await createCost(owner, null, cost());
+      await getDb().update(costs).set({ attachmentUrl: 'https://res.cloudinary.com/demo/raw/upload/vecchia.pdf' }).where(eq(costs.id, id));
+      expect(await errorCode(openReceipt(roleOn('event_manager', f.slug), id))).toBe('FORBIDDEN');
+      expect(await openReceipt(owner, id)).toEqual({ legacyUrl: 'https://res.cloudinary.com/demo/raw/upload/vecchia.pdf' });
+      // Modificare il costo senza toccare la ricevuta lascia quella di prima.
+      await updateCost(owner, id, cost({ amountCents: 1_000 }));
+      expect((await getDb().select().from(costs).where(eq(costs.id, id)))[0].attachmentUrl).toContain('vecchia.pdf');
+      const { id: none } = await createCost(owner, null, cost());
+      expect(await errorCode(openReceipt(owner, none))).toBe('NOT_FOUND');
+    });
   });
 });

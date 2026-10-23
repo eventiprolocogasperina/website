@@ -1,6 +1,6 @@
 'use client';
 
-import { History, LockKeyhole, LogOut, MoreVertical, Repeat } from 'lucide-react';
+import { History, LockKeyhole, LogOut, MoreVertical, Repeat, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, ErrorState, Skeleton, cn } from '@/components/ui';
 import { kv } from '@/lib/cash/offline-queue';
@@ -8,6 +8,7 @@ import { CassaError, LEGACY_CASSA_PERMISSIONS, type CassaState, type PosProduct,
 import type { ApiFn } from './api';
 import { CartBar, CartLines, CartPanel } from './Cart';
 import { CloseShift } from './CloseShift';
+import { CollectOnSite } from './CollectOnSite';
 import { OpenAmount } from './OpenAmount';
 import { Payment, type PaymentChoice } from './Payment';
 import { ProductGrid } from './ProductGrid';
@@ -19,7 +20,7 @@ import { usePosCatalog } from './useCassaData';
 import { cartTotal, openLine, useSaleQueue, type CartLine } from './useSaleQueue';
 
 type Current = { registerId: string; sessionId: string };
-type View = 'sell' | 'cart' | 'pay' | 'done' | 'recent' | 'close' | 'other';
+type View = 'sell' | 'cart' | 'pay' | 'done' | 'recent' | 'close' | 'other' | 'collect';
 
 type Props = { api: ApiFn; state: CassaState; cached: boolean; reloadState: () => Promise<void>; logout: (() => Promise<void>) | null };
 
@@ -124,6 +125,9 @@ export function SellScreen({ api, state, cached, reloadState, logout }: Props) {
         logout={logout}
         menu={
           <>
+            <DropdownMenuItem icon={Wallet} onSelect={() => setView('collect')} disabled={offline}>
+              Da incassare (paga in loco)
+            </DropdownMenuItem>
             <DropdownMenuItem icon={History} onSelect={() => setView('recent')} disabled={offline}>
               Ultime vendite e annulli
             </DropdownMenuItem>
@@ -141,6 +145,7 @@ export function SellScreen({ api, state, cached, reloadState, logout }: Props) {
         }
       />
       <main className={cn('px-4 py-4', (view === 'sell' || view === 'cart') && 'pb-28 lg:pb-4')}>
+        {view === 'collect' && <CollectOnSite api={api} sessionId={current.sessionId} onBack={() => setView('sell')} />}
         {view === 'recent' && <RecentSales api={api} sessionId={current.sessionId} state={state} onBack={() => setView('sell')} />}
         {view === 'close' && <CloseShift api={api} sessionId={current.sessionId} pendingQueue={queue.pending} canViewTotals={perms.viewTotals} onBack={() => setView('sell')} onClosed={leave} />}
         {view === 'done' && sale && catalog && (

@@ -11,6 +11,10 @@ export type OrderConfirmationProps = {
   location: string | null;
   lines: Array<{ label: string; amount: string }>;
   total: string;
+  /** "Totale pagato" o "Totale". */
+  totalTitle?: string;
+  /** "Codice SPONSOR26: −5,00 €" se l'ordine ha usato un codice sconto. */
+  discountLabel?: string | null;
   ticketCount: number;
   myTicketsUrl: string;
   qrSrc: string;
@@ -58,7 +62,10 @@ export function OrderConfirmationEmail(p: OrderConfirmationProps) {
                 {l.label} — {l.amount}
               </Text>
             ))}
-            <Text style={{ fontSize: 15, fontWeight: 700, margin: '8px 0 0' }}>Totale {p.total}</Text>
+            {p.discountLabel && <Text style={{ fontSize: 14, margin: '4px 0' }}>{p.discountLabel}</Text>}
+            <Text style={{ fontSize: 15, fontWeight: 700, margin: '8px 0 0' }}>
+              {p.totalTitle ?? 'Totale'} {p.total}
+            </Text>
             <Text style={{ fontSize: 12, color: '#666d80', margin: '16px 0 0', lineHeight: 1.5 }}>
               Per qualsiasi problema rispondi a questa email indicando il codice ordine. Il link “I miei biglietti” è personale: non condividerlo.
             </Text>

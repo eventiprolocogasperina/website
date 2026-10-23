@@ -416,6 +416,7 @@ Un ruolo si assegna sull'**associazione** (`edition_id NULL`) o su una **singola
 | `pos.void` (richiede PIN di un responsabile) | ✔ | ✔ | ✔ | — | — | — |
 | `pos.open_amount`, `pos.complimentary`, `pos.view_totals`, `pos.reprint` | ✔ | ✔ | ✔ | — | ✔ | — |
 | `checkin.scan`, `checkin.revert`, `checkin.search`, `checkin.stats` | ✔ | ✔ | ✔ | — | — | ✔ |
+| `checkin.collect_payment` (incassare al varco un ordine "Paga in loco"; ai dispositivi si concede a parte) | ✔ | ✔ | ✔ | — | — | — |
 | `reports.export` | ✔ | ✔ | ✔ | — | — | — |
 | `costs.read`, `costs.write` (costi generali: solo a livello di associazione) | ✔ | ✔ | ✔ | — | — | — |
 | `inventory.read` | ✔ | ✔ | ✔ | — | — | — |
@@ -644,7 +645,8 @@ Sono app **mobile-first** a schermo intero, senza la shell admin, installabili c
 4. **Prodotti esauriti** in tempo reale su tutte le casse, perché le scorte sono quote.
 5. **Annullo**: richiede il PIN di un responsabile e un motivo, e viene registrato.
 6. **Chiusura turno**: conteggio dei contanti per taglio → sistema e contato a confronto → differenza → **chiusura Z** in PDF, stampabile.
-7. **Offline**: se la rete cade, gli ordini vengono salvati in IndexedDB con un ID generato dal client (idempotente) e sincronizzati al ritorno della connessione. Un banner "Offline · 3 ordini da sincronizzare" resta visibile.
+7. **Da incassare**: gli ordini «Paga in loco» dell'edizione si cercano per codice o nome e si incassano nel turno (contanti o carta); l'importo lo calcola il server e l'incasso entra nella Z come le altre vendite.
+8. **Offline**: se la rete cade, gli ordini vengono salvati in IndexedDB con un ID generato dal client (idempotente) e sincronizzati al ritorno della connessione. Un banner "Offline · 3 ordini da sincronizzare" resta visibile.
 
 ### 12.2 Schermo cucina (`/cassa/reparto/[department]`)
 Comande del reparto in colonne PENDING → PREPARING → READY → DELIVERED, aggiornate in tempo reale. Uno schermo pubblico facoltativo mostra "Pronti: 42, 43, 47".
@@ -656,6 +658,7 @@ Comande del reparto in colonne PENDING → PREPARING → READY → DELIVERED, ag
 4. Le azioni dei moduli (es. "+1 Bambino" del modulo `activities`) compaiono come pulsanti sotto l'esito. Non sono cablate nello scanner.
 5. Ricerca manuale per nome o codice, per chi non ha il QR.
 6. Contatori in alto: entrati e attesi per la sessione corrente.
+7. Un biglietto di un ordine «Paga in loco» non pagato esce giallo «DA PAGARE: € X» e non entra. Con `checkin.collect_payment` si incassa lì (contanti o POS, sul turno di una cassa aperta) e il biglietto entra; senza, «Da pagare in cassa».
 
 ---
 
@@ -961,6 +964,8 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-23 | Ordini in bozza dall'admin (`order_status = draft`, migrazione 0018): la bozza non tiene posti né quote, non ha scadenza, biglietti, pagamenti o email e non conta nelle statistiche; prezzi, sconto e posti si ricalcolano alla conferma, che sceglie il pagamento (pay-link via email, in loco con `orders_v2.pay_on_site` e senza scadenza, contanti, omaggio con motivo). Le righe di una bozza si riscrivono alla modifica; la bozza si annulla, mai cancellata. Omaggio ammesso anche dal canale admin (`orders.edit`) | Niccolo / Claude |
 | 2026-10-23 | Costi (tabella `costs`, `edition_id` nullo = costo generale) e inventario (`inventory_items`, `inventory_movements`). I costi non si cancellano: si annullano con il motivo; quelli di un'edizione si modificano finché non è `concluded`. Rendiconto = entrate nette − costi, anche nel PDF e CSV finale, con il materiale usato. La quantità del materiale è la somma delle rettifiche (aggiunta, perso, rotto, correzione); gli usi per evento impegnano i pezzi e al rientro i mancanti diventano "persi". Il materiale si dismette, non si cancella | Niccolo / Claude |
 | 2026-10-23 | Permessi per dispositivo: con il QR si scelgono persona, cassa (obbligatoria per la cassa) e permessi (preset Cassa principale, Cassa secondaria, Varco), copiati sul dispositivo e modificabili dopo con effetto immediato e registro; il server li controlla, i dispositivi già abbinati restano come il ruolo. Annullo senza responsabile solo se concesso; senza "totali" la chiusura si conta alla cieca | Niccolo / Claude |
+| 2026-10-23 | Ricevute dei costi private: si caricano su Cloudinary come asset `authenticated` (firma con il segreto del server) da `/api/admin/costi/ricevuta`; in `costs` si salvano public_id, tipo e formato, mai un URL (migrazione 0021). Si aprono solo da `/api/admin/costi/[id]/ricevuta`: `costs.read` sull'edizione del costo (associazione per i costi generali), voce `cost.receipt_viewed` nel registro, redirect a un link firmato di 5 minuti. Le ricevute di prima (URL pubblico in `attachment_url`) restano leggibili dallo stesso indirizzo; CSV e rendiconto dicono solo se la ricevuta c'è | Niccolo / Claude |
+| 2026-10-23 | «Paga in loco» si incassa anche in cassa («Da incassare», `pos.sell`) e al varco (`checkin.collect_payment`, nuovo permesso per dispositivo, spento anche nel preset Varco). Al varco il biglietto non pagato dà l'esito `to_pay` e non entra. L'incasso (`collectPayOnSite`) calcola il dovuto dal server, registra il pagamento con il nucleo di `recordPayment` (`applyPayment`) sul turno di cassa (quello del telefono, l'unico aperto o quello scelto) e una riga `cash_sales` senza numero, così entra in Z e rendiconto e si annulla con l'annullo di cassa; idempotente sulla chiave del telefono, voce `order.collected_on_site` | Niccolo / Claude |
 
 ---
 

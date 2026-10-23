@@ -17,6 +17,15 @@ export const COST_PAYMENT_METHODS = ['cash', 'bank_transfer', 'card', 'other'] a
 export type CostPaymentMethod = (typeof COST_PAYMENT_METHODS)[number];
 export const COST_PAYMENT_LABELS: Record<CostPaymentMethod, string> = { cash: 'Contanti', bank_transfer: 'Bonifico', card: 'Carta', other: 'Altro' };
 
+/** Cartella Cloudinary delle ricevute (asset privati, mai pubblici). */
+export const RECEIPT_FOLDER = 'pro-loco-gasperina/costi';
+
+/** Ricevuta privata su Cloudinary: si apre solo da /api/admin/costi/[id]/ricevuta. */
+export type ReceiptRef = { publicId: string; resourceType: 'image' | 'raw'; format: string | null };
+
+/** Indirizzo dell'admin che apre la ricevuta di un costo (permesso + registro + link firmato a scadenza). */
+export const receiptHref = (costId: string) => `/api/admin/costi/${costId}/ricevuta`;
+
 /** Categorie del materiale (suggerite: il campo accetta anche altro testo). */
 export const INVENTORY_CATEGORIES = ['Allestimento', 'Cucina', 'Elettrico e luci', 'Audio', 'Gazebo e tende', 'Tavoli e sedie', 'Segnaletica', 'Attrezzi', 'Altro'] as const;
 

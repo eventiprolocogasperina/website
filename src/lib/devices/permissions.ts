@@ -21,6 +21,7 @@ export const DEVICE_PERMISSIONS: Record<DeviceKind, readonly DevicePermissionInf
     { permission: 'checkin.scan', label: 'Scansionare i biglietti', help: 'Sempre attivo: è il lavoro del varco.', required: true },
     { permission: 'checkin.revert', label: 'Annullare un ingresso', help: 'Anche dopo i 30 secondi, con conferma.' },
     { permission: 'pos.sell', label: 'Vendere all’ingresso', help: 'Pulsanti a pagamento come «+1 Bambino», sul turno di una cassa.' },
+    { permission: 'checkin.collect_payment', label: 'Incassare gli ordini «Paga in loco»', help: 'Contanti o POS al varco, sul turno di una cassa aperta; poi entra.' },
     { permission: 'checkin.search', label: 'Cercare per nome', help: 'Mostra nomi e codici degli ordini: dati personali.' },
     { permission: 'checkin.stats', label: 'Vedere i contatori degli ingressi', help: 'Entrati e attesi in alto nello scanner.' },
   ],

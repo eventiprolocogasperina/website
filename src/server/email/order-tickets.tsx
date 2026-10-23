@@ -8,6 +8,7 @@ import { formatDate, formatDateTime, romeTime } from '@/lib/dates';
 import { editionTheme } from '@/lib/edition-theme';
 import { formatMoney } from '@/lib/money';
 import { OrderTicketsPdf, type OrderTicketsPdfData } from '@/lib/tickets/OrderTicketsPdf';
+import { orderSummary } from '@/lib/tickets/order-summary';
 import { getDb } from '@/server/db/client';
 import { ordersV2 } from '@/server/db/schema';
 import { getOrderByToken, type MyOrder } from '@/server/domain/checkout/my-tickets';
@@ -45,7 +46,7 @@ export async function renderOrderPdf(o: MyOrder): Promise<Buffer> {
     when: whenOf(o),
     buyerName: o.customer?.name ?? null,
     issuedOn: formatDate(o.paidAt ?? o.createdAt),
-    totalLabel: formatMoney(o.totalCents),
+    ...orderSummary(o),
     tickets: await Promise.all(
       valid.map(async (t) => ({ id: t.id, name: t.name, when: t.sessionLabel, priceLabel: formatMoney(unit.get(t.name) ?? 0), qrDataUri: await qr(t.qrToken) })),
     ),
@@ -74,6 +75,8 @@ export async function renderConfirmation(o: MyOrder, reason: 'paid' | 'resent', 
       location={o.edition.location}
       lines={o.lines.map((l) => ({ label: `${l.quantity}× ${l.name}${l.sessionLabel ? ` · ${l.sessionLabel}` : ''}`, amount: formatMoney(l.totalCents) }))}
       total={formatMoney(o.totalCents)}
+      totalTitle={orderSummary(o).totalTitle}
+      discountLabel={orderSummary(o).discountLabel}
       ticketCount={valid.length}
       myTicketsUrl={myTicketsUrl(o.accessToken)}
       qrSrc={valid[0] ? await qr(valid[0].qrToken, 360) : await qr(o.code, 360)}
@@ -86,7 +89,8 @@ export async function renderConfirmation(o: MyOrder, reason: 'paid' | 'resent', 
     `Codice ordine: ${o.code}`,
     whenOf(o) ? `Quando: ${whenOf(o)}` : '',
     ...o.lines.map((l) => `${l.quantity}× ${l.name}: ${formatMoney(l.totalCents)}`),
-    `Totale: ${formatMoney(o.totalCents)}`,
+    orderSummary(o).discountLabel ?? '',
+    `${orderSummary(o).totalTitle}: ${formatMoney(o.totalCents)}`,
     `I miei biglietti: ${myTicketsUrl(o.accessToken)}`,
   ]
     .filter(Boolean)

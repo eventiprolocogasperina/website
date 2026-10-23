@@ -22,6 +22,7 @@ type Props = {
   error: string;
   /** Omaggi permessi a chi usa la cassa (pos.complimentary). */
   allowComplimentary?: boolean;
+  backLabel?: string;
   onBack: () => void;
   onConfirm: (choice: PaymentChoice) => void;
 };
@@ -30,7 +31,7 @@ type Props = {
  * Pagamento (§12.1 punto 5): contanti con tastierino, importi rapidi e resto; carta sul POS della
  * Pro Loco; omaggio con il motivo. Si registra un contributo, non uno scontrino.
  */
-export function Payment({ totalCents, busy, error, allowComplimentary = true, onBack, onConfirm }: Props) {
+export function Payment({ totalCents, busy, error, allowComplimentary = true, backLabel = 'Torna al carrello', onBack, onConfirm }: Props) {
   const methods = allowComplimentary ? METHODS : METHODS.filter((m) => m.id !== 'complimentary');
   const [method, setMethod] = useState<PayMethod>('cash');
   const [received, setReceived] = useState(0);
@@ -52,7 +53,7 @@ export function Payment({ totalCents, busy, error, allowComplimentary = true, on
   return (
     <div className="mx-auto w-full max-w-md pb-6">
       <button type="button" onClick={onBack} className="mb-2 flex min-h-11 items-center gap-1 text-body text-muted">
-        <ArrowLeft size={18} aria-hidden /> Torna al carrello
+        <ArrowLeft size={18} aria-hidden /> {backLabel}
       </button>
       <p className="text-body text-muted">Da incassare</p>
       <p className="mb-4 text-[2.5rem] leading-tight font-bold tabular-nums">{formatMoney(totalCents)}</p>

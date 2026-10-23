@@ -6,7 +6,7 @@ import { Button, Field, Input, MoneyInput, Select, Sheet, SheetContent, Switch, 
 import { COST_CATEGORIES, COST_PAYMENT_LABELS, COST_PAYMENT_METHODS, type CostPaymentMethod } from '@/lib/costs';
 import { romeDateKey } from '@/lib/dates';
 import type { CostInput, CostRow } from '@/server/domain/costs';
-import { FileField } from './FileField';
+import { ReceiptField, type ReceiptValue } from './ReceiptField';
 
 const NO_ITEM = 'none';
 
@@ -37,7 +37,7 @@ export function CostSheet({
     paymentMethod: (row?.paymentMethod ?? 'cash') as CostPaymentMethod,
     paid: row?.paid ?? true,
     paidAt: row?.paidAt ?? '',
-    attachmentUrl: row?.attachmentUrl ?? null,
+    attachment: 'keep' as ReceiptValue,
     notes: row?.notes ?? '',
     inventoryItemId: row?.inventoryItemId ?? NO_ITEM,
   });
@@ -108,7 +108,7 @@ export function CostSheet({
               <Input type="date" value={form.paidAt} onChange={(e) => set({ paidAt: e.target.value })} />
             </Field>
           )}
-          <FileField label="Ricevuta o fattura" help="PDF o foto, al massimo 8 MB." value={form.attachmentUrl} onChange={(attachmentUrl) => set({ attachmentUrl })} folder="pro-loco-gasperina/costi" />
+          <ReceiptField costId={row?.id ?? null} saved={!!(row?.attachmentPublicId || row?.attachmentUrl)} value={form.attachment} onChange={(attachment) => set({ attachment })} disabled={readOnly} />
           {items.length > 0 && (
             <Field label="Acquisto di materiale" help="Se hai comprato qualcosa che è nell’inventario.">
               <Select value={form.inventoryItemId} onValueChange={(inventoryItemId) => set({ inventoryItemId })} options={[{ value: NO_ITEM, label: 'Nessuno' }, ...items.map((i) => ({ value: i.id, label: i.name }))]} disabled={readOnly} />

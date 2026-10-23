@@ -3,7 +3,7 @@ import 'server-only';
 // Quelli di un'edizione si modificano finché l'edizione non è conclusa o archiviata.
 import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { COST_CATEGORIES, COST_PAYMENT_METHODS, costTotals, type CostTotals } from '@/lib/costs';
+import { COST_CATEGORIES, COST_PAYMENT_METHODS, costTotals, RECEIPT_FOLDER, type CostTotals, type ReceiptRef } from '@/lib/costs';
 import { csvMoney, toCsv } from '@/lib/csv';
 import { romeDateKey } from '@/lib/dates';
 import type { Ctx } from '@/server/auth/context-shared';
@@ -30,6 +30,25 @@ const optionalText = (max: number) =>
     .transform((v) => v || null);
 const DATE_KEY = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data non valida.');
 
+const ReceiptRefInput = z.object({
+  publicId: z
+    .string()
+    .max(300)
+    .refine((v) => v.startsWith(`${RECEIPT_FOLDER}/`) && /^[\w./-]+$/.test(v) && !v.includes('..'), 'Ricevuta non valida.'),
+  resourceType: z.enum(['image', 'raw']),
+  format: z
+    .string()
+    .regex(/^[a-z0-9]{1,10}$/)
+    .nullish()
+    .transform((v) => v ?? null),
+});
+
+/** Colonne della ricevuta da scrivere: niente se resta com'è. */
+function attachmentColumns(a: z.output<typeof CostInput>['attachment']) {
+  if (a === undefined || a === 'keep') return {};
+  return { attachmentUrl: null, attachmentPublicId: a?.publicId ?? null, attachmentResourceType: a?.resourceType ?? null, attachmentFormat: a?.format ?? null };
+}
+
 export const CostInput = z
   .object({
     spentOn: DATE_KEY,
@@ -44,10 +63,11 @@ export const CostInput = z
       .regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Data non valida.')
       .nullish()
       .transform((v) => v || null),
-    attachmentUrl: z
-      .url({ protocol: /^https$/, message: 'Allegato non valido.' })
-      .nullish()
-      .transform((v) => v || null),
+    /**
+     * Ricevuta: quella appena caricata (privata), `null` per toglierla, assente o `keep` per lasciare
+     * quella che c'è. Un URL pubblico non si accetta più: le ricevute nuove sono solo private.
+     */
+    attachment: z.union([ReceiptRefInput, z.literal('keep'), z.null()]).optional(),
     notes: optionalText(2000),
     inventoryItemId: z.uuid().nullish().transform((v) => v || null),
   })
@@ -55,6 +75,32 @@ export const CostInput = z
 export type CostInput = z.input<typeof CostInput>;
 
 export type CostRow = typeof costs.$inferSelect & { inventoryItemName: string | null };
+
+function withoutAttachment<T extends { attachment?: unknown }>(data: T): Omit<T, 'attachment'> {
+  const rest = { ...data };
+  delete rest.attachment;
+  return rest;
+}
+
+/** Ricevuta di un costo: privata (public_id) o, per le voci di prima, l'URL pubblico già salvato. */
+export function receiptOf(c: Pick<typeof costs.$inferSelect, 'attachmentUrl' | 'attachmentPublicId' | 'attachmentResourceType' | 'attachmentFormat'>): { private: ReceiptRef } | { legacyUrl: string } | null {
+  if (c.attachmentPublicId) return { private: { publicId: c.attachmentPublicId, resourceType: c.attachmentResourceType === 'raw' ? 'raw' : 'image', format: c.attachmentFormat } };
+  return c.attachmentUrl ? { legacyUrl: c.attachmentUrl } : null;
+}
+
+/**
+ * "Apri ricevuta": costs.read sull'edizione del costo (o a livello di associazione per i costi
+ * generali), voce nel registro, poi la rotta reindirizza a un link firmato che scade.
+ */
+export async function openReceipt(ctx: Ctx, id: string): Promise<{ private: ReceiptRef } | { legacyUrl: string }> {
+  const [row] = await getDb().select({ c: costs, slug: editions.slug }).from(costs).leftJoin(editions, eq(editions.id, costs.editionId)).where(eq(costs.id, id));
+  if (!row) throw new DomainError('NOT_FOUND');
+  assertCan(ctx, 'costs.read', row.slug);
+  const receipt = receiptOf(row.c);
+  if (!receipt) throw new DomainError('NOT_FOUND', { message: 'Questo costo non ha una ricevuta.' });
+  await audit(getDb(), ctx, 'cost.receipt_viewed', { entityType: 'cost', entityId: id, edition: row.slug, after: { private: 'private' in receipt } });
+  return receipt;
+}
 
 function assertCan(ctx: Ctx, permission: Permission, edition: string | null) {
   if (!can(ctx, permission, { edition })) throw new DomainError('FORBIDDEN');
@@ -105,7 +151,7 @@ export async function createCost(ctx: Ctx, edition: string | null, input: CostIn
     const e = await editionForCosts(tx, edition);
     const [row] = await tx
       .insert(costs)
-      .values({ ...data, editionId: e?.id ?? null, createdBy: ctx.user?.id ?? null })
+      .values({ ...withoutAttachment(data), ...attachmentColumns(data.attachment), editionId: e?.id ?? null, createdBy: ctx.user?.id ?? null })
       .returning();
     await audit(tx, ctx, 'cost.created', { entityType: 'cost', entityId: row.id, edition, after: row });
     return { id: row.id };
@@ -132,7 +178,7 @@ export async function updateCost(ctx: Ctx, id: string, input: CostInput): Promis
     const { c: before, slug } = await costForWrite(tx, ctx, id);
     const [after] = await tx
       .update(costs)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...withoutAttachment(data), ...attachmentColumns(data.attachment), updatedAt: new Date() })
       .where(eq(costs.id, id))
       .returning();
     await audit(tx, ctx, 'cost.updated', { entityType: 'cost', entityId: id, edition: slug, before, after });
@@ -210,7 +256,7 @@ const PAY: Record<string, string> = { cash: 'Contanti', bank_transfer: 'Bonifico
 /** Elenco delle voci (annullate comprese, segnate) per Excel. */
 export function costsCsv(rows: CostRow[]): string {
   return toCsv(
-    ['Data', 'Categoria', 'Descrizione', 'Fornitore', 'Importo (€)', 'Pagamento', 'Pagato', 'Pagato il', 'Allegato', 'Materiale', 'Note', 'Annullato', 'Motivo annullamento'],
+    ['Data', 'Categoria', 'Descrizione', 'Fornitore', 'Importo (€)', 'Pagamento', 'Pagato', 'Pagato il', 'Ricevuta', 'Materiale', 'Note', 'Annullato', 'Motivo annullamento'],
     rows.map((r) => [
       r.spentOn,
       r.category,
@@ -220,7 +266,8 @@ export function costsCsv(rows: CostRow[]): string {
       PAY[r.paymentMethod] ?? r.paymentMethod,
       r.paid,
       r.paidAt,
-      r.attachmentUrl,
+      // Mai l'indirizzo della ricevuta nel CSV: si apre solo dall'admin, con il permesso.
+      !!receiptOf(r),
       r.inventoryItemName,
       r.notes,
       !!r.voidedAt,

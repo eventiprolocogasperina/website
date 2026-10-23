@@ -74,7 +74,7 @@ export function SearchSheet({ listId, initial, onClose, onCheckIn, onRevert }: P
                       <p className="truncate font-semibold text-fg">{o.holderName ?? 'Senza nome'}</p>
                       <p className="text-label text-muted">{o.code}</p>
                     </div>
-                    {!o.admitted && <Badge tone="danger">Non valido</Badge>}
+                    {o.toPay ? <Badge tone="warning">Da pagare</Badge> : !o.admitted && <Badge tone="danger">Non valido</Badge>}
                   </div>
                   <ul className="divide-y divide-border">
                     {o.tickets.map((t) => (
@@ -96,8 +96,8 @@ export function SearchSheet({ listId, initial, onClose, onCheckIn, onRevert }: P
                             )}
                           </div>
                         ) : (
-                          <Button size="sm" disabled={!o.admitted || !t.inList} onClick={() => onCheckIn(t.id)}>
-                            Fai entrare
+                          <Button size="sm" disabled={!(o.admitted || o.toPay) || !t.inList} onClick={() => onCheckIn(t.id)}>
+                            {o.toPay ? 'Da pagare' : 'Fai entrare'}
                           </Button>
                         )}
                       </li>

@@ -148,6 +148,13 @@
       "when": 1792745578145,
       "tag": "0020_permessi_dispositivi",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792749365752,
+      "tag": "0021_ricevute_private",
+      "breakpoints": true
     }
   ]
 }

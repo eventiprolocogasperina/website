@@ -3,12 +3,12 @@ import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Ctx } from '@/server/auth/context-shared';
 import { can, type Permission } from '@/server/auth/permissions';
-import { withTransaction } from '@/server/db/client';
+import { withTransaction, type Tx } from '@/server/db/client';
 import { discountsV2, orderLines, ordersV2, payments, refundsV2, ticketsV2 } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
-import { lockOrder, reserveSeats } from '@/server/domain/orders/shared';
+import { lockOrder, reserveSeats, type EditionRow, type OrderRow } from '@/server/domain/orders/shared';
 import { derivePaymentStatus } from './status';
 // Email dei biglietti quando l'ordine è pagato.
 import '@/server/notifications/handlers';
@@ -59,65 +59,81 @@ export async function recordPayment(ctx: Ctx, input: RecordPaymentInput, opts: {
   const now = opts.now ?? new Date();
   const events: DomainEvent[] = [];
   const result = await withTransaction(async (tx) => {
-    const { order, edition } = await lockOrder(tx, data.orderId);
+    const locked = await lockOrder(tx, data.orderId);
     const permission = METHOD_PERMISSION[data.method];
-    if (permission === 'system' ? !ctx.system : !can(ctx, permission, { edition: edition.slug })) throw new DomainError('FORBIDDEN');
-    if (order.status === 'draft') throw new DomainError('CONFLICT', { message: 'L’ordine è una bozza: confermalo prima di registrare un pagamento.' });
-
-    let paymentId: string;
-    let duplicate = false;
-    const [existing] = data.providerRef ? await tx.select().from(payments).where(eq(payments.providerRef, data.providerRef)) : [];
-    if (existing) {
-      if (existing.orderId !== order.id) throw new DomainError('CONFLICT', { details: { reason: 'provider_ref di un altro ordine' } });
-      paymentId = existing.id;
-      if (existing.status !== 'pending' || data.status === 'pending') duplicate = true;
-      else {
-        await tx.update(payments).set({ status: data.status, amountCents: data.amountCents, raw: data.raw ?? existing.raw, receivedAt: now, updatedAt: now }).where(eq(payments.id, existing.id));
-      }
-    } else {
-      const [row] = await tx
-        .insert(payments)
-        .values({ orderId: order.id, method: data.method, amountCents: data.amountCents, status: data.status, providerRef: data.providerRef ?? null, raw: data.raw ?? null, receivedAt: now, cashSessionId: data.cashSessionId ?? null })
-        .returning({ id: payments.id });
-      paymentId = row.id;
-    }
-    if (duplicate) return { paymentId, orderStatus: order.status, duplicate };
-
-    const [pay, ref] = await Promise.all([tx.select().from(payments).where(eq(payments.orderId, order.id)), tx.select().from(refundsV2).where(eq(refundsV2.orderId, order.id))]);
-    let next = derivePaymentStatus(order.status, order.totalCents, pay, ref);
-
-    const lateAndCovered = (order.status === 'expired' || order.status === 'cancelled') && derivePaymentStatus('pending', order.totalCents, pay, ref) === 'paid';
-    if (lateAndCovered && data.status === 'succeeded') {
-      const lines = await tx.select().from(orderLines).where(eq(orderLines.orderId, order.id));
-      try {
-        await reserveSeats(tx, edition.id, lines, { now, excludeOrderId: order.id });
-        next = 'paid';
-        await tx.update(ticketsV2).set({ status: 'valid', updatedAt: now }).where(eq(ticketsV2.orderId, order.id));
-        if (order.discountId) await tx.update(discountsV2).set({ usedCount: sql`${discountsV2.usedCount} + 1` }).where(eq(discountsV2.id, order.discountId));
-      } catch (error) {
-        if (!(error instanceof DomainError && error.code === 'SOLD_OUT')) throw error;
-        events.push({ type: 'order.paid_after_expiry', orderId: order.id, code: order.code, edition: edition.slug, amountCents: data.amountCents });
-      }
-    }
-
-    const becamePaid = next === 'paid' && order.status !== 'paid';
-    if (next !== order.status) {
-      await tx
-        .update(ordersV2)
-        .set({ status: next, paidAt: becamePaid ? now : order.paidAt, expiresAt: becamePaid ? null : order.expiresAt, cancelledAt: becamePaid ? null : order.cancelledAt, updatedAt: now })
-        .where(eq(ordersV2.id, order.id));
-    }
-    await audit(tx, ctx, 'payment.recorded', {
-      entityType: 'order',
-      entityId: order.id,
-      edition: edition.slug,
-      before: { status: order.status },
-      after: { status: next, paymentId, method: data.method, amountCents: data.amountCents, paymentStatus: data.status },
-    });
-    if (data.status === 'failed') events.push({ type: 'payment.failed', orderId: order.id, code: order.code, edition: edition.slug, amountCents: data.amountCents, method: data.method });
-    if (becamePaid) events.push({ type: 'order.paid', orderId: order.id, code: order.code, edition: edition.slug, totalCents: order.totalCents });
-    return { paymentId, orderStatus: next, duplicate };
+    if (permission === 'system' ? !ctx.system : !can(ctx, permission, { edition: locked.edition.slug })) throw new DomainError('FORBIDDEN');
+    return applyPayment(tx, ctx, locked, data, now, events);
   });
   await publish(events);
   return result;
+}
+
+/**
+ * Il cuore di recordPayment, dentro una transazione già aperta con l'ordine bloccato (lockOrder).
+ * Il permesso lo controlla il chiamante: lo usa anche l'incasso "Paga in loco" di cassa e varco,
+ * che ha regole sue. Gli eventi si aggiungono a `events`, da pubblicare dopo il commit.
+ */
+export async function applyPayment(
+  tx: Tx,
+  ctx: Ctx,
+  { order, edition }: { order: OrderRow; edition: EditionRow },
+  data: z.output<typeof RecordPaymentInput>,
+  now: Date,
+  events: DomainEvent[],
+): Promise<RecordPaymentResult> {
+  if (order.status === 'draft') throw new DomainError('CONFLICT', { message: 'L’ordine è una bozza: confermalo prima di registrare un pagamento.' });
+
+  let paymentId: string;
+  let duplicate = false;
+  const [existing] = data.providerRef ? await tx.select().from(payments).where(eq(payments.providerRef, data.providerRef)) : [];
+  if (existing) {
+    if (existing.orderId !== order.id) throw new DomainError('CONFLICT', { details: { reason: 'provider_ref di un altro ordine' } });
+    paymentId = existing.id;
+    if (existing.status !== 'pending' || data.status === 'pending') duplicate = true;
+    else {
+      await tx.update(payments).set({ status: data.status, amountCents: data.amountCents, raw: data.raw ?? existing.raw, receivedAt: now, updatedAt: now }).where(eq(payments.id, existing.id));
+    }
+  } else {
+    const [row] = await tx
+      .insert(payments)
+      .values({ orderId: order.id, method: data.method, amountCents: data.amountCents, status: data.status, providerRef: data.providerRef ?? null, raw: data.raw ?? null, receivedAt: now, cashSessionId: data.cashSessionId ?? null })
+      .returning({ id: payments.id });
+    paymentId = row.id;
+  }
+  if (duplicate) return { paymentId, orderStatus: order.status, duplicate };
+
+  const [pay, ref] = await Promise.all([tx.select().from(payments).where(eq(payments.orderId, order.id)), tx.select().from(refundsV2).where(eq(refundsV2.orderId, order.id))]);
+  let next = derivePaymentStatus(order.status, order.totalCents, pay, ref);
+
+  const lateAndCovered = (order.status === 'expired' || order.status === 'cancelled') && derivePaymentStatus('pending', order.totalCents, pay, ref) === 'paid';
+  if (lateAndCovered && data.status === 'succeeded') {
+    const lines = await tx.select().from(orderLines).where(eq(orderLines.orderId, order.id));
+    try {
+      await reserveSeats(tx, edition.id, lines, { now, excludeOrderId: order.id });
+      next = 'paid';
+      await tx.update(ticketsV2).set({ status: 'valid', updatedAt: now }).where(eq(ticketsV2.orderId, order.id));
+      if (order.discountId) await tx.update(discountsV2).set({ usedCount: sql`${discountsV2.usedCount} + 1` }).where(eq(discountsV2.id, order.discountId));
+    } catch (error) {
+      if (!(error instanceof DomainError && error.code === 'SOLD_OUT')) throw error;
+      events.push({ type: 'order.paid_after_expiry', orderId: order.id, code: order.code, edition: edition.slug, amountCents: data.amountCents });
+    }
+  }
+
+  const becamePaid = next === 'paid' && order.status !== 'paid';
+  if (next !== order.status) {
+    await tx
+      .update(ordersV2)
+      .set({ status: next, paidAt: becamePaid ? now : order.paidAt, expiresAt: becamePaid ? null : order.expiresAt, cancelledAt: becamePaid ? null : order.cancelledAt, updatedAt: now })
+      .where(eq(ordersV2.id, order.id));
+  }
+  await audit(tx, ctx, 'payment.recorded', {
+    entityType: 'order',
+    entityId: order.id,
+    edition: edition.slug,
+    before: { status: order.status },
+    after: { status: next, paymentId, method: data.method, amountCents: data.amountCents, paymentStatus: data.status },
+  });
+  if (data.status === 'failed') events.push({ type: 'payment.failed', orderId: order.id, code: order.code, edition: edition.slug, amountCents: data.amountCents, method: data.method });
+  if (becamePaid) events.push({ type: 'order.paid', orderId: order.id, code: order.code, edition: edition.slug, totalCents: order.totalCents });
+  return { paymentId, orderStatus: next, duplicate };
 }

@@ -28,7 +28,7 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
   const [search, setSearch] = useState<string | null>(null);
   const [manualError, setManualError] = useState<string | null>(null);
   // Setup salvati prima dei permessi: tutto come prima.
-  const perms = setup.permissions ?? { revert: true, search: true, stats: true, sell: true };
+  const perms = setup.permissions ?? { revert: true, search: true, stats: true, sell: true, collect: false };
   const s = useScanner(setup, choice.listId, choice.sessionId, muted);
   const list = setup.lists.find((l) => l.id === choice.listId);
   const session = setup.sessions.find((x) => x.id === (list?.sessionId ?? choice.sessionId));
@@ -163,6 +163,7 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
           undo={perms.revert ? s.undo : null}
           onUndo={s.revertLast}
           onRevert={perms.revert ? (id) => s.revertLater(id, 'esito') : null}
+          collect={perms.collect ? { listId: choice.listId, sessionId: s.effectiveSession, onCollected: s.collected } : null}
         />
       )}
       {search !== null && <SearchSheet

@@ -38,7 +38,7 @@ export function LinesCard({ d }: { d: OrderDetail }) {
         <Row label={d.order.status === 'draft' ? 'Totale indicativo' : 'Totale'} value={formatMoney(d.order.totalCents)} strong />
       </ul>
       {d.order.status === 'draft' && <p className="mt-3 text-label text-muted">Bozza: non tiene posti. Prezzi e disponibilità si ricalcolano quando la confermi.</p>}
-      {d.order.payOnSite && d.order.status === 'pending' && <p className="mt-3 text-label text-muted">Da pagare in loco, all’evento: quando incassi usa “Segna come pagato”.</p>}
+      {d.order.payOnSite && d.order.status === 'pending' && <p className="mt-3 text-label text-muted">Da pagare in loco, all’evento: si incassa in cassa (“Da incassare”), al varco o qui con “Segna come pagato”. Finché non è pagato i biglietti non entrano.</p>}
       {(d.parent || d.children.length > 0) && (
         <p className="mt-3 text-label text-muted">
           {d.parent && (

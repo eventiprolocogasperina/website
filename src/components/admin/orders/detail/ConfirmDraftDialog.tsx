@@ -44,7 +44,7 @@ export function ConfirmDraftDialog({ d, onClose, canCash }: Props & { canCash: b
           onValueChange={(v) => setMode(v as DraftConfirmMode)}
           options={[
             { value: 'paylink', label: 'Link di pagamento via email', description: paylinkHint, disabled: !hasEmail || !paylinkOn },
-            { value: 'on_site', label: 'Paga in loco', description: 'Tiene i posti senza scadenza. All’evento usa “Segna come pagato”.' },
+            { value: 'on_site', label: 'Paga in loco', description: 'Tiene i posti senza scadenza. Si incassa all’evento, in cassa o al varco; i biglietti entrano solo dopo.' },
             { value: 'cash', label: 'Contanti, incassati ora', description: hasEmail ? 'I biglietti partono per email.' : 'Senza email: i biglietti restano nell’ordine.', disabled: !canCash },
             { value: 'complimentary', label: 'Omaggio', description: 'Coperto da un omaggio, con il motivo nel registro.' },
           ]}

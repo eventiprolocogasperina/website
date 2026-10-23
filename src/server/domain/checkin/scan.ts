@@ -4,13 +4,13 @@ import { z } from 'zod';
 import type { Ctx } from '@/server/auth/context-shared';
 import { can, type Permission } from '@/server/auth/permissions';
 import { getDb, withTransaction, type Tx } from '@/server/db/client';
-import { checkinLists, checkins, customers, devices, editions, ordersV2, products, sessions, ticketsV2 } from '@/server/db/schema';
+import { checkinLists, checkins, customers, devices, editions, ordersV2, payments, products, sessions, ticketsV2 } from '@/server/db/schema';
 import { audit } from '@/server/domain/audit';
 import { isReadOnly } from '@/server/domain/editions/lifecycle';
 import { DomainError } from '@/server/domain/errors';
 import { publish, type DomainEvent } from '@/server/domain/events';
 import { lockEdition } from '@/server/domain/orders/shared';
-import { ADMITTING_STATUSES, type OrderStatus } from '@/server/domain/payments/status';
+import { ADMITTING_STATUSES, summarizePayments, type OrderStatus } from '@/server/domain/payments/status';
 import { effectiveSession, listAcceptsProduct, sessionGraph, sessionMatches, type SessionGraph } from './rules';
 
 export function assertCanOn(ctx: Ctx, permission: Permission, edition: string) {
@@ -42,6 +42,8 @@ export type ScanResult =
   | { result: 'wrong_list'; ticket: ScannedTicket }
   | { result: 'void'; ticket: ScannedTicket }
   | { result: 'blocked'; ticket: ScannedTicket }
+  /** Ordine "Paga in loco" non ancora pagato: non entra finché non si incassa (cassa o varco). */
+  | { result: 'to_pay'; dueCents: number; ticket: ScannedTicket }
   | { result: 'unknown' };
 
 export const ScanInput = z
@@ -84,7 +86,7 @@ async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx:
   assertCanOn(ctx, 'checkin.scan', editionSlug);
 
   const query = db
-    .select({ ticket: ticketsV2, order: { status: ordersV2.status, code: ordersV2.code, blacklisted: ordersV2.isBlacklisted, deletedAt: ordersV2.deletedAt }, productName: products.name, customerName: customers.name, session: { label: sessions.label, status: sessions.status } })
+    .select({ ticket: ticketsV2, order: { status: ordersV2.status, code: ordersV2.code, blacklisted: ordersV2.isBlacklisted, deletedAt: ordersV2.deletedAt, payOnSite: ordersV2.payOnSite, totalCents: ordersV2.totalCents }, productName: products.name, customerName: customers.name, session: { label: sessions.label, status: sessions.status } })
     .from(ticketsV2)
     .innerJoin(ordersV2, eq(ordersV2.id, ticketsV2.orderId))
     .innerJoin(products, eq(products.id, ticketsV2.productId))
@@ -119,9 +121,15 @@ async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx:
 
   // La blacklist vince su tutto: rosso con l'avviso di chiamare un responsabile, anche se l'ordine è annullato.
   if (row.order.blacklisted) return { final: { result: 'blocked', ticket } };
-  if (row.ticket.status === 'void' || row.order.deletedAt || !ADMITTING_STATUSES.includes(row.order.status as OrderStatus)) return { final: { result: 'void', ticket } };
+  const toPay = row.order.status === 'pending' && row.order.payOnSite;
+  if (row.ticket.status === 'void' || row.order.deletedAt || (!toPay && !ADMITTING_STATUSES.includes(row.order.status as OrderStatus))) return { final: { result: 'void', ticket } };
   if (!listAcceptsProduct(list, row.ticket.productId)) return { final: { result: 'wrong_list', ticket } };
   if (graph && !sessionMatches(graph, row.ticket.sessionId, target)) return { final: { result: 'wrong_session', ticket } };
+  // "Paga in loco": l'importo è quello che manca, calcolato qui; si entra solo dopo l'incasso.
+  if (toPay) {
+    const pay = await db.select({ status: payments.status, amountCents: payments.amountCents }).from(payments).where(eq(payments.orderId, row.ticket.orderId));
+    return { final: { result: 'to_pay', dueCents: summarizePayments(row.order.totalCents, pay).dueCents, ticket } };
+  }
 
   if (!list.allowMultiple) {
     const [previous] = await db

@@ -27,6 +27,7 @@ function exampleOrder(): MyOrder {
     channel: 'online',
     totalCents: 1500,
     discountCents: 0,
+    discountCode: null,
     createdAt: now,
     paidAt: now,
     expiresAt: null,

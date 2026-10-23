@@ -25,6 +25,14 @@ describe('esito a tutto schermo', () => {
   it('rosso per sconosciuto, annullato, blacklist e lista sbagliata', () => {
     for (const result of ['unknown', 'void', 'blocked', 'wrong_list']) expect(online({ result, ticket }).tone).toBe('danger');
   });
+
+  it('Paga in loco non pagato: giallo "Da pagare" con l’importo; senza permesso si paga in cassa', () => {
+    const p = online({ result: 'to_pay', dueCents: 1000, ticket });
+    expect(p).toMatchObject({ tone: 'warning', title: expect.stringMatching(/^DA PAGARE: 10,00\s€$/) });
+    expect(p.lines.at(-1)).toMatch(/^Da pagare in cassa/);
+    const data = { result: 'to_pay', dueCents: 1000, ticket, answers: {} } as never;
+    expect(present({ source: 'online', data }, { canCollect: true }).lines.at(-1)).toMatch(/incassa qui sotto/);
+  });
 });
 
 describe('offline', () => {
