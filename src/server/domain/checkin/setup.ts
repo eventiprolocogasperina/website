@@ -18,6 +18,8 @@ export type ScannerSetup = {
   todaySessionId: string | null;
   /** `paid`: prodotto e prezzo del catalogo se il pulsante incassa (si riconfermano nel popup). */
   actions: Array<{ key: string; label: string; questionKey: string; paid: { name: string; priceCents: number } | null }>;
+  /** Cosa può fare chi usa lo scanner: l'interfaccia nasconde il resto, il server lo rifiuta comunque. */
+  permissions: { revert: boolean; search: boolean; stats: boolean; sell: boolean };
 };
 
 export async function scannerSetup(ctx: Ctx, editionSlug: string, now = new Date()): Promise<ScannerSetup> {
@@ -40,6 +42,12 @@ export async function scannerSetup(ctx: Ctx, editionSlug: string, now = new Date
     sessions: open.map((s) => ({ id: s.id, label: s.label, startsAt: s.startsAt.toISOString() })),
     todaySessionId: open.find((s) => romeDateKey(s.startsAt) === today)?.id ?? null,
     actions: actions.map((a) => ({ key: a.key, label: a.label, questionKey: a.questionKey, paid: paid[a.key] ?? null })),
+    permissions: {
+      revert: can(ctx, 'checkin.revert', { edition: editionSlug }),
+      search: can(ctx, 'checkin.search', { edition: editionSlug }),
+      stats: can(ctx, 'checkin.stats', { edition: editionSlug }),
+      sell: can(ctx, 'pos.sell', { edition: editionSlug }),
+    },
   };
 }
 

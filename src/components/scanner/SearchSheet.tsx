@@ -9,7 +9,7 @@ import type { SearchOrder } from './types';
 
 const time = (iso: string) => new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }).format(new Date(iso));
 
-type Props = { listId: string; initial: string; onClose: () => void; onCheckIn: (ticketId: string) => void; onRevert: (checkinId: string) => Promise<unknown> };
+type Props = { listId: string; initial: string; onClose: () => void; onCheckIn: (ticketId: string) => void; onRevert: ((checkinId: string) => Promise<unknown>) | null };
 
 /**
  * Ricerca manuale per chi non ha il QR: per nome o codice ordine, poi "Fai entrare" sul biglietto.
@@ -89,7 +89,7 @@ export function SearchSheet({ listId, initial, onClose, onCheckIn, onRevert }: P
                         {t.enteredAt ? (
                           <div className="flex shrink-0 flex-col items-end gap-1">
                             <Badge tone="warning">Entrato {time(t.enteredAt)}</Badge>
-                            {t.checkinId && (
+                            {t.checkinId && onRevert && (
                               <Button size="sm" variant="secondary" icon={Undo2} onClick={() => setReverting({ checkinId: t.checkinId!, what: `${t.productName} · ${o.code}`, at: t.enteredAt! })}>
                                 Annulla ingresso
                               </Button>
@@ -114,7 +114,7 @@ export function SearchSheet({ listId, initial, onClose, onCheckIn, onRevert }: P
           onClose={() => setReverting(null)}
           onRevert={async (id) => {
             setError(null);
-            await onRevert(id);
+            await onRevert?.(id);
             setReload((n) => n + 1);
           }}
           onError={setError}

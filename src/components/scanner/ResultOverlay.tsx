@@ -23,6 +23,8 @@ const AUTO_CLOSE_MS = 3500;
 type Props = {
   outcome: Outcome;
   actions: ScannerSetup['actions'];
+  /** false: i pulsanti a pagamento non si mostrano (il dispositivo non vende). */
+  canSell?: boolean;
   onAction: (key: string) => Promise<unknown>;
   /** Dopo un incasso dal popup di cassa: nuovo valore del conteggio. */
   onPaid: (questionKey: string, after: number) => void;
@@ -30,11 +32,12 @@ type Props = {
   undo: { until: number } | null;
   onUndo: () => Promise<boolean | undefined | void>;
   /** "Già entrato": annulla quell'ingresso (con conferma), anche se è passato più di mezzo minuto. */
-  onRevert: (checkinId: string) => Promise<unknown>;
+  onRevert: ((checkinId: string) => Promise<unknown>) | null;
 };
 
 /** Esito a tutto schermo (§12.3) con i pulsanti dei moduli sotto, es. "+1 Bambino". */
-export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, undo, onUndo, onRevert }: Props) {
+export function ResultOverlay({ outcome, actions: allActions, canSell = true, onAction, onPaid, onClose, undo, onUndo, onRevert }: Props) {
+  const actions = canSell ? allActions : allActions.filter((a) => !a.paid);
   const p = present(outcome);
   const Icon = ICON[p.tone];
   const [busy, setBusy] = useState<string | null>(null);
@@ -45,7 +48,7 @@ export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, und
   const withActions = outcome.source === 'online' && (outcome.data.result === 'valid' || outcome.data.result === 'already_used') && actions.length > 0;
   const answers = outcome.source === 'online' ? outcome.data.answers : {};
   const [reverting, setReverting] = useState<RevertTarget | null>(null);
-  const used = outcome.source === 'online' && outcome.data.result === 'already_used' ? outcome.data : null;
+  const used = onRevert && outcome.source === 'online' && outcome.data.result === 'already_used' ? outcome.data : null;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -126,7 +129,7 @@ export function ResultOverlay({ outcome, actions, onAction, onPaid, onClose, und
             {actionError}
           </p>
         )}
-        <RevertCheckinDialog target={reverting} onClose={() => setReverting(null)} onRevert={onRevert} onError={setActionError} />
+        {onRevert && <RevertCheckinDialog target={reverting} onClose={() => setReverting(null)} onRevert={onRevert} onError={setActionError} />}
         <button ref={closeRef} type="button" onClick={onClose} className={cn('min-h-16 rounded-xl border-2 border-current text-title font-semibold', focusRing)}>
           Continua
         </button>

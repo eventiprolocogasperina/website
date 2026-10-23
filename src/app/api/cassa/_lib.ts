@@ -32,6 +32,31 @@ export async function cassaAccess(request: Request, permission: Permission = 'po
   return { ctx: null, edition: null, denied: json(401, 'Accedi con il tuo PIN per continuare.', 'UNAUTHORIZED') };
 }
 
+/** Cosa può fare chi usa la cassa, per nascondere i pulsanti (il server lo rifiuta comunque). */
+export function cassaPermissions(ctx: Ctx, edition: string) {
+  const has = (p: Permission) => can(ctx, p, { edition });
+  return {
+    openAmount: has('pos.open_amount'),
+    complimentary: has('pos.complimentary'),
+    // Annullo senza PIN di un responsabile: dall'admin con pos.void, sul telefono solo se concesso al dispositivo.
+    voidWithoutPin: has('pos.void') && (!ctx.device || !!ctx.permissions?.some((p) => p.permission === 'pos.void')),
+    openClose: has('pos.open_close_session'),
+    viewTotals: has('pos.view_totals'),
+    reprint: has('pos.reprint'),
+  };
+}
+
+/** Un dispositivo con la cassa assegnata non legge listini di altre casse. */
+export function wrongRegister(ctx: Ctx, registerId: string): NextResponse | null {
+  return ctx.device?.registerId && ctx.device.registerId !== registerId ? json(403, 'Questo dispositivo lavora su un’altra cassa.', 'FORBIDDEN') : null;
+}
+
+/** «Altro» spento nel listino se chi usa la cassa non ha il permesso. */
+export function catalogFor<T extends { openPrice?: { available: boolean; maxCents: number } }>(ctx: Ctx, edition: string, catalog: T): T {
+  if (!catalog.openPrice || can(ctx, 'pos.open_amount', { edition })) return catalog;
+  return { ...catalog, openPrice: { ...catalog.openPrice, available: false } };
+}
+
 /** Errore di dominio o di validazione → JSON con codice e messaggio in italiano. */
 export function errorResponse(error: unknown): NextResponse {
   if (error && typeof error === 'object' && 'issues' in error) {

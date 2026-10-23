@@ -414,7 +414,8 @@ Un ruolo si assegna sull'**associazione** (`edition_id NULL`) o su una **singola
 | `photos.moderate`, `reviews.moderate` | ✔ | ✔ | ✔ | ✔ | — | — |
 | `pos.sell`, `pos.open_close_session` | ✔ | ✔ | ✔ | — | ✔ | — |
 | `pos.void` (richiede PIN di un responsabile) | ✔ | ✔ | ✔ | — | — | — |
-| `checkin.scan`, `checkin.revert` | ✔ | ✔ | ✔ | — | — | ✔ |
+| `pos.open_amount`, `pos.complimentary`, `pos.view_totals`, `pos.reprint` | ✔ | ✔ | ✔ | — | ✔ | — |
+| `checkin.scan`, `checkin.revert`, `checkin.search`, `checkin.stats` | ✔ | ✔ | ✔ | — | — | ✔ |
 | `reports.export` | ✔ | ✔ | ✔ | — | — | — |
 | `costs.read`, `costs.write` (costi generali: solo a livello di associazione) | ✔ | ✔ | ✔ | — | — | — |
 | `inventory.read` | ✔ | ✔ | ✔ | — | — | — |
@@ -423,6 +424,8 @@ Un ruolo si assegna sull'**associazione** (`edition_id NULL`) o su una **singola
 ¹ Limitati alle edizioni assegnate. ² Fino a una soglia configurabile; sopra la soglia serve `admin`.
 
 L'interfaccia **nasconde** ciò che l'utente non può fare. Il server lo **rifiuta** comunque.
+
+Un **dispositivo da campo** non ha un ruolo intero ma i permessi scelti all'abbinamento (sottoinsieme delle colonne cashier o gate, più `pos.sell` per vendere al varco e `pos.void` per annullare senza responsabile), solo sulla sua edizione; senza permessi salvati vale il ruolo. Dettagli in `docs/accessi.md`.
 
 ---
 
@@ -957,6 +960,7 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-22 | Dispositivi da campo senza "Chi sei?": il ruolo si sceglie al QR e il dispositivo abbinato vale da solo come cassiere o varco sulla sua edizione (`getFieldCtx`); operazioni registrate a nome del dispositivo, revoca immediata. Il PIN di un responsabile resta per approvare gli annulli in cassa. Scelta di Niccolo. |
 | 2026-10-23 | Ordini in bozza dall'admin (`order_status = draft`, migrazione 0018): la bozza non tiene posti né quote, non ha scadenza, biglietti, pagamenti o email e non conta nelle statistiche; prezzi, sconto e posti si ricalcolano alla conferma, che sceglie il pagamento (pay-link via email, in loco con `orders_v2.pay_on_site` e senza scadenza, contanti, omaggio con motivo). Le righe di una bozza si riscrivono alla modifica; la bozza si annulla, mai cancellata. Omaggio ammesso anche dal canale admin (`orders.edit`) | Niccolo / Claude |
 | 2026-10-23 | Costi (tabella `costs`, `edition_id` nullo = costo generale) e inventario (`inventory_items`, `inventory_movements`). I costi non si cancellano: si annullano con il motivo; quelli di un'edizione si modificano finché non è `concluded`. Rendiconto = entrate nette − costi, anche nel PDF e CSV finale, con il materiale usato. La quantità del materiale è la somma delle rettifiche (aggiunta, perso, rotto, correzione); gli usi per evento impegnano i pezzi e al rientro i mancanti diventano "persi". Il materiale si dismette, non si cancella | Niccolo / Claude |
+| 2026-10-23 | Permessi per dispositivo: con il QR si scelgono persona, cassa (obbligatoria per la cassa) e permessi (preset Cassa principale, Cassa secondaria, Varco), copiati sul dispositivo e modificabili dopo con effetto immediato e registro; il server li controlla, i dispositivi già abbinati restano come il ruolo. Annullo senza responsabile solo se concesso; senza "totali" la chiusura si conta alla cieca | Niccolo / Claude |
 
 ---
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeft, Store } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/ui';
 import { CassaError, cassaFetch, type CassaState } from '@/lib/cash/types';
 import { formatMoney } from '@/lib/money';
@@ -15,7 +15,12 @@ type Register = CassaState['registers'][number];
  * turno aperto (un altro telefono) si entra in quello: un cassetto, un turno.
  */
 export function ShiftStart({ api, state, onReady, offline }: { api: ApiFn; state: CassaState; onReady: (registerId: string, sessionId: string) => void; offline: boolean }) {
-  const [chosen, setChosen] = useState<Register | null>(null);
+  // Dispositivo con la cassa assegnata: niente scelta, si va dritti al turno di quella cassa.
+  const assigned = state.assignedRegister && state.registers.length === 1 ? state.registers[0] : null;
+  const [chosen, setChosen] = useState<Register | null>(assigned && !assigned.openSession && state.canClose ? assigned : null);
+  useEffect(() => {
+    if (assigned?.openSession) onReady(assigned.id, assigned.openSession.id);
+  }, [assigned, onReady]);
   const [floatCents, setFloatCents] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +30,11 @@ export function ShiftStart({ api, state, onReady, offline }: { api: ApiFn; state
       <EmptyState
         icon={Store}
         title="Nessuna cassa attiva"
-        description="Un responsabile deve creare almeno una cassa dall’admin, in Cassa › Casse."
+        description={
+          state.assignedRegister
+            ? 'La cassa di questo dispositivo è spenta. Chiedi a un responsabile di attivarla o di cambiare la cassa del dispositivo.'
+            : 'Un responsabile deve creare almeno una cassa dall’admin, in Cassa › Casse.'
+        }
       />
     );
   }
@@ -47,9 +56,11 @@ export function ShiftStart({ api, state, onReady, offline }: { api: ApiFn; state
   if (chosen && !chosen.openSession) {
     return (
       <div className="mx-auto w-full max-w-sm">
-        <button type="button" onClick={() => setChosen(null)} className="mb-3 flex min-h-11 items-center gap-1 text-body text-muted">
-          <ArrowLeft size={18} aria-hidden /> Cambia cassa
-        </button>
+        {!assigned && (
+          <button type="button" onClick={() => setChosen(null)} className="mb-3 flex min-h-11 items-center gap-1 text-body text-muted">
+            <ArrowLeft size={18} aria-hidden /> Cambia cassa
+          </button>
+        )}
         <h2 className="text-title font-semibold">Apri il turno di {chosen.name}</h2>
         <p className="mt-1 mb-4 text-body text-muted">Conta i contanti nel cassetto prima di iniziare e scrivi il fondo cassa.</p>
         <MoneyKeypad value={floatCents} onChange={setFloatCents} label="Fondo cassa" />

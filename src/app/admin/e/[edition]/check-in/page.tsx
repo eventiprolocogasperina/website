@@ -3,7 +3,7 @@ import { getAdminCtx } from '@/server/auth/context';
 import { pageDenied } from '@/server/auth/guard';
 import { can } from '@/server/auth/permissions';
 import { checkinListOptions, checkinStats, listCheckinLists, scannerV2Enabled } from '@/server/domain/checkin';
-import { listDevices } from '@/server/domain/devices';
+import { listDeviceRegisters, listDevices } from '@/server/domain/devices';
 import { editionFromParams } from '@/server/domain/editions/page-params';
 import { CheckinClient, type CheckinTab } from './CheckinClient';
 
@@ -21,12 +21,13 @@ export default async function CheckinPage({ params, searchParams }: Props) {
   const ctx = (await getAdminCtx())!;
   const sp = await searchParams;
   const canDevices = can(ctx, 'settings.manage');
-  const [stats, lists, options, devices, v2] = await Promise.all([
+  const [stats, lists, options, devices, v2, registers] = await Promise.all([
     checkinStats(ctx, edition.slug, { day: sp.giorno }),
     listCheckinLists(ctx, edition.slug),
     checkinListOptions(ctx, edition.slug),
     canDevices ? listDevices(ctx) : Promise.resolve([]),
     scannerV2Enabled(),
+    canDevices ? listDeviceRegisters(ctx, [edition.slug]) : Promise.resolve({} as Record<string, never[]>),
   ]);
   return (
     <AdminPage>
@@ -37,6 +38,7 @@ export default async function CheckinPage({ params, searchParams }: Props) {
         lists={lists}
         options={options}
         devices={devices.filter((d) => d.edition === edition.slug && d.kind === 'scanner')}
+        registers={registers[edition.slug] ?? []}
         perms={{ lists: can(ctx, 'catalog.edit', { edition: edition.slug }), devices: canDevices }}
         scannerV2={v2}
       />

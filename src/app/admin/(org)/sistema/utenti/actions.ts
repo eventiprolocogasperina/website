@@ -1,12 +1,10 @@
 'use server';
 
-import QRCode from 'qrcode';
 import { revalidatePath } from 'next/cache';
 import { getAdminCtx } from '@/server/auth/context';
-import { createPairing, revokeDevice } from '@/server/domain/devices';
+import { revokeDevice } from '@/server/domain/devices';
 import { isDomainError } from '@/server/domain/errors';
 import { createUser, sendInvite, setUserActive, setUserPin, updateUser, type UserInput } from '@/server/domain/users';
-import { siteUrl } from '@/server/email/send';
 import { log } from '@/server/log';
 
 export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
@@ -48,15 +46,6 @@ export async function setActiveAction(userId: string, active: boolean) {
 export async function sendInviteAction(userId: string) {
   return run(async (ctx) => {
     if (!(await sendInvite(ctx, userId))) throw new Error('invio non riuscito');
-  });
-}
-
-export async function createPairingAction(input: { name: string; edition: string; kind: 'pos' | 'scanner' }) {
-  return run(async (ctx) => {
-    const { token, pin, expiresAt } = await createPairing(ctx, input);
-    const url = `${siteUrl()}/abbina/${token}`;
-    const qr = await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 280 });
-    return { url, qr, pin, expiresAt };
   });
 }
 

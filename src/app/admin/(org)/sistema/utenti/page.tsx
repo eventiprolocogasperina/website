@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/ui';
 import { getAdminCtx } from '@/server/auth/context';
 import { pageDenied } from '@/server/auth/guard';
 import { can } from '@/server/auth/permissions';
-import { listDevices } from '@/server/domain/devices';
+import { listDeviceRegisters, listDevices } from '@/server/domain/devices';
 import { listAssignableEditions } from '@/server/domain/editions';
 import { listUsers } from '@/server/domain/users';
 import { UsersClient } from './UsersClient';
@@ -21,6 +21,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     canDevices ? listDevices(ctx) : Promise.resolve([]),
     listAssignableEditions(),
   ]);
+  const registersByEdition = canDevices ? await listDeviceRegisters(ctx, [...new Set([...editions.map((e) => e.slug), ...devices.map((d) => d.edition)])]) : {};
   const { vista } = await searchParams;
   return (
     <AdminPage>
@@ -29,6 +30,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         users={users}
         devices={devices}
         editions={editions}
+        registersByEdition={registersByEdition}
         canUsers={canUsers}
         canDevices={canDevices}
         currentUserId={ctx.user?.id ?? null}

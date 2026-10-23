@@ -141,6 +141,13 @@
       "when": 1792745403409,
       "tag": "0019_costi_inventario",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792745578145,
+      "tag": "0020_permessi_dispositivi",
+      "breakpoints": true
     }
   ]
 }

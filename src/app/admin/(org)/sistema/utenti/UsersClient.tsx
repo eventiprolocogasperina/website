@@ -16,7 +16,6 @@ import {
 import { useRouter } from "next/navigation";
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -44,7 +43,12 @@ import {
   Tabs,
   toast,
 } from "@/components/ui";
-import { DeviceRoleField, PairingPin } from "@/components/admin/devices/Pairing";
+import { pairDeviceAction, updateDeviceAction } from "@/app/admin/devices-actions";
+import {
+  EditDeviceDialog,
+  PairDeviceDialog,
+  permissionSummary,
+} from "@/components/admin/devices/Pairing";
 import { formatDateTime, formatRelative } from "@/lib/dates";
 import type { RoleGrant } from "@/server/auth/permissions";
 import {
@@ -53,10 +57,9 @@ import {
   USER_ROLES,
   type UserRole,
 } from "@/server/auth/roles";
-import type { DeviceRow } from "@/server/domain/devices";
+import type { DeviceRow, RegisterOption } from "@/server/domain/devices";
 import type { UserRow } from "@/server/domain/users";
 import {
-  createPairingAction,
   createUserAction,
   revokeDeviceAction,
   sendInviteAction,
@@ -75,6 +78,8 @@ export type UsersClientProps = {
   users: UserRow[];
   devices: DeviceRow[];
   editions: EditionOption[];
+  /** Casse di ogni edizione, per assegnarle ai dispositivi di cassa. */
+  registersByEdition: Record<string, RegisterOption[]>;
   canUsers: boolean;
   canDevices: boolean;
   currentUserId: string | null;
@@ -104,6 +109,7 @@ export function UsersClient({
   users,
   devices,
   editions,
+  registersByEdition,
   canUsers,
   canDevices,
   currentUserId,
@@ -148,6 +154,7 @@ export function UsersClient({
               <DevicesTab
                 devices={devices}
                 editions={editions}
+                registersByEdition={registersByEdition}
                 titleOf={titleOf}
               />
             ),
@@ -640,14 +647,17 @@ const KIND_LABEL = { pos: "Cassa", scanner: "Varco" } as const;
 function DevicesTab({
   devices,
   editions,
+  registersByEdition,
   titleOf,
 }: {
   devices: DeviceRow[];
   editions: EditionOption[];
+  registersByEdition: Record<string, RegisterOption[]>;
   titleOf: (s: string | null) => string;
 }) {
   const { call } = useAction();
   const [pairing, setPairing] = useState(false);
+  const [editing, setEditing] = useState<DeviceRow | null>(null);
   const [revoke, setRevoke] = useState<DeviceRow | null>(null);
 
   const columns = useMemo(() => {
@@ -671,6 +681,41 @@ function DevicesTab({
         meta: { label: "Edizione" },
         size: 220,
         cell: (c) => titleOf(c.getValue()),
+      }),
+      col.accessor("holderName", {
+        header: "Affidato a",
+        meta: { label: "Affidato a" },
+        size: 170,
+        cell: (c) => {
+          const d = c.row.original;
+          return d.holderName ? (
+            <span>
+              {d.holderName}
+              {d.holderPhone && (
+                <span className="block text-caption text-muted">
+                  {d.holderPhone}
+                </span>
+              )}
+            </span>
+          ) : (
+            "—"
+          );
+        },
+      }),
+      col.accessor("permissions", {
+        header: "Può fare",
+        meta: { label: "Può fare" },
+        size: 260,
+        enableSorting: false,
+        cell: (c) => {
+          const d = c.row.original;
+          return (
+            <span className="text-muted">
+              {d.registerName ? `${d.registerName} · ` : ""}
+              {permissionSummary(d.kind, d.permissions)}
+            </span>
+          );
+        },
       }),
       col.accessor("pairedBy", {
         header: "Abbinato da",
@@ -713,11 +758,18 @@ function DevicesTab({
       col.display({
         id: "actions",
         header: () => <span className="sr-only">Azioni</span>,
-        size: 110,
+        size: 190,
         enableHiding: false,
         cell: (c) =>
           c.row.original.revokedAt ? null : (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-1">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setEditing(c.row.original)}
+              >
+                Modifica
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -757,7 +809,26 @@ function DevicesTab({
         }
       />
       {pairing && (
-        <PairingDialog editions={editions} onClose={() => setPairing(false)} />
+        <PairDeviceDialog
+          editions={editions}
+          registersByEdition={registersByEdition}
+          defaultKind="pos"
+          onPair={(input) => call(() => pairDeviceAction(input))}
+          onClose={() => setPairing(false)}
+        />
+      )}
+      {editing && (
+        <EditDeviceDialog
+          device={editing}
+          registers={registersByEdition[editing.edition] ?? []}
+          onSave={(input) =>
+            call(
+              () => updateDeviceAction(editing.id, editing.edition, input, false),
+              `“${input.name}” aggiornato: vale da subito.`,
+            )
+          }
+          onClose={() => setEditing(null)}
+        />
       )}
       <ConfirmDialog
         open={!!revoke}
@@ -776,136 +847,5 @@ function DevicesTab({
         }}
       />
     </div>
-  );
-}
-
-function Countdown({ until }: { until: string }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  const left = Math.max(
-    0,
-    Math.floor((new Date(until).getTime() - now) / 1000),
-  );
-  if (left === 0)
-    return <span className="text-danger">Scaduto: generane uno nuovo.</span>;
-  return (
-    <span>
-      Vale ancora {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
-    </span>
-  );
-}
-
-function PairingDialog({
-  editions,
-  onClose,
-}: {
-  editions: EditionOption[];
-  onClose: () => void;
-}) {
-  const { call } = useAction();
-  const [name, setName] = useState("");
-  const [kind, setKind] = useState<"pos" | "scanner">("pos");
-  const [edition, setEdition] = useState(editions[0]?.slug ?? "");
-  const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{
-    url: string;
-    qr: string;
-    pin: string;
-    expiresAt: string;
-  } | null>(null);
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        title={
-          result ? `Inquadra il QR con “${name}”` : "Abbina un dispositivo"
-        }
-        description={
-          result
-            ? "Apri la fotocamera del telefono o del tablet, inquadra il codice e digita il PIN. Il QR si usa una volta sola."
-            : "Il QR e il PIN valgono 10 minuti e una sola volta."
-        }
-        footer={
-          result ? (
-            <Button onClick={onClose}>Fatto</Button>
-          ) : (
-            <>
-              <Button variant="secondary" onClick={onClose}>
-                Annulla
-              </Button>
-              <Button
-                loading={saving}
-                onClick={async () => {
-                  setSaving(true);
-                  const res = await call(() =>
-                    createPairingAction({ name, kind, edition }),
-                  );
-                  setSaving(false);
-                  if (res.ok && res.data) setResult(res.data);
-                }}
-              >
-                Genera QR
-              </Button>
-            </>
-          )
-        }
-      >
-        {result ? (
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex w-full flex-col items-center gap-3 sm:flex-row">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={result.qr}
-                alt="QR di abbinamento"
-                width={240}
-                height={240}
-                className="rounded-lg border border-border bg-white p-2"
-              />
-              <PairingPin pin={result.pin} />
-            </div>
-            <p className="text-label text-muted">
-              <Countdown until={result.expiresAt} />
-            </p>
-            <details className="w-full text-left text-caption text-muted">
-              <summary className="cursor-pointer">
-                Non riesci a inquadrarlo?
-              </summary>
-              <p className="mt-1 break-all">
-                Apri questo indirizzo sul dispositivo: {result.url}
-              </p>
-            </details>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <Field
-              label="Nome del dispositivo"
-              help="Come lo riconosci all’evento, es. “Cassa 1” o “Ingresso nord”."
-              required
-            >
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                maxLength={60}
-              />
-            </Field>
-            <DeviceRoleField value={kind} onChange={setKind} />
-            <Field label="Edizione">
-              <Select
-                value={edition}
-                onValueChange={setEdition}
-                options={editions.map((e) => ({
-                  value: e.slug,
-                  label: e.title,
-                }))}
-              />
-            </Field>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
   );
 }

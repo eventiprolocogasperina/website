@@ -6,7 +6,7 @@ import { cache } from 'react';
 import { getDb } from '@/server/db/client';
 import { devices, roleAssignments, siteSettings, userSessions, users } from '@/server/db/schema';
 import { log } from '@/server/log';
-import type { Ctx, CtxDevice, CtxUser } from './context-shared';
+import { deviceCtx, type Ctx, type CtxDevice, type CtxUser } from './context-shared';
 import { hashToken } from './password';
 import { can, type Permission, type PermissionScope, type RoleGrant } from './permissions';
 import { DEVICE_COOKIE, PIN_COOKIE, PIN_IDLE_S, cookieOptions, readSession } from './session';
@@ -70,10 +70,10 @@ export const getDevice = cache(async (): Promise<CtxDevice | null> => {
   const token = (await cookies()).get(DEVICE_COOKIE)?.value;
   if (!token) return null;
   const [row] = await getDb()
-    .select({ id: devices.id, name: devices.name, edition: devices.editionSlug, kind: devices.kind })
+    .select({ id: devices.id, name: devices.name, edition: devices.editionSlug, kind: devices.kind, registerId: devices.registerId, permissions: devices.permissions })
     .from(devices)
     .where(and(eq(devices.tokenHash, hashToken(token)), isNull(devices.revokedAt)));
-  return row ?? null;
+  return row ? { ...row, permissions: row.permissions as Permission[] | null } : null;
 });
 
 /**
@@ -95,7 +95,8 @@ export const getFieldCtx = cache(async (): Promise<Ctx | null> => {
       return { user: loaded.user, device, legacy: false, grants, ip };
     }
   }
-  return { user: null, device, legacy: false, grants: [{ role: device.kind === 'pos' ? 'cashier' : 'gate', edition: device.edition }], ip };
+  // Si rilegge a ogni richiesta: una modifica dei permessi dall'admin vale subito.
+  return deviceCtx(device, ip);
 });
 
 /** Rinnova la sessione PIN (30 minuti dall'ultima attività). Solo nei route handler. */

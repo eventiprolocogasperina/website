@@ -6,5 +6,5 @@ export const dynamic = 'force-dynamic';
 /** Ricerca manuale per nome o codice ordine. */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  return scannerRoute('checkin.scan', async (ctx) => ({ orders: await searchTickets(ctx, { checkinListId: params.get('lista') ?? '', q: params.get('q') ?? '' }) }));
+  return scannerRoute('checkin.search', async (ctx) => ({ orders: await searchTickets(ctx, { checkinListId: params.get('lista') ?? '', q: params.get('q') ?? '' }) }));
 }

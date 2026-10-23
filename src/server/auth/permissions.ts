@@ -25,8 +25,14 @@ export const PERMISSIONS = [
   'pos.sell',
   'pos.open_close_session',
   'pos.void',
+  'pos.open_amount',
+  'pos.complimentary',
+  'pos.view_totals',
+  'pos.reprint',
   'checkin.scan',
   'checkin.revert',
+  'checkin.search',
+  'checkin.stats',
   'reports.export',
   'costs.read',
   'costs.write',
@@ -61,8 +67,14 @@ export const MATRIX: Record<Permission, readonly UserRole[]> = {
   'pos.sell': ['owner', 'admin', 'event_manager', 'cashier'],
   'pos.open_close_session': ['owner', 'admin', 'event_manager', 'cashier'],
   'pos.void': ['owner', 'admin', 'event_manager'],
+  'pos.open_amount': ['owner', 'admin', 'event_manager', 'cashier'],
+  'pos.complimentary': ['owner', 'admin', 'event_manager', 'cashier'],
+  'pos.view_totals': ['owner', 'admin', 'event_manager', 'cashier'],
+  'pos.reprint': ['owner', 'admin', 'event_manager', 'cashier'],
   'checkin.scan': ['owner', 'admin', 'event_manager', 'gate'],
   'checkin.revert': ['owner', 'admin', 'event_manager', 'gate'],
+  'checkin.search': ['owner', 'admin', 'event_manager', 'gate'],
+  'checkin.stats': ['owner', 'admin', 'event_manager', 'gate'],
   'reports.export': ['owner', 'admin', 'event_manager'],
   // Costi: un event_manager assegnato a un'edizione vede e scrive solo i costi di quella; i costi
   // generali (senza edizione) chiedono il permesso a livello di associazione.
@@ -77,11 +89,15 @@ export const EDITION_SCOPED_ROLES: readonly UserRole[] = ['event_manager', 'cash
 
 export type RoleGrant = { role: UserRole; /** null = tutta l'associazione */ edition: string | null };
 
+/** Un singolo permesso concesso su un'edizione: i dispositivi da campo con i permessi scelti all'abbinamento. */
+export type PermissionGrant = { permission: Permission; edition: string };
+
 /**
- * Il minimo che serve per decidere: i ruoli di chi agisce.
- * Gli event_manager, cashier e gate assegnati a tutta l'associazione valgono su ogni edizione.
+ * Il minimo che serve per decidere: i ruoli di chi agisce, più eventuali permessi singoli
+ * (dispositivi da campo configurati). Gli event_manager, cashier e gate assegnati a tutta
+ * l'associazione valgono su ogni edizione.
  */
-export type PermissionSubject = { grants: readonly RoleGrant[] };
+export type PermissionSubject = { grants: readonly RoleGrant[]; permissions?: readonly PermissionGrant[] };
 
 export type PermissionScope = {
   /** Edizione su cui si agisce (slug). Senza, contano solo i ruoli dell'associazione. */
@@ -100,12 +116,14 @@ function grantApplies(grant: RoleGrant, scope: PermissionScope) {
  */
 export function can(subject: PermissionSubject, permission: Permission, scope: PermissionScope = {}): boolean {
   const roles = MATRIX[permission];
+  if (subject.permissions?.some((p) => p.permission === permission && scope.edition === p.edition)) return true;
   return subject.grants.some((g) => roles.includes(g.role) && grantApplies(g, scope));
 }
 
 /** true se il permesso vale su almeno un'edizione: serve a mostrare le voci di menu del livello Edizione. */
 export function canSomewhere(subject: PermissionSubject, permission: Permission): boolean {
   const roles = MATRIX[permission];
+  if (subject.permissions?.some((p) => p.permission === permission)) return true;
   return subject.grants.some((g) => roles.includes(g.role));
 }
 
@@ -114,7 +132,8 @@ export function editionsWith(subject: PermissionSubject, permission: Permission)
   const roles = MATRIX[permission];
   const grants = subject.grants.filter((g) => roles.includes(g.role));
   if (grants.some((g) => g.edition === null)) return 'all';
-  return [...new Set(grants.map((g) => g.edition as string))];
+  const direct = (subject.permissions ?? []).filter((p) => p.permission === permission).map((p) => p.edition);
+  return [...new Set([...grants.map((g) => g.edition as string), ...direct])];
 }
 
 /** Permessi validi a livello di associazione, per l'interfaccia (il client riceve solo questa lista). */

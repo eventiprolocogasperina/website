@@ -84,7 +84,9 @@ export async function voidSale(ctx: Ctx, input: z.input<typeof VoidSaleInput>): 
   if (ctx.device && ctx.device.edition !== slug) throw new DomainError('FORBIDDEN');
   let approver: { id: string | null; name: string };
   if (data.managerUserId && data.managerPin) approver = await verifyManagerPin(ctx, slug, data.managerUserId, data.managerPin);
-  else if (!ctx.device && can(ctx, 'pos.void', { edition: slug })) approver = { id: ctx.user?.id ?? null, name: ctx.user?.name ?? 'Amministratore' };
+  // Senza PIN: chi ha pos.void dall'admin, oppure un dispositivo a cui è stato concesso l'annullo.
+  else if (can(ctx, 'pos.void', { edition: slug }) && (!ctx.device || ctx.permissions?.some((p) => p.permission === 'pos.void')))
+    approver = ctx.device && !ctx.user ? { id: null, name: ctx.device.name } : { id: ctx.user?.id ?? null, name: ctx.user?.name ?? 'Amministratore' };
   else throw new DomainError('FORBIDDEN', { message: 'Serve il PIN di un responsabile.' });
 
   const events: DomainEvent[] = [];

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 /** PDF della chiusura Z, da stampare dal telefono o dal tablet. */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { ctx, denied } = await cassaAccess(request, 'pos.open_close_session');
+  const { ctx, denied } = await cassaAccess(request, 'pos.view_totals');
   if (denied) return denied;
   try {
     const { pdf, filename } = await zReportPdf(ctx, (await params).id);

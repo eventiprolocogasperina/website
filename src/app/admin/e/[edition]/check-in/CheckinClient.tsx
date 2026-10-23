@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { ArchivedNotice } from '@/components/admin/edition/common';
 import { ButtonLink, PageHeader, Tabs } from '@/components/ui';
 import type { CheckinListRow, CheckinStats } from '@/server/domain/checkin';
-import type { DeviceRow } from '@/server/domain/devices';
+import type { DeviceRow, RegisterOption } from '@/server/domain/devices';
 import { DevicesPanel } from './DevicesPanel';
 import { ListsPanel, type ListOptions } from './ListsPanel';
 import { StatsPanel } from './StatsPanel';
@@ -21,6 +21,7 @@ type Props = {
   lists: CheckinListRow[];
   options: ListOptions;
   devices: DeviceRow[];
+  registers: RegisterOption[];
   perms: { lists: boolean; devices: boolean };
   scannerV2: boolean;
 };
@@ -29,7 +30,7 @@ type Props = {
 const LIVE_MS = 15_000;
 
 /** Check-in dell'edizione (§10.3): andamento in tempo reale, liste, dispositivi scanner. */
-export function CheckinClient({ edition, tab, stats, lists, options, devices, perms, scannerV2 }: Props) {
+export function CheckinClient({ edition, tab, stats, lists, options, devices, registers, perms, scannerV2 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
@@ -69,7 +70,7 @@ export function CheckinClient({ edition, tab, stats, lists, options, devices, pe
         items={[
           { value: 'andamento', label: 'Andamento', content: <StatsPanel stats={stats} onDay={(d) => go({ giorno: d })} /> },
           { value: 'liste', label: 'Liste', count: lists.length, content: <ListsPanel edition={edition} lists={lists} options={options} canEdit={perms.lists && !edition.readOnly} /> },
-          { value: 'dispositivi', label: 'Dispositivi', count: devices.filter((d) => !d.revokedAt).length, content: <DevicesPanel edition={edition} devices={devices} stats={stats.devices} canManage={perms.devices} scannerV2={scannerV2} /> },
+          { value: 'dispositivi', label: 'Dispositivi', count: devices.filter((d) => !d.revokedAt).length, content: <DevicesPanel edition={edition} devices={devices} registers={registers} stats={stats.devices} canManage={perms.devices} scannerV2={scannerV2} /> },
         ]}
       />
     </>

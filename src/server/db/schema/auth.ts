@@ -85,6 +85,13 @@ export const devices = pgTable(
     tokenHash: text('token_hash').notNull(),
     editionSlug: text('edition_slug').notNull(),
     kind: deviceKind('kind').notNull(),
+    /** Cassa assegnata (solo dispositivi di cassa): il telefono non sceglie la cassa. Controllata dal server. */
+    registerId: uuid('register_id'),
+    /** A chi è affidato il dispositivo (testo libero) e il suo telefono, facoltativo. */
+    holderName: text('holder_name'),
+    holderPhone: text('holder_phone'),
+    /** Permessi scelti all'abbinamento (chiavi di permissions.ts). NULL = quelli del ruolo, come prima. */
+    permissions: text('permissions').array(),
     pairedBy: uuid('paired_by').references(() => users.id),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -103,6 +110,13 @@ export const devicePairings = pgTable(
     name: text('name').notNull(),
     editionSlug: text('edition_slug').notNull(),
     kind: deviceKind('kind').notNull(),
+    /** Cassa assegnata (solo dispositivi di cassa): il telefono non sceglie la cassa. Controllata dal server. */
+    registerId: uuid('register_id'),
+    /** A chi è affidato il dispositivo (testo libero) e il suo telefono, facoltativo. */
+    holderName: text('holder_name'),
+    holderPhone: text('holder_phone'),
+    /** Permessi scelti all'abbinamento (chiavi di permissions.ts). NULL = quelli del ruolo, come prima. */
+    permissions: text('permissions').array(),
     /** Hash (scrypt) del PIN mostrato accanto al QR. NULL solo per i QR creati prima del PIN: non si usano più. */
     pinHash: text('pin_hash'),
     /** PIN sbagliati; al quinto il QR non vale più. */

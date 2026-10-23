@@ -1,11 +1,9 @@
 'use server';
 
-import QRCode from 'qrcode';
 import { runAction } from '@/server/admin/run-action';
 import { DomainError } from '@/server/domain/errors';
-import { createPairing, listDevices, revokeDevice } from '@/server/domain/devices';
+import { listDevices, revokeDevice } from '@/server/domain/devices';
 import { resetOrderNumbering, saveRegister, setRegisterActive, type RegisterInput } from '@/server/domain/cash/registers';
-import { siteUrl } from '@/server/email/send';
 
 // Azioni della pagina Cassa dell'admin (prompt 14). I permessi li controllano i servizi.
 
@@ -23,15 +21,7 @@ export async function resetNumberingAction(edition: string, startFrom: number) {
   return runAction(paths(edition), (ctx) => resetOrderNumbering(ctx, edition, startFrom));
 }
 
-/** QR e PIN di abbinamento di un dispositivo per questa edizione, con il ruolo scelto (come in Sistema › Utenti). */
-export async function pairPosDeviceAction(edition: string, name: string, kind: 'pos' | 'scanner' = 'pos') {
-  return runAction(paths(edition), async (ctx) => {
-    const { token, pin, expiresAt } = await createPairing(ctx, { name, edition, kind });
-    const url = `${siteUrl()}/abbina/${token}`;
-    const qr = await QRCode.toDataURL(url, { errorCorrectionLevel: 'M', margin: 1, width: 280 });
-    return { url, qr, pin, expiresAt };
-  });
-}
+// QR di abbinamento e modifica dei dispositivi: app/admin/devices-actions.ts (comuni a Sistema, Cassa e Check-in).
 
 export async function revokePosDeviceAction(edition: string, deviceId: string) {
   return runAction(paths(edition), async (ctx) => {

@@ -1,7 +1,7 @@
 import { getPosCatalog } from '@/server/domain/cash/catalog';
 import { departmentQueue } from '@/server/domain/cash/departments';
 import { log } from '@/server/log';
-import { cassaAccess } from '../_lib';
+import { cassaAccess, catalogFor, wrongRegister } from '../_lib';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -24,6 +24,8 @@ export async function GET(request: Request) {
   const registerId = url.searchParams.get('cassa');
   const department = url.searchParams.get('reparto');
   if (!registerId && !department) return new Response('Parametro mancante', { status: 400 });
+  const other = registerId ? wrongRegister(ctx, registerId) : null;
+  if (other) return other;
 
   const encoder = new TextEncoder();
   let timer: ReturnType<typeof setInterval> | undefined;
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
         busy = true;
         try {
           if (registerId) {
-            const catalog = await getPosCatalog(registerId);
+            const catalog = catalogFor(ctx, edition, await getPosCatalog(registerId));
             if (catalog.edition.slug !== edition) throw new Error('cassa di un’altra edizione');
             if (catalog.version !== last) send('catalog', catalog);
             last = catalog.version;

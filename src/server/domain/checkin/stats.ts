@@ -52,7 +52,7 @@ export async function listCounters(ctx: Ctx, listId: string, sessionId: string |
   const db = getDb();
   const [list] = await db.select({ list: checkinLists, slug: editions.slug }).from(checkinLists).innerJoin(editions, eq(editions.id, checkinLists.editionId)).where(eq(checkinLists.id, listId));
   if (!list) throw new DomainError('NOT_FOUND');
-  assertCanOn(ctx, 'checkin.scan', list.slug);
+  assertCanOn(ctx, 'checkin.stats', list.slug);
   const graph = await loadSessionGraph(db, list.list.editionId);
   const map = await countBySession(db, graph, list.list.editionId, { listId, productIds: list.list.productIds });
   return pick(map, list.list.sessionId ?? sessionId);
