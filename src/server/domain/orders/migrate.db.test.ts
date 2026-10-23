@@ -87,6 +87,18 @@ describe.skipIf(!enabled)('migrazione degli ordini esistenti', () => {
     await migrateOrders(db, { edition: g.slug, pendingOnSite: true });
     const [o] = (await db.query(`select o.status, o.pay_on_site, o.expires_at from orders_v2 o join legacy_id_map m on m.new_id = o.id and m.legacy_kind = 'order' where m.legacy_id = 'ord_in_loco'`)).rows;
     expect(o).toMatchObject({ status: 'pending', pay_on_site: true, expires_at: null });
+
+    // Pagato poi dal link della mail nel vecchio sistema: rilanciando, l'ordine nuovo diventa pagato.
+    await db.query(`update orders set status = 'PAID', "paidAt" = now() where id = 'ord_in_loco'`);
+    const report = await migrateOrders(db, { edition: g.slug, pendingOnSite: true });
+    expect(report.counts['ordini pagati dopo la copia']).toEqual({ created: 1, existing: 0 });
+    const [after] = (await db.query(
+      `select o.status, o.pay_on_site, t.status as ticket, (select sum(amount_cents)::int from payments p where p.order_id = o.id) as paid_cents
+       from orders_v2 o join legacy_id_map m on m.new_id = o.id and m.legacy_kind = 'order' join tickets_v2 t on t.order_id = o.id where m.legacy_id = 'ord_in_loco'`,
+    )).rows;
+    expect(after).toEqual({ status: 'paid', pay_on_site: false, ticket: 'valid', paid_cents: 500 });
+    const again = await migrateOrders(db, { edition: g.slug, pendingOnSite: true });
+    expect(again.counts['ordini pagati dopo la copia']).toBeUndefined();
   });
 
   it('salta le edizioni non concluse, se non richiesto', async () => {

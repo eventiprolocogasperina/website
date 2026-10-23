@@ -174,6 +174,17 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
     return parts;
   };
 
+  // Pagamento principale più le integrazioni scritte nelle note, come nel vecchio sistema.
+  const insertLegacyPayments = async (orderId: string, edition: string, o: { id: string }, total: number, notes: ReturnType<typeof interpretNotes>, at: Date | string) => {
+    const integrations = notes.integrations.reduce((s, i) => s + i.amountCents, 0);
+    const main = total - integrations;
+    if (main < 0) report.anomalies.push({ edition, id: o.id, text: 'integrazioni maggiori del totale: pagamento principale a 0 €' });
+    await insertPayment(orderId, total === 0 ? 'complimentary' : 'nexi', Math.max(0, main), `legacy-order:${o.id}`, at);
+    for (const [i, integ] of notes.integrations.entries()) {
+      await insertPayment(orderId, 'nexi', integ.amountCents, `legacy-integration:${integ.transactionId ?? `${o.id}:${i}`}`, at);
+    }
+  };
+
   // ─── 1. Ordini online e biglietti ──────────────────────────────────────────
   const legacyOrders = await q<{
     id: string;
@@ -211,6 +222,20 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
     if (already) {
       // Ordini migrati prima che esistesse original_session_id: si completa, senza toccare altro.
       if (originalSessionId) await db.query('update orders_v2 set original_session_id = $2 where id = $1 and original_session_id is null', [already, originalSessionId]);
+      // Pagato nel vecchio sistema dopo la copia (es. dal link della mail): si allinea l'ordine nuovo.
+      if (o.status === 'PAID') {
+        const synced = await one<{ total_cents: number }>(
+          `update orders_v2 set status = 'paid', paid_at = $2, expires_at = null, pay_on_site = false, updated_at = now()
+           where id = $1 and status in ('pending', 'expired') and deleted_at is null returning total_cents`,
+          [already, o.paidAt ?? now],
+        );
+        if (synced) {
+          await db.query(`update tickets_v2 set status = 'valid' where order_id = $1 and status = 'void'`, [already]);
+          await insertLegacyPayments(already, e.slug, o, synced.total_cents, notes, o.paidAt ?? now);
+          await auditRow('order.paid', already, e.slug, { status: 'paid' }, 'Pagato nel vecchio sistema dopo la migrazione');
+          count('ordini pagati dopo la copia', true);
+        }
+      }
       count('ordini online', false);
       continue;
     }
@@ -286,15 +311,7 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
     if (notes.originalDayKey && notes.originalDayKey !== notes.dayKey) {
       await auditRow('order.session_moved', orderId, e.slug, { da: notes.originalDayKey, a: notes.dayKey, spostamenti: notes.moves }, 'Spostamento registrato nelle note del vecchio sistema');
     }
-    if (paid) {
-      const integrations = notes.integrations.reduce((s, i) => s + i.amountCents, 0);
-      const main = total - integrations;
-      if (main < 0) report.anomalies.push({ edition: e.slug, id: o.id, text: 'integrazioni maggiori del totale: pagamento principale a 0 €' });
-      await insertPayment(orderId, total === 0 ? 'complimentary' : 'nexi', Math.max(0, main), `legacy-order:${o.id}`, o.paidAt ?? createdAt);
-      for (const [i, integ] of notes.integrations.entries()) {
-        await insertPayment(orderId, 'nexi', integ.amountCents, `legacy-integration:${integ.transactionId ?? `${o.id}:${i}`}`, o.paidAt ?? createdAt);
-      }
-    }
+    if (paid) await insertLegacyPayments(orderId, e.slug, o, total, notes, o.paidAt ?? createdAt);
     await remember('order', o.id, orderId);
     count('ordini online', true);
   }
