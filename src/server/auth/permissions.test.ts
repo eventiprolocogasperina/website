@@ -31,6 +31,10 @@ const TABLE: Record<Permission, string> = {
   'checkin.scan': '✔✔✔--✔',
   'checkin.revert': '✔✔✔--✔',
   'reports.export': '✔✔✔---',
+  'costs.read': '✔✔✔---',
+  'costs.write': '✔✔✔---',
+  'inventory.read': '✔✔✔---',
+  'inventory.write': '✔✔----',
 };
 
 const ZK = 'zuccaland-2026';
@@ -59,6 +63,29 @@ describe('matrice §8.3', () => {
       });
     });
   }
+});
+
+describe('costi e inventario', () => {
+  it('l’event_manager di un’edizione scrive i costi di quella, non i costi generali né di altre edizioni', () => {
+    const em = { grants: [{ role: 'event_manager' as const, edition: ZK }] };
+    expect(can(em, 'costs.write', { edition: ZK })).toBe(true);
+    expect(can(em, 'costs.write', { edition: OTHER })).toBe(false);
+    expect(can(em, 'costs.write')).toBe(false);
+  });
+
+  it('l’event_manager legge l’inventario ma non lo modifica', () => {
+    const em = { grants: [{ role: 'event_manager' as const, edition: ZK }] };
+    expect(canSomewhere(em, 'inventory.read')).toBe(true);
+    expect(can(em, 'inventory.read', { edition: ZK })).toBe(true);
+    expect(canSomewhere(em, 'inventory.write')).toBe(false);
+  });
+
+  it('owner e admin gestiscono costi generali e inventario', () => {
+    for (const role of ['owner', 'admin'] as const) {
+      const s = { grants: [{ role, edition: null }] };
+      expect(orgPermissions(s)).toEqual(expect.arrayContaining(['costs.read', 'costs.write', 'inventory.read', 'inventory.write']));
+    }
+  });
 });
 
 describe('casi del prompt 07', () => {

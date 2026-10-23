@@ -96,4 +96,13 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'cash.prep_status': 'Comanda spostata nel reparto',
   'checkin_list.deleted': 'Lista di check-in eliminata',
   'order.scanner_action': 'Pulsante dello scanner (es. +1 Bambino)',
+  'cost.created': 'Costo registrato',
+  'cost.updated': 'Costo modificato',
+  'cost.voided': 'Costo annullato',
+  'inventory.item_created': 'Materiale aggiunto all’inventario',
+  'inventory.item_updated': 'Materiale modificato',
+  'inventory.item_dismissed': 'Materiale dismesso',
+  'inventory.adjusted': 'Quantità di materiale rettificata',
+  'inventory.assigned': 'Materiale portato a un evento',
+  'inventory.returned': 'Materiale rientrato da un evento',
 };

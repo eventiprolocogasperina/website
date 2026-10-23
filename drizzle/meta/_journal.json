@@ -127,6 +127,13 @@
       "when": 1792691458634,
       "tag": "0017_cassa_altro_per_cassa",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792745403409,
+      "tag": "0019_costi_inventario",
+      "breakpoints": true
     }
   ]
 }

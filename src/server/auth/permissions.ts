@@ -28,6 +28,10 @@ export const PERMISSIONS = [
   'checkin.scan',
   'checkin.revert',
   'reports.export',
+  'costs.read',
+  'costs.write',
+  'inventory.read',
+  'inventory.write',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -60,6 +64,12 @@ export const MATRIX: Record<Permission, readonly UserRole[]> = {
   'checkin.scan': ['owner', 'admin', 'event_manager', 'gate'],
   'checkin.revert': ['owner', 'admin', 'event_manager', 'gate'],
   'reports.export': ['owner', 'admin', 'event_manager'],
+  // Costi: un event_manager assegnato a un'edizione vede e scrive solo i costi di quella; i costi
+  // generali (senza edizione) chiedono il permesso a livello di associazione.
+  'costs.read': ['owner', 'admin', 'event_manager'],
+  'costs.write': ['owner', 'admin', 'event_manager'],
+  'inventory.read': ['owner', 'admin', 'event_manager'],
+  'inventory.write': ['owner', 'admin'],
 };
 
 /** Ruoli che valgono solo sulle edizioni assegnate (nota ¹ del §8.3). */
