@@ -34,7 +34,7 @@ export function useOffline(listId: string, online: boolean) {
     syncing.current = true;
     try {
       const batch = queue.slice(0, 100);
-      const { outcomes } = await api<{ outcomes: SyncOutcome[] }>('sync', { method: 'POST', body: { items: batch.map((q) => ({ clientId: q.clientId, qrToken: q.qrToken, checkinListId: q.checkinListId, sessionId: q.sessionId, at: q.at })) }, timeoutMs: 20_000 });
+      const { outcomes } = await api<{ outcomes: SyncOutcome[] }>('sync', { method: 'POST', body: { items: batch.map((q) => ({ clientId: q.clientId, qrToken: q.qrToken, ticketId: q.ticketId, checkinListId: q.checkinListId, sessionId: q.sessionId, at: q.at })) }, timeoutMs: 20_000 });
       // Esiti definitivi (anche gli errori di dominio): escono dalla coda. Un errore di rete lascia tutto com'è.
       const done = new Set(outcomes.map((o) => o.clientId));
       store.setQueue(store.queue().filter((q) => !done.has(q.clientId)));
@@ -48,18 +48,19 @@ export function useOffline(listId: string, online: boolean) {
     }
   }, []);
 
-  const enqueue = useCallback((item: QueuedCheckin) => {
-    store.setQueue([...store.queue(), item]);
-    store.addUsed(item.checkinListId, item.hash);
+  const enqueue = useCallback((...items: QueuedCheckin[]) => {
+    const known = new Set(store.queue().map((q) => q.clientId));
+    store.setQueue([...store.queue(), ...items.filter((i) => !known.has(i.clientId))]);
+    for (const item of items) if (item.hash) store.addUsed(item.checkinListId, item.hash);
     setQueued(store.queue().length);
   }, []);
 
-  /** "Annulla ultimo" di un passaggio offline non ancora sincronizzato. */
-  const dequeue = useCallback((clientId: string): boolean => {
-    const item = store.queue().find((q) => q.clientId === clientId);
-    if (!item) return false;
-    store.setQueue(store.queue().filter((q) => q.clientId !== clientId));
-    store.removeUsed(item.checkinListId, item.hash);
+  /** "Annulla ultimo" di passaggi offline non ancora sincronizzati (uno o tutto il gruppo). */
+  const dequeue = useCallback((clientIds: string[]): boolean => {
+    const items = store.queue().filter((q) => clientIds.includes(q.clientId));
+    if (items.length !== clientIds.length) return false;
+    store.setQueue(store.queue().filter((q) => !clientIds.includes(q.clientId)));
+    for (const item of items) store.removeUsed(item.checkinListId, item.hash);
     setQueued(store.queue().length);
     return true;
   }, []);

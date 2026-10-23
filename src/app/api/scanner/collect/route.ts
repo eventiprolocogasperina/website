@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   return scannerRoute('checkin.scan', (ctx) => collectQuote(ctx, orderId, 'varco'));
 }
 
-/** Incassa un ordine "Paga in loco" al varco (checkin.collect_payment, controllato nel dominio) e fa entrare. */
+/** Incassa un ordine "Paga in loco" al varco (checkin.collect_payment, controllato nel dominio) e riapre l'ordine per la conferma di gruppo. */
 export async function POST(request: Request) {
   const input = await body(request);
   return scannerRoute('checkin.scan', async (ctx) => {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     });
     const keys = Array.isArray(input.questionKeys) ? input.questionKeys.filter((k): k is string => typeof k === 'string').slice(0, 10) : [];
     const s = r.scan;
-    const answers = keys.length && (s.result === 'valid' || s.result === 'already_used') ? await answerCounts(s.ticket.orderId, keys) : {};
+    const answers = keys.length && s.result === 'already_used' ? await answerCounts(s.ticket.orderId, keys) : {};
     return { collected: r.collected, scan: { ...s, answers } };
   });
 }
