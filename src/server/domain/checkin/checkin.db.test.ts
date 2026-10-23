@@ -12,11 +12,13 @@ import { anon, buyer, createEdition, key, owner, roleOn, type Fixture } from '@/
 import { closeTestDb, getDb } from '@/test/pg-client';
 import {
   applyScannerAction,
+  checkinGroup,
   checkinStats,
   deleteCheckinList,
   listCheckinLists,
   listCounters,
   offlineManifest,
+  previewOrder,
   qrHash,
   revertCheckin,
   saveCheckinList,
@@ -168,8 +170,12 @@ describe.skipIf(!enabled)('scanner e liste di check-in', () => {
       const json = JSON.stringify(m);
       for (const secret of ['offline@example.com', 'Mario', a.code, a.tickets[0].qrToken]) expect(json).not.toContain(secret);
       const day1 = m.sessions.findIndex((s) => s.id === g.day1.id);
-      expect(m.entries).toContainEqual([qrHash(a.tickets[0].qrToken), day1, 1]);
-      expect(m.entries).toContainEqual([qrHash(a.tickets[1].qrToken), day1, 0]);
+      // Stesso ordine = stesso numero nell'elenco; il prodotto per indice; l'ID del biglietto per la coda.
+      const first = m.entries.find((e) => e[0] === qrHash(a.tickets[0].qrToken))!;
+      const second = m.entries.find((e) => e[0] === qrHash(a.tickets[1].qrToken))!;
+      expect(first).toEqual([qrHash(a.tickets[0].qrToken), day1, 1, expect.any(Number), expect.any(Number), a.tickets[0].id]);
+      expect(second).toEqual([qrHash(a.tickets[1].qrToken), day1, 0, first[3], first[4], a.tickets[1].id]);
+      expect(m.products![first[4] as number]).toBe('Ingresso');
       expect(await errorCode(offlineManifest(roleOn('gate', f.slug), g.entrance.id))).toBe('FORBIDDEN');
     });
 
@@ -201,6 +207,127 @@ describe.skipIf(!enabled)('scanner e liste di check-in', () => {
       const third = await order();
       const reused = await syncOfflineCheckins(phoneA, { items: [{ clientId: out[1].clientId, qrToken: third.tickets[0].qrToken, checkinListId: f.entrance.id }] });
       expect(reused[0].result).toBe('error');
+    });
+  });
+
+  describe('ingresso di gruppo', () => {
+    async function mixedOrder(g: Fixture) {
+      // 3 ingressi della domenica + 1 laboratorio (non entra dalla lista Ingresso): come un ordine di Zuccaland.
+      const r = await createOrder(owner, {
+        editionId: g.edition.id,
+        channel: 'admin',
+        payNow: 'cash',
+        customer: buyer,
+        idempotencyKey: key(),
+        lines: [
+          { productId: g.ticket.id, quantity: 3, sessionId: g.day2.id },
+          { productId: g.lab.id, quantity: 1, sessionId: g.day2.id },
+        ],
+      });
+      const tickets = await getDb().select().from(ticketsV2).where(eq(ticketsV2.orderId, r.id));
+      return { ...r, entrance: tickets.filter((t) => t.productId === g.ticket.id), lab: tickets.find((t) => t.productId === g.lab.id)! };
+    }
+    const count = async (ticketId: string) => (await getDb().select().from(checkins).where(eq(checkins.ticketId, ticketId))).length;
+
+    it('il QR apre tutto l’ordine senza registrare niente: pronti, già entrati, altra lista, annullati', async () => {
+      const g = await createEdition();
+      const gate = roleOn('gate', g.slug);
+      const o = await mixedOrder(g);
+      await scan(gate, { ticketId: o.entrance[1].id, checkinListId: g.entrance.id });
+      await getDb().update(ticketsV2).set({ status: 'void' }).where(eq(ticketsV2.id, o.entrance[2].id));
+
+      // Anche il QR di un biglietto annullato apre l'ordine (al centro dell'email c'è il primo biglietto).
+      const p = await previewOrder(gate, { qrToken: o.entrance[2].qrToken, checkinListId: g.entrance.id, sessionId: g.day2.id });
+      if (p.result !== 'order') throw new Error(p.result);
+      expect(p.ticket).toMatchObject({ id: o.entrance[2].id, orderCode: o.code, holderName: 'Mario Rossi' });
+      expect(Object.fromEntries(p.tickets.map((t) => [t.id, t.state]))).toEqual({ [o.entrance[0].id]: 'ready', [o.entrance[1].id]: 'already_used', [o.entrance[2].id]: 'void', [o.lab.id]: 'wrong_list' });
+      expect(p.tickets.find((t) => t.state === 'already_used')).toMatchObject({ checkinId: expect.any(String), at: expect.any(Date) });
+      expect(await count(o.entrance[0].id)).toBe(0);
+
+      // Nessuno può più entrare: l'esito del biglietto letto, come prima.
+      await scan(gate, { ticketId: o.entrance[0].id, checkinListId: g.entrance.id });
+      expect((await previewOrder(gate, { qrToken: o.entrance[0].qrToken, checkinListId: g.entrance.id })).result).toBe('already_used');
+      expect((await previewOrder(gate, { qrToken: 'qr-che-non-esiste', checkinListId: g.entrance.id })).result).toBe('unknown');
+      expect((await previewOrder(roleOn('gate', f.slug), { qrToken: o.entrance[0].qrToken, checkinListId: f.entrance.id })).result).toBe('unknown');
+    });
+
+    it('altra data e blacklist valgono per tutto l’ordine', async () => {
+      const g = await createEdition();
+      const gate = roleOn('gate', g.slug);
+      const o = await mixedOrder(g);
+      expect((await previewOrder(gate, { qrToken: o.entrance[0].qrToken, checkinListId: g.entrance.id, sessionId: g.day1.id })).result).toBe('wrong_session');
+      await getDb().update(ordersV2).set({ isBlacklisted: true }).where(eq(ordersV2.id, o.id));
+      expect((await previewOrder(gate, { qrToken: o.entrance[0].qrToken, checkinListId: g.entrance.id })).result).toBe('blocked');
+      const r = await checkinGroup(gate, { checkinListId: g.entrance.id, items: [{ ticketId: o.entrance[0].id }] });
+      expect(r).toMatchObject({ entered: [], skipped: [{ ticketId: o.entrance[0].id, result: 'blocked' }] });
+      expect(await count(o.entrance[0].id)).toBe(0);
+    });
+
+    it('"Fai entrare N": un passaggio per biglietto scelto, nel registro; chi è entrato nel frattempo resta fuori', async () => {
+      const g = await createEdition();
+      const gate = await device('Varco gruppo', g.slug);
+      const o = await mixedOrder(g);
+      // Il terzo non c'è: l'operatore lo toglie. Il secondo intanto entra da un altro telefono.
+      await scan(roleOn('gate', g.slug), { ticketId: o.entrance[1].id, checkinListId: g.entrance.id });
+      const r = await checkinGroup(gate, { checkinListId: g.entrance.id, sessionId: g.day2.id, items: [{ ticketId: o.entrance[0].id }, { ticketId: o.entrance[1].id }] });
+      expect(r.entered.map((e) => e.ticketId)).toEqual([o.entrance[0].id]);
+      expect(r.skipped).toEqual([expect.objectContaining({ ticketId: o.entrance[1].id, result: 'already_used' })]);
+      expect(r.ticket).toMatchObject({ id: o.entrance[0].id, orderCode: o.code });
+      expect(await count(o.entrance[2].id)).toBe(0);
+      const logs = await getDb()
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.entityId, o.entrance[0].id), eq(auditLog.action, 'ticket.checked_in')));
+      expect(logs).toHaveLength(1);
+      expect(logs[0]).toMatchObject({ actorDeviceId: gate.device!.id, after: expect.objectContaining({ orderCode: o.code, group: 2 }) });
+
+      // L'annullo resta per biglietto: il primo torna fuori, gli altri restano come sono.
+      await revertCheckin(gate, { checkinId: r.entered[0].checkinId });
+      const again = await previewOrder(gate, { qrToken: o.entrance[1].qrToken, checkinListId: g.entrance.id });
+      if (again.result !== 'order') throw new Error(again.result);
+      expect(again.tickets.filter((t) => t.state === 'ready').map((t) => t.id).sort()).toEqual([o.entrance[0].id, o.entrance[2].id].sort());
+    });
+
+    it('due telefoni confermano lo stesso ordine insieme: ogni biglietto entra una volta sola', async () => {
+      const g = await createEdition();
+      const a = await device('A', g.slug);
+      const b = await device('B', g.slug);
+      const o = await mixedOrder(g);
+      const items = o.entrance.map((t) => ({ ticketId: t.id }));
+      const [x, y] = await Promise.all([checkinGroup(a, { checkinListId: g.entrance.id, items }), checkinGroup(b, { checkinListId: g.entrance.id, items: [...items].reverse() })]);
+      expect(x.entered.length + y.entered.length).toBe(3);
+      for (const t of o.entrance) expect(await count(t.id)).toBe(1);
+    });
+
+    it('reinvio con gli stessi clientId: nessun doppione, anche dalla coda offline; ordini diversi, ripetuti o senza permesso: rifiutati', async () => {
+      const g = await createEdition();
+      const gate = roleOn('gate', g.slug);
+      const o = await mixedOrder(g);
+      const items = o.entrance.slice(0, 2).map((t) => ({ ticketId: t.id, clientId: `c-${randomUUID()}` }));
+      const first = await checkinGroup(gate, { checkinListId: g.entrance.id, items });
+      const second = await checkinGroup(gate, { checkinListId: g.entrance.id, items });
+      expect(second.entered.map((e) => e.checkinId)).toEqual(first.entered.map((e) => e.checkinId));
+      expect(second.skipped).toEqual([]);
+      // La rete cade dopo l'invio: lo scanner mette in coda gli stessi passaggi (per ID del biglietto).
+      const synced = await syncOfflineCheckins(gate, { items: items.map((i) => ({ ...i, checkinListId: g.entrance.id })) });
+      expect(synced.map((s) => s.result)).toEqual(['valid', 'valid']);
+      expect(await count(items[0].ticketId)).toBe(1);
+
+      const other = await order(g);
+      expect(await errorCode(checkinGroup(gate, { checkinListId: g.entrance.id, items: [{ ticketId: o.entrance[2].id }, { ticketId: other.tickets[0].id }] }))).toBe('VALIDATION');
+      await expect(checkinGroup(gate, { checkinListId: g.entrance.id, items: [{ ticketId: o.entrance[2].id }, { ticketId: o.entrance[2].id }] })).rejects.toThrow();
+      expect(await errorCode(checkinGroup(roleOn('cashier', g.slug), { checkinListId: g.entrance.id, items: [{ ticketId: o.entrance[2].id }] }))).toBe('FORBIDDEN');
+      expect(await count(o.entrance[2].id)).toBe(0);
+    });
+
+    it('offline: la coda manda un passaggio per biglietto, per ID; il laboratorio non entra dalla lista Ingresso', async () => {
+      const g = await createEdition();
+      const gate = roleOn('gate', g.slug);
+      const o = await mixedOrder(g);
+      const out = await syncOfflineCheckins(gate, { items: o.entrance.map((t) => ({ clientId: `c-${randomUUID()}`, ticketId: t.id, checkinListId: g.entrance.id, sessionId: g.day2.id })) });
+      expect(out.map((x) => x.result)).toEqual(['valid', 'valid', 'valid']);
+      const lab = await syncOfflineCheckins(gate, { items: [{ clientId: `c-${randomUUID()}`, ticketId: o.lab.id, checkinListId: g.entrance.id }] });
+      expect(lab[0].result).toBe('wrong_list');
     });
   });
 

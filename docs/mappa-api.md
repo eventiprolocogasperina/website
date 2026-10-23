@@ -97,7 +97,9 @@ Rotte dello scanner nuovo (prompt 15, `src/app/api/scanner/*`, vedi [check-in.md
 | Rotta | Permesso |
 |---|---|
 | `/api/scanner/bootstrap` | GET: checkin.scan |
-| `/api/scanner/scan` | POST: checkin.scan |
+| `/api/scanner/scan` | POST: checkin.scan | (biglietto dalla ricerca: entra subito)
+| `/api/scanner/order` | POST: checkin.scan (QR letto: l'ordine da confermare, non registra niente) |
+| `/api/scanner/group` | POST: checkin.scan ("Fai entrare N": biglietti dello stesso ordine, una transazione) |
 | `/api/scanner/revert` | POST: checkin.revert (`from`: `ultimo`, `ricerca` o `esito`; il motivo nel registro lo sceglie il server) |
 | `/api/scanner/action` | POST: checkin.scan (pulsanti dei moduli, es. "+1 Bambino") |
 | `/api/scanner/search` | GET: checkin.scan (nome o codice; niente email/telefono) |

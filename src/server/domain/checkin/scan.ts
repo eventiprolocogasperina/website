@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Ctx } from '@/server/auth/context-shared';
 import { can, type Permission } from '@/server/auth/permissions';
@@ -65,15 +65,14 @@ export type ScanOptions = {
 };
 
 type ScanData = z.output<typeof ScanInput>;
-type Ready = { list: typeof checkinLists.$inferSelect; editionSlug: string; ticketId: string; orderCode: string; ticket: ScannedTicket };
+type ListRow = typeof checkinLists.$inferSelect;
+export type Ready = { list: ListRow; editionSlug: string; ticketId: string; orderCode: string; ticket: ScannedTicket };
+export type Judged = { final: ScanResult } | { ready: Ready };
+type Scope = { list: ListRow; editionSlug: string };
 
-/**
- * Controlli della scansione, comuni alla lettura veloce e alla transazione. Restituisce l'esito
- * definitivo, oppure `ready` se il biglietto può entrare (manca solo la registrazione).
- * Con `tx` il biglietto è bloccato (FOR UPDATE) e l'edizione condivisa (FOR SHARE).
- */
-async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx: Tx | null): Promise<{ final: ScanResult } | { ready: Ready }> {
-  const [list] = await db.select().from(checkinLists).where(eq(checkinLists.id, data.checkinListId));
+/** Lista e edizione della scansione, con il permesso. Con `tx` l'edizione è condivisa (FOR SHARE). */
+export async function openList(db: Db, ctx: Ctx, listId: string, tx: Tx | null): Promise<Scope> {
+  const [list] = await db.select().from(checkinLists).where(eq(checkinLists.id, listId));
   if (!list) throw new DomainError('NOT_FOUND');
   let editionSlug: string;
   if (tx) editionSlug = (await lockEdition(tx, list.editionId)).slug;
@@ -84,7 +83,11 @@ async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx:
     editionSlug = e.slug;
   }
   assertCanOn(ctx, 'checkin.scan', editionSlug);
+  return { list, editionSlug };
+}
 
+/** Biglietti con ordine, prodotto, nome e data. Con `tx` bloccati (FOR UPDATE), sempre nello stesso ordine. */
+export async function loadRows(db: Db, where: SQL | undefined, tx: Tx | null) {
   const query = db
     .select({ ticket: ticketsV2, order: { status: ordersV2.status, code: ordersV2.code, blacklisted: ordersV2.isBlacklisted, deletedAt: ordersV2.deletedAt, payOnSite: ordersV2.payOnSite, totalCents: ordersV2.totalCents }, productName: products.name, customerName: customers.name, session: { label: sessions.label, status: sessions.status } })
     .from(ticketsV2)
@@ -92,56 +95,121 @@ async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx:
     .innerJoin(products, eq(products.id, ticketsV2.productId))
     .leftJoin(customers, eq(customers.id, ordersV2.customerId))
     .leftJoin(sessions, eq(sessions.id, ticketsV2.sessionId))
-    .where(data.ticketId ? eq(ticketsV2.id, data.ticketId) : eq(ticketsV2.qrToken, data.qrToken!));
-  const [row] = tx ? await query.for('update', { of: ticketsV2 }) : await query;
-  // Un biglietto di un'altra edizione è "sconosciuto": lo scanner non deve dire di più.
-  if (!row || row.ticket.editionId !== list.editionId) return { final: { result: 'unknown' } };
+    .where(where)
+    .orderBy(asc(ticketsV2.createdAt), asc(ticketsV2.id));
+  return tx ? await query.for('update', { of: ticketsV2 }) : await query;
+}
+type Row = Awaited<ReturnType<typeof loadRows>>[number];
 
-  // Le date con i rinvii servono solo se il biglietto è di una data rinviata o di un'altra data:
+/**
+ * Controlli della scansione per uno o più biglietti, comuni alla lettura veloce, alla transazione e
+ * alla conferma di gruppo. Per ogni riga l'esito definitivo, oppure `ready` se il biglietto può
+ * entrare (manca solo la registrazione). Le query aggiuntive (date con i rinvii, pagamenti, passaggi
+ * precedenti) partono solo se servono, una volta per tutte le righe.
+ */
+export async function judge(db: Db, scope: Scope, rows: Row[], sessionId: string | null, clientIdOf: (ticketId: string) => string | undefined): Promise<Judged[]> {
+  const { list, editionSlug } = scope;
+  const target = list.sessionId ?? sessionId ?? null;
+  // Le date con i rinvii servono solo se un biglietto è di una data rinviata o di un'altra data:
   // nel caso comune si risparmia una query.
-  const target = list.sessionId ?? data.sessionId ?? null;
-  const sameDay = !target || !row.ticket.sessionId || row.ticket.sessionId === target;
-  const graph = sameDay && row.session?.status !== 'postponed' ? null : await loadSessionGraph(db, list.editionId);
-  const labelOf = (id: string | null) => (id ? (id === row.ticket.sessionId ? (row.session?.label ?? null) : (graph?.get(id)?.label ?? null)) : null);
-  const ticket: ScannedTicket = {
-    id: row.ticket.id,
-    orderId: row.ticket.orderId,
-    productName: row.productName,
-    sessionLabel: labelOf(row.ticket.sessionId),
-    validOn: labelOf(graph ? effectiveSession(graph, row.ticket.sessionId) : row.ticket.sessionId),
-    orderCode: row.order.code,
-    holderName: row.ticket.attendeeName ?? row.customerName ?? null,
-  };
+  const needsGraph = rows.some((r) => r.ticket.editionId === list.editionId && ((target && r.ticket.sessionId && r.ticket.sessionId !== target) || r.session?.status === 'postponed'));
+  const graph = needsGraph ? await loadSessionGraph(db, list.editionId) : null;
+  const clientIds = rows.map((r) => clientIdOf(r.ticket.id)).filter((c): c is string => !!c);
+  const sameClient = clientIds.length ? await db.select().from(checkins).where(inArray(checkins.clientId, clientIds)) : [];
+  const dueByOrder = new Map<string, number>();
 
-  if (opts.clientId) {
-    const [same] = await db.select().from(checkins).where(eq(checkins.clientId, opts.clientId));
-    if (same && same.ticketId !== row.ticket.id) throw new DomainError('CONFLICT', { message: 'Passaggio offline già usato per un altro biglietto.' });
-    if (same) return { final: { result: 'valid', checkinId: same.id, at: same.at, ticket } };
+  const first: Array<Judged | { pending: Ready }> = [];
+  for (const row of rows) {
+    // Un biglietto di un'altra edizione è "sconosciuto": lo scanner non deve dire di più.
+    if (row.ticket.editionId !== list.editionId) {
+      first.push({ final: { result: 'unknown' } });
+      continue;
+    }
+    const labelOf = (id: string | null) => (id ? (id === row.ticket.sessionId ? (row.session?.label ?? null) : (graph?.get(id)?.label ?? null)) : null);
+    const ticket: ScannedTicket = {
+      id: row.ticket.id,
+      orderId: row.ticket.orderId,
+      productName: row.productName,
+      sessionLabel: labelOf(row.ticket.sessionId),
+      validOn: labelOf(graph ? effectiveSession(graph, row.ticket.sessionId) : row.ticket.sessionId),
+      orderCode: row.order.code,
+      holderName: row.ticket.attendeeName ?? row.customerName ?? null,
+    };
+    const clientId = clientIdOf(row.ticket.id);
+    if (clientId) {
+      const same = sameClient.find((c) => c.clientId === clientId);
+      if (same && same.ticketId !== row.ticket.id) throw new DomainError('CONFLICT', { message: 'Passaggio offline già usato per un altro biglietto.' });
+      if (same) {
+        first.push({ final: { result: 'valid', checkinId: same.id, at: same.at, ticket } });
+        continue;
+      }
+    }
+    // La blacklist vince su tutto: rosso con l'avviso di chiamare un responsabile, anche se l'ordine è annullato.
+    if (row.order.blacklisted) {
+      first.push({ final: { result: 'blocked', ticket } });
+      continue;
+    }
+    const toPay = row.order.status === 'pending' && row.order.payOnSite;
+    if (row.ticket.status === 'void' || row.order.deletedAt || (!toPay && !ADMITTING_STATUSES.includes(row.order.status as OrderStatus))) first.push({ final: { result: 'void', ticket } });
+    else if (!listAcceptsProduct(list, row.ticket.productId)) first.push({ final: { result: 'wrong_list', ticket } });
+    else if (graph && !sessionMatches(graph, row.ticket.sessionId, target)) first.push({ final: { result: 'wrong_session', ticket } });
+    else if (toPay) {
+      // "Paga in loco": l'importo è quello che manca, calcolato qui; si entra solo dopo l'incasso.
+      let due = dueByOrder.get(row.ticket.orderId);
+      if (due === undefined) {
+        const pay = await db.select({ status: payments.status, amountCents: payments.amountCents }).from(payments).where(eq(payments.orderId, row.ticket.orderId));
+        due = summarizePayments(row.order.totalCents, pay).dueCents;
+        dueByOrder.set(row.ticket.orderId, due);
+      }
+      first.push({ final: { result: 'to_pay', dueCents: due, ticket } });
+    } else first.push({ pending: { list, editionSlug, ticketId: row.ticket.id, orderCode: row.order.code, ticket } });
   }
 
-  // La blacklist vince su tutto: rosso con l'avviso di chiamare un responsabile, anche se l'ordine è annullato.
-  if (row.order.blacklisted) return { final: { result: 'blocked', ticket } };
-  const toPay = row.order.status === 'pending' && row.order.payOnSite;
-  if (row.ticket.status === 'void' || row.order.deletedAt || (!toPay && !ADMITTING_STATUSES.includes(row.order.status as OrderStatus))) return { final: { result: 'void', ticket } };
-  if (!listAcceptsProduct(list, row.ticket.productId)) return { final: { result: 'wrong_list', ticket } };
-  if (graph && !sessionMatches(graph, row.ticket.sessionId, target)) return { final: { result: 'wrong_session', ticket } };
-  // "Paga in loco": l'importo è quello che manca, calcolato qui; si entra solo dopo l'incasso.
-  if (toPay) {
-    const pay = await db.select({ status: payments.status, amountCents: payments.amountCents }).from(payments).where(eq(payments.orderId, row.ticket.orderId));
-    return { final: { result: 'to_pay', dueCents: summarizePayments(row.order.totalCents, pay).dueCents, ticket } };
-  }
-
-  if (!list.allowMultiple) {
-    const [previous] = await db
-      .select({ id: checkins.id, at: checkins.at, by: devices.name })
+  const pendingIds = first.flatMap((j) => ('pending' in j ? [j.pending.ticketId] : []));
+  const previous = new Map<string, { id: string; at: Date; by: string | null }>();
+  if (!list.allowMultiple && pendingIds.length) {
+    const used = await db
+      .select({ ticketId: checkins.ticketId, id: checkins.id, at: checkins.at, by: devices.name })
       .from(checkins)
       .leftJoin(devices, eq(devices.id, checkins.deviceId))
-      .where(and(eq(checkins.ticketId, row.ticket.id), eq(checkins.checkinListId, list.id), isNull(checkins.revertedAt)))
-      .orderBy(desc(checkins.at))
-      .limit(1);
-    if (previous) return { final: { result: 'already_used', checkinId: previous.id, at: previous.at, by: previous.by, ticket } };
+      .where(and(inArray(checkins.ticketId, pendingIds), eq(checkins.checkinListId, list.id), isNull(checkins.revertedAt)))
+      .orderBy(desc(checkins.at));
+    for (const p of used) if (!previous.has(p.ticketId)) previous.set(p.ticketId, p);
   }
-  return { ready: { list, editionSlug, ticketId: row.ticket.id, orderCode: row.order.code, ticket } };
+  return first.map((j): Judged => {
+    if (!('pending' in j)) return j;
+    const p = previous.get(j.pending.ticketId);
+    return p ? { final: { result: 'already_used', checkinId: p.id, at: p.at, by: p.by, ticket: j.pending.ticket } } : { ready: j.pending };
+  });
+}
+
+/**
+ * Controlli della scansione di un biglietto. Restituisce l'esito definitivo, oppure `ready` se il
+ * biglietto può entrare. Con `tx` il biglietto è bloccato (FOR UPDATE) e l'edizione condivisa (FOR SHARE).
+ */
+async function evaluate(db: Db, ctx: Ctx, data: ScanData, opts: ScanOptions, tx: Tx | null): Promise<Judged> {
+  const scope = await openList(db, ctx, data.checkinListId, tx);
+  const rows = await loadRows(db, data.ticketId ? eq(ticketsV2.id, data.ticketId) : eq(ticketsV2.qrToken, data.qrToken!), tx);
+  if (!rows.length) return { final: { result: 'unknown' } };
+  const [judged] = await judge(db, scope, rows, data.sessionId ?? null, () => opts.clientId);
+  return judged;
+}
+
+/** Registra l'ingresso di un biglietto pronto, con la voce nel registro e l'evento. */
+export async function insertCheckin(tx: Tx, ctx: Ctx, ready: Ready, now: Date, clientId: string | null, events: DomainEvent[], extra: Record<string, unknown> = {}) {
+  const { list, editionSlug, ticketId, orderCode, ticket } = ready;
+  const [checkin] = await tx
+    .insert(checkins)
+    .values({ ticketId, checkinListId: list.id, at: now, operatorId: ctx.user?.id ?? null, deviceId: ctx.device?.id ?? null, clientId })
+    .returning({ id: checkins.id, at: checkins.at });
+  await audit(tx, ctx, 'ticket.checked_in', {
+    entityType: 'ticket',
+    entityId: ticketId,
+    edition: editionSlug,
+    after: { list: list.name, orderCode, session: ticket.validOn, ...extra },
+  });
+  events.push({ type: 'ticket.checked_in', ticketId, checkinListId: list.id, edition: editionSlug });
+  return checkin;
 }
 
 /**
@@ -161,19 +229,8 @@ export async function scan(ctx: Ctx, input: z.input<typeof ScanInput>, opts: Sca
   const result = await withTransaction(async (tx): Promise<ScanResult> => {
     const checked = await evaluate(tx, ctx, data, opts, tx);
     if ('final' in checked) return checked.final;
-    const { list, editionSlug, ticketId, orderCode, ticket } = checked.ready;
-    const [checkin] = await tx
-      .insert(checkins)
-      .values({ ticketId, checkinListId: list.id, at: now, operatorId: ctx.user?.id ?? null, deviceId: ctx.device?.id ?? null, clientId: opts.clientId ?? null })
-      .returning({ id: checkins.id, at: checkins.at });
-    await audit(tx, ctx, 'ticket.checked_in', {
-      entityType: 'ticket',
-      entityId: ticketId,
-      edition: editionSlug,
-      after: { list: list.name, orderCode, session: ticket.validOn, ...(opts.clientId ? { offline: true, at: now } : {}) },
-    });
-    events.push({ type: 'ticket.checked_in', ticketId, checkinListId: list.id, edition: editionSlug });
-    return { result: 'valid', checkinId: checkin.id, at: checkin.at, ticket };
+    const checkin = await insertCheckin(tx, ctx, checked.ready, now, opts.clientId ?? null, events, opts.clientId ? { offline: true, at: now } : {});
+    return { result: 'valid', checkinId: checkin.id, at: checkin.at, ticket: checked.ready.ticket };
   });
   await publish(events);
   return result;

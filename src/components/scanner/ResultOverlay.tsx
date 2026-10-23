@@ -30,7 +30,7 @@ type Props = {
   /** Dopo un incasso dal popup di cassa: nuovo valore del conteggio. */
   onPaid: (questionKey: string, after: number) => void;
   onClose: () => void;
-  undo: { until: number } | null;
+  undo: { until: number; count?: number } | null;
   onUndo: () => Promise<boolean | undefined | void>;
   /** "Già entrato": annulla quell'ingresso (con conferma), anche se è passato più di mezzo minuto. */
   onRevert: ((checkinId: string) => Promise<unknown>) | null;
@@ -50,7 +50,7 @@ export function ResultOverlay({ outcome, actions: allActions, canSell = true, on
   const [touched, setTouched] = useState(false);
   const [paying, setPaying] = useState<Props['actions'][number] | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const withActions = outcome.source === 'online' && (outcome.data.result === 'valid' || outcome.data.result === 'already_used') && actions.length > 0;
+  const withActions = outcome.source === 'online' && (outcome.data.result === 'valid' || outcome.data.result === 'already_used' || (outcome.data.result === 'entered' && outcome.data.entered.length > 0)) && actions.length > 0;
   const answers = outcome.source === 'online' ? outcome.data.answers : {};
   const [reverting, setReverting] = useState<RevertTarget | null>(null);
   const used = onRevert && outcome.source === 'online' && outcome.data.result === 'already_used' ? outcome.data : null;
@@ -139,7 +139,7 @@ export function ResultOverlay({ outcome, actions: allActions, canSell = true, on
             onCollected={(r) => (setCollecting(false), collect.onCollected(r))}
           />
         )}
-        {p.tone === 'success' && undo && <UndoBar until={undo.until} onUndo={onUndo} />}
+        {p.tone === 'success' && undo && <UndoBar until={undo.until} count={undo.count} onUndo={onUndo} />}
         {used && (
           <button
             type="button"

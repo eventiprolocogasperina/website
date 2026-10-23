@@ -1,6 +1,7 @@
 // Check-in (ARCHITETTURA §12.3, prompt 09 e 15): scansione, annullo, liste, statistiche,
 // ricerca manuale, modalità offline, azioni dei moduli e flag dello scanner nuovo.
 export { scan, revertCheckin, ScanInput, RevertCheckinInput, loadSessionGraph, type ScanResult, type ScannedTicket, type ScanOptions } from './scan';
+export { previewOrder, checkinGroup, GroupCheckinInput, type OrderPreview, type OrderTicket, type OrderTicketState, type GroupCheckinResult } from './group';
 export { listCheckinLists, saveCheckinList, deleteCheckinList, checkinListOptions, CheckinListInput, type CheckinListRow } from './lists';
 export { listCounters, checkinStats, type Counter, type CheckinStats } from './stats';
 export { searchTickets, SearchInput, type SearchOrder } from './search';

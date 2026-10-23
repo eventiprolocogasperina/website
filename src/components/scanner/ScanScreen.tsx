@@ -5,6 +5,7 @@ import { Camera, CameraOff, ListChecks, LogOut, Search, Volume2, VolumeX, WifiOf
 import { useState } from 'react';
 import { Button, cn, focusRing, IconButton, Input } from '@/components/ui';
 import { unlockAudio } from './feedback';
+import { OrderConfirm } from './OrderConfirm';
 import { ResultOverlay } from './ResultOverlay';
 import { SearchSheet } from './SearchSheet';
 import { UndoBar } from './UndoBar';
@@ -133,7 +134,7 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
           </p>
         )}
 
-        {s.undo && perms.revert && <UndoBar until={s.undo.until} onUndo={s.revertLast} />}
+        {s.undo && perms.revert && <UndoBar until={s.undo.until} count={s.undo.kind === 'online' ? s.undo.checkinIds.length : s.undo.clientIds.length} onUndo={s.revertLast} />}
 
         <form
           className="mx-auto flex w-full max-w-md gap-2"
@@ -154,13 +155,26 @@ export function ScanScreen({ setup, choice, who, deviceName, onChange, logout }:
         )}
       </main>
 
-      {s.outcome && (
+      {s.outcome?.data.result === 'order' ? (
+        <OrderConfirm
+          // Un ordine nuovo (o lo stesso riletto dopo un incasso) riparte con le spunte di default.
+          key={s.outcome.source === 'online' ? `${s.outcome.data.ticket.id}-${s.outcome.data.tickets.map((t) => t.state).join()}` : s.outcome.data.tickets.map((t) => t.hash).join()}
+          order={
+            s.outcome.source === 'online'
+              ? { source: 'online', code: s.outcome.data.ticket.orderCode, holderName: s.outcome.data.ticket.holderName, scannedId: s.outcome.data.ticket.id, tickets: s.outcome.data.tickets }
+              : { source: 'offline', tickets: s.outcome.data.tickets }
+          }
+          busy={s.busy}
+          onConfirm={s.confirmGroup}
+          onClose={s.dismiss}
+        />
+      ) : s.outcome && (
         <ResultOverlay outcome={s.outcome} actions={setup.actions}
           canSell={perms.sell}
           onAction={s.runAction}
           onPaid={s.setAnswer}
           onClose={s.dismiss}
-          undo={perms.revert ? s.undo : null}
+          undo={perms.revert && s.undo ? { until: s.undo.until, count: s.undo.kind === 'online' ? s.undo.checkinIds.length : s.undo.clientIds.length } : null}
           onUndo={s.revertLast}
           onRevert={perms.revert ? (id) => s.revertLater(id, 'esito') : null}
           collect={perms.collect ? { listId: choice.listId, sessionId: s.effectiveSession, onCollected: s.collected } : null}

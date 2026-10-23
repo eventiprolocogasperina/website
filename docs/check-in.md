@@ -17,10 +17,14 @@ Prompt 15. Architettura: §5.2 (nucleo `checkins`/`checkin_lists`), §7 (moduli 
 Dispositivo abbinato → PIN del volontario → scelta di edizione/lista/data → fotocamera.
 Un admin con sessione può aprire lo scanner senza dispositivo (`/scanner/nuovo?edizione=...`).
 
+**Ingresso di gruppo.** Un QR qualsiasi dell'ordine (di solito quello al centro dell'email, che è il primo biglietto) **non fa entrare subito**: si apre "Conferma ingresso" con nome, codice ordine e tutti i biglietti dell'ordine (prodotto e data, es. "Intero", "You-Pick Lab"). Quelli che possono entrare in questa lista e data sono spuntati; già entrati (con l'ora), annullati, di un'altra data o di un'altra lista sono grigi con il motivo. L'operatore toglie la spunta a chi non c'è e tocca **"Fai entrare N"**: un passaggio per biglietto in una sola transazione (`checkinGroup`, `POST /api/scanner/group`), ciascuno con la sua voce `ticket.checked_in` (con `group: N`). Chi nel frattempo è entrato da un altro telefono resta fuori e l'esito lo dice ("Non entrato: …"). Se nessun biglietto dell'ordine può entrare, l'esito è quello del QR letto come prima (già entrato, altra data, annullato…); blacklist, "Da pagare" e QR sconosciuto valgono per tutto l'ordine. La lettura (`previewOrder`, `POST /api/scanner/order`) non registra niente. Dalla ricerca manuale "Fai entrare" su un biglietto resta immediato. "Paga in loco": prima l'incasso, poi la conferma di gruppo. "Annulla ultimo" dopo "Fai entrare N" annulla tutti gli N (un `revertCheckin` per biglietto); dopo i 30 secondi l'annullo resta per biglietto, dalla ricerca o da "Già entrato".
+
 Esito a schermo intero, con vibrazione (non su iOS: Safari non la supporta) e suono:
 
 | Esito | Colore | Testo |
 |---|---|---|
+| `order` | success | CONFERMA INGRESSO (elenco da spuntare, "Fai entrare N") |
+| `entered` | success | VALIDO / ENTRANO IN N (con chi è rimasto fuori); NESSUNO ENTRATO in giallo |
 | `valid` | success | VALIDO |
 | `already_used` | giallo (`scan-yellow`) | GIÀ ENTRATO alle HH:MM (con il nome del dispositivo) |
 | `wrong_session` | giallo (`scan-yellow`) | ALTRA DATA: Dom 25 ott |
@@ -66,6 +70,7 @@ L'ingresso valido costa una transazione WebSocket (un `Pool` per chiamata, §16)
 
 - `/api/scanner/offline?lista=` restituisce gli hash SHA-256 troncati a 32 caratteri dei QR validi per la lista, con la data e un flag "già entrato". Niente nomi, email, telefoni, codici ordine.
 - Lo scanner lo scarica ogni 5 minuti e lo tiene in `localStorage`. Senza rete controlla l'hash del QR (WebCrypto) e mette il passaggio in coda con un `client_id`.
+- Ingresso di gruppo offline: ogni voce dell'elenco porta anche un numero d'ordine valido solo nell'elenco (non il codice), l'indice del prodotto (`products`) e l'ID del biglietto. Il QR apre così i biglietti dello stesso ordine; "Fai entrare N" mette in coda un passaggio per biglietto (per `ticketId`, con il suo `client_id`). Se la rete cade proprio alla conferma online, gli stessi `client_id` vanno in coda: nessun doppione. Con un elenco scaricato prima di questa versione (solo 3 valori per voce) lo scanner fa entrare un biglietto alla volta, come prima.
 - La coda si sincronizza ogni 15 secondi con `/api/scanner/sync`: rimandare lo stesso `client_id` non crea un secondo passaggio. I conflitti (es. biglietto entrato da un altro telefono nel frattempo) sono mostrati in un banner.
 - L'orario del passaggio offline è quello del telefono, accettato se entro 24 ore nel passato e 5 minuti nel futuro.
 - Limite: non c'è un service worker, quindi la pagina va aperta con la rete; una volta aperta funziona senza.

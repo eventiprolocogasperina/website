@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { deviceCtx, type Ctx } from '@/server/auth/context-shared';
 import type { Permission } from '@/server/auth/permissions';
 import { auditLog, cashSales, checkins, devices, ordersV2, payments, ticketsV2 } from '@/server/db/schema';
-import { collectAtGate, scan, scannerSetup } from '@/server/domain/checkin';
+import { checkinGroup, collectAtGate, scan, scannerSetup } from '@/server/domain/checkin';
 import { DomainError } from '@/server/domain/errors';
 import { confirmDraftOrder, createDraftOrder } from '@/server/domain/orders/drafts';
 import { buyer, createEdition, key, owner, type Fixture } from '@/test/fixtures';
@@ -81,7 +81,7 @@ describe.skipIf(!enabled)('paga in loco: incasso in cassa e al varco', () => {
     expect(await getDb().select().from(payments).where(eq(payments.orderId, o.id))).toHaveLength(0);
   });
 
-  it('varco con il permesso: incassa sul turno aperto, l’ordine è pagato e il biglietto entra; il reinvio non incassa due volte', async () => {
+  it('varco con il permesso: incassa sul turno aperto, l’ordine è pagato e si apre per la conferma di gruppo; il reinvio non incassa due volte', async () => {
     const o = await onSiteOrder();
     const gate = await device('scanner', ['checkin.scan', 'checkin.collect_payment']);
     expect((await scannerSetup(gate, f.slug)).permissions.collect).toBe(true);
@@ -94,7 +94,10 @@ describe.skipIf(!enabled)('paga in loco: incasso in cassa e al varco', () => {
     const idempotencyKey = key();
     const r = await atGate(gate, o.ticketId, { idempotencyKey, method: 'card_pos' });
     expect(r.collected).toMatchObject({ amountCents: 1000, method: 'card_pos', register: 'Cassa ingresso', duplicate: false });
-    expect(r.scan.result).toBe('valid');
+    // Dopo l'incasso nessuno entra ancora: l'ordine si apre con i due biglietti da confermare.
+    if (r.scan.result !== 'order') throw new Error(r.scan.result);
+    expect(r.scan.tickets.map((t) => t.state)).toEqual(['ready', 'ready']);
+    expect(await getDb().select().from(checkins).where(eq(checkins.ticketId, o.ticketId))).toHaveLength(0);
     const [order] = await getDb().select().from(ordersV2).where(eq(ordersV2.id, o.id));
     expect(order.status).toBe('paid');
     const pays = await getDb().select().from(payments).where(eq(payments.orderId, o.id));
@@ -102,10 +105,13 @@ describe.skipIf(!enabled)('paga in loco: incasso in cassa e al varco', () => {
     const actions = (await getDb().select({ a: auditLog.action }).from(auditLog).where(eq(auditLog.entityId, o.id))).map((x) => x.a);
     expect(actions).toEqual(expect.arrayContaining(['payment.recorded', 'order.collected_on_site']));
 
-    // Stesso tocco reinviato: nessun secondo pagamento, il biglietto risulta già entrato.
+    // Stesso tocco reinviato: nessun secondo pagamento, torna l'ordine da confermare.
     const again = await atGate(gate, o.ticketId, { idempotencyKey, method: 'card_pos' });
     expect(again.collected).toBeNull();
-    expect(again.scan.result).toBe('already_used');
+    expect(again.scan.result).toBe('order');
+    const entered = await checkinGroup(gate, { checkinListId: f.entrance.id, sessionId: f.day2.id, items: r.scan.tickets.map((t) => ({ ticketId: t.id })) });
+    expect(entered.entered).toHaveLength(2);
+    expect((await atGate(gate, o.ticketId, { idempotencyKey, method: 'card_pos' })).scan.result).toBe('already_used');
     expect(await errorOf(collectPayOnSite(gate, { orderId: o.id, method: 'cash', idempotencyKey: key(), expectedDueCents: 1000 }, { via: 'varco' }))).toBe('CONFLICT');
     expect(await getDb().select().from(payments).where(eq(payments.orderId, o.id))).toHaveLength(1);
   });

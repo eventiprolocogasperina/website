@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, api, NetworkError, qs } from './api';
 import { signal } from './feedback';
-import { checkOffline, newClientId, offlineCounter, qrHashBrowser, store } from './offline';
+import { checkOfflineOrder, fullEntry, newClientId, offlineCounter, qrHashBrowser, store, type QueuedCheckin } from './offline';
 import { present } from './present';
 import type { CollectResponse, Counter, OnlineScan, Outcome, ScannerSetup } from './types';
 import { useOffline, useOnline } from './useOffline';
@@ -11,11 +11,12 @@ import { useOffline, useOnline } from './useOffline';
 export const UNDO_MS = 30_000;
 const SAME_CODE_MS = 2500;
 
-type Undo = { kind: 'online'; checkinId: string; until: number } | { kind: 'offline'; clientId: string; until: number };
+/** "Annulla ultimo": l'ultimo ingresso, o tutti quelli dell'ultimo "Fai entrare N". */
+type Undo = { kind: 'online'; checkinIds: string[]; until: number } | { kind: 'offline'; clientIds: string[]; until: number };
 
 /**
- * Stato dello scanner: lettura (online, o offline dall'elenco scaricato), esito, contatori,
- * "Annulla ultimo" per 30 secondi e pulsanti dei moduli.
+ * Stato dello scanner: lettura (online, o offline dall'elenco scaricato), conferma dell'ordine
+ * ("Fai entrare N"), esito, contatori, "Annulla ultimo" per 30 secondi e pulsanti dei moduli.
  */
 export function useScanner(setup: ScannerSetup, listId: string, sessionId: string | null, muted: boolean) {
   const online = useOnline();
@@ -54,11 +55,12 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
   const scanOffline = useCallback(
     async (code: string) => {
       const hash = await qrHashBrowser(code);
-      const r = checkOffline(offline.manifest, hash, effectiveSession, store.used(listId));
+      const r = checkOfflineOrder(offline.manifest, hash, effectiveSession, store.used(listId));
+      // Elenco vecchio, senza gli ordini: entra subito il biglietto letto, come prima.
       if (r.result === 'valid' && hash) {
         const clientId = newClientId();
         offline.enqueue({ clientId, qrToken: code, checkinListId: listId, sessionId: effectiveSession, at: new Date().toISOString(), hash });
-        setUndo({ kind: 'offline', clientId, until: Date.now() + UNDO_MS });
+        setUndo({ kind: 'offline', clientIds: [clientId], until: Date.now() + UNDO_MS });
         show({ source: 'offline', data: { ...r, clientId } });
       } else show({ source: 'offline', data: r });
       void refreshCounter();
@@ -72,8 +74,9 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
       setError(null);
       try {
         if (!online && input.qrToken) return await scanOffline(input.qrToken);
-        const data = await api<OnlineScan>('scan', { method: 'POST', body: { ...input, checkinListId: listId, sessionId: effectiveSession, questionKeys } });
-        if (data.result === 'valid') setUndo({ kind: 'online', checkinId: data.checkinId, until: Date.now() + UNDO_MS });
+        // Un QR apre l'ordine da confermare; dalla ricerca ("Fai entrare" su un biglietto) entra subito.
+        const data = await api<OnlineScan>(input.qrToken ? 'order' : 'scan', { method: 'POST', body: { ...input, checkinListId: listId, sessionId: effectiveSession, questionKeys } });
+        if (data.result === 'valid') setUndo({ kind: 'online', checkinIds: [data.checkinId], until: Date.now() + UNDO_MS });
         show({ source: 'online', data });
         void refreshCounter();
       } catch (e) {
@@ -104,8 +107,21 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     if (!undo || Date.now() > undo.until) return setUndo(null);
     try {
       if (undo.kind === 'offline') {
-        if (!offline.dequeue(undo.clientId)) throw new ApiError('Il passaggio è già stato sincronizzato: annullalo quando torna la rete.', 409);
-      } else await api('revert', { method: 'POST', body: { checkinId: undo.checkinId } });
+        if (!offline.dequeue(undo.clientIds)) throw new ApiError('Il passaggio è già stato sincronizzato: annullalo quando torna la rete.', 409);
+      } else {
+        // Un annullo per biglietto, come sempre (audit per ciascuno). Chi è già stato annullato si salta.
+        const left = [...undo.checkinIds];
+        try {
+          while (left.length) {
+            await api('revert', { method: 'POST', body: { checkinId: left[0] } }).catch((e) => {
+              if (!(e instanceof ApiError && e.status === 409)) throw e;
+            });
+            left.shift();
+          }
+        } finally {
+          if (left.length) setUndo({ ...undo, checkinIds: left });
+        }
+      }
       setUndo(null);
       setOutcome(null);
       setError(null);
@@ -121,7 +137,11 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
   const revertLater = useCallback(
     async (checkinId: string, from: 'ricerca' | 'esito') => {
       await api('revert', { method: 'POST', body: { checkinId, from } });
-      setUndo((u) => (u?.kind === 'online' && u.checkinId === checkinId ? null : u));
+      setUndo((u) => {
+        if (u?.kind !== 'online' || !u.checkinIds.includes(checkinId)) return u;
+        const rest = u.checkinIds.filter((id) => id !== checkinId);
+        return rest.length ? { ...u, checkinIds: rest } : null;
+      });
       if (from === 'esito') setOutcome(null);
       void refreshCounter();
     },
@@ -143,14 +163,58 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     setOutcome((o) => (o?.source === 'online' ? { ...o, data: { ...o.data, answers: { ...o.data.answers, [questionKey]: after } } } : o));
   }, []);
 
-  /** Dopo l'incasso al varco di un ordine "Paga in loco": l'esito diventa quello del check-in. */
+  /** Dopo l'incasso al varco di un ordine "Paga in loco": si apre l'ordine da confermare. */
   const collected = useCallback(
     (r: CollectResponse) => {
-      if (r.scan.result === 'valid') setUndo({ kind: 'online', checkinId: r.scan.checkinId, until: Date.now() + UNDO_MS });
       show({ source: 'online', data: r.scan });
       void refreshCounter();
     },
     [show, refreshCounter],
+  );
+
+  /** Passaggi in coda per i biglietti scelti: offline, oppure online quando la rete cade alla conferma. */
+  const queueGroup = useCallback(
+    (items: Array<{ ticketId: string; clientId: string; hash?: string; productName: string }>) => {
+      const at = new Date().toISOString();
+      const byTicket = new Map((offline.manifest?.entries ?? []).filter(fullEntry).map((e) => [e[5], e[0]] as const));
+      const queued: QueuedCheckin[] = items.map((i) => ({ clientId: i.clientId, ticketId: i.ticketId, checkinListId: listId, sessionId: effectiveSession, at, hash: i.hash ?? byTicket.get(i.ticketId) ?? '' }));
+      offline.enqueue(...queued);
+      setUndo({ kind: 'offline', clientIds: queued.map((q) => q.clientId), until: Date.now() + UNDO_MS });
+      show({ source: 'offline', data: { result: 'entered', count: items.length, products: items.map((i) => i.productName) } });
+      void refreshCounter();
+    },
+    [offline, listId, effectiveSession, show, refreshCounter],
+  );
+
+  /**
+   * "Fai entrare N" sull'ordine aperto: un passaggio per biglietto scelto, tutti insieme. Online in
+   * una sola transazione; senza rete (o se la rete cade adesso) in coda, un passaggio per biglietto,
+   * con lo stesso clientId: se la richiesta era arrivata, la sincronizzazione non crea doppioni.
+   */
+  const confirmGroup = useCallback(
+    async (ticketIds: string[]) => {
+      if (outcome?.data.result !== 'order' || !ticketIds.length) return;
+      setError(null);
+      if (outcome.source === 'offline') {
+        const chosen = outcome.data.tickets.filter((t) => ticketIds.includes(t.ticketId));
+        return queueGroup(chosen.map((t) => ({ ticketId: t.ticketId, clientId: newClientId(), hash: t.hash, productName: t.productName })));
+      }
+      const tickets = outcome.data.tickets.filter((t) => ticketIds.includes(t.id));
+      const items = tickets.map((t) => ({ ticketId: t.id, clientId: newClientId(), productName: t.productName }));
+      setBusy(true);
+      try {
+        const data = await api<OnlineScan>('group', { method: 'POST', body: { checkinListId: listId, sessionId: effectiveSession, items: items.map(({ ticketId, clientId }) => ({ ticketId, clientId })), questionKeys }, timeoutMs: 8000 });
+        if (data.result === 'entered' && data.entered.length) setUndo({ kind: 'online', checkinIds: data.entered.map((e) => e.checkinId), until: Date.now() + UNDO_MS });
+        show({ source: 'online', data });
+        void refreshCounter();
+      } catch (e) {
+        if (e instanceof NetworkError) return queueGroup(items);
+        throw e;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [outcome, listId, effectiveSession, questionKeys, queueGroup, show, refreshCounter],
   );
 
   useEffect(() => {
@@ -169,5 +233,5 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     return () => window.clearTimeout(id);
   }, [undo]);
 
-  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, revertLater, runAction, setAnswer, collected, effectiveSession, submit, onCode, busy, error, clearError: () => setError(null) };
+  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, revertLater, runAction, setAnswer, collected, confirmGroup, effectiveSession, submit, onCode, busy, error, clearError: () => setError(null) };
 }
