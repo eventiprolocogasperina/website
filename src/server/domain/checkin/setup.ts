@@ -19,7 +19,7 @@ export type ScannerSetup = {
   /** `paid`: prodotto e prezzo del catalogo se il pulsante incassa (si riconfermano nel popup). */
   actions: Array<{ key: string; label: string; questionKey: string; paid: { name: string; priceCents: number } | null }>;
   /** Cosa può fare chi usa lo scanner: l'interfaccia nasconde il resto, il server lo rifiuta comunque. */
-  permissions: { revert: boolean; search: boolean; stats: boolean; sell: boolean };
+  permissions: { revert: boolean; search: boolean; stats: boolean; sell: boolean; /** Incassare al varco gli ordini Paga in loco. */ collect: boolean };
 };
 
 export async function scannerSetup(ctx: Ctx, editionSlug: string, now = new Date()): Promise<ScannerSetup> {
@@ -47,6 +47,7 @@ export async function scannerSetup(ctx: Ctx, editionSlug: string, now = new Date
       search: can(ctx, 'checkin.search', { edition: editionSlug }),
       stats: can(ctx, 'checkin.stats', { edition: editionSlug }),
       sell: can(ctx, 'pos.sell', { edition: editionSlug }),
+      collect: can(ctx, 'checkin.collect_payment', { edition: editionSlug }),
     },
   };
 }

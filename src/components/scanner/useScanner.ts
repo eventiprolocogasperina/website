@@ -5,7 +5,7 @@ import { ApiError, api, NetworkError, qs } from './api';
 import { signal } from './feedback';
 import { checkOffline, newClientId, offlineCounter, qrHashBrowser, store } from './offline';
 import { present } from './present';
-import type { Counter, OnlineScan, Outcome, ScannerSetup } from './types';
+import type { CollectResponse, Counter, OnlineScan, Outcome, ScannerSetup } from './types';
 import { useOffline, useOnline } from './useOffline';
 
 export const UNDO_MS = 30_000;
@@ -143,6 +143,16 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     setOutcome((o) => (o?.source === 'online' ? { ...o, data: { ...o.data, answers: { ...o.data.answers, [questionKey]: after } } } : o));
   }, []);
 
+  /** Dopo l'incasso al varco di un ordine "Paga in loco": l'esito diventa quello del check-in. */
+  const collected = useCallback(
+    (r: CollectResponse) => {
+      if (r.scan.result === 'valid') setUndo({ kind: 'online', checkinId: r.scan.checkinId, until: Date.now() + UNDO_MS });
+      show({ source: 'online', data: r.scan });
+      void refreshCounter();
+    },
+    [show, refreshCounter],
+  );
+
   useEffect(() => {
     const first = window.setTimeout(refreshCounter, 0);
     const id = window.setInterval(refreshCounter, 15_000);
@@ -159,5 +169,5 @@ export function useScanner(setup: ScannerSetup, listId: string, sessionId: strin
     return () => window.clearTimeout(id);
   }, [undo]);
 
-  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, revertLater, runAction, setAnswer, submit, onCode, busy, error, clearError: () => setError(null) };
+  return { online, offline, outcome, dismiss: () => setOutcome(null), counter, undo, revertLast, revertLater, runAction, setAnswer, collected, effectiveSession, submit, onCode, busy, error, clearError: () => setError(null) };
 }

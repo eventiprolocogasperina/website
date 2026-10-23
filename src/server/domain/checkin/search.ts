@@ -20,6 +20,8 @@ export type SearchOrder = {
   holderName: string | null;
   /** false se l'ordine non è pagato, è annullato o è in blacklist: i biglietti non entrano. */
   admitted: boolean;
+  /** Ordine "Paga in loco" non ancora pagato: si apre l'esito "Da pagare" (incasso al varco o in cassa). */
+  toPay: boolean;
   /** `checkinId`: il passaggio attivo in questa lista, per annullare l'entrata anche dopo. */
   tickets: Array<{ id: string; productName: string; sessionLabel: string | null; validOn: string | null; inList: boolean; enteredAt: string | null; checkinId: string | null }>;
 };
@@ -60,7 +62,7 @@ export async function searchTickets(ctx: Ctx, input: z.input<typeof SearchInput>
 
   const [orders, tickets, graph] = await Promise.all([
     db
-      .select({ id: ordersV2.id, code: ordersV2.code, status: ordersV2.status, blacklisted: ordersV2.isBlacklisted, name: customers.name })
+      .select({ id: ordersV2.id, code: ordersV2.code, status: ordersV2.status, payOnSite: ordersV2.payOnSite, blacklisted: ordersV2.isBlacklisted, name: customers.name })
       .from(ordersV2)
       .leftJoin(customers, eq(customers.id, ordersV2.customerId))
       .where(inArray(ordersV2.id, ids)),
@@ -88,6 +90,7 @@ export async function searchTickets(ctx: Ctx, input: z.input<typeof SearchInput>
       code: o.code,
       holderName: o.name,
       admitted: ADMITTING_STATUSES.includes(o.status as OrderStatus) && !o.blacklisted,
+      toPay: o.status === 'pending' && o.payOnSite && !o.blacklisted,
       tickets: tickets
         .filter((t) => t.t.orderId === o.id)
         .map((t) => {

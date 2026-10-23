@@ -36,6 +36,7 @@ const TABLE: Record<Permission, string> = {
   'checkin.revert': '✔✔✔--✔',
   'checkin.search': '✔✔✔--✔',
   'checkin.stats': '✔✔✔--✔',
+  'checkin.collect_payment': '✔✔✔---',
   'reports.export': '✔✔✔---',
   'costs.read': '✔✔✔---',
   'costs.write': '✔✔✔---',

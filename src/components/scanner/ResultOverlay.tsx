@@ -1,14 +1,15 @@
 'use client';
 
-import { CheckCircle2, Clock3, Plus, Undo2, XOctagon } from 'lucide-react';
+import { Banknote, CheckCircle2, Clock3, Plus, Undo2, XOctagon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn, focusRing } from '@/components/ui';
 import { formatMoney } from '@/lib/money';
+import { CollectDialog } from './CollectDialog';
 import { PayActionDialog } from './PayActionDialog';
 import { present, type Tone } from './present';
 import { RevertCheckinDialog, type RevertTarget } from './RevertCheckinDialog';
 import { UndoBar } from './UndoBar';
-import type { Outcome, ScannerSetup } from './types';
+import type { CollectResponse, Outcome, ScannerSetup } from './types';
 
 const TONE: Record<Tone, string> = {
   success: 'bg-success text-bg',
@@ -33,13 +34,17 @@ type Props = {
   onUndo: () => Promise<boolean | undefined | void>;
   /** "Già entrato": annulla quell'ingresso (con conferma), anche se è passato più di mezzo minuto. */
   onRevert: ((checkinId: string) => Promise<unknown>) | null;
+  /** "Da pagare" (Paga in loco): incasso al varco, solo con checkin.collect_payment. Null: si paga in cassa. */
+  collect: { listId: string; sessionId: string | null; onCollected: (r: CollectResponse) => void } | null;
 };
 
 /** Esito a tutto schermo (§12.3) con i pulsanti dei moduli sotto, es. "+1 Bambino". */
-export function ResultOverlay({ outcome, actions: allActions, canSell = true, onAction, onPaid, onClose, undo, onUndo, onRevert }: Props) {
+export function ResultOverlay({ outcome, actions: allActions, canSell = true, onAction, onPaid, onClose, undo, onUndo, onRevert, collect }: Props) {
   const actions = canSell ? allActions : allActions.filter((a) => !a.paid);
-  const p = present(outcome);
-  const Icon = ICON[p.tone];
+  const p = present(outcome, { canCollect: !!collect });
+  const toPay = outcome.source === 'online' && outcome.data.result === 'to_pay' ? outcome.data : null;
+  const Icon = toPay ? Banknote : ICON[p.tone];
+  const [collecting, setCollecting] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -113,6 +118,26 @@ export function ResultOverlay({ outcome, actions: allActions, canSell = true, on
         )}
         {paying && outcome.source === 'online' && 'ticket' in outcome.data && (
           <PayActionDialog orderId={outcome.data.ticket.orderId} action={paying} onClose={() => setPaying(null)} onPaid={(r) => onPaid(r.questionKey, r.after)} />
+        )}
+        {toPay && collect && (
+          <button
+            type="button"
+            onClick={() => setCollecting(true)}
+            className={cn('flex min-h-16 items-center justify-center gap-2 rounded-xl bg-bg/95 px-4 text-title font-semibold text-fg', focusRing)}
+          >
+            <Banknote size={22} aria-hidden /> Incassa {formatMoney(toPay.dueCents)}
+          </button>
+        )}
+        {toPay && collect && collecting && (
+          <CollectDialog
+            orderId={toPay.ticket.orderId}
+            ticketId={toPay.ticket.id}
+            listId={collect.listId}
+            sessionId={collect.sessionId}
+            questionKeys={allActions.map((a) => a.questionKey)}
+            onClose={() => setCollecting(false)}
+            onCollected={(r) => (setCollecting(false), collect.onCollected(r))}
+          />
         )}
         {p.tone === 'success' && undo && <UndoBar until={undo.until} onUndo={onUndo} />}
         {used && (

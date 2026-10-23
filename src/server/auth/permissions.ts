@@ -33,6 +33,7 @@ export const PERMISSIONS = [
   'checkin.revert',
   'checkin.search',
   'checkin.stats',
+  'checkin.collect_payment',
   'reports.export',
   'costs.read',
   'costs.write',
@@ -75,6 +76,8 @@ export const MATRIX: Record<Permission, readonly UserRole[]> = {
   'checkin.revert': ['owner', 'admin', 'event_manager', 'gate'],
   'checkin.search': ['owner', 'admin', 'event_manager', 'gate'],
   'checkin.stats': ['owner', 'admin', 'event_manager', 'gate'],
+  // Incassare al varco un ordine "Paga in loco": non è del ruolo varco, si concede al dispositivo.
+  'checkin.collect_payment': ['owner', 'admin', 'event_manager'],
   'reports.export': ['owner', 'admin', 'event_manager'],
   // Costi: un event_manager assegnato a un'edizione vede e scrive solo i costi di quella; i costi
   // generali (senza edizione) chiedono il permesso a livello di associazione.

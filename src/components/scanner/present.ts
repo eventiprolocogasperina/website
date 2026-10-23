@@ -1,5 +1,6 @@
 // Come si mostra un esito dello scanner (§12.3): colore, titolo grande e righe sotto. Senza React,
 // così si prova con i test unitari.
+import { formatMoney } from '@/lib/money';
 import type { Outcome } from './types';
 
 export type Tone = 'success' | 'warning' | 'danger';
@@ -7,7 +8,8 @@ export type Presented = { tone: Tone; title: string; lines: string[] };
 
 const time = (iso: string) => new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }).format(new Date(iso));
 
-export function present(outcome: Outcome): Presented {
+/** `canCollect`: chi usa lo scanner può incassare gli ordini "Paga in loco" (checkin.collect_payment). */
+export function present(outcome: Outcome, opts: { canCollect?: boolean } = {}): Presented {
   if (outcome.source === 'offline') {
     const r = outcome.data;
     switch (r.result) {
@@ -42,5 +44,11 @@ export function present(outcome: Outcome): Presented {
       return { tone: 'danger', title: 'BLOCCATO', lines: ['Ordine in blacklist: ingresso non consentito. Chiama un responsabile.', `Ordine ${t.orderCode}`] };
     case 'void':
       return { tone: 'danger', title: 'ANNULLATO', lines: ['Biglietto annullato, rimborsato o non pagato.', ...who] };
+    case 'to_pay':
+      return {
+        tone: 'warning',
+        title: `DA PAGARE: ${formatMoney(r.dueCents)}`,
+        lines: [...who, opts.canCollect ? 'Paga in loco: incassa qui sotto, poi entra.' : 'Da pagare in cassa: entra solo dopo aver pagato.'],
+      };
   }
 }
