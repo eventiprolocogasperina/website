@@ -79,6 +79,16 @@ describe.skipIf(!enabled)('migrazione degli ordini esistenti', () => {
     expect(rows).toEqual([{ legacy_id: 'rr_order', amount_cents: 500 }, { legacy_id: 'rr_ticket', amount_cents: 500 }]);
   });
 
+  it('con pendingOnSite un ordine in sospeso diventa "da pagare in loco", senza scadenza', async () => {
+    const g = await createEdition({ status: 'concluded' });
+    await db.query(`insert into legacy_id_map (legacy_kind, legacy_id, new_id) values ('legacy_event_id', 'in-loco-test', $1)`, [g.edition.id]);
+    await db.query(`insert into orders (id, "buyerName", "buyerEmail", "totalAmount", status, "createdAt") values ('ord_in_loco', 'C', 'c@example.com', 5, 'PENDING', now() - interval '2 days')`);
+    await db.query(`insert into tickets (id, "orderId", "eventId", type, price, "qrCodeData") values ('t_in_loco', 'ord_in_loco', 'in-loco-test', 'Ingresso', 5, 'QR-IN-LOCO')`);
+    await migrateOrders(db, { edition: g.slug, pendingOnSite: true });
+    const [o] = (await db.query(`select o.status, o.pay_on_site, o.expires_at from orders_v2 o join legacy_id_map m on m.new_id = o.id and m.legacy_kind = 'order' where m.legacy_id = 'ord_in_loco'`)).rows;
+    expect(o).toMatchObject({ status: 'pending', pay_on_site: true, expires_at: null });
+  });
+
   it('salta le edizioni non concluse, se non richiesto', async () => {
     const active = await createEdition();
     await db.query(`insert into legacy_id_map (legacy_kind, legacy_id, new_id) values ('legacy_event_id', 'attiva', $1)`, [active.edition.id]);

@@ -6,6 +6,7 @@
  *   npm run migrate:orders -- --edizione zuccaland-2026      # una sola edizione
  *   npm run migrate:orders -- --conferma                     # scrive davvero
  *   npm run migrate:orders -- --anche-in-vendita             # solo in locale: anche edizioni non concluse
+ *   npm run migrate:orders -- --in-sospeso-in-loco           # gli ordini PENDING diventano "da pagare in loco"
  *
  * Scrive il report di riconciliazione in docs/migrazione/<edizione>.md. Usa POSTGRES_URL da .env.local.
  * In produzione solo con il consenso di Niccolo, dopo aver letto il report della prova (§18.4).
@@ -20,6 +21,7 @@ config({ path: '.env.local', quiet: true });
 const args = process.argv.slice(2);
 const write = args.includes('--conferma');
 const includeActive = args.includes('--anche-in-vendita');
+const pendingOnSite = args.includes('--in-sospeso-in-loco');
 const editionArg = args.includes('--edizione') ? args[args.indexOf('--edizione') + 1] : null;
 
 const euro = (cents: number) => (cents / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
@@ -82,7 +84,7 @@ async function main() {
   console.log(`Database: ${new URL(url).host} · ${write ? 'SCRITTURA' : 'prova (nessuna modifica)'}${editionArg ? ` · edizione ${editionArg}` : ''}`);
   await db.query('begin');
   try {
-    const report = await migrateOrders(db, { edition: editionArg, includeActive });
+    const report = await migrateOrders(db, { edition: editionArg, includeActive, pendingOnSite });
     mkdirSync('docs/migrazione', { recursive: true });
     for (const slug of report.editions) {
       const recon = await reconciliation(db, slug);

@@ -18,6 +18,8 @@ export type MigrateOptions = {
   edition?: string | null;
   /** Migra anche le edizioni non concluse (solo per prove in locale). */
   includeActive?: boolean;
+  /** Gli ordini online in sospeso (PENDING, non cancellati) diventano "da pagare in loco", senza scadenza. */
+  pendingOnSite?: boolean;
   now?: Date;
 };
 
@@ -108,8 +110,8 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
     for (let i = 0; i < 5; i++) {
       const row = await one<{ id: string }>(
         `insert into orders_v2 (code, edition_id, customer_id, channel, status, session_id, subtotal_cents, discount_cents, total_cents,
-           access_token, legacy_notes, is_blacklisted, blacklist_reason, expires_at, paid_at, cancelled_at, deleted_at, created_at, updated_at)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $18)
+           access_token, legacy_notes, is_blacklisted, blacklist_reason, expires_at, paid_at, cancelled_at, deleted_at, created_at, updated_at, pay_on_site)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $18, $19)
          on conflict (code) do nothing returning id`,
         [
           newOrderCode(e.slug, e.year),
@@ -130,6 +132,7 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
           v.cancelledAt ?? null,
           v.deletedAt ?? null,
           v.createdAt ?? now,
+          v.payOnSite ?? false,
         ],
       );
       if (row) return row.id;
@@ -224,7 +227,8 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
     const paid = o.status === 'PAID';
     const createdAt = o.createdAt ? new Date(o.createdAt) : now;
     const expiresAt = new Date(createdAt.getTime() + 15 * 60_000);
-    const status = paid ? 'paid' : expiresAt > now ? 'pending' : 'expired';
+    const onSite = !paid && !!opts.pendingOnSite && o.status === 'PENDING' && !o.deletedAt;
+    const status = paid ? 'paid' : onSite || expiresAt > now ? 'pending' : 'expired';
     const groups = groupTickets(tickets);
     const lines = [];
     for (const g of groups) lines.push({ g, product: await ensureProduct(e, g.type, 'ticket', g.unitPriceCents, !!sessionId) });
@@ -249,7 +253,8 @@ export async function migrateOrders(db: Client, opts: MigrateOptions = {}): Prom
       notes: o.notes,
       blacklisted: !!o.isBlacklisted,
       blacklistReason: o.blacklistReason,
-      expiresAt: paid ? null : expiresAt,
+      expiresAt: paid || onSite ? null : expiresAt,
+      payOnSite: onSite,
       paidAt: paid ? (o.paidAt ?? o.createdAt) : null,
       deletedAt: o.deletedAt,
       createdAt,
