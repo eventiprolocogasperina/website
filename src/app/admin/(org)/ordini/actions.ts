@@ -8,6 +8,7 @@ import { cancelOrder, createOrder, moveSession, resendTickets, type CreateOrderI
 import { addOrderNote, markOrderPaid, moveSessionBulk, refundOrder, resendTicketsBulk, setOrderBlacklist, updateOrderCustomer, type RefundOrderInput } from '@/server/domain/orders/admin';
 import { revertCheckin } from '@/server/domain/checkin';
 import { deleteView, saveView } from '@/server/domain/views';
+import { confirmDraftOrder, createDraftOrder, updateDraftOrder, type ConfirmDraftInput, type UpdateDraftInput } from '@/server/domain/orders/drafts';
 import { createPaylinkFromOrder } from '@/modules/paylink/admin';
 import { createPaylinkOrder } from '@/modules/paylink/server';
 import { sendMessageToOrders } from '@/modules/broadcast/messages';
@@ -60,15 +61,33 @@ export async function bulkMessageAction(editionId: string, orderIds: string[], s
   return runAction(PATHS, (ctx) => sendMessageToOrders(ctx, { editionId, orderIds, subject, body }));
 }
 
-export type NewOrderInput = Omit<CreateOrderInput, 'channel' | 'expectedTotalCents' | 'answers'> & { channel: 'admin' | 'paylink' };
+export type NewOrderInput = Omit<CreateOrderInput, 'channel' | 'expectedTotalCents' | 'answers'> & { channel: 'admin' | 'paylink'; note?: string | null };
 
-/** "Nuovo ordine": canale admin (pagato subito o in attesa) o pay-link se il modulo è attivo. Prezzi dal server. */
+/**
+ * "Nuovo ordine": canale admin (pagato subito, omaggio o in attesa) o pay-link se il modulo è attivo.
+ * Prezzi dal server. La nota, se c'è, diventa una nota interna dell'ordine.
+ */
 export async function createOrderAction(input: NewOrderInput) {
   return runAction(PATHS, async (ctx) => {
-    const { channel, payNow, ...rest } = input;
+    const { channel, payNow, note, ...rest } = input;
     const res = channel === 'paylink' ? await createPaylinkOrder(ctx, rest) : await createOrder(ctx, { ...rest, channel: 'admin', payNow: payNow ?? null });
+    if (note?.trim() && res.created) await addOrderNote(ctx, { orderId: res.id, body: note });
     return { code: res.code, status: res.status };
   });
+}
+
+/** "Salva in bozza": l'ordine non tiene posti finché non si conferma. */
+export async function createDraftAction(input: Omit<NewOrderInput, 'channel' | 'payNow' | 'complimentaryReason' | 'cashSessionId'>) {
+  return runAction(PATHS, async (ctx) => {
+    const res = await createDraftOrder(ctx, { editionId: input.editionId, lines: input.lines, customer: input.customer, sessionId: input.sessionId, discountCode: input.discountCode, note: input.note, idempotencyKey: input.idempotencyKey });
+    return { code: res.code, status: res.status };
+  });
+}
+export async function updateDraftAction(input: z.input<typeof UpdateDraftInput>) {
+  return runAction(PATHS, (ctx) => updateDraftOrder(ctx, input));
+}
+export async function confirmDraftAction(input: z.input<typeof ConfirmDraftInput>) {
+  return runAction(PATHS, (ctx) => confirmDraftOrder(ctx, input));
 }
 
 export async function saveViewAction(name: string, query: string) {

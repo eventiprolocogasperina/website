@@ -32,7 +32,9 @@ export async function OrderDetailPage({ code, edition }: { code: string; edition
   }
   const base = edition ? `/admin/e/${edition}` : '/admin';
   const listHref = `${base}/ordini`;
-  const products = d.moduleActions.some((a) => a.key === 'paylink') ? (await orderEditionContext(ctx, d.edition.slug)).products.filter((p) => p.paylink) : [];
+  const isDraft = d.order.status === 'draft' && d.can.edit;
+  const context = isDraft || d.moduleActions.some((a) => a.key === 'paylink') ? await orderEditionContext(ctx, d.edition.slug) : null;
+  const products = context && d.moduleActions.some((a) => a.key === 'paylink') ? context.products.filter((p) => p.paylink) : [];
 
   return (
     <AdminPage>
@@ -46,7 +48,7 @@ export async function OrderDetailPage({ code, edition }: { code: string; edition
           </span>
         }
         subtitle={[formatDateTime(d.order.createdAt), d.edition.title, d.order.session?.label].filter(Boolean).join(' · ')}
-        primaryAction={<OrderActions d={d} paylinkProducts={products} />}
+        primaryAction={<OrderActions d={d} paylinkProducts={products} draftContext={isDraft ? context : null} />}
       />
       {d.order.isBlacklisted && (
         <Notice icon={Ban} tone="danger">{`In blacklist: ${d.order.blacklistReason ?? 'nessun motivo indicato'}.`}</Notice>

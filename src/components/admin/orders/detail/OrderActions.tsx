@@ -1,25 +1,29 @@
 'use client';
 
-import { Ban, Banknote, CalendarClock, FileDown, Link2, MoreHorizontal, Send, Undo2, UserPen, XCircle } from 'lucide-react';
+import { Ban, Banknote, CalendarClock, CheckCircle2, FileDown, Link2, MoreHorizontal, Send, Undo2, UserPen, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { resendTicketsAction } from '@/app/admin/(org)/ordini/actions';
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, IconButton, toast } from '@/components/ui';
+import type { OrderEditionContext } from '@/server/domain/orders/admin-context';
 import type { OrderDetail } from '@/server/domain/orders/admin-detail';
+import { NewOrderSheet } from '../NewOrderSheet';
+import { ConfirmDraftDialog } from './ConfirmDraftDialog';
 import { BlacklistDialog, CancelDialog, EditCustomerDialog, MarkPaidDialog, MoveSessionDialog, PaylinkDialog } from './OrderDialogs';
 import { RefundDialog } from './RefundDialog';
 
 // Azioni dell'ordine (§10.5): "Reinvia biglietti" in evidenza, il resto nel menu ⋯ con le azioni
 // dei moduli (punto di estensione orderActions). Ogni voce compare solo con il permesso.
 
-type Open = 'customer' | 'refund' | 'cancel' | 'blacklist' | 'paid' | 'move-session' | 'paylink' | null;
+type Open = 'customer' | 'refund' | 'cancel' | 'blacklist' | 'paid' | 'move-session' | 'paylink' | 'confirm' | null;
 
 /** Azioni di modulo con una finestra qui sotto: la chiave è quella dichiarata dal modulo in orderActions. */
 const MODULE_ACTION_ICONS: Record<string, typeof Send> = { 'move-session': CalendarClock, paylink: Link2 };
 
-export function OrderActions({ d, paylinkProducts }: { d: OrderDetail; paylinkProducts: Array<{ id: string; name: string; priceCents: number }> }) {
+export function OrderActions({ d, paylinkProducts, draftContext }: { d: OrderDetail; paylinkProducts: Array<{ id: string; name: string; priceCents: number }>; draftContext?: OrderEditionContext | null }) {
   const [open, setOpen] = useState<Open>(null);
   const [busy, setBusy] = useState(false);
   const status = d.order.status;
+  const isDraft = status === 'draft';
   const canResend = d.can.resend && (status === 'paid' || status === 'partially_refunded');
   const close = () => setOpen(null);
 
@@ -35,13 +39,31 @@ export function OrderActions({ d, paylinkProducts }: { d: OrderDetail; paylinkPr
     d.can.edit && { key: 'customer', label: 'Modifica cliente', icon: UserPen },
     d.can.markPaid && status === 'pending' && { key: 'paid', label: 'Segna come pagato', icon: Banknote },
     d.can.refund && d.summary.refundableCents > 0 && { key: 'refund', label: 'Rimborsa', icon: Undo2 },
-    d.can.cancel && (status === 'pending' || status === 'paid' || status === 'partially_refunded') && { key: 'cancel', label: 'Annulla ordine', icon: XCircle, danger: true },
+    d.can.cancel && (isDraft || status === 'pending' || status === 'paid' || status === 'partially_refunded') && { key: 'cancel', label: isDraft ? 'Annulla bozza' : 'Annulla ordine', icon: XCircle, danger: true },
     d.can.edit && { key: 'blacklist', label: d.order.isBlacklisted ? 'Togli dalla blacklist' : 'Metti in blacklist', icon: Ban, danger: !d.order.isBlacklisted },
   ].filter(Boolean) as Array<{ key: Exclude<Open, null>; label: string; icon: typeof Send; danger?: boolean }>;
-  const modules = d.moduleActions.filter((a) => a.key in MODULE_ACTION_ICONS);
+  // Le azioni dei moduli (pay-link, sposta data) valgono per ordini confermati, non per le bozze.
+  const modules = isDraft ? [] : d.moduleActions.filter((a) => a.key in MODULE_ACTION_ICONS);
 
   return (
     <>
+      {isDraft && d.can.edit && draftContext && (
+        <NewOrderSheet
+          context={draftContext}
+          draft={{
+            orderId: d.order.id,
+            lines: d.lines.map((l) => ({ productId: l.productId, quantity: l.quantity, sessionId: l.sessionId })),
+            sessionId: d.order.sessionId,
+            customer: d.customer ? { name: d.customer.name ?? '', email: d.customer.email, phone: d.customer.phone ?? '' } : null,
+            discountCode: d.order.discountCode,
+          }}
+        />
+      )}
+      {isDraft && d.can.edit && (
+        <Button icon={CheckCircle2} onClick={() => setOpen('confirm')}>
+          Conferma ordine
+        </Button>
+      )}
       {canResend && (
         <Button variant="secondary" icon={Send} loading={busy} onClick={resend}>
           Reinvia biglietti
@@ -82,6 +104,7 @@ export function OrderActions({ d, paylinkProducts }: { d: OrderDetail; paylinkPr
       {open === 'blacklist' && <BlacklistDialog d={d} onClose={close} />}
       {open === 'paid' && <MarkPaidDialog d={d} onClose={close} />}
       {open === 'move-session' && <MoveSessionDialog d={d} onClose={close} />}
+      {open === 'confirm' && <ConfirmDraftDialog d={d} canCash={d.can.markPaid} onClose={close} />}
       {open === 'paylink' && <PaylinkDialog d={d} products={paylinkProducts} onClose={close} />}
     </>
   );

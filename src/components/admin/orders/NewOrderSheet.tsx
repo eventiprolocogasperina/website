@@ -1,33 +1,50 @@
 'use client';
 
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Pencil, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { createOrderAction } from '@/app/admin/(org)/ordini/actions';
-import { Button, Field, IconButton, Input, RadioGroup, Select, Sheet, SheetContent, SheetTrigger, toast } from '@/components/ui';
+import { createDraftAction, createOrderAction, updateDraftAction } from '@/app/admin/(org)/ordini/actions';
+import { Button, Field, IconButton, Input, RadioGroup, Select, Sheet, SheetContent, SheetTrigger, Textarea, toast } from '@/components/ui';
 import { formatMoney } from '@/lib/money';
 import type { OrderEditionContext } from '@/server/domain/orders/admin-context';
 
-// "Nuovo ordine" (§11.1): canale admin (pagato subito o in attesa) oppure pay-link se il modulo è attivo.
+// "Nuovo ordine" (§11.1): canale admin (pagato subito, omaggio o in attesa), pay-link se il modulo è
+// attivo, oppure "Salva in bozza". Con `draft` la stessa finestra modifica una bozza esistente.
 // Il totale qui è solo una stima: prezzi, sconti e posti li calcola il server.
 
 const PAY_OPTIONS = [
   { value: 'cash', label: 'Contanti, incassati ora' },
   { value: 'card_pos', label: 'Carta al POS, incassata ora' },
   { value: 'bank_transfer', label: 'Bonifico ricevuto' },
+  { value: 'complimentary', label: 'Omaggio' },
   { value: 'none', label: 'Da pagare (resta in attesa)' },
 ];
 
-export function NewOrderSheet({ context, detailBase }: { context: OrderEditionContext; detailBase: string }) {
+export type DraftValues = {
+  orderId: string;
+  lines: Array<{ productId: string; quantity: number; sessionId: string | null }>;
+  sessionId: string | null;
+  customer: { name: string; email: string; phone: string } | null;
+  discountCode: string | null;
+};
+
+type Props = { context: OrderEditionContext; detailBase?: string; draft?: DraftValues };
+
+const qtyOf = (draft?: DraftValues) => Object.fromEntries((draft?.lines ?? []).map((l) => [l.productId, l.quantity]));
+
+export function NewOrderSheet({ context, detailBase = '', draft }: Props) {
   const router = useRouter();
+  const editing = !!draft;
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<'admin' | 'paylink'>('admin');
-  const [qty, setQty] = useState<Record<string, number>>({});
-  const [sessionId, setSessionId] = useState('');
-  const [customer, setCustomer] = useState({ name: '', email: '', phone: '' });
+  const [qty, setQty] = useState<Record<string, number>>(() => qtyOf(draft));
+  const [sessionId, setSessionId] = useState(draft?.sessionId ?? draft?.lines.find((l) => l.sessionId)?.sessionId ?? '');
+  const [customer, setCustomer] = useState(draft?.customer ?? { name: '', email: '', phone: '' });
   const [pay, setPay] = useState('cash');
-  const [discountCode, setDiscountCode] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+  const [discountCode, setDiscountCode] = useState(draft?.discountCode ?? '');
+  const [busy, setBusy] = useState<'order' | 'draft' | null>(null);
   const [key, setKey] = useState(() => crypto.randomUUID());
 
   const products = context.products.filter((p) => channel === 'admin' || p.paylink);
@@ -35,58 +52,89 @@ export function NewOrderSheet({ context, detailBase }: { context: OrderEditionCo
   const needsSession = lines.some((p) => p.requiresSession);
   const estimate = lines.reduce((s, p) => s + p.priceCents * qty[p.id], 0);
   const customerNeeded = channel === 'paylink';
-  const ready = lines.length > 0 && (!needsSession || sessionId) && (!customerNeeded || (customer.name.trim().length > 1 && customer.email.includes('@')));
+  const hasCustomer = customer.email.trim() !== '';
+  const base = lines.length > 0 && (!needsSession || sessionId) && (!hasCustomer || customer.email.includes('@'));
+  const ready = base && (!customerNeeded || (customer.name.trim().length > 1 && hasCustomer)) && (pay !== 'complimentary' || channel !== 'admin' || reason.trim().length >= 3);
 
   function reset() {
     setQty({});
     setCustomer({ name: '', email: '', phone: '' });
     setDiscountCode('');
+    setReason('');
+    setNote('');
     setKey(crypto.randomUUID());
   }
 
-  async function submit() {
-    setBusy(true);
-    const hasCustomer = customer.email.trim() !== '';
-    const res = await createOrderAction({
-      editionId: context.edition.id,
-      channel,
-      lines: lines.map((p) => ({ productId: p.id, quantity: qty[p.id], sessionId: p.requiresSession ? sessionId : null })),
-      sessionId: needsSession ? sessionId : null,
-      customer: hasCustomer ? { name: customer.name, email: customer.email, phone: customer.phone || null } : null,
-      discountCode: discountCode || null,
-      payNow: channel === 'admin' && pay !== 'none' ? (pay as 'cash' | 'card_pos' | 'bank_transfer') : null,
-      idempotencyKey: key,
-    });
-    setBusy(false);
+  const payload = () => ({
+    editionId: context.edition.id,
+    lines: lines.map((p) => ({ productId: p.id, quantity: qty[p.id], sessionId: p.requiresSession ? sessionId : null })),
+    sessionId: needsSession ? sessionId : null,
+    customer: hasCustomer ? { name: customer.name, email: customer.email, phone: customer.phone || null } : null,
+    discountCode: discountCode || null,
+    idempotencyKey: key,
+  });
+
+  async function submit(kind: 'order' | 'draft') {
+    setBusy(kind);
+    if (editing) {
+      const { lines: l, sessionId: s, customer: c, discountCode: dc } = payload();
+      const res = await updateDraftAction({ orderId: draft.orderId, lines: l, sessionId: s, customer: c, discountCode: dc });
+      setBusy(null);
+      if (!res.ok) return toast.error(res.error);
+      toast.success('Bozza aggiornata');
+      setOpen(false);
+      return router.refresh();
+    }
+    const res =
+      kind === 'draft'
+        ? await createDraftAction({ ...payload(), note: note || null })
+        : await createOrderAction({
+            ...payload(),
+            channel,
+            note: note || null,
+            payNow: channel === 'admin' && pay !== 'none' ? (pay as 'cash' | 'card_pos' | 'bank_transfer' | 'complimentary') : null,
+            complimentaryReason: channel === 'admin' && pay === 'complimentary' ? reason : null,
+          });
+    setBusy(null);
     if (!res.ok) return toast.error(res.error);
-    toast.success(channel === 'paylink' ? `Ordine ${res.data!.code} creato: manda il link al cliente` : `Ordine ${res.data!.code} creato`);
+    const code = res.data!.code;
+    toast.success(kind === 'draft' ? `Bozza ${code} salvata` : channel === 'paylink' ? `Ordine ${code} creato: manda il link al cliente` : `Ordine ${code} creato`);
     setOpen(false);
     reset();
-    router.push(`${detailBase}/${res.data!.code}`);
+    router.push(`${detailBase}/${code}`);
   }
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button icon={Plus}>Nuovo ordine</Button>
+        {editing ? <Button variant="secondary" icon={Pencil}>Modifica bozza</Button> : <Button icon={Plus}>Nuovo ordine</Button>}
       </SheetTrigger>
       <SheetContent
-        title="Nuovo ordine"
+        title={editing ? 'Modifica bozza' : 'Nuovo ordine'}
         description={context.edition.title}
         size="lg"
         footer={
-          <div className="flex w-full items-center justify-between gap-3">
+          <div className="flex w-full flex-wrap items-center justify-between gap-3">
             <span className="text-label text-muted">
               Totale stimato <strong className="text-fg tabular-nums">{formatMoney(estimate)}</strong>
             </span>
-            <Button loading={busy} disabled={!ready} onClick={submit}>
-              {channel === 'paylink' ? 'Crea link di pagamento' : 'Crea ordine'}
-            </Button>
+            <span className="flex gap-2">
+              {(editing || channel === 'admin') && (
+                <Button variant={editing ? 'primary' : 'secondary'} loading={busy === 'draft'} disabled={!base || busy !== null} onClick={() => submit('draft')}>
+                  {editing ? 'Salva bozza' : 'Salva in bozza'}
+                </Button>
+              )}
+              {!editing && (
+                <Button loading={busy === 'order'} disabled={!ready || busy !== null} onClick={() => submit('order')}>
+                  {channel === 'paylink' ? 'Crea link di pagamento' : 'Crea ordine'}
+                </Button>
+              )}
+            </span>
           </div>
         }
       >
         <div className="flex flex-col gap-5">
-          {context.can.paylink && (
+          {!editing && context.can.paylink && (
             <Field label="Canale">
               <RadioGroup
                 orientation="horizontal"
@@ -118,7 +166,7 @@ export function NewOrderSheet({ context, detailBase }: { context: OrderEditionCo
           </fieldset>
           {needsSession && (
             <Field label="Data" required>
-              <Select value={sessionId} onValueChange={setSessionId} options={context.sessions.filter((s) => s.status === 'open').map((s) => ({ value: s.id, label: s.label }))} />
+              <Select value={sessionId} onValueChange={setSessionId} options={context.sessions.filter((s) => s.status === 'open' || s.id === sessionId).map((s) => ({ value: s.id, label: s.label }))} />
             </Field>
           )}
           <fieldset className="grid gap-3 sm:grid-cols-2">
@@ -126,7 +174,7 @@ export function NewOrderSheet({ context, detailBase }: { context: OrderEditionCo
             <Field label="Nome e cognome" required={customerNeeded}>
               <Input value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} autoComplete="off" />
             </Field>
-            <Field label="Email" required={customerNeeded}>
+            <Field label="Email" required={customerNeeded} help={!editing && channel === 'admin' ? 'Serve per mandare il link di pagamento o i biglietti.' : undefined}>
               <Input type="email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} autoComplete="off" />
             </Field>
             <Field label="Telefono">
@@ -136,9 +184,19 @@ export function NewOrderSheet({ context, detailBase }: { context: OrderEditionCo
               <Input value={discountCode} onChange={(e) => setDiscountCode(e.target.value.toUpperCase())} />
             </Field>
           </fieldset>
-          {channel === 'admin' && (
-            <Field label="Pagamento">
+          {!editing && channel === 'admin' && (
+            <Field label="Pagamento" help="Vale per “Crea ordine”. Una bozza sceglie il pagamento quando la confermi.">
               <Select value={pay} onValueChange={setPay} options={PAY_OPTIONS} />
+            </Field>
+          )}
+          {!editing && channel === 'admin' && pay === 'complimentary' && (
+            <Field label="Motivo dell’omaggio" required>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} />
+            </Field>
+          )}
+          {!editing && (
+            <Field label="Note" help="Nota interna: la vedono solo gli operatori.">
+              <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={2000} />
             </Field>
           )}
         </div>
