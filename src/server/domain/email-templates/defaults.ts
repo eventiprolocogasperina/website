@@ -15,7 +15,7 @@ export const VARIABLES = {
   'edizione.titolo': { label: 'Titolo dell’edizione', example: 'Zuccaland 2026' },
   'edizione.luogo': { label: 'Luogo', example: 'Gasperina (CZ)' },
   'rinvio.nuova_data': { label: 'Nuova data dopo il rinvio', example: 'sabato 31 ottobre 2026, 15:00' },
-  'pagamento.link': { label: 'Link per pagare', example: 'https://prolocogasperina.it/paga/…' },
+  'pagamento.link': { label: 'Link per pagare', example: 'https://prolocogasperina.it/acquista/paga/…' },
   'rimborso.importo': { label: 'Importo del rimborso', example: '10,00 €' },
   'rimborso.stato': { label: 'Stato del rimborso', example: 'approvato' },
   'avviso.link': { label: 'Link per comprare', example: 'https://prolocogasperina.it/acquista/…' },
@@ -79,7 +79,7 @@ export const TEMPLATE_DEFAULTS: Record<TemplateKey, TemplateDef> = {
     body: 'Ciao {{cliente.nome}}, abbiamo preparato il tuo ordine **{{ordine.codice}}** per {{edizione.titolo}}: totale {{ordine.totale}}.\n\nPaga con carta dal link qui sotto. I biglietti arrivano per email appena il pagamento va a buon fine.',
     variables: [...COMMON, 'ordine.totale', 'pagamento.link'],
     button: { label: 'Paga ora', href: 'pagamento.link' },
-    wired: false,
+    wired: true,
   },
   refund_update: {
     label: 'Aggiornamento rimborso',

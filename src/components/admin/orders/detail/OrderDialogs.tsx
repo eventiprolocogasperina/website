@@ -9,7 +9,7 @@ import type { OrderDetail } from '@/server/domain/orders/admin-detail';
 
 // Finestre delle azioni dell'ordine (menu ⋯). Ognuna chiama una Server Action e si chiude se va bene.
 
-type Props = { d: OrderDetail; onClose: () => void };
+export type Props = { d: OrderDetail; onClose: () => void };
 
 type DialogProps = {
   title: string;
@@ -25,7 +25,7 @@ type DialogProps = {
   children: ReactNode;
 };
 
-function ActionDialog({ title, description, confirm, tone, ready, run, success, onSuccess, onClose, children }: DialogProps) {
+export function ActionDialog({ title, description, confirm, tone, ready, run, success, onSuccess, onClose, children }: DialogProps) {
   const [busy, setBusy] = useState(false);
   async function submit() {
     setBusy(true);
@@ -82,15 +82,22 @@ export function EditCustomerDialog({ d, onClose }: Props) {
 export function CancelDialog({ d, onClose }: Props) {
   const [reason, setReason] = useState('');
   const paid = d.summary.refundableCents > 0;
+  const draft = d.order.status === 'draft';
   return (
     <ActionDialog
       title={`Annulla ${d.order.code}`}
-      description={paid ? `Prima rimborsa ${formatMoney(d.summary.refundableCents)}: un ordine con un importo pagato non si annulla.` : 'I biglietti non varranno più e i posti tornano liberi. L’ordine resta nell’elenco come annullato.'}
-      confirm="Annulla ordine"
+      description={
+        paid
+          ? `Prima rimborsa ${formatMoney(d.summary.refundableCents)}: un ordine con un importo pagato non si annulla.`
+          : draft
+            ? 'La bozza resta nell’elenco come annullata e non si può più confermare.'
+            : 'I biglietti non varranno più e i posti tornano liberi. L’ordine resta nell’elenco come annullato.'
+      }
+      confirm={draft ? 'Annulla bozza' : 'Annulla ordine'}
       tone="danger"
       ready={!paid && reason.trim().length >= 3}
       run={() => cancelOrderAction(d.order.id, reason)}
-      success="Ordine annullato"
+      success={draft ? 'Bozza annullata' : 'Ordine annullato'}
       onClose={onClose}
     >
       <Field label="Motivo" required>

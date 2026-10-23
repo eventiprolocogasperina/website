@@ -25,7 +25,7 @@ import { actorColumns, isUniqueViolation, lockEdition, lockOrder, pendingTtlMs, 
 export type { OrderChannel } from '@/server/domain/pricing/cart';
 
 /** Stati dell'edizione in cui ogni canale può vendere. */
-const SELLING_STATUSES: Record<OrderChannel, EditionRow['status'][]> = {
+export const SELLING_STATUSES: Record<OrderChannel, EditionRow['status'][]> = {
   online: ['on_sale', 'live'],
   paylink: ['on_sale', 'live', 'sold_out'],
   pos: ['on_sale', 'sold_out', 'live'],
@@ -49,10 +49,10 @@ const LineInput = z.object({
   /** Solo per l'"Altro" della cassa (prodotto `openPrice`): lo controllano qui sotto e priceCart. */
   unitPriceCents: z.number().int().min(1).max(MAX_OPEN_PRICE_CENTS).nullish(),
 });
-const LinesInput = z.array(LineInput).min(1, 'Il carrello è vuoto.').max(30);
+export const LinesInput = z.array(LineInput).min(1, 'Il carrello è vuoto.').max(30);
 
 const IMMEDIATE_METHODS = ['cash', 'card_pos', 'bank_transfer'] as const;
-/** In cassa si può anche dare un omaggio, con il motivo (prompt 14). */
+/** In cassa e dall'admin si può anche dare un omaggio, con il motivo (prompt 14). */
 const POS_METHODS = [...IMMEDIATE_METHODS, 'complimentary'] as const;
 
 function assertCanOn(ctx: Ctx, permission: Permission, edition: string) {
@@ -84,7 +84,7 @@ export const CreateOrderInput = z
     idempotencyKey: z.string().trim().min(8).max(100),
     /** Totale mostrato al cliente: se il server calcola un importo diverso, PRICE_CHANGED. */
     expectedTotalCents: z.number().int().min(0).nullish(),
-    /** Pagamento incassato subito (cassa e admin). In cassa il default è il contante; `complimentary` solo in cassa. */
+    /** Pagamento incassato subito (cassa e admin). In cassa il default è il contante; `complimentary` da cassa o admin. */
     payNow: z.enum(POS_METHODS).nullish(),
     /** Motivo dell'omaggio, obbligatorio con `payNow: 'complimentary'`. Finisce nel pagamento e nel registro. */
     complimentaryReason: z.string().trim().max(200).nullish(),
@@ -94,7 +94,7 @@ export const CreateOrderInput = z
   .superRefine((v, c) => {
     if (['online', 'paylink', 'invite'].includes(v.channel) && !v.customer) c.addIssue({ code: 'custom', path: ['customer'], message: 'Servono nome ed email.' });
     if (v.payNow && !['pos', 'admin'].includes(v.channel)) c.addIssue({ code: 'custom', path: ['payNow'], message: 'Pagamento immediato solo da cassa o admin.' });
-    if (v.payNow === 'complimentary' && v.channel !== 'pos') c.addIssue({ code: 'custom', path: ['payNow'], message: 'L’omaggio si registra solo in cassa.' });
+    if (v.payNow === 'complimentary' && !['pos', 'admin'].includes(v.channel)) c.addIssue({ code: 'custom', path: ['payNow'], message: 'L’omaggio si registra solo dalla cassa o dall’admin.' });
     if (v.payNow === 'complimentary' && (v.complimentaryReason ?? '').length < 3) c.addIssue({ code: 'custom', path: ['complimentaryReason'], message: 'Scrivi il motivo dell’omaggio.' });
     if (v.cashSessionId && v.channel !== 'pos') c.addIssue({ code: 'custom', path: ['cashSessionId'], message: 'Il turno di cassa vale solo per il canale cassa.' });
     // Un importo scelto da chi vende solo dalla cassa, dentro un turno (il turno lo verifica cash/sales).
@@ -316,7 +316,7 @@ async function createOrderTx(tx: Tx, ctx: Ctx, data: z.output<typeof CreateOrder
 
 // ─── Annullamento e scadenza ─────────────────────────────────────────────────
 
-async function voidTickets(tx: Tx, orderId: string) {
+export async function voidTickets(tx: Tx, orderId: string) {
   await tx.update(ticketsV2).set({ status: 'void', updatedAt: new Date() }).where(eq(ticketsV2.orderId, orderId));
 }
 
@@ -342,7 +342,8 @@ export async function cancelOrder(ctx: Ctx, input: z.input<typeof CancelOrderInp
 
     await tx.update(ordersV2).set({ status: 'cancelled', cancelledAt: new Date(), updatedAt: new Date() }).where(eq(ordersV2.id, order.id));
     await voidTickets(tx, order.id);
-    if (s.paidCents === 0) await releaseDiscountUse(tx, order.discountId);
+    // Una bozza non ha mai consumato il codice sconto: niente da restituire.
+    if (s.paidCents === 0 && order.status !== 'draft') await releaseDiscountUse(tx, order.discountId);
     await audit(tx, ctx, 'order.cancelled', { entityType: 'order', entityId: order.id, edition: edition.slug, before: { status: order.status }, after: { status: 'cancelled' }, reason: data.reason });
     events.push({ type: 'order.cancelled', orderId: order.id, code: order.code, edition: edition.slug });
   });

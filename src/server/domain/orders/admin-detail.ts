@@ -44,7 +44,7 @@ export async function getOrderDetail(ctx: Ctx, code: string, edition: string | n
   const [customer, lines, tickets, pays, refunds, notes, related, sessionRow, discount] = await Promise.all([
     order.customerId ? db.select().from(customers).where(eq(customers.id, order.customerId)).then((r) => r[0] ?? null) : null,
     db
-      .select({ id: orderLines.id, productName: products.name, productKind: products.kind, quantity: orderLines.quantity, unitPriceCents: orderLines.unitPriceCents, discountCents: orderLines.discountCents, totalCents: orderLines.totalCents, sessionLabel: sessions.label })
+      .select({ id: orderLines.id, productId: orderLines.productId, sessionId: orderLines.sessionId, productName: products.name, productKind: products.kind, quantity: orderLines.quantity, unitPriceCents: orderLines.unitPriceCents, discountCents: orderLines.discountCents, totalCents: orderLines.totalCents, sessionLabel: sessions.label })
       .from(orderLines)
       .innerJoin(products, eq(products.id, orderLines.productId))
       .leftJoin(sessions, eq(sessions.id, orderLines.sessionId))
@@ -114,6 +114,7 @@ export async function getOrderDetail(ctx: Ctx, code: string, edition: string | n
       createdAt: order.createdAt.toISOString(),
       paidAt: order.paidAt?.toISOString() ?? null,
       expiresAt: order.expiresAt?.toISOString() ?? null,
+      payOnSite: order.payOnSite,
       subtotalCents: order.subtotalCents,
       discountCents: order.discountCents,
       totalCents: order.totalCents,

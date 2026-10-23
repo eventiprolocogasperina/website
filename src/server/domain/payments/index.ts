@@ -62,6 +62,7 @@ export async function recordPayment(ctx: Ctx, input: RecordPaymentInput, opts: {
     const { order, edition } = await lockOrder(tx, data.orderId);
     const permission = METHOD_PERMISSION[data.method];
     if (permission === 'system' ? !ctx.system : !can(ctx, permission, { edition: edition.slug })) throw new DomainError('FORBIDDEN');
+    if (order.status === 'draft') throw new DomainError('CONFLICT', { message: 'L’ordine è una bozza: confermalo prima di registrare un pagamento.' });
 
     let paymentId: string;
     let duplicate = false;

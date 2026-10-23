@@ -11,7 +11,8 @@ import { discountsV2, editions, products, sessions } from './catalog';
  * rinomina. Ordini, pagamenti e rimborsi non si cancellano mai (§18): niente ON DELETE CASCADE.
  */
 
-export const orderStatus = pgEnum('order_status', ['pending', 'paid', 'partially_refunded', 'refunded', 'cancelled', 'expired']);
+/** `draft`: ordine in bozza dall'admin. Non tiene posti, non ha biglietti né pagamenti, non conta nelle statistiche. */
+export const orderStatus = pgEnum('order_status', ['pending', 'paid', 'partially_refunded', 'refunded', 'cancelled', 'expired', 'draft']);
 export const orderChannel = pgEnum('order_channel', ['online', 'pos', 'paylink', 'invite', 'admin']);
 export const ticketStatus = pgEnum('ticket_status', ['valid', 'void']);
 export const paymentMethod = pgEnum('payment_method', ['nexi', 'cash', 'card_pos', 'complimentary', 'bank_transfer']);
@@ -80,6 +81,8 @@ export const ordersV2 = pgTable(
     blacklistReason: text('blacklist_reason'),
     /** Scadenza degli ordini online in attesa di pagamento. */
     expiresAt: timestamp('expires_at', { withTimezone: true }),
+    /** Bozza confermata con "Paga in loco": in attesa senza scadenza, si incassa all'evento. */
+    payOnSite: boolean('pay_on_site').default(false).notNull(),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

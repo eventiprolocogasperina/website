@@ -35,8 +35,10 @@ export function LinesCard({ d }: { d: OrderDetail }) {
           />
         ))}
         {d.order.discountCents > 0 && <Row label={`Sconto ${d.order.discountCode ?? ''}`.trim()} value={`−${formatMoney(d.order.discountCents)}`} muted />}
-        <Row label="Totale" value={formatMoney(d.order.totalCents)} strong />
+        <Row label={d.order.status === 'draft' ? 'Totale indicativo' : 'Totale'} value={formatMoney(d.order.totalCents)} strong />
       </ul>
+      {d.order.status === 'draft' && <p className="mt-3 text-label text-muted">Bozza: non tiene posti. Prezzi e disponibilità si ricalcolano quando la confermi.</p>}
+      {d.order.payOnSite && d.order.status === 'pending' && <p className="mt-3 text-label text-muted">Da pagare in loco, all’evento: quando incassi usa “Segna come pagato”.</p>}
       {(d.parent || d.children.length > 0) && (
         <p className="mt-3 text-label text-muted">
           {d.parent && (

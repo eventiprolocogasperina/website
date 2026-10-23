@@ -1,7 +1,7 @@
 // Filtri dell'elenco ordini (§11.1): stanno nell'URL, così si condividono e il tasto "indietro" funziona.
 // Funzioni pure, usate dalla pagina (server) e dalla barra dei filtri (client).
 
-export const ORDER_STATUSES = ['pending', 'paid', 'partially_refunded', 'refunded', 'cancelled', 'expired'] as const;
+export const ORDER_STATUSES = ['draft', 'pending', 'paid', 'partially_refunded', 'refunded', 'cancelled', 'expired'] as const;
 export const ORDER_CHANNEL_KEYS = ['online', 'pos', 'paylink', 'invite', 'admin'] as const;
 export const ORDER_SORTS = ['-data', 'data', '-totale', 'totale', 'codice', '-codice'] as const;
 
@@ -97,6 +97,7 @@ export type OrderView = { key: string; name: string; query: string };
 /** Viste predefinite (§11.1): tab fissi, uguali per tutti. Quelle degli utenti stanno nel database. */
 export const DEFAULT_ORDER_VIEWS: OrderView[] = [
   { key: 'tutti', name: 'Tutti', query: '' },
+  { key: 'bozze', name: 'Bozze', query: 'stato=draft' },
   { key: 'da-pagare', name: 'Da pagare', query: 'stato=pending' },
   { key: 'pagati', name: 'Pagati', query: 'stato=paid' },
   { key: 'rimborsati', name: 'Rimborsati', query: 'stato=partially_refunded%2Crefunded' },
