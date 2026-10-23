@@ -90,11 +90,30 @@ Dichiara conclusa, chiudi i conti, poi archivia.
 
 - Recensioni: chiedile con il link alla galleria delle foto.
 - Rimborsi (pochi, con bonifico) nella sezione Rimborsi.
-- Rendiconto per il direttivo (PDF e CSV): a edizione conclusa, da Impostazioni → Chiusura e archivio; puoi rigenerarlo finché non archivi. I costi non ci sono ancora.
+- Rendiconto per il direttivo (PDF e CSV): a edizione conclusa, da Impostazioni → Chiusura e archivio; puoi rigenerarlo finché non archivi. Contiene entrate, costi per categoria, saldo e materiale usato.
 - Archivia: l’edizione diventa di sola lettura per sempre.
+
+## 9. Costi
+
+Le spese di ogni edizione (Costi e rendiconto) e quelle generali dell’associazione (Costi generali), con la ricevuta se c’è.
+
+- Costi e rendiconto dell’edizione: aggiungi data, categoria, descrizione, fornitore, importo, pagamento e allegato. In alto vedi Entrate, Costi e Saldo.
+- Si modificano finché l’edizione non è dichiarata conclusa; dopo sono in sola lettura, come il rendiconto.
+- Un costo sbagliato non si cancella: “Annulla costo” con il motivo. Resta barrato e non conta nei totali.
+- Costi generali: le spese fuori dagli eventi e il riepilogo per anno (entrate e costi di ogni edizione, costi generali, saldo), anche in CSV.
+
+## 10. Inventario
+
+Il materiale della Pro Loco: quanti pezzi, dove si trova, in che stato.
+
+- Aggiungi materiale con nome, categoria, quantità, posto e stato (buono, da riparare, fuori uso); foto e valore d’acquisto se servono.
+- “Porta a un evento” assegna dei pezzi a un’edizione; dopo l’evento, in Costi e rendiconto, “Segna rientrato” dice quanti sono tornati. I mancanti escono come persi.
+- Persi, rotti o comprati fuori dagli eventi: “Rettifica quantità”, sempre con il motivo.
+- Il materiale che non c’è più si dismette: esce dall’elenco ma resta nello storico.
 
 ## Per chi sviluppa
 
 - Checklist e guardia: `src/lib/edition-setup.ts` (puro), `src/server/domain/editions/setup.ts` (lettura dei dati, passi, `assertSalesReady` chiamata da `changeEditionStatus`).
 - Stato della procedura salvato in `editions.module_settings._setup` (`{ kind: 'sales' | 'info', skipped: [...] }`): nessuna migrazione.
+- Costi e inventario: `src/server/domain/costs`, `src/server/domain/inventory`, elenchi in `src/lib/costs.ts` (categorie modificabili senza migrazioni); tabelle `costs`, `inventory_items`, `inventory_movements` (migrazione 0019). La quantità del materiale è la somma delle rettifiche; gli usi per evento la impegnano finché non rientrano.
 - Procedura: `/admin/edizioni/nuova` (tipo e punto di partenza), poi `/admin/e/<edizione>/procedura/<passo>`.

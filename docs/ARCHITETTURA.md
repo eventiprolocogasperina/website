@@ -416,6 +416,9 @@ Un ruolo si assegna sull'**associazione** (`edition_id NULL`) o su una **singola
 | `pos.void` (richiede PIN di un responsabile) | ✔ | ✔ | ✔ | — | — | — |
 | `checkin.scan`, `checkin.revert` | ✔ | ✔ | ✔ | — | — | ✔ |
 | `reports.export` | ✔ | ✔ | ✔ | — | — | — |
+| `costs.read`, `costs.write` (costi generali: solo a livello di associazione) | ✔ | ✔ | ✔ | — | — | — |
+| `inventory.read` | ✔ | ✔ | ✔ | — | — | — |
+| `inventory.write` | ✔ | ✔ | — | — | — | — |
 
 ¹ Limitati alle edizioni assegnate. ² Fino a una soglia configurabile; sopra la soglia serve `admin`.
 
@@ -952,6 +955,7 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-22 | Procedura guidata "Nuova edizione" e checklist "Da completare": stato dei passi calcolato dai dati, solo tipo e passi saltati in `editions.module_settings._setup` (nessuna migrazione). Aprire le vendite (da pubblicata o sospesa) richiede date con capienza e luogo, un biglietto online, la pagina e il regolamento; il server lo rifiuta con il motivo. La duplicazione copia anche pagina, notifiche, liste di check-in e casse, rimappando gli ID; mai ordini né codici sconto. Guida in `docs/GUIDA-EVENTI.md` e `/admin/guida` | Niccolo / Claude |
 | 2026-10-22 | Cassa: "Altro" (importo libero) si accende cassa per cassa (`cash_registers.allow_open_amount`, spento di default, rifiutato dal server). "Pezzi disponibili" dei prodotti di cassa = quota personale del prodotto (§5.4, nessuna colonna `stock_quantity`). Un dispositivo di cassa abbinato apre `/cassa`. Un ingresso si annulla anche dal dettaglio ordine e dai partecipanti (`checkin.revert`). Logo del format caricabile da Admin › Format, con ripiego sul logo Pro Loco | Claude, richiesta di Niccolo |
 | 2026-10-22 | Dispositivi da campo senza "Chi sei?": il ruolo si sceglie al QR e il dispositivo abbinato vale da solo come cassiere o varco sulla sua edizione (`getFieldCtx`); operazioni registrate a nome del dispositivo, revoca immediata. Il PIN di un responsabile resta per approvare gli annulli in cassa. Scelta di Niccolo. |
+| 2026-10-23 | Costi (tabella `costs`, `edition_id` nullo = costo generale) e inventario (`inventory_items`, `inventory_movements`). I costi non si cancellano: si annullano con il motivo; quelli di un'edizione si modificano finché non è `concluded`. Rendiconto = entrate nette − costi, anche nel PDF e CSV finale, con il materiale usato. La quantità del materiale è la somma delle rettifiche (aggiunta, perso, rotto, correzione); gli usi per evento impegnano i pezzi e al rientro i mancanti diventano "persi". Il materiale si dismette, non si cancella | Niccolo / Claude |
 
 ---
 

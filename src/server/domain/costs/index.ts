@@ -39,7 +39,11 @@ export const CostInput = z
     amountCents: z.number().int().positive('L’importo deve essere maggiore di zero.').max(100_000_000),
     paymentMethod: z.enum(COST_PAYMENT_METHODS),
     paid: z.boolean(),
-    paidAt: DATE_KEY.nullish().transform((v) => v || null),
+    paidAt: z
+      .string()
+      .regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Data non valida.')
+      .nullish()
+      .transform((v) => v || null),
     attachmentUrl: z
       .url({ protocol: /^https$/, message: 'Allegato non valido.' })
       .nullish()

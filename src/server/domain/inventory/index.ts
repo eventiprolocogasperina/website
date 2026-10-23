@@ -29,7 +29,7 @@ export const ItemInput = z.object({
   condition: z.enum(INVENTORY_CONDITIONS),
   purchasedOn: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data non valida.')
+    .regex(/^(\d{4}-\d{2}-\d{2})?$/, 'Data non valida.')
     .nullish()
     .transform((v) => v || null),
   purchaseValueCents: z.number().int().min(0).max(100_000_000).nullish().transform((v) => v ?? null),
