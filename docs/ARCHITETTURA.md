@@ -414,12 +414,15 @@ Un ruolo si assegna sull'**associazione** (`edition_id NULL`) o su una **singola
 | `photos.moderate`, `reviews.moderate` | ✔ | ✔ | ✔ | ✔ | — | — |
 | `pos.sell`, `pos.open_close_session` | ✔ | ✔ | ✔ | — | ✔ | — |
 | `pos.void` (richiede PIN di un responsabile) | ✔ | ✔ | ✔ | — | — | — |
-| `checkin.scan`, `checkin.revert` | ✔ | ✔ | ✔ | — | — | ✔ |
+| `pos.open_amount`, `pos.complimentary`, `pos.view_totals`, `pos.reprint` | ✔ | ✔ | ✔ | — | ✔ | — |
+| `checkin.scan`, `checkin.revert`, `checkin.search`, `checkin.stats` | ✔ | ✔ | ✔ | — | — | ✔ |
 | `reports.export` | ✔ | ✔ | ✔ | — | — | — |
 
 ¹ Limitati alle edizioni assegnate. ² Fino a una soglia configurabile; sopra la soglia serve `admin`.
 
 L'interfaccia **nasconde** ciò che l'utente non può fare. Il server lo **rifiuta** comunque.
+
+Un **dispositivo da campo** non ha un ruolo intero ma i permessi scelti all'abbinamento (sottoinsieme delle colonne cashier o gate, più `pos.sell` per vendere al varco e `pos.void` per annullare senza responsabile), solo sulla sua edizione; senza permessi salvati vale il ruolo. Dettagli in `docs/accessi.md`.
 
 ---
 
@@ -952,6 +955,7 @@ Queste regole non si violano mai, nemmeno temporaneamente:
 | 2026-10-22 | Procedura guidata "Nuova edizione" e checklist "Da completare": stato dei passi calcolato dai dati, solo tipo e passi saltati in `editions.module_settings._setup` (nessuna migrazione). Aprire le vendite (da pubblicata o sospesa) richiede date con capienza e luogo, un biglietto online, la pagina e il regolamento; il server lo rifiuta con il motivo. La duplicazione copia anche pagina, notifiche, liste di check-in e casse, rimappando gli ID; mai ordini né codici sconto. Guida in `docs/GUIDA-EVENTI.md` e `/admin/guida` | Niccolo / Claude |
 | 2026-10-22 | Cassa: "Altro" (importo libero) si accende cassa per cassa (`cash_registers.allow_open_amount`, spento di default, rifiutato dal server). "Pezzi disponibili" dei prodotti di cassa = quota personale del prodotto (§5.4, nessuna colonna `stock_quantity`). Un dispositivo di cassa abbinato apre `/cassa`. Un ingresso si annulla anche dal dettaglio ordine e dai partecipanti (`checkin.revert`). Logo del format caricabile da Admin › Format, con ripiego sul logo Pro Loco | Claude, richiesta di Niccolo |
 | 2026-10-22 | Dispositivi da campo senza "Chi sei?": il ruolo si sceglie al QR e il dispositivo abbinato vale da solo come cassiere o varco sulla sua edizione (`getFieldCtx`); operazioni registrate a nome del dispositivo, revoca immediata. Il PIN di un responsabile resta per approvare gli annulli in cassa. Scelta di Niccolo. |
+| 2026-10-23 | Permessi per dispositivo: con il QR si scelgono persona, cassa (obbligatoria per la cassa) e permessi (preset Cassa principale, Cassa secondaria, Varco), copiati sul dispositivo e modificabili dopo con effetto immediato e registro; il server li controlla, i dispositivi già abbinati restano come il ruolo. Annullo senza responsabile solo se concesso; senza "totali" la chiusura si conta alla cieca | Niccolo / Claude |
 
 ---
 
