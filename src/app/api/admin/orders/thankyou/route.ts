@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import React from 'react';
 import { neon } from '@neondatabase/serverless';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { ThankYouEmailDocument } from '@/lib/tickets/ThankYouEmailDocument';
+import { requirePermission } from '@/server/auth/context';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
+  const denied = await requirePermission('orders.resend');
+  if (denied) return denied;
   try {
     const data = await request.json();
     const { eventId } = data;

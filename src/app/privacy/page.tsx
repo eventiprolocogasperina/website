@@ -277,6 +277,12 @@ export default function PrivacyPage() {
           >
             <Mail size={16} /> Scrivici a prolocogasperina@gmail.com
           </a>
+          <p style={{ marginTop: '1.25rem', fontSize: '0.88rem', color: 'var(--neutral-400)' }}>
+            In breve, con i tempi di conservazione, i fornitori e i cookie:{' '}
+            <Link href="/trasparenza" style={{ color: 'var(--gold-400)', textDecoration: 'underline' }}>
+              Trasparenza sui dati
+            </Link>
+          </p>
         </div>
 
       </div>

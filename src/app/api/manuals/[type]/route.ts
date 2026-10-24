@@ -3,11 +3,14 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { ScannerGuideDocument } from '@/lib/manuals/ScannerGuidePdf';
 import { CashierGuideDocument } from '@/lib/manuals/CashierGuidePdf';
 import { createElement } from 'react';
+import { requireSignedIn } from '@/server/auth/context';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ type: string }> }
 ) {
+  const denied = (await requireSignedIn());
+  if (denied) return denied;
   try {
     const { type } = await params;
 

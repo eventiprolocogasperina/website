@@ -1,0 +1,175 @@
+/*
+ * Token semantici dell'admin e delle app da campo (ARCHITETTURA §14.1).
+ *
+ * Le variabili hanno il prefisso --ui- perché globals.css usa già --surface, --color-primary,
+ * --radius-*, ecc. per il sito pubblico: senza prefisso si sovrascriverebbero a vicenda.
+ * Il tema scuro si attiva con [data-theme="dark"] (lo imposta ThemeProvider su <html>);
+ * [data-theme="light"] ripristina il chiaro anche dentro un contenitore scuro.
+ *
+ * Rispetto al §14.1 alcuni valori sono scuriti per il contrasto AA (tabella in docs/design-system.md):
+ * text-subtle, accent e border-strong (bordo dei campi, almeno 3:1).
+ */
+
+:root,
+[data-theme='light'] {
+  --ui-bg: #f6f7fb;
+  --ui-surface: #ffffff;
+  --ui-surface-raised: #ffffff;
+  --ui-surface-sunken: #eef0f5;
+  --ui-border: #e2e5ec;
+  --ui-border-strong: #858c9f;
+  --ui-text: #151a2b;
+  --ui-text-muted: #5b6377;
+  --ui-text-subtle: #666d80;
+  --ui-primary: #1b4baa;
+  --ui-primary-hover: #163f8f;
+  --ui-primary-fg: #ffffff;
+  --ui-accent: #9a6a08;
+  --ui-focus-ring: #3a6de8;
+  --ui-success: #15803d;
+  --ui-success-bg: #dcfce7;
+  --ui-warning: #b45309;
+  --ui-warning-bg: #fef3c7;
+  /* Esito "Già entrato" dello scanner: giallo pieno e testo scuro, uguali nei due temi. */
+  --ui-scan-yellow: #facc15;
+  --ui-scan-yellow-fg: #1c1917;
+  --ui-danger: #b91c1c;
+  --ui-danger-hover: #991b1b;
+  --ui-danger-bg: #fee2e2;
+  --ui-info: #1d4ed8;
+  --ui-info-bg: #e0eaff;
+  --ui-overlay: rgb(11 14 22 / 0.45);
+}
+
+[data-theme='dark'] {
+  --ui-bg: #0b0e16;
+  --ui-surface: #121624;
+  --ui-surface-raised: #181d2e;
+  --ui-surface-sunken: #090b12;
+  --ui-border: #252b3d;
+  --ui-border-strong: #5e6680;
+  --ui-text: #e8eaf2;
+  --ui-text-muted: #9aa1b5;
+  --ui-text-subtle: #7c8399;
+  --ui-primary: #4f7ff0;
+  --ui-primary-hover: #6b93f5;
+  --ui-primary-fg: #0b0e16;
+  --ui-accent: #e8a91a;
+  --ui-focus-ring: #6b93f5;
+  --ui-success: #4ade80;
+  --ui-success-bg: rgb(74 222 128 / 0.14);
+  --ui-warning: #fbbf24;
+  --ui-warning-bg: rgb(251 191 36 / 0.14);
+  --ui-danger: #f87171;
+  --ui-danger-hover: #fca5a5;
+  --ui-danger-bg: rgb(248 113 113 / 0.14);
+  --ui-info: #93b4ff;
+  --ui-info-bg: rgb(147 180 255 / 0.14);
+  --ui-overlay: rgb(0 0 0 / 0.6);
+}
+
+/*
+ * Utility Tailwind: bg-surface, text-muted, border-border, bg-primary, text-danger…
+ * "inline" scrive var(--ui-…) direttamente nelle classi, così le variabili omonime di
+ * globals.css (--color-primary, --color-surface…) non interferiscono.
+ */
+@theme inline {
+  --color-bg: var(--ui-bg);
+  --color-surface: var(--ui-surface);
+  --color-surface-raised: var(--ui-surface-raised);
+  --color-surface-sunken: var(--ui-surface-sunken);
+  --color-border: var(--ui-border);
+  --color-border-strong: var(--ui-border-strong);
+  --color-fg: var(--ui-text);
+  --color-muted: var(--ui-text-muted);
+  --color-subtle: var(--ui-text-subtle);
+  --color-primary: var(--ui-primary);
+  --color-primary-hover: var(--ui-primary-hover);
+  --color-primary-fg: var(--ui-primary-fg);
+  --color-accent: var(--ui-accent);
+  --color-focus-ring: var(--ui-focus-ring);
+  --color-success: var(--ui-success);
+  --color-success-bg: var(--ui-success-bg);
+  --color-warning: var(--ui-warning);
+  --color-warning-bg: var(--ui-warning-bg);
+  --color-scan-yellow: var(--ui-scan-yellow);
+  --color-scan-yellow-fg: var(--ui-scan-yellow-fg);
+  --color-danger: var(--ui-danger);
+  --color-danger-hover: var(--ui-danger-hover);
+  --color-danger-bg: var(--ui-danger-bg);
+  --color-info: var(--ui-info);
+  --color-info-bg: var(--ui-info-bg);
+  --color-overlay: var(--ui-overlay);
+
+  /* §14.4: raggi 6 (campi, badge), 8 (pulsanti), 12 (card, dialog). Valori scritti qui perché
+     globals.css ridefinisce --radius-* e --shadow-lg per il sito pubblico (shadow-sm resta quello di Tailwind). */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --shadow-lg: 0 12px 24px -6px rgb(16 24 40 / 0.18), 0 4px 8px -4px rgb(16 24 40 / 0.1);
+
+  /* §14.2: solo DM Sans nell'admin */
+  --font-ui: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Scala tipografica §14.2: 12 · 13 · 14 · 16 · 20 · 28 */
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-body: 14px;
+  --text-body--line-height: 20px;
+  --text-section: 16px;
+  --text-section--line-height: 24px;
+  --text-title: 20px;
+  --text-title--line-height: 28px;
+  --text-kpi: 28px;
+  --text-kpi--line-height: 34px;
+
+  /* Scala del sito pubblico (pagine d'acquisto, conferma, biglietti): più grande e piena di quella
+     dell'admin, come nelle pagine dei format di produzione. 12 · 14 · 16 · 18 · 22 · 28 · 36. */
+  --text-pub-xs: 12px;
+  --text-pub-xs--line-height: 16px;
+  --text-pub-sm: 14px;
+  --text-pub-sm--line-height: 20px;
+  --text-pub-base: 16px;
+  --text-pub-base--line-height: 24px;
+  --text-pub-lg: 18px;
+  --text-pub-lg--line-height: 26px;
+  --text-pub-xl: 22px;
+  --text-pub-xl--line-height: 28px;
+  --text-pub-2xl: 28px;
+  --text-pub-2xl--line-height: 34px;
+  --text-pub-3xl: 36px;
+  --text-pub-3xl--line-height: 40px;
+
+  /* Font del format nelle pagine pubbliche (font-ev-display, font-ev-body): li imposta editionThemeStyle. */
+  --font-ev-display: var(--ev-font-display, 'DM Sans', ui-sans-serif, system-ui, sans-serif);
+  --font-ev-body: var(--ev-font-body, 'DM Sans', ui-sans-serif, system-ui, sans-serif);
+}
+
+/* Contenitore radice dell'admin (e dei popup in portale): font e colori di base.
+   In @layer base così le utility Tailwind lo possono sovrascrivere. */
+@layer base {
+  .ui-root {
+    font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    color: var(--ui-text);
+    background: var(--ui-bg);
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .ui-root a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-root *,
+  .ui-root *::before,
+  .ui-root *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

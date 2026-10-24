@@ -1,187 +1,53 @@
-'use client';
+import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
+import { AdminShell } from '@/components/admin/shell/AdminShell';
+import { log } from '@/server/log';
+import { getAdminCtx } from '@/server/auth/context';
+import { can, editionPermissions, orgPermissions } from '@/server/auth/permissions';
+import { getTodoCounts, type TodoCounts } from '@/server/admin/todo';
+import { EDITION_COOKIE, listEditions, type EditionSummary } from '@/server/domain/editions';
 
-import { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, Shield, Menu } from 'lucide-react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
+export const metadata: Metadata = {
+  title: { default: 'Admin', template: '%s · Admin Pro Loco Gasperina' },
+  robots: { index: false, follow: false },
+};
 
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'gasperina2026';
-const SESSION_KEY = 'admin_auth';
+const NO_COUNTS: TodoCounts = { refunds: 0, photos: 0, stalePending: 0 };
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+// L'accesso è verificato prima di arrivare qui (src/proxy.ts) e di nuovo da requireAdmin nelle rotte API.
+// Se il database non risponde la shell resta in piedi: le pagine mostrano il loro errore.
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  // Il proxy controlla solo la firma del cookie: qui si verifica che la sessione sia ancora aperta.
+  const ctx = await getAdminCtx();
+  if (!ctx) redirect('/login?next=/admin');
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem(SESSION_KEY);
-    setAuthenticated(stored === 'true');
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
-        sessionStorage.setItem(SESSION_KEY, 'true');
-        setAuthenticated(true);
-      } else {
-        setError('Password non corretta. Riprova.');
-        setPassword('');
-      }
-      setLoading(false);
-    }, 400);
+  const [allEditions, counts] = await Promise.all([
+    listEditions().catch((error: unknown): EditionSummary[] => {
+      log.error('admin.shell.editions_failed', { error });
+      return [];
+    }),
+    getTodoCounts().catch((error: unknown) => {
+      log.error('admin.shell.counts_failed', { error });
+      return NO_COUNTS;
+    }),
+  ]);
+  const cookieEdition = (await cookies()).get(EDITION_COOKIE)?.value ?? null;
+  const access = {
+    org: orgPermissions(ctx),
+    editions: Object.fromEntries(allEditions.map((e) => [e.slug, editionPermissions(ctx, e.slug)])),
   };
-
-  if (authenticated === null) return null;
-
-  if (!authenticated) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--neutral-950)',
-        padding: '1.5rem',
-      }}>
-        <div style={{
-          position: 'fixed', inset: 0,
-          backgroundImage: 'radial-gradient(ellipse at 30% 20%, rgba(27,75,170,0.08) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(232,169,26,0.05) 0%, transparent 50%)',
-          pointerEvents: 'none',
-        }} />
-
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: '400px',
-          background: 'var(--neutral-900)',
-          border: '1px solid var(--neutral-700)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '2.5rem 2rem',
-          boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--blue-700), var(--blue-900))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 1rem',
-              boxShadow: '0 8px 24px rgba(27,75,170,0.35)',
-            }}>
-              <Shield size={24} style={{ color: '#fff' }} />
-            </div>
-            <div style={{ fontFamily: 'var(--font-label)', fontSize: '0.65rem', letterSpacing: '0.15em', color: 'var(--gold-500)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-              Area riservata
-            </div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: 400, color: 'var(--color-heading)', marginBottom: '0.35rem' }}>
-              Admin Panel
-            </h1>
-            <p style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
-              Pro Loco Gasperina APS
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--neutral-300)', marginBottom: '0.5rem', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
-                Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={15} style={{
-                  position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'var(--neutral-500)', pointerEvents: 'none',
-                }} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setError(''); }}
-                  placeholder="Inserisci la password"
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 2.75rem 0.75rem 2.5rem',
-                    background: 'var(--neutral-800)',
-                    border: `1px solid ${error ? 'rgba(239,68,68,0.6)' : 'var(--neutral-600)'}`,
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--color-text)',
-                    fontSize: '0.9rem',
-                    fontFamily: 'var(--font-body)',
-                    outline: 'none',
-                    transition: 'border-color 0.2s',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(v => !v)}
-                  style={{
-                    position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--neutral-500)', padding: '0.2rem',
-                  }}
-                  aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              {error && (
-                <p style={{ fontSize: '0.75rem', color: 'rgba(239,68,68,0.9)', marginTop: '0.4rem' }}>
-                  {error}
-                </p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || !password}
-              className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', opacity: loading || !password ? 0.6 : 1 }}
-            >
-              {loading ? 'Accesso...' : 'Accedi'}
-            </button>
-          </form>
-
-          <div style={{
-            marginTop: '1.75rem', paddingTop: '1.5rem',
-            borderTop: '1px solid var(--neutral-700)',
-            fontSize: '0.72rem', color: 'var(--neutral-500)', textAlign: 'center', lineHeight: 1.6,
-          }}>
-            Accesso riservato ai membri del direttivo.<br />
-            Per recuperare la password contatta l&apos;amministratore del sito.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  const visibleCounts: TodoCounts = {
+    refunds: can(ctx, 'orders.read') ? counts.refunds : 0,
+    photos: can(ctx, 'photos.moderate') || can(ctx, 'photos.moderate', { edition: 'zuccaland-2026' }) ? counts.photos : 0,
+    stalePending: can(ctx, 'orders.read') ? counts.stalePending : 0,
+  };
+  const editions = allEditions.filter((e) => access.editions[e.slug].length > 0);
+  const user = ctx.legacy ? { name: 'Accesso di emergenza', email: null, legacy: true } : { name: ctx.user?.name ?? '', email: ctx.user?.email ?? null, legacy: false };
   return (
-    <div className="admin-layout">
-      {/* Mobile Top Bar */}
-      <div className="admin-topbar">
-        <button 
-          onClick={() => setIsMobileMenuOpen(true)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--color-heading)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-        >
-          <Menu size={24} />
-          <span style={{ fontSize: '1rem', fontWeight: 500, fontFamily: 'var(--font-display)' }}>Admin Panel</span>
-        </button>
-      </div>
-
-      <AdminSidebar 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
-      />
-      
-      <main 
-        className="admin-main"
-        onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)} // Close if user clicks main area while open
-      >
-        {children}
-      </main>
-    </div>
+    <AdminShell editions={editions} counts={visibleCounts} cookieEdition={cookieEdition} user={user} access={access}>
+      {children}
+    </AdminShell>
   );
 }

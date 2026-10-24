@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { render } from '@react-email/render';
 import { createElement } from 'react';
 import { PostponementEmailDocument } from '@/lib/tickets/PostponementEmailDocument';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -11,6 +12,8 @@ function getDb() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requirePermission('orders.resend');
+  if (denied) return denied;
   try {
     const body = await request.json();
     const {

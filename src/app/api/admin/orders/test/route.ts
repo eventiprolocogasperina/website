@@ -3,12 +3,17 @@ import { createOrderWithTickets, markOrderPaid, getOrder } from '@/lib/data/tick
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
 import crypto from 'crypto';
+import { requirePermission } from '@/server/auth/context';
 
 export async function GET() {
+  const denied = await requirePermission('settings.manage');
+  if (denied) return denied;
   return NextResponse.json({ ok: true, timestamp: Date.now() });
 }
 
 export async function POST(req: Request) {
+  const denied = await requirePermission('settings.manage');
+  if (denied) return denied;
   try {
     let body: any = {};
     try {
@@ -66,9 +71,6 @@ export async function POST(req: Request) {
 
       await sendTelegramNotification(
         `🎃 <b>[TEST] Ordine Zuccaland CREATO & INVIATO</b>\n\n` +
-        `👤 <b>Nome:</b> ${paidOrder.buyerName}\n` +
-        `📧 <b>Email:</b> ${paidOrder.buyerEmail}\n` +
-        `📞 <b>Tel:</b> ${paidOrder.buyerPhone || 'N/D'}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsList}\n` +
         `🎨 <b>Note & Attività:</b> ${paidOrder.notes || 'N/D'}\n` +
         `💰 <b>Totale:</b> €${paidOrder.totalAmount.toFixed(2)}\n` +

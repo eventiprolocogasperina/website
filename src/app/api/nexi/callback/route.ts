@@ -5,7 +5,6 @@ import { markOrderPaidByCodTrans, getOrder } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
 
-const NEXI_MAC_KEY = process.env.NEXI_MAC_KEY || 'YOUR_SECRET_MAC_KEY';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,6 +17,13 @@ export async function GET(request: Request) {
   const data = searchParams.get('data');
   const orario = searchParams.get('orario');
   const codAut = searchParams.get('codAut');
+
+  // Nessuna chiave di ripiego: senza NEXI_MAC_KEY nessun pagamento può essere confermato.
+  const NEXI_MAC_KEY = process.env.NEXI_MAC_KEY;
+  if (!NEXI_MAC_KEY) {
+    console.error('nexi/callback: NEXI_MAC_KEY non impostata');
+    return NextResponse.json({ error: 'Pagamenti non configurati' }, { status: 500 });
+  }
 
   if (!codTrans) {
     return NextResponse.json({ error: 'Missing codTrans' }, { status: 400 });
@@ -132,9 +138,6 @@ export async function GET(request: Request) {
                 await sendTelegramNotification(
                   `✅ <b>Integrazione PAGATA (Nexi)</b>\n\n` +
                   `🎪 <b>Evento:</b> ${eventLabel}\n` +
-                  `👤 <b>Nome:</b> ${updatedParentOrder.buyerName}\n` +
-                  `📧 <b>Email:</b> ${updatedParentOrder.buyerEmail}\n` +
-                  `📞 <b>Tel:</b> ${updatedParentOrder.buyerPhone || 'N/D'}\n` +
                   `🎟 <b>Nuovi Biglietti Aggiunti:</b> ${newTicketsList}\n` +
                   `💰 <b>Importo Integrazione:</b> €${Number(order.totalAmount).toFixed(2)}\n` +
                   `💰 <b>Nuovo Totale Ordine:</b> €${newTotal.toFixed(2)}\n` +
@@ -144,7 +147,7 @@ export async function GET(request: Request) {
 
                 const successPath = isZuccaland
                   ? `/zuccaland/success?order=${parentOrderId}&integration=true`
-                  : `/assaggia-e-passeggia/success?order=${parentOrderId}&integration=true`;
+                  : `/assaggia-e-passeggia/edizione-2026/success?order=${parentOrderId}&integration=true`;
                 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
                 return NextResponse.redirect(`${baseUrl}${successPath}`);
               }
@@ -166,9 +169,6 @@ export async function GET(request: Request) {
           await sendTelegramNotification(
             `✅ <b>Ordine PAGATO (Nexi)</b>\n\n` +
             `🎪 <b>Evento:</b> ${eventLabel}\n` +
-            `👤 <b>Nome:</b> ${order.buyerName}\n` +
-            `📧 <b>Email:</b> ${order.buyerEmail}\n` +
-            `📞 <b>Tel:</b> ${order.buyerPhone || 'N/D'}\n` +
             `🎟 <b>Biglietti:</b> ${ticketsList}\n` +
             `💰 <b>Totale:</b> €${order.totalAmount.toFixed(2)}\n` +
             `💳 <b>Transazione:</b> ${codTrans}`
@@ -176,7 +176,7 @@ export async function GET(request: Request) {
 
           const successPath = isZuccaland
             ? `/zuccaland/success?order=${orderId}`
-            : `/assaggia-e-passeggia/success?order=${orderId}`;
+            : `/assaggia-e-passeggia/edizione-2026/success?order=${orderId}`;
           const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
           return NextResponse.redirect(`${baseUrl}${successPath}`);
         }
@@ -185,7 +185,7 @@ export async function GET(request: Request) {
       }
 
       const fallbackBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
-      return NextResponse.redirect(`${fallbackBaseUrl}/assaggia-e-passeggia/success?order=${orderId}`);
+      return NextResponse.redirect(`${fallbackBaseUrl}/assaggia-e-passeggia/edizione-2026/success?order=${orderId}`);
     } catch (error) {
       console.error('Failed to process successful payment:', error);
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
@@ -200,20 +200,19 @@ export async function GET(request: Request) {
         await sendTelegramNotification(
           `❌ <b>Pagamento FALLITO o ANNULLATO</b>\n\n` +
           `🎪 <b>Evento:</b> ${eventLabel}\n` +
-          `👤 <b>Nome:</b> ${order.buyerName}\n` +
           `💰 <b>Totale:</b> €${order.totalAmount.toFixed(2)}\n` +
           `💳 <b>Transazione:</b> ${codTrans}`
         );
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
         const failPath = isZuccaland
           ? `/zuccaland?error=payment_failed`
-          : `/assaggia-e-passeggia/ticket?error=payment_failed`;
+          : `/assaggia-e-passeggia/edizione-2026/ticket?error=payment_failed`;
         return NextResponse.redirect(`${baseUrl}${failPath}`);
       }
     } catch (e) {
       console.error(e);
     }
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
-    return NextResponse.redirect(`${baseUrl}/assaggia-e-passeggia/ticket?error=payment_failed`);
+    return NextResponse.redirect(`${baseUrl}/assaggia-e-passeggia/edizione-2026/ticket?error=payment_failed`);
   }
 }

@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requirePermission } from '@/server/auth/context';
 
 export async function GET(request: Request) {
+  const denied = await requirePermission('orders.read');
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');

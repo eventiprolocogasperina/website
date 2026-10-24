@@ -3,21 +3,17 @@ import { neon } from '@neondatabase/serverless';
 import { getOrder, markOrderPaid, toggleOrderBlacklist } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
 }
 
 export async function GET() {
+  const denied = await requirePermission('orders.read');
+  if (denied) return denied;
   try {
     const sql = getDb();
-    // Ensure blacklist columns exist
-    await sql`
-      ALTER TABLE orders 
-      ADD COLUMN IF NOT EXISTS "isBlacklisted" BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS "blacklistReason" TEXT,
-      ADD COLUMN IF NOT EXISTS "blacklistedAt" TIMESTAMP;
-    `;
     const orders = await sql`SELECT * FROM orders WHERE "deletedAt" IS NULL ORDER BY "createdAt" DESC`;
     const tickets = await sql`SELECT * FROM tickets`;
 
@@ -40,6 +36,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const denied = await requirePermission('orders.edit');
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { orderId, action } = body;
@@ -94,7 +92,7 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: 'Ordine non trovato' }, { status: 404 });
       }
 
-      let currentNotes = order.notes || '';
+      const currentNotes = order.notes || '';
       let updatedNotes = currentNotes;
 
       // Sostituisci o anteponi il campo Data:
@@ -126,8 +124,6 @@ export async function PATCH(req: Request) {
 
       sendTelegramNotification(
         `📅 <b>Data Ordine Modificata</b>\n\n` +
-        `👤 <b>Cliente:</b> ${order.buyerName}\n` +
-        `📧 <b>Email:</b> ${order.buyerEmail}\n` +
         `🗓 <b>Nuova Data:</b> ${newDate}\n` +
         `🎟 <b>Biglietti:</b> ${order.tickets.length}\n` +
         `✉️ <b>Email reinviata:</b> ${emailSent ? 'Sì (Nuovi Biglietti Emessi)' : 'No'}\n` +
@@ -149,6 +145,8 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const denied = await requirePermission('orders.cancel');
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const orderId = searchParams.get('id');

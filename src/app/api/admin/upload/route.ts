@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
+import { getAdminCtx } from '@/server/auth/context';
+import { RECEIPT_FOLDER } from '@/lib/costs';
+import { can, type Permission } from '@/server/auth/permissions';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -13,11 +16,21 @@ cloudinary.config({
  * Returns: { url, publicId }
  */
 export async function POST(request: Request) {
+  // Contenuti, edizioni e foto del materiale: file pubblici. Le ricevute dei costi sono private e
+  // passano da /api/admin/costi/ricevuta.
+  const ctx = await getAdminCtx();
+  if (!ctx) return NextResponse.json({ error: 'Accedi per continuare.' }, { status: 401 });
+  if (!(['content.edit', 'editions.edit', 'inventory.write'] as Permission[]).some((p) => can(ctx, p))) {
+    return NextResponse.json({ error: 'Non hai i permessi per questa operazione.' }, { status: 403 });
+  }
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const folder = (formData.get('folder') as string) || 'pro-loco-gasperina';
 
+    if (folder.startsWith(RECEIPT_FOLDER)) {
+      return NextResponse.json({ error: 'Le ricevute dei costi si caricano dalla scheda del costo.' }, { status: 400 });
+    }
     if (!file) {
       return NextResponse.json({ error: 'Nessun file allegato' }, { status: 400 });
     }

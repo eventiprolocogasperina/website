@@ -7,6 +7,18 @@ import {
   ZuccalandDayStats
 } from '@/lib/data/tickets';
 import { sendTelegramNotification } from '@/lib/telegram';
+import { timingSafeEqual } from 'node:crypto';
+import { answerCommand, HELP_TEXT, isGenericCommand, parseCommand } from '@/server/domain/notifications/bot';
+import { allowedChatIds } from '@/server/domain/notifications/settings';
+
+/** Telegram invia il secret_token scelto in /api/telegram/setup in questo header. */
+function hasValidTelegramSecret(request: Request): boolean {
+  const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const given = request.headers.get('x-telegram-bot-api-secret-token');
+  if (!expected || !given) return false;
+  const a = Buffer.from(given), b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 function formatZuccalandStats(stats: ZuccalandStatsResult): string {
   const typeBreakdown = Object.entries(stats.ticketTypes)
@@ -73,6 +85,9 @@ function formatZuccalandPerData(stats: ZuccalandStatsResult): string {
 }
 
 export async function POST(request: Request) {
+  if (!hasValidTelegramSecret(request)) {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+  }
   try {
     const data = await request.json();
 
@@ -81,12 +96,18 @@ export async function POST(request: Request) {
       const chatId = data.message.chat.id.toString();
       const text = data.message.text.trim();
 
-      // Verifica sicurezza: accetta solo comandi dalla chat autorizzata
-      const allowedChatId = process.env.TELEGRAM_CHAT_ID;
-      
-      if (chatId !== allowedChatId) {
-        console.warn(`Tentativo di accesso al bot non autorizzato dalla chat: ${chatId}`);
+      // Verifica sicurezza: accetta solo comandi dalle chat autorizzate (TELEGRAM_CHAT_ID e quelle
+      // scelte in Sistema → Notifiche).
+      if (!(await allowedChatIds()).has(chatId)) {
+        console.warn('Tentativo di accesso al bot da una chat non autorizzata');
         return NextResponse.json({ ok: true }); // Restituisce OK a Telegram per evitare retry
+      }
+
+      // Comandi generici per edizione (prompt 18): solo quelli che i comandi di oggi non gestiscono.
+      const parsed = parseCommand(text);
+      if (isGenericCommand(parsed)) {
+        await sendTelegramNotification(await answerCommand(parsed), chatId);
+        return NextResponse.json({ ok: true });
       }
 
       const parts = text.split(/\s+/);
@@ -159,7 +180,7 @@ export async function POST(request: Request) {
             
             const date = new Date(o.createdAt).toLocaleString('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             
-            reply += `<b>${i+1}. ${eventEmoji} ${o.buyerName}</b>\n`;
+            reply += `<b>${i+1}. ${eventEmoji} #${String(o.id).substring(0, 8).toUpperCase()}</b>\n`;
             reply += `📅 ${date} - €${o.totalAmount.toFixed(2)}\n`;
             reply += `🎟 ${ticketStr}\n\n`;
           });
@@ -180,7 +201,8 @@ export async function POST(request: Request) {
           `▪️ /stats - Statistiche biglietti, incasso e tipologie\n\n` +
           `📦 <b>GESTIONE ORDINI</b>\n` +
           `▪️ /ordini - Elenco degli ultimi 15 ordini pagati\n\n` +
-          `<i>Tutti i dati sono sincronizzati in tempo reale con il database.</i>`;
+          `<i>Tutti i dati sono sincronizzati in tempo reale con il database.</i>\n\n` +
+          HELP_TEXT;
 
         await sendTelegramNotification(helpReply, chatId);
         return NextResponse.json({ ok: true });

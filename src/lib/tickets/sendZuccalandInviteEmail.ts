@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import fs from 'fs';
 import path from 'path';
 

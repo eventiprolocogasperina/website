@@ -165,45 +165,6 @@ function getDb() {
   return neon(process.env.POSTGRES_URL, { fetchOptions: { cache: 'no-store' } });
 }
 
-export async function ensureCashierOrdersTable(): Promise<void> {
-  try {
-    const sql = getDb();
-    await sql`
-      CREATE TABLE IF NOT EXISTS cashier_orders (
-        id              VARCHAR(255) PRIMARY KEY,
-        "eventId"       VARCHAR(255) NOT NULL,
-        "eventName"     VARCHAR(255) NOT NULL,
-        "orderNumber"   INTEGER NOT NULL,
-        "cassaName"     VARCHAR(100) NOT NULL DEFAULT 'Cassa 1',
-        "operatorName"  VARCHAR(100),
-        "totalAmount"   DECIMAL(10,2) NOT NULL,
-        "paymentMethod" VARCHAR(50) NOT NULL,
-        "cashReceived"  DECIMAL(10,2),
-        "cashChange"    DECIMAL(10,2),
-        "omaggioNote"   TEXT,
-        items           JSONB NOT NULL,
-        "departmentStatuses" JSONB,
-        status          VARCHAR(50) NOT NULL DEFAULT 'COMPLETED',
-        "createdAt"     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
-    `;
-    await sql`
-      ALTER TABLE cashier_orders ADD COLUMN IF NOT EXISTS "departmentStatuses" JSONB;
-    `;
-    await sql`
-      CREATE SEQUENCE IF NOT EXISTS cashier_order_seq START WITH 1 INCREMENT BY 1;
-    `;
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_cashier_orders_event ON cashier_orders("eventId");
-    `;
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_cashier_orders_created ON cashier_orders("createdAt");
-    `;
-  } catch (error) {
-    console.error('Failed to ensure cashier_orders table:', error);
-  }
-}
-
 // ─── Cashier Config Operations ───────────────────────────────────────────────
 
 export async function getCashierConfig(): Promise<CashierConfig> {
@@ -215,7 +176,6 @@ export async function saveCashierConfig(config: CashierConfig): Promise<boolean>
 }
 
 export async function resetCashierOrderSequence(eventId: string, startingNumber: number = 1): Promise<boolean> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
   const seqVal = Math.max(1, startingNumber);
 
@@ -228,7 +188,6 @@ export async function resetCashierOrderSequence(eventId: string, startingNumber:
 }
 
 export async function resetCashierReport(eventId: string): Promise<boolean> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
   await sql`DELETE FROM cashier_orders WHERE "eventId" = ${eventId}`;
 
@@ -256,7 +215,6 @@ export async function createCashierOrder(orderData: {
   items: CashierOrderItem[];
   isMasterCassa?: boolean; // True solo per la cassa principale (genera numeri progressivi)
 }): Promise<CashierOrder> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
 
   // Genera un ID univoco pulito per l'URL della ricevuta
@@ -395,7 +353,6 @@ export async function createCashierOrder(orderData: {
 }
 
 export async function getCashierOrderById(orderId: string): Promise<CashierOrder | null> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
   const rows = await sql`
     SELECT * FROM cashier_orders WHERE id = ${orderId} LIMIT 1
@@ -427,7 +384,6 @@ export async function getCashierOrders(eventId: string, options?: {
   date?: string;
   limit?: number;
 }): Promise<CashierOrder[]> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
   const limit = options?.limit || 100;
 
@@ -486,7 +442,6 @@ export async function getCashierOrders(eventId: string, options?: {
 }
 
 export async function updateCashierDepartmentStatus(orderId: string, department: string, status: DepartmentStatus): Promise<boolean> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
   const order = await getCashierOrderById(orderId);
   if (!order) return false;
@@ -510,7 +465,6 @@ export async function updateCashierDepartmentStatus(orderId: string, department:
 }
 
 export async function voidCashierOrder(orderId: string): Promise<boolean> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
   await sql`
     UPDATE cashier_orders
@@ -527,7 +481,6 @@ export async function getCashierStats(
   cassaNameOrOptions?: string | { cassaName?: string; date?: string },
   legacyDate?: string
 ): Promise<CashierStats> {
-  await ensureCashierOrdersTable();
   const sql = getDb();
 
   const cassaName = typeof cassaNameOrOptions === 'string' ? cassaNameOrOptions : cassaNameOrOptions?.cassaName;

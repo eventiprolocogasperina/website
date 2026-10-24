@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 export default function TicketPage() {
   return (
     <div style={{ maxWidth: '800px', margin: '6rem auto', padding: '0 1rem', textAlign: 'center' }}>
@@ -12,9 +14,9 @@ export default function TicketPage() {
         Grazie a tutti per aver partecipato!
       </p>
       <div style={{ marginTop: '2.5rem' }}>
-        <a href="/" className="btn btn-primary" style={{ padding: '0.8rem 1.5rem', display: 'inline-flex' }}>
+        <Link href="/" className="btn btn-primary" style={{ padding: '0.8rem 1.5rem', display: 'inline-flex' }}>
           Torna alla Home
-        </a>
+        </Link>
       </div>
     </div>
   );

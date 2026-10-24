@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 
 import { galleryItems } from '@/lib/data/gallery';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -34,6 +35,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requirePermission('content.edit');
+  if (denied) return denied;
   try {
     const sql = getDb();
     const body = await request.json();

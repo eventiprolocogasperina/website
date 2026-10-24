@@ -11,8 +11,8 @@ const footerLinks = {
   associazione: [
     { href: '/associazione', label: 'Chi Siamo' },
     { href: '/associazione#missione', label: 'Missione e Valori' },
-    { href: '/trasparenza', label: 'Trasparenza' },
     { href: '/privacy', label: 'Informativa Privacy' },
+    { href: '/trasparenza', label: 'Trasparenza sui dati' },
     { href: '/iscriviti', label: 'Diventa Socio' },
   ],
   territorio: [
@@ -23,8 +23,6 @@ const footerLinks = {
   ],
   partecipa: [
     { href: '/eventi', label: 'Tutti gli Eventi' },
-    { href: '/volontari', label: 'Diventa Volontario' },
-    { href: '/sostienici', label: 'Sostienici' },
     { href: '/contatti', label: 'Contattaci' },
     { href: '/admin', label: 'Admin' },
   ],
@@ -32,7 +30,7 @@ const footerLinks = {
 
 export default function Footer() {
   const pathname = usePathname();
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/cashier') || pathname?.startsWith('/assaggia-e-passeggia')) return null;
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/scanner') || pathname?.startsWith('/cashier') || pathname?.startsWith('/cassa') || pathname?.startsWith('/assaggia-e-passeggia')) return null;
   return (
     <footer style={{ background: 'var(--neutral-900)', borderTop: '1px solid var(--neutral-800)', paddingTop: '4rem' }}>
 
@@ -152,6 +150,8 @@ export default function Footer() {
           <div>
             <span>© {new Date().getFullYear()} Pro Loco Gasperina APS · C.F. 99330790793 · P.IVA 03923590792 · </span>
             <Link href="/privacy" style={{ color: 'var(--neutral-400)', textDecoration: 'underline' }}>Informativa Privacy (GDPR)</Link>
+            <span> · </span>
+            <Link href="/trasparenza" style={{ color: 'var(--neutral-400)', textDecoration: 'underline' }}>Trasparenza</Link>
           </div>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             Fatto con <Heart size={12} style={{ color: 'var(--gold-500)' }} fill="currentColor" /> in Calabria

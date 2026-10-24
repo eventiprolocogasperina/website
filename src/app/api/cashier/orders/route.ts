@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { createCashierOrder, getCashierOrders, voidCashierOrder } from '@/lib/data/cashier';
 import { broadcastCashierEvent } from '../realtime/route';
 import QRCode from 'qrcode';
+import { requirePos } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  const { denied, cassaEventId } = await requirePos();
+  if (denied) return denied;
   try {
     const data = await request.json();
     const {
@@ -25,6 +28,9 @@ export async function POST(request: Request) {
 
     const finalEventId = eventId || data.id;
     const finalEventName = eventName || data.name;
+    if (cassaEventId && finalEventId !== cassaEventId) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    }
 
     if (!finalEventId || !finalEventName || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -84,10 +90,15 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const { denied, cassaEventId } = await requirePos();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
     const cassaName = searchParams.get('cassaName') || undefined;
+    if (cassaEventId && eventId !== cassaEventId) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    }
 
     if (!eventId) {
       return NextResponse.json({ success: false, error: 'eventId richiesto' }, { status: 400 });
@@ -105,6 +116,8 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const { denied } = await requirePos();
+  if (denied) return denied;
   try {
     const { orderId } = await request.json();
     if (!orderId) {

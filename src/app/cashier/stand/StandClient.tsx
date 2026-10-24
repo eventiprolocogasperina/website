@@ -59,10 +59,19 @@ export default function StandClient() {
   const [lightMode, setLightMode] = useState(false);
   const [lastCount, setLastCount] = useState(0);
   const [sseConnected, setSseConnected] = useState(false);
+  // Le comande richiedono una sessione di cassa: se manca si chiede il codice evento.
+  const [needsCode, setNeedsCode] = useState(false);
+  const [eventCode, setEventCode] = useState('');
+  const [codeError, setCodeError] = useState('');
 
   const fetchComande = useCallback(async () => {
     try {
       const res = await fetch('/api/cashier/stand');
+      if (res.status === 401) {
+        setNeedsCode(true);
+        return;
+      }
+      setNeedsCode(false);
       const data = await res.json();
       if (data.success && Array.isArray(data.orders)) {
         const fetchedOrders: CashierOrder[] = data.orders;
@@ -104,6 +113,7 @@ export default function StandClient() {
 
   // Connect to SSE stream for Instant Realtime updates
   useEffect(() => {
+    if (needsCode) return;
     let eventSource: EventSource | null = null;
     try {
       eventSource = new EventSource('/api/cashier/realtime');
@@ -131,7 +141,28 @@ export default function StandClient() {
     return () => {
       if (eventSource) eventSource.close();
     };
-  }, [fetchComande, soundEnabled]);
+  }, [fetchComande, soundEnabled, needsCode]);
+
+  const submitEventCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCodeError('');
+    try {
+      const res = await fetch('/api/cashier/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventCode: eventCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setCodeError(data.error || 'Codice non valido');
+        return;
+      }
+      setNeedsCode(false);
+      fetchComande();
+    } catch {
+      setCodeError('Errore di connessione');
+    }
+  };
 
   const updateStatus = async (orderId: string, dept: string, status: DepartmentStatus) => {
     try {
@@ -208,6 +239,29 @@ export default function StandClient() {
   const cardBorder = lightMode ? '#e2e8f0' : '#1e293b';
   const textColor = lightMode ? '#0f172a' : '#f8fafc';
   const textMuted = lightMode ? '#64748b' : '#94a3b8';
+
+  if (needsCode) {
+    return (
+      <div style={{ minHeight: '100vh', background: bg, color: textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem', fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif' }}>
+        <form onSubmit={submitEventCode} style={{ width: '100%', maxWidth: 360, background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 16, padding: '1.75rem', textAlign: 'center' }}>
+          <ChefHat size={32} style={{ color: '#ea580c', marginBottom: '0.75rem' }} />
+          <h1 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 0.35rem' }}>Monitor comande</h1>
+          <p style={{ fontSize: '0.85rem', color: textMuted, margin: '0 0 1.25rem' }}>Inserisci il codice evento della cassa.</p>
+          <input
+            value={eventCode}
+            onChange={(e) => setEventCode(e.target.value.toUpperCase())}
+            placeholder="Codice evento"
+            autoFocus
+            style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: 10, border: `1px solid ${cardBorder}`, background: bg, color: textColor, fontSize: '1rem', textAlign: 'center', letterSpacing: '0.1em', boxSizing: 'border-box' }}
+          />
+          {codeError && <p style={{ color: '#ef4444', fontSize: '0.8rem', margin: '0.6rem 0 0' }}>{codeError}</p>}
+          <button type="submit" disabled={!eventCode.trim()} style={{ marginTop: '1rem', width: '100%', padding: '0.8rem', borderRadius: 10, border: 'none', background: '#ea580c', color: '#fff', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', opacity: eventCode.trim() ? 1 : 0.6 }}>
+            Apri comande
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: bg, color: textColor, padding: '1.25rem', fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif' }}>

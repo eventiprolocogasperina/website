@@ -2,6 +2,7 @@ export async function sendTelegramNotification(message: string, targetChatId?: s
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = targetChatId || process.env.TELEGRAM_CHAT_ID;
 
+  if (process.env.VERCEL_ENV === 'preview' && process.env.PREVIEW_ALLOW_TELEGRAM !== '1') return;
   if (!botToken || !chatId) {
     console.warn('Telegram non configurato. Variabili mancanti.');
     return;

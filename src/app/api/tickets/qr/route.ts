@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import QRCode from 'qrcode';
+import { requirePermission } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const denied = await requirePermission('orders.read');
+  if (denied) return denied;
   const { searchParams } = new URL(request.url);
   const data = searchParams.get('data') || searchParams.get('code');
 

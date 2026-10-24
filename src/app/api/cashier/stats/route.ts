@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getCashierStats } from '@/lib/data/cashier';
+import { requirePos } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const { denied, cassaEventId } = await requirePos();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId');
     const cassaName = searchParams.get('cassaName') || undefined;
     const date = searchParams.get('date') || undefined;
+    if (cassaEventId && eventId !== cassaEventId) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    }
 
     if (!eventId) {
       return NextResponse.json(

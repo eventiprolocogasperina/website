@@ -27,7 +27,6 @@ export default function BaguetteGame() {
         y: Math.floor(Math.random() * GRID_SIZE),
       };
       // Make sure food is not on snake
-      // eslint-disable-next-line no-loop-func
       const collision = currentSnake.some(segment => segment.x === newFood.x && segment.y === newFood.y);
       if (!collision) break;
     }

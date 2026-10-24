@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requirePermission('catalog.edit');
+  if (denied) return denied;
   try {
     const data = await req.json();
     const { code, type, value, max_uses, max_tickets, expiry_date, active } = data;
@@ -39,6 +42,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requirePermission('catalog.edit');
+  if (denied) return denied;
   try {
     const sql = getDb();
     await sql`DELETE FROM discounts WHERE id = ${(await params).id}`;

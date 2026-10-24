@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
 import { renderToBuffer } from '@react-pdf/renderer';
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 import { TicketPdfDocument, generateQrDataUri } from './TicketPdfDocument';
 import { getPageContent, DEFAULT_ASSAGGIA_CONTENT, type AssaggiaEPasseggiaContent } from '@/lib/data/pages';
@@ -291,7 +291,7 @@ function buildEmailHtml(order: OrderWithTickets, orderRef: string, ticketCount: 
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
                 <tr>
                   <td align="center" style="padding-bottom:10px;">
-                    <a href="${baseUrl}/assaggia-e-passeggia/success?order=${order.id}" style="display:inline-block;background:#1B4BAA;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:999px;">
+                    <a href="${baseUrl}/assaggia-e-passeggia/edizione-2026/success?order=${order.id}" style="display:inline-block;background:#1B4BAA;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;border-radius:999px;">
                       Visualizza Ricevuta Online
                     </a>
                   </td>

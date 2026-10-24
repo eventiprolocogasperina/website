@@ -3,15 +3,33 @@ import { createOrderWithTickets, markOrderPaid, getOrder, parseOrderNotes, getZu
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
 import { getPageContent, DEFAULT_ZUCCALAND_CONTENT, type ZuccalandContent } from '@/lib/data/pages';
+import { priceCartForOrder } from '@/server/domain/pricing/priceCartForOrder';
+import { PricingError, centsToEuro } from '@/server/domain/pricing/priceCart';
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { eventId, buyerName, buyerEmail, buyerPhone, totalAmount, discountId, cart, notes } = data;
+    // totalAmount, cart[].price e lo sconto calcolato dal browser non vengono usati:
+    // gli importi si ricalcolano qui dal listino ufficiale (priceCartForOrder).
+    const { eventId, buyerName, buyerEmail, buyerPhone, totalAmount: clientTotal, discountId, discountCode, cart, notes } = data;
 
-    if (!buyerName || !buyerEmail || !buyerPhone || totalAmount === undefined || !cart || cart.length === 0) {
+    if (!buyerName || !buyerEmail || !buyerPhone || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Dati incompleti' }, { status: 400 });
     }
+
+    let priced;
+    try {
+      priced = await priceCartForOrder({ eventId, lines: cart, discountCode, discountId });
+    } catch (err) {
+      if (err instanceof PricingError) {
+        const message = err.code === 'INVALID_DISCOUNT'
+          ? 'Il codice sconto non è più valido. Rimuovilo e riprova.'
+          : 'Il carrello non è valido. Ricarica la pagina e riprova.';
+        return NextResponse.json({ error: message, code: err.code }, { status: 400 });
+      }
+      throw err;
+    }
+    const totalAmount = centsToEuro(priced.totalCents);
 
     // Check Zuccaland date capacity and Sold Out status
     if (eventId === 'zuccaland-2026') {
@@ -101,39 +119,49 @@ export async function POST(request: Request) {
     // We generate a UUID, remove hyphens, and truncate to 30 chars.
     const orderId = crypto.randomUUID().replace(/-/g, '').substring(0, 30);
     
+    if (typeof clientTotal === 'number' && Math.round(clientTotal * 100) !== priced.totalCents) {
+      console.warn(JSON.stringify({
+        msg: 'orders: totale del client diverso da quello calcolato',
+        orderId,
+        clientTotalCents: Math.round(clientTotal * 100),
+        serverTotalCents: priced.totalCents,
+      }));
+    }
+
     const ticketsToCreate = [];
-    for (const item of cart) {
-      for (let i = 0; i < item.quantity; i++) {
+    for (const line of priced.lines) {
+      for (let i = 0; i < line.quantity; i++) {
         ticketsToCreate.push({
           eventId,
-          type: item.type,
-          price: item.price
+          type: line.type,
+          price: centsToEuro(line.unitPriceCents)
         });
       }
     }
 
-    const isFree = totalAmount === 0;
+    // Gratuito solo se il totale calcolato è 0 (prodotti a prezzo 0 o sconto del 100% valido).
+    const isFree = priced.totalCents === 0;
 
+    // Si crea sempre PENDING: markOrderPaid (qui sotto per gli omaggi, nel callback Nexi per gli
+    // altri) porta a PAID e conta l'utilizzo dello sconto una volta sola.
     await createOrderWithTickets({
       id: orderId,
       buyerName,
       buyerEmail,
       buyerPhone,
       totalAmount,
-      discountId,
+      discountId: priced.discountId,
       notes: notes || null,
-      status: isFree ? 'PAID' : 'PENDING'
+      status: 'PENDING'
     }, ticketsToCreate);
 
-    const ticketsSummary = cart.map((item: any) => `${item.quantity}x ${item.type}`).join(', ');
+    const ticketsSummary = priced.lines.map((line) => `${line.quantity}x ${line.type}`).join(', ');
     const notesSummary = notes ? `\n📝 <b>Note / Attività:</b> ${notes}` : '';
 
+    // Telegram: solo codice ordine, biglietti e importi, nessun dato personale del cliente.
     if (isFree) {
       await sendTelegramNotification(
         `🎉 <b>Nuovo Ordine (OMAGGIO)</b>\n\n` +
-        `👤 <b>Nome:</b> ${buyerName}\n` +
-        `📧 <b>Email:</b> ${buyerEmail}\n` +
-        `📞 <b>Tel:</b> ${buyerPhone}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
         notesSummary + '\n' +
         `💰 <b>Totale:</b> €0.00\n` +
@@ -149,9 +177,6 @@ export async function POST(request: Request) {
     } else {
       await sendTelegramNotification(
         `⏳ <b>Ordine Creato (In attesa di pagamento)</b>\n\n` +
-        `👤 <b>Nome:</b> ${buyerName}\n` +
-        `📧 <b>Email:</b> ${buyerEmail}\n` +
-        `📞 <b>Tel:</b> ${buyerPhone}\n` +
         `🎟 <b>Biglietti:</b> ${ticketsSummary}\n` +
         notesSummary + '\n' +
         `💰 <b>Totale:</b> €${totalAmount.toFixed(2)}\n` +

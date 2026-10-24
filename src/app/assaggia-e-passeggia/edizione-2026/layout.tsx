@@ -32,16 +32,16 @@ export default function AssaggiaPasseggiaLayout({
           </Link>
           
           <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Link href="/assaggia-e-passeggia" style={{ color: '#444', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500 }}>Home</Link>
-            <Link href="/assaggia-e-passeggia/ticket" style={{
-              background: '#283983', color: 'white', padding: '0.5rem 1.25rem', borderRadius: '999px',
-              textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600, transition: 'background 0.2s',
-              boxShadow: '0 4px 14px rgba(40, 57, 131, 0.3)',
+            <Link href="/assaggia-e-passeggia/edizione-2026" style={{ color: '#444', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500 }}>Home</Link>
+            {/* Vendita 2026 chiusa: al posto di "Acquista" (che portava a /ticket) */}
+            <span style={{
+              background: '#eef0f7', color: '#283983', padding: '0.5rem 1.25rem', borderRadius: '999px',
+              fontSize: '0.9rem', fontWeight: 600,
               textAlign: 'center',
               whiteSpace: 'nowrap'
             }}>
-              Acquista
-            </Link>
+              Edizione conclusa
+            </span>
             <Link href="/" style={{ color: '#888', textDecoration: 'none', fontSize: '0.8rem', borderLeft: '1px solid #ddd', paddingLeft: '1rem', whiteSpace: 'nowrap' }}>Sito principale</Link>
           </nav>
         </div>

@@ -1,0 +1,160 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792399550897,
+      "tag": "0000_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792399551791,
+      "tag": "0001_site_settings_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792402744597,
+      "tag": "0002_utenti_ruoli_dispositivi",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792402914707,
+      "tag": "0003_flag_codice_evento",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792408394872,
+      "tag": "0004_edizioni_catalogo",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792410119799,
+      "tag": "0005_ordini",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792410960382,
+      "tag": "0006_ordini_note_legacy",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792410961623,
+      "tag": "0007_viste_riconciliazione",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792413621152,
+      "tag": "0008_rinvii",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792434417227,
+      "tag": "0009_chiusura",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792435786593,
+      "tag": "0010_admin_cassa_scanner",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792435793912,
+      "tag": "0011_flag_pagine_nuove",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792440667994,
+      "tag": "0012_sito_pubblico",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792440669144,
+      "tag": "0013_sito_pubblico_dati",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792525603227,
+      "tag": "0014_pagine_blocchi",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792525909624,
+      "tag": "0015_notifiche_sistema",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792657525901,
+      "tag": "0016_cassa_altro_pin_abbinamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792691458634,
+      "tag": "0017_cassa_altro_per_cassa",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792745149431,
+      "tag": "0018_ordini_bozza",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792745403409,
+      "tag": "0019_costi_inventario",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792745578145,
+      "tag": "0020_permessi_dispositivi",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792749365752,
+      "tag": "0021_ricevute_private",
+      "breakpoints": true
+    }
+  ]
+}

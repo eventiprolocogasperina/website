@@ -19,7 +19,14 @@ const DEFAULT_TOPICS: SupportTopic[] = [
 
 export default function WhatsAppWidget() {
   const pathname = usePathname();
-  if (pathname?.startsWith('/cashier')) return null;
+  // Il widget non serve in cassa, né nel checkout e nei biglietti, dove coprirebbe la barra del totale.
+  // Il ritorno anticipato sta qui, prima degli hook del pannello.
+  const hidden = ['/cashier', '/cassa', '/admin', '/scanner', '/acquista', '/i-miei-biglietti'];
+  if (hidden.some((p) => pathname?.startsWith(p))) return null;
+  return <WhatsAppPanel pathname={pathname} />;
+}
+
+function WhatsAppPanel({ pathname }: { pathname: string | null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [topics, setTopics] = useState<SupportTopic[]>(DEFAULT_TOPICS);
   const [loading, setLoading] = useState(false);

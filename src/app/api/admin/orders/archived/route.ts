@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
 }
 
 export async function GET() {
+  const denied = await requirePermission('orders.read');
+  if (denied) return denied;
   try {
     const sql = getDb();
     const orders = await sql`SELECT * FROM orders WHERE "deletedAt" IS NOT NULL ORDER BY "deletedAt" DESC`;
@@ -27,6 +30,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const denied = await requirePermission('orders.edit');
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { orderId, action } = body;

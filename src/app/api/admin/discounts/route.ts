@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import crypto from 'crypto';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   return neon(process.env.POSTGRES_URL!);
 }
 
 export async function GET() {
+  const denied = await requirePermission('catalog.edit');
+  if (denied) return denied;
   try {
     const sql = getDb();
     const discounts = await sql`SELECT * FROM discounts ORDER BY created_at DESC`;
@@ -21,6 +24,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const denied = await requirePermission('catalog.edit');
+  if (denied) return denied;
   try {
     const data = await req.json();
     const { code, type, value, max_uses, max_tickets, expiry_date, active, applies_to } = data;
@@ -30,8 +35,7 @@ export async function POST(req: Request) {
     }
 
     const sql = getDb();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const id = require('crypto').randomUUID();
+    const id = crypto.randomUUID();
 
     await sql`
       INSERT INTO discounts (id, code, type, value, max_uses, max_tickets, current_uses, expiry_date, active, applies_to)

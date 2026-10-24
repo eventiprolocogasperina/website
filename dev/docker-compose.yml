@@ -1,0 +1,31 @@
+# Database locale per sviluppo e test (NON è il database del sito).
+# Avvio:   docker compose -f dev/docker-compose.yml up -d
+# Stop:    docker compose -f dev/docker-compose.yml down
+# Azzera:  docker compose -f dev/docker-compose.yml down -v   (cancella i dati di prova)
+name: proloco-dev
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: main
+    ports: ["5432:5432"]
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro   # schema e dati finti caricati al primo avvio
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d main"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  neon-proxy:
+    build: ./neon-proxy
+    environment:
+      PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/main
+    ports: ["4444:4444"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  db_data:

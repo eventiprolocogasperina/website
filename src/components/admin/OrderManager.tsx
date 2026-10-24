@@ -21,10 +21,11 @@ function getOrderEventId(order: OrderWithTickets): 'zuccaland-2026' | 'assaggia-
   return 'assaggia-passeggia';
 }
 
-export default function OrderManager() {
+/** `initialSearch`: testo di ricerca iniziale, es. dalla palette ⌘K (/admin/ordini?q=…). */
+export default function OrderManager({ initialSearch = '' }: { initialSearch?: string } = {}) {
   const [orders, setOrders] = useState<OrderWithTickets[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [filterStatus, setFilterStatus] = useState('all');
   
   // Navigation tabs: 'all' | 'zuccaland-2026' | 'assaggia-passeggia'
@@ -1884,7 +1885,7 @@ export default function OrderManager() {
               </button>
               
               <a
-                href="/admin/email-preview"
+                href="/admin/sistema/email"
                 target="_blank"
                 className="btn btn-outline"
                 style={{ fontSize: '0.8rem', padding: '0.45rem 1rem', borderColor: 'var(--neutral-600)', color: 'var(--neutral-400)' }}

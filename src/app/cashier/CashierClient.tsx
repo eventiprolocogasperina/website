@@ -168,9 +168,34 @@ function getThemeTokens(light: boolean) {
   };
 }
 
+// ─── Sessione di cassa ────────────────────────────────────────────────────────
+
+// Le rotte /api/cashier richiedono la sessione aperta con il codice evento (cookie httpOnly).
+// Se è scaduta, la riapre con il codice salvato su questo dispositivo e ripete la richiesta.
+async function cashierFetch(input: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(input, init);
+  if (res.status !== 401) return res;
+  const savedCode = localStorage.getItem('cashier_event_code');
+  // Dispositivo abbinato: la sessione PIN è scaduta (30 minuti senza attività), si torna al PIN.
+  if (!savedCode && document.body.dataset.fieldPin === '1') {
+    window.location.reload();
+    return res;
+  }
+  if (!savedCode) return res;
+  const auth = await fetch('/api/cashier/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventCode: savedCode }),
+  });
+  return auth.ok ? fetch(input, init) : res;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function CashierClient() {
+/** Volontario entrato con dispositivo abbinato e PIN (prompt 07). Senza, si usa il codice evento. */
+export type CashierFieldAccess = { operatorName: string; logout: () => Promise<void> };
+
+export default function CashierClient({ field = null }: { field?: CashierFieldAccess | null }) {
   // Session
   const [eventCode, setEventCode] = useState('');
   const [cassaName, setCassaName] = useState('Cassa 1');
@@ -304,8 +329,9 @@ export default function CashierClient() {
     const savedOperator = localStorage.getItem('cashier_operator_name') || '';
     const savedLight = localStorage.getItem('cashier_light_mode') === 'true';
     setCassaName(savedCassa);
-    setOperatorName(savedOperator);
+    setOperatorName(field ? field.operatorName : savedOperator);
     setIsLight(savedLight);
+    if (field) { document.body.dataset.fieldPin = '1'; authenticateDevice(); return; }
     if (savedCode) { setEventCode(savedCode); authenticateSession(savedCode, false); }
   }, []);
 
@@ -314,6 +340,33 @@ export default function CashierClient() {
       localStorage.setItem('cashier_light_mode', String(!v));
       return !v;
     });
+  };
+
+  const applyEvent = (ev: any) => {
+    setSession({
+      ...ev,
+      id: ev.id || ev.eventId,
+      eventId: ev.eventId || ev.id,
+      name: ev.name || ev.eventName,
+      eventName: ev.eventName || ev.name,
+      casses: ev.casses,
+      masterCassa: ev.masterCassa,
+      enableDepartments: ev.enableDepartments,
+      cassaAssignments: ev.cassaAssignments,
+      startingNumber: ev.startingNumber,
+    });
+  };
+
+  // Dispositivo abbinato + PIN: l'evento è quello dell'edizione del dispositivo, niente codice.
+  const authenticateDevice = async () => {
+    setLoadingSession(true); setLoginError('');
+    try {
+      const res = await fetch('/api/cashier/session', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.event) applyEvent(data.event);
+      else setLoginError(data.error || 'La cassa di questa edizione non è configurata.');
+    } catch (err: any) { setLoginError(err.message || 'Errore di connessione'); }
+    finally { setLoadingSession(false); }
   };
 
   const authenticateSession = async (codeToUse: string, isManualSubmit = true) => {
@@ -326,19 +379,7 @@ export default function CashierClient() {
       });
       const data = await res.json();
       if (data.success && data.event) {
-        const ev = data.event;
-        setSession({
-          ...ev,
-          id: ev.id || ev.eventId,
-          eventId: ev.eventId || ev.id,
-          name: ev.name || ev.eventName,
-          eventName: ev.eventName || ev.name,
-          casses: ev.casses,
-          masterCassa: ev.masterCassa,
-          enableDepartments: ev.enableDepartments,
-          cassaAssignments: ev.cassaAssignments,
-          startingNumber: ev.startingNumber,
-        });
+        applyEvent(data.event);
         localStorage.setItem('cashier_event_code', codeToUse.trim().toUpperCase());
         localStorage.setItem('cashier_cassa_name', cassaName);
         if (operatorName) localStorage.setItem('cashier_operator_name', operatorName);
@@ -351,6 +392,13 @@ export default function CashierClient() {
   };
 
   const handleLogout = () => {
+    if (field) {
+      if (confirm('Vuoi uscire? Il prossimo volontario entrerà con il suo PIN.')) {
+        setSession(null); setCart({}); setCompletedOrder(null);
+        field.logout();
+      }
+      return;
+    }
     if (confirm('Vuoi davvero uscire dalla sessione cassa corrente?')) {
       localStorage.removeItem('cashier_event_code');
       setSession(null); setCart({}); setCompletedOrder(null);
@@ -359,6 +407,7 @@ export default function CashierClient() {
 
   const refreshMenu = async () => {
     if (!session) return;
+    if (field) { await authenticateDevice(); return; }
     const savedCode = localStorage.getItem('cashier_event_code') || eventCode;
     if (savedCode) await authenticateSession(savedCode, false);
   };
@@ -403,7 +452,7 @@ export default function CashierClient() {
     const newStatus = !item.isAvailable;
     if (!confirm(newStatus ? `Rendere DISPONIBILE "${item.name}"?` : `Segnare come ESAURITO "${item.name}"?`)) return;
     try {
-      const res = await fetch('/api/cashier/item-status', {
+      const res = await cashierFetch('/api/cashier/item-status', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventId: session.eventId || session.id, itemId: item.id, isAvailable: newStatus })
       });
@@ -466,7 +515,7 @@ export default function CashierClient() {
     const masterCassa = session.masterCassa || session.casses?.[0] || 'Cassa 1';
     const isMasterCassa = cassaName.trim() === masterCassa.trim();
     try {
-      const res = await fetch('/api/cashier/orders', {
+      const res = await cashierFetch('/api/cashier/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventId: session.eventId || session.id,
@@ -508,7 +557,7 @@ export default function CashierClient() {
     if (!session) return; setLoadingZStats(true);
     try {
       const url = `/api/cashier/stats?eventId=${session.eventId || session.id}${cassaFilter !== 'all' ? `&cassaName=${encodeURIComponent(cassaFilter)}` : ''}`;
-      const res = await fetch(url); const data = await res.json();
+      const res = await cashierFetch(url); const data = await res.json();
       if (data.success && data.stats) setZStats(data.stats);
     } catch (err) { console.error(err); }
     finally { setLoadingZStats(false); }
@@ -519,7 +568,7 @@ export default function CashierClient() {
   const fetchRecentOrders = async () => {
     if (!session) return; setLoadingHistory(true);
     try {
-      const res = await fetch(`/api/cashier/orders?eventId=${session.eventId || session.id}&cassaName=${encodeURIComponent(cassaName)}`);
+      const res = await cashierFetch(`/api/cashier/orders?eventId=${session.eventId || session.id}&cassaName=${encodeURIComponent(cassaName)}`);
       const data = await res.json();
       if (data.success && data.orders) setRecentOrders(data.orders);
     } catch (err) { console.error(err); }
@@ -530,7 +579,7 @@ export default function CashierClient() {
     if (!confirm(`Vuoi ANNULLARE l'ordine #${String(ord.orderNumber).padStart(3, '0')} (${ord.items.map(i => `${i.quantity}x ${i.name}`).join(', ')} - €${Number(ord.totalAmount).toFixed(2)})?\n\nQuesta operazione NON può essere annullata.`)) return;
     setVoidingOrderId(ord.id);
     try {
-      const res = await fetch('/api/cashier/orders', {
+      const res = await cashierFetch('/api/cashier/orders', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId: ord.id })
       });

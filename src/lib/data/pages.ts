@@ -1,3 +1,4 @@
+import { log } from '@/server/log';
 import { neon } from '@neondatabase/serverless';
 
 export interface TappaRecipe {
@@ -268,7 +269,7 @@ export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
     logoUrl: '/img/LogoAP_GA_nero.png',
     heroVideoUrl: '', // Default vuoto
     ctaText: 'Acquista il tuo Biglietto',
-    ctaLink: '/assaggia-e-passeggia/ticket',
+    ctaLink: '/assaggia-e-passeggia/edizione-2026/ticket',
   },
   story: {
     title: 'La nostra Storia',
@@ -303,7 +304,7 @@ export const DEFAULT_ASSAGGIA_CONTENT: AssaggiaEPasseggiaContent = {
     subtitle: 'Acquista ora il tuo ticket in prevendita. I posti sono limitati per garantire la migliore esperienza.',
     priceInfo: '17€',
     ctaText: "Procedi all'Acquisto",
-    ctaLink: '/assaggia-e-passeggia/ticket',
+    ctaLink: '/assaggia-e-passeggia/edizione-2026/ticket',
   },
   faqs: [
     {
@@ -335,8 +336,10 @@ export async function getPageContent<T>(slug: string, defaultData: T): Promise<T
     
     return defaultData;
   } catch (error) {
-    console.error(`Failed to get page content for ${slug}:`, error);
-    return defaultData; // Fallback in caso di errore (o se la tabella non esiste ancora)
+    // Niente fallback silenzioso: con i valori predefiniti (date, limiti, prezzi) il sito
+    // mostrerebbe disponibilità sbagliate. La pagina mostra error.tsx.
+    log.error('Failed to get page content', { slug, error });
+    throw error;
   }
 }
 
@@ -355,7 +358,7 @@ export async function savePageContent<T>(slug: string, content: T): Promise<bool
     
     return true;
   } catch (error) {
-    console.error(`Failed to save page content for ${slug}:`, error);
+    log.error('Failed to save page content', { slug, error });
     return false;
   }
 }

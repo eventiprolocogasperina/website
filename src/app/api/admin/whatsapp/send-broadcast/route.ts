@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requirePermission } from '@/server/auth/context';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) throw new Error('Missing POSTGRES_URL');
@@ -42,6 +43,8 @@ function interpolateMessage(
 }
 
 export async function POST(request: Request) {
+  const denied = await requirePermission('customers.read');
+  if (denied) return denied;
   try {
     const body = await request.json();
     const {
@@ -124,6 +127,10 @@ export async function POST(request: Request) {
           });
         }
       }
+    }
+
+    if (process.env.VERCEL_ENV === 'preview') {
+      return NextResponse.json({ success: false, error: 'WhatsApp disattivato sul Preview.' }, { status: 400 });
     }
 
     if (recipients.length === 0) {

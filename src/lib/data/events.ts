@@ -1,3 +1,4 @@
+import { log } from '@/server/log';
 import { neon } from '@neondatabase/serverless';
 
 export interface EventSection {
@@ -102,8 +103,8 @@ export async function getAllEvents(): Promise<Event[]> {
     const events = await sql`SELECT * FROM events ORDER BY date DESC`;
     return events as Event[];
   } catch (error) {
-    console.error('Failed to get all events:', error);
-    return [];
+    log.error('Failed to get all events', { error });
+    throw error;
   }
 }
 
@@ -114,8 +115,8 @@ export async function getUpcomingEvents(): Promise<Event[]> {
     const events = await sql`SELECT * FROM events WHERE date >= ${today} ORDER BY date ASC`;
     return events as Event[];
   } catch (error) {
-    console.error('Failed to get upcoming events:', error);
-    return [];
+    log.error('Failed to get upcoming events', { error });
+    throw error;
   }
 }
 
@@ -125,8 +126,8 @@ export async function getEventBySlug(slug: string): Promise<Event | undefined> {
     const events = await sql`SELECT * FROM events WHERE slug = ${slug} LIMIT 1`;
     return events.length > 0 ? (events[0] as Event) : undefined;
   } catch (error) {
-    console.error('Failed to get event by slug:', error);
-    return undefined;
+    log.error('Failed to get event by slug', { error });
+    throw error;
   }
 }
 

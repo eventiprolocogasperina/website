@@ -3,8 +3,11 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { createElement } from 'react';
 import { BookingManifestPdfDocument } from '@/lib/pdf/BookingManifestPdf';
 import { type OrderWithTickets } from '@/lib/data/tickets';
+import { requirePermission } from '@/server/auth/context';
 
 export async function POST(request: Request) {
+  const denied = await requirePermission('reports.export');
+  if (denied) return denied;
   try {
     const body = await request.json();
     const orders = (body.orders || []) as OrderWithTickets[];

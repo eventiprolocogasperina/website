@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requirePermission } from '@/server/auth/context';
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requirePermission('orders.edit');
+  if (denied) return denied;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -42,6 +45,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requirePermission('orders.cancel');
+  if (denied) return denied;
   try {
     const { id } = await params;
     const sql = neon(process.env.POSTGRES_URL!);

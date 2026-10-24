@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import { SafeResend as Resend } from '@/server/email/resend';
 import { type OrderWithTickets, parseOrderNotes } from '@/lib/data/tickets';
 import { sendTelegramNotification } from '@/lib/telegram';
 import fs from 'fs';
@@ -414,8 +414,6 @@ export async function sendPayLinkEmail(
   sendTelegramNotification(
     `📤 <b>Pay-by-Link INVIATO via Email</b>\n\n` +
       `🎪 <b>Evento:</b> ${eventEmoji} ${eventTitle}\n` +
-      `👤 <b>Cliente:</b> ${order.buyerName}\n` +
-      `📧 <b>Inviato a:</b> ${order.buyerEmail}\n` +
       `💰 <b>Importo da saldare:</b> €${order.totalAmount.toFixed(2)}\n` +
       `🔗 <b>Rif. Ordine:</b> #${orderRef}`
   ).catch((err) => console.error('Telegram send-email notification error:', err));

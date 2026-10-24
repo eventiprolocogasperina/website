@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
+import { requireCheckin, requirePermission } from '@/server/auth/context';
 
 export async function POST(request: Request) {
+  const denied = (await requirePermission('orders.edit')) && (await requireCheckin()).denied;
+  if (denied) return denied;
   try {
     const { orderId, amount, description } = await request.json();
     

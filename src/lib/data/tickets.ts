@@ -1,3 +1,4 @@
+import { log } from '@/server/log';
 import { neon } from '@neondatabase/serverless';
 
 export interface Order {
@@ -94,12 +95,6 @@ export async function getOrder(id: string): Promise<OrderWithTickets | null> {
 export async function toggleOrderBlacklist(orderId: string, isBlacklisted: boolean, reason?: string) {
   const sql = getDb();
   await sql`
-    ALTER TABLE orders 
-    ADD COLUMN IF NOT EXISTS "isBlacklisted" BOOLEAN DEFAULT false,
-    ADD COLUMN IF NOT EXISTS "blacklistReason" TEXT,
-    ADD COLUMN IF NOT EXISTS "blacklistedAt" TIMESTAMP;
-  `;
-  await sql`
     UPDATE orders 
     SET "isBlacklisted" = ${isBlacklisted},
         "blacklistReason" = ${reason || null},
@@ -113,16 +108,17 @@ export async function markOrderPaid(orderId: string, nexiMac?: string) {
   const sql = getDb();
   const paidAt = new Date().toISOString();
   
-  await sql`
+  // Solo il passaggio a PAID conta l'utilizzo dello sconto: un callback Nexi ripetuto
+  // (o un ordine già pagato) non lo incrementa una seconda volta.
+  const updated = await sql`
     UPDATE orders 
     SET status = 'PAID', "paidAt" = ${paidAt}, "nexiMac" = COALESCE("nexiMac", ${nexiMac || null})
-    WHERE id = ${orderId}
+    WHERE id = ${orderId} AND status IS DISTINCT FROM 'PAID'
+    RETURNING "discountId"
   `;
-  
-  // Increment discount uses if a discount was applied
-  const orders = await sql`SELECT "discountId" FROM orders WHERE id = ${orderId}`;
-  if (orders.length > 0 && orders[0].discountId) {
-    await incrementDiscountUses(orders[0].discountId);
+
+  if (updated.length > 0 && updated[0].discountId) {
+    await incrementDiscountUses(updated[0].discountId);
   }
 }
 
@@ -270,7 +266,7 @@ export async function verifyTicketByQR(qrCodeData: string): Promise<{
 
   if (ticket.isCheckedIn) {
     const stats = await getTicketingStats(ticket.eventId || 'assaggia-e-passeggia-2024');
-    let dateStr = ticket.checkInTime ? new Date(ticket.checkInTime).toLocaleString('it-IT') : 'in precedenza';
+    const dateStr = ticket.checkInTime ? new Date(ticket.checkInTime).toLocaleString('it-IT') : 'in precedenza';
     return { 
       success: false, 
       message: `Questo biglietto è già stato utilizzato.\n(Validato il: ${dateStr})`, 
@@ -701,7 +697,9 @@ export async function getZuccalandDateCounts(): Promise<ZuccalandDateCounts> {
       }
     }
   } catch (error) {
-    console.error('Failed to get Zuccaland date counts:', error);
+    // Contatori a zero farebbero vendere oltre la capienza: meglio fallire.
+    log.error('Failed to get Zuccaland date counts', { error });
+    throw error;
   }
 
   return counts;
@@ -905,6 +903,6 @@ export async function incrementDiscountUses(id: string) {
   await sql`
     UPDATE discounts 
     SET current_uses = current_uses + 1 
-    WHERE id = ${id}
+    WHERE id = ${id} AND (COALESCE(max_uses, 0) = 0 OR current_uses < max_uses)
   `;
 }
