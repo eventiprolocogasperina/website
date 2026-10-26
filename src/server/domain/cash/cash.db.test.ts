@@ -13,7 +13,7 @@ import { getPosCatalog } from './catalog';
 import { departmentQueue, readyNumbers, setPrepStatus } from './departments';
 import { saveRegister } from './registers';
 import { cashReport, reportCsv } from './report';
-import { sell, type SellInput } from './sales';
+import { recentSales, sell, type SellInput } from './sales';
 import { closeSession, openSession, sessionSummary } from './sessions';
 import { voidSale } from './void';
 import { changeSaleMethod, findSalesByNumber } from './correct';
@@ -157,6 +157,8 @@ describe.skipIf(!enabled)('cassa sul database', () => {
     if (r.number !== null) {
       const found = await findSalesByNumber(owner, f.slug, r.number);
       expect(found.find((x) => x.orderId === r.orderId)).toMatchObject({ method: 'cash', voided: false });
+      // Anche dal tablet, cercando il numero sulla stessa cassa.
+      expect((await recentSales(f.slug, sessionId, 30, r.number)).map((x) => x.orderId)).toContain(r.orderId);
     }
     expect(await errorCode(changeSaleMethod(phone1, { orderId: r.orderId, method: 'card_pos', reason: 'Pagato col POS' }))).toBe('FORBIDDEN');
     expect(await errorCode(changeSaleMethod(owner, { orderId: r.orderId, method: 'cash', reason: 'Nessun cambio' }))).toBe('CONFLICT');
