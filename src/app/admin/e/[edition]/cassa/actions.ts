@@ -4,6 +4,7 @@ import { runAction } from '@/server/admin/run-action';
 import { DomainError } from '@/server/domain/errors';
 import { listDevices, revokeDevice } from '@/server/domain/devices';
 import { resetOrderNumbering, saveRegister, setRegisterActive, type RegisterInput } from '@/server/domain/cash/registers';
+import { changeSaleMethod, findSalesByNumber, type CorrectableMethod } from '@/server/domain/cash/correct';
 
 // Azioni della pagina Cassa dell'admin (prompt 14). I permessi li controllano i servizi.
 
@@ -30,4 +31,12 @@ export async function revokePosDeviceAction(edition: string, deviceId: string) {
     if (!device || device.edition !== edition) throw new DomainError('NOT_FOUND', { message: 'Dispositivo non trovato in questa edizione.' });
     await revokeDevice(ctx, deviceId);
   });
+}
+
+export async function findSalesByNumberAction(edition: string, number: number) {
+  return runAction([], (ctx) => findSalesByNumber(ctx, edition, number));
+}
+
+export async function changeSaleMethodAction(edition: string, orderId: string, method: CorrectableMethod, reason: string) {
+  return runAction(paths(edition), (ctx) => changeSaleMethod(ctx, { orderId, method, reason }));
 }

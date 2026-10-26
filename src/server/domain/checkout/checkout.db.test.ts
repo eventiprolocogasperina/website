@@ -1,8 +1,8 @@
 // Checkout pubblico e pagamento Nexi su un Postgres vero (npm run test:db): ordine online, esito firmato,
 // esito doppio, importo sbagliato, firma falsa, carta rifiutata, "I miei biglietti" e cambio data del cliente.
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { editions, ordersV2, payments } from '@/server/db/schema';
+import { editions, ordersV2, payments, sessions } from '@/server/db/schema';
 import { DomainError } from '@/server/domain/errors';
 import { resultMac } from '@/server/integrations/nexi/mac';
 import { anon, buyer, createDiscount, createEdition, key, type Fixture } from '@/test/fixtures';
@@ -58,6 +58,8 @@ describe.skipIf(!enabled)('checkout pubblico e Nexi', () => {
 
   beforeAll(async () => {
     f = await createEdition();
+    // Le date della fixture sono quelle di Zuccaland 2026: per la vendita online devono essere ancora nel futuro.
+    await getDb().update(sessions).set({ startsAt: sql`${sessions.startsAt} + interval '5 years'` }).where(eq(sessions.editionId, f.edition.id));
   });
   afterAll(async () => {
     await closeTestDb();

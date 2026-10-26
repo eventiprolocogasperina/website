@@ -37,7 +37,7 @@ export type AdminDevice = DeviceRow;
 
 export type CashAdminData = {
   edition: { slug: string; title: string; status: string; readOnly: boolean; departmentsModule: boolean; readyScreen: boolean };
-  can: { edit: boolean; report: boolean; devices: boolean };
+  can: { edit: boolean; report: boolean; devices: boolean; correct: boolean };
   registers: AdminRegister[];
   products: AdminPosProduct[];
   nextNumber: number;

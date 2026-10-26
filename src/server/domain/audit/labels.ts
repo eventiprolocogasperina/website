@@ -95,6 +95,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'cash.session_opened': 'Turno di cassa aperto',
   'cash.session_closed': 'Turno di cassa chiuso (chiusura Z)',
   'cash.sale_voided': 'Contributo annullato in cassa',
+  'cash.sale_method_changed': 'Metodo di un contributo corretto',
   'cash.prep_status': 'Comanda spostata nel reparto',
   'checkin_list.deleted': 'Lista di check-in eliminata',
   'order.scanner_action': 'Pulsante dello scanner (es. +1 Bambino)',
