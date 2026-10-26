@@ -26,7 +26,7 @@ export function CorrectSaleCard({ edition }: { edition: string }) {
     setSearching(true);
     const res = await findSalesByNumberAction(edition, n);
     setSearching(false);
-    if (res.ok) setFound(res.data);
+    if (res.ok) setFound(res.data ?? []);
     else toast.error(res.error);
   };
 
@@ -68,7 +68,7 @@ function SaleRow({ edition, sale, onDone }: { edition: string; sale: SaleLookup;
     setSaving(true);
     const res = await changeSaleMethodAction(edition, sale.orderId, method, reason);
     setSaving(false);
-    if (!res.ok) return toast.error(res.error);
+    if (!res.ok || !res.data) return toast.error(res.ok ? 'Correzione non riuscita.' : res.error);
     toast.success(`Vendita ${sale.number ?? sale.code}: ora ${label(res.data.to)}`);
     setReason('');
     onDone(res.data.to);
