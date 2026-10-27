@@ -1,6 +1,8 @@
 import type { BlockType } from '@/components/public/blocks/schema';
 import { ALBUMS } from '@/lib/data/albums';
 
+const ALBUM_OPTIONS = [{ value: 'nessuno', label: 'Nessun album' }, ...ALBUMS.map((a) => ({ value: a.name, label: `${a.name} (${a.count} foto)` }))];
+
 /*
  * Come si modifica ogni blocco nell'editor: etichetta, a cosa serve e i campi del modulo nella Sheet.
  * I vincoli (lunghezze, link validi) restano nello schema zod; qui solo la presentazione.
@@ -94,7 +96,7 @@ export const BLOCK_META: Record<BlockType, BlockMeta> = {
         label: 'Album di foto',
         kind: 'select',
         help: 'Le cartelle di foto webp del sito. Un album nuovo si crea con npm run foto.',
-        options: [{ value: 'nessuno', label: 'Nessun album' }, ...ALBUMS.map((a) => ({ value: a.name, label: `${a.name} (${a.count} foto)` }))],
+        options: ALBUM_OPTIONS,
       },
       { key: 'photos', label: 'Foto scelte', kind: 'list', item: 'Foto', fields: [{ key: 'src', label: 'Immagine', kind: 'image' }, { key: 'alt', label: 'Descrizione', kind: 'text' }] },
       { key: 'limit', label: 'Quante foto mostrare all’inizio', kind: 'number', help: 'Le altre si aprono con “Mostra altre foto”.' },
@@ -169,6 +171,20 @@ export const BLOCK_META: Record<BlockType, BlockMeta> = {
     ],
   },
   Edizioni: { label: 'Edizioni passate', description: 'Link alle altre edizioni del format.', fields: [title] },
+  Ricordi: {
+    label: 'Grazie e ricordi',
+    description: 'Fine edizione: “Grazie!” sulle foto che scorrono, poi tutta la galleria e la recensione.',
+    fields: [
+      { key: 'title', label: 'Titolo grande', kind: 'text', help: 'Vuoto = Grazie!' },
+      { key: 'text', label: 'Testo sotto il titolo', kind: 'textarea' },
+      { key: 'album', label: 'Album di foto', kind: 'select', options: ALBUM_OPTIONS },
+      { key: 'category', label: 'Categoria della galleria', kind: 'text', help: 'Facoltativa, si aggiunge all’album.' },
+      { key: 'galleryTitle', label: 'Titolo della galleria', kind: 'text', help: 'Vuoto = I Ricordi' },
+      { key: 'gallerySubtitle', label: 'Sottotitolo della galleria', kind: 'text' },
+      { key: 'accent', label: 'Colore del titolo', kind: 'color', help: 'Vuoto = oro.' },
+      { key: 'reviewSource', label: 'Recensioni di', kind: 'text', help: 'Es. assaggia-passeggia o zuccaland. Vuoto = niente pulsante “Lascia una recensione”.' },
+    ],
+  },
   Avvisami: {
     label: 'Avvisami',
     description: 'Prossima edizione e iscrizione all’avviso di apertura vendite.',

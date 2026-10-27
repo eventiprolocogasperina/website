@@ -6,7 +6,9 @@ import { getDb } from '@/server/db/client';
 import { editions, ordersV2, ticketsV2 } from '@/server/db/schema';
 import { EDITION_STATUS_LABELS } from '@/server/domain/editions/types';
 import { editionStats, SOLD_STATUSES } from '@/server/domain/stats';
+import { checkHealth, healthMessage } from './health';
 import { escapeHtml } from './messages';
+import { runningEditions, todayReport } from './reports';
 
 // Comandi generici del bot Telegram (prompt 18): `/stats [edizione]`, `/ordini [edizione]`, `/edizioni`.
 // Affiancano quelli di oggi (/statszuccaland, /stats senza argomento = A&P, …), che il webhook prova
@@ -24,7 +26,7 @@ export function parseCommand(text: string): ParsedCommand {
  * senza argomento, `/stats …zucca…` e i comandi con il nome dell'evento.
  */
 export function isGenericCommand({ cmd, arg }: ParsedCommand): boolean {
-  if (cmd === '/edizioni' || cmd === '/aiuto') return true;
+  if (cmd === '/edizioni' || cmd === '/aiuto' || cmd === '/oggi' || cmd === '/stato') return true;
   if (cmd === '/stats') return !!arg && !arg.includes('zucca');
   if (cmd === '/ordini') return !!arg;
   return false;
@@ -53,13 +55,23 @@ export const HELP_TEXT =
   `🤖 <b>Comandi per tutte le edizioni</b>\n\n` +
   `▪️ /edizioni — elenco delle edizioni e del loro stato\n` +
   `▪️ /stats &lt;edizione&gt; — ordini, biglietti e incasso (es. /stats zuccaland-2026)\n` +
-  `▪️ /ordini &lt;edizione&gt; — ultimi 10 ordini pagati, solo codici e importi`;
+  `▪️ /ordini &lt;edizione&gt; — ultimi 10 ordini pagati, solo codici e importi\n` +
+  `▪️ /oggi [edizione] — la giornata di oggi: online, cassa per cassa e metodo, ingressi, posti\n` +
+  `▪️ /stato — stato del sito: database, pulizia notturna, bot, configurazione, versione`;
 
 /** Risposta a un comando generico, in HTML per Telegram. */
 export async function answerCommand(parsed: ParsedCommand): Promise<string> {
   const { cmd, arg } = parsed;
   if (cmd === '/aiuto') return HELP_TEXT;
+  if (cmd === '/stato') return healthMessage(await checkHealth());
   const rows = await visibleEditions();
+
+  if (cmd === '/oggi') {
+    // Senza argomento: l'edizione in corso, altrimenti la prossima che vende.
+    const edition = arg ? matchEdition(rows, arg) : (await runningEditions())[0];
+    if (!edition) return arg ? NOT_FOUND(arg) : 'ℹ️ Nessuna edizione in corso o in vendita. Scrivi /oggi &lt;edizione&gt;.';
+    return todayReport(edition);
+  }
 
   if (cmd === '/edizioni') {
     if (!rows.length) return 'ℹ️ Nessuna edizione pubblicata.';

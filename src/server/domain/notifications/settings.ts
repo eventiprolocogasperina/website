@@ -15,6 +15,8 @@ export const NOTIFICATION_TYPES = [
   { key: 'paymentProblem', label: 'Pagamento non riuscito', description: 'Pagamento rifiutato o con importo diverso dal totale.' },
   { key: 'refundRequested', label: 'Richiesta di rimborso', description: 'Un cliente o lo staff chiede un rimborso.' },
   { key: 'cashDifference', label: 'Turno di cassa con differenza', description: 'Chiusura Z con contanti diversi dall’atteso.' },
+  { key: 'capacity', label: 'Date quasi piene', description: 'Una data supera l’80% dei posti e quando va esaurita.' },
+  { key: 'dailySummary', label: 'Riepilogo serale', description: 'Ogni sera, mentre l’edizione vende: ordini e incasso del giorno, posti rimasti.' },
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]['key'];

@@ -86,6 +86,18 @@ export const BLOCK_SCHEMAS = {
   }),
   Edizioni: z.object({ title: str(120) }),
   Avvisami: z.object({ title: str(120), text: str(400), nextDate: str(80) }),
+  /** Pagina "Grazie" di fine edizione: copertina con le foto, galleria che si carica scorrendo, recensione. */
+  Ricordi: z.object({
+    title: str(80),
+    text: str(400),
+    galleryTitle: str(120),
+    gallerySubtitle: str(300),
+    album: str(60),
+    category: str(50),
+    accent: str(30),
+    /** Dove si salvano le recensioni (es. assaggia-passeggia); vuoto = niente pulsante. */
+    reviewSource: str(80),
+  }),
 } as const;
 
 export type BlockType = keyof typeof BLOCK_SCHEMAS;

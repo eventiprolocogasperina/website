@@ -3,10 +3,19 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
-const { amountMismatchMessage, cashDifferenceMessage, escapeHtml, orderPaidMessage, refundRequestedMessage } = await import('./messages');
+const { amountMismatchMessage, capacityMessage, cashDifferenceMessage, crossedThresholds, escapeHtml, orderPaidMessage, refundRequestedMessage } = await import('./messages');
 const { isGenericCommand, matchEdition, parseCommand } = await import('./bot');
 
 describe('messaggi Telegram', () => {
+  it('date quasi piene: ogni soglia si annuncia una volta sola', () => {
+    expect(crossedThresholds(79, 2, 100)).toEqual([]);
+    expect(crossedThresholds(80, 2, 100)).toEqual([0.8]);
+    expect(crossedThresholds(82, 2, 100)).toEqual([]);
+    expect(crossedThresholds(100, 25, 100)).toEqual([1]);
+    expect(crossedThresholds(5, 0, 100)).toEqual([]);
+    expect(capacityMessage({ edition: 'E', session: 'Sab', used: 100, capacity: 100, threshold: 1 })).toContain('Tutto esaurito');
+    expect(capacityMessage({ edition: 'E', session: 'Sab', used: 81, capacity: 100, threshold: 0.8 })).toContain('liberi 19');
+  });
   it('nuovo ordine: codice, quantità, importo e canale', () => {
     const m = orderPaidMessage({ code: 'ZK26-7F3K', edition: 'Zuccaland <2026>', totalCents: 1500, tickets: 3, channel: 'online' });
     expect(m).toContain('ZK26-7F3K');

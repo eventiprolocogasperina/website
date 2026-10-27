@@ -12,6 +12,8 @@ const { setWhatsappClient } = await import('@/server/integrations/whatsapp');
 const { createOrder } = await import('@/server/domain/orders');
 const { recordPayment } = await import('@/server/domain/payments');
 const { saveEditionNotifications } = await import('./settings');
+const { answerCommand } = await import('./bot');
+const { eveningSummaries } = await import('./reports');
 const { getSettings, saveSettings } = await import('@/server/domain/settings');
 const { resolveTemplate, saveTemplate, resetTemplate } = await import('@/server/domain/email-templates');
 const { reportError, resetAlertMemory } = await import('@/server/alerts');
@@ -57,6 +59,28 @@ describe.skipIf(!enabled)('notifiche e sistema', () => {
     expect(texts().join('\n')).not.toMatch(/mario|rossi|example\.com|333/i);
   });
 
+  it('Telegram: data quasi piena ed esaurita, una volta sola', async () => {
+    const e = await createEdition();
+    const sell = (quantity: number) => createOrder(owner, { editionId: e.edition.id, channel: 'admin', lines: [{ productId: e.ticket.id, quantity, sessionId: e.day1.id }], customer: buyer, idempotencyKey: key(), payNow: 'cash' });
+    await sell(1);
+    expect(texts().some((t) => t.includes('quasi piena'))).toBe(false);
+    await sell(1);
+    expect(texts().filter((t) => t.includes('Tutto esaurito') && t.includes('Sab 24 ott'))).toHaveLength(1);
+    expect(texts().some((t) => t.includes('quasi piena'))).toBe(false);
+  });
+
+  it('bot: /oggi e /stato senza dati personali', async () => {
+    await paidOrder();
+    const oggi = await answerCommand({ cmd: '/oggi', arg: f.slug });
+    expect(oggi).toContain('Oggi ·');
+    expect(oggi).toMatch(/Online: <b>\d+<\/b> ordini/);
+    expect(oggi).not.toMatch(/mario|rossi|example\.com|333/i);
+    const stato = await answerCommand({ cmd: '/stato', arg: '' });
+    expect(stato).toContain('Database');
+    expect(stato).toContain('Configurazione');
+    expect((await eveningSummaries()).join('\n')).not.toMatch(/mario|rossi|example\.com/i);
+  });
+
   it('Telegram: pagamento non riuscito', async () => {
     const o = await createOrder(owner, { editionId: f.edition.id, channel: 'admin', lines: line(), customer: buyer, idempotencyKey: key() });
     await recordPayment(system, { orderId: o.id, method: 'nexi', amountCents: o.totalCents, status: 'failed', providerRef: `nexi:${key()}` });
@@ -64,13 +88,13 @@ describe.skipIf(!enabled)('notifiche e sistema', () => {
   });
 
   it('un tipo spento per l’edizione non manda nulla; edizione archiviata e permessi', async () => {
-    await saveEditionNotifications(owner, { edition: f.slug, settings: { orderPaid: false, paymentProblem: true, refundRequested: true, cashDifference: true } });
+    await saveEditionNotifications(owner, { edition: f.slug, settings: { orderPaid: false, paymentProblem: true, refundRequested: true, cashDifference: true, capacity: true, dailySummary: true } });
     await paidOrder();
     expect(texts().some((t) => t.includes('Nuovo ordine'))).toBe(false);
-    await saveEditionNotifications(owner, { edition: f.slug, settings: { orderPaid: true, paymentProblem: true, refundRequested: true, cashDifference: true } });
-    expect(await errorCode(saveEditionNotifications(roleOn('cashier', f.slug), { edition: f.slug, settings: { orderPaid: true, paymentProblem: true, refundRequested: true, cashDifference: true } }))).toBe('FORBIDDEN');
+    await saveEditionNotifications(owner, { edition: f.slug, settings: { orderPaid: true, paymentProblem: true, refundRequested: true, cashDifference: true, capacity: true, dailySummary: true } });
+    expect(await errorCode(saveEditionNotifications(roleOn('cashier', f.slug), { edition: f.slug, settings: { orderPaid: true, paymentProblem: true, refundRequested: true, cashDifference: true, capacity: true, dailySummary: true } }))).toBe('FORBIDDEN');
     const a = await createEdition({ status: 'archived' });
-    expect(await errorCode(saveEditionNotifications(owner, { edition: a.slug, settings: { orderPaid: false, paymentProblem: true, refundRequested: true, cashDifference: true } }))).toBe('EDITION_ARCHIVED');
+    expect(await errorCode(saveEditionNotifications(owner, { edition: a.slug, settings: { orderPaid: false, paymentProblem: true, refundRequested: true, cashDifference: true, capacity: true, dailySummary: true } }))).toBe('EDITION_ARCHIVED');
   });
 
   it('modello conferma: il testo salvato in admin arriva nell’email, senza deploy', async () => {
