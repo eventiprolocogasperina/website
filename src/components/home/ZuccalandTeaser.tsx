@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, MapPin, CalendarDays, Ticket } from 'lucide-react';
+import { ArrowRight, MapPin, CalendarDays } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
@@ -25,7 +25,7 @@ export default function ZuccalandTeaser() {
           style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}
         >
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(234,88,12,0.1)', color: '#ea580c', padding: '0.5rem 1rem', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '1.5rem' }}>
-            🎃 Prossimo Evento
+            🎃 Edizione 2026 conclusa
           </div>
           <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
             <Image 
@@ -53,7 +53,7 @@ export default function ZuccalandTeaser() {
           </div>
 
           <Link href="/zuccaland" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#ea580c', color: 'white', padding: '1rem 2rem', borderRadius: '999px', fontWeight: 700, textDecoration: 'none', transition: 'transform 0.2s, boxShadow 0.2s', boxShadow: '0 8px 20px rgba(234,88,12,0.3)' }}>
-            <Ticket size={18} /> Scopri di più e Prenota <ArrowRight size={18} />
+            Rivivi le emozioni dell'evento <ArrowRight size={18} />
           </Link>
         </motion.div>
       </div>
