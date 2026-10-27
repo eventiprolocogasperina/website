@@ -18,7 +18,7 @@ export async function GET() {
 
   // L'indirizzo viene dalla configurazione, non dall'header Host della richiesta.
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
-  const webhookUrl = `${baseUrl}/api/telegram/webhook`;
+  const webhookUrl = await finalUrl(`${baseUrl}/api/telegram/webhook`);
   // Telegram rimanderà secret_token nell'header X-Telegram-Bot-Api-Secret-Token di ogni chiamata.
   const apiUrl = `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}&secret_token=${encodeURIComponent(webhookSecret)}`;
 
@@ -33,5 +33,20 @@ export async function GET() {
     }
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+/**
+ * Telegram non segue i reindirizzamenti: se il dominio configurato rimanda a un altro (es. senza www →
+ * con www), si registra l'indirizzo finale. Si accetta solo un reindirizzamento verso lo stesso sito.
+ */
+async function finalUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+    const from = new URL(url).hostname.replace(/^www\./, '');
+    const to = new URL(res.url);
+    return to.protocol === 'https:' && to.hostname.replace(/^www\./, '') === from ? to.toString() : url;
+  } catch {
+    return url;
   }
 }
