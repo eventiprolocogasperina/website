@@ -4,6 +4,7 @@ import { AlertTriangle, CalendarClock, FileText } from 'lucide-react';
 import { Badge, Card, EmptyState } from '@/components/ui';
 import { needsDifferenceNote } from '@/lib/cash/denominations';
 import { formatMoney } from '@/lib/money';
+import { CorrectSaleCard } from './CorrectSaleCard';
 import type { AdminSession, CashAdminData } from './types';
 
 const when = (iso: string) => new Date(iso).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -32,6 +33,7 @@ export function SessionsTab({ data }: { data: CashAdminData }) {
   const flagged = data.flagged ?? [];
   return (
     <div className="flex flex-col gap-4 pt-4">
+      {data.can.correct && !data.edition.readOnly && <CorrectSaleCard edition={data.edition.slug} />}
       {flagged.length > 0 && (
         <Card title="Vendite da controllare" description="Fatte senza rete oltre la scorta disponibile, oppure arrivate dopo la chiusura del turno. Sono già registrate: verifica con chi era in cassa.">
           <ul className="divide-y divide-border">

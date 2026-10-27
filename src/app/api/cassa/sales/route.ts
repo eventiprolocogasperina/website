@@ -20,13 +20,15 @@ export async function POST(request: Request) {
   }
 }
 
-/** Ultime vendite di un turno (per l'annullo). */
+/** Ultime vendite di un turno (per l'annullo); con `numero`, quelle della cassa con quel numero. */
 export async function GET(request: Request) {
   const { edition, denied } = await cassaAccess(request);
   if (denied) return denied;
   try {
-    const sessionId = z.uuid().parse(new URL(request.url).searchParams.get('turno'));
-    return NextResponse.json({ sales: await recentSales(edition, sessionId) }, { headers: noStore });
+    const params = new URL(request.url).searchParams;
+    const sessionId = z.uuid().parse(params.get('turno'));
+    const number = params.get('numero') ? z.coerce.number().int().positive().parse(params.get('numero')) : undefined;
+    return NextResponse.json({ sales: await recentSales(edition, sessionId, 30, number) }, { headers: noStore });
   } catch (error) {
     return errorResponse(error);
   }

@@ -14,16 +14,18 @@ export function RecentSales({ api, sessionId, state, onBack }: Props) {
   const [sales, setSales] = useState<RecentSale[] | null>(null);
   const [error, setError] = useState('');
   const [voiding, setVoiding] = useState<RecentSale | null>(null);
+  const [query, setQuery] = useState('');
+  const [number, setNumber] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const r = await cassaFetch<{ sales: RecentSale[] }>(api('sales', { turno: sessionId }));
+      const r = await cassaFetch<{ sales: RecentSale[] }>(api('sales', number ? { turno: sessionId, numero: number } : { turno: sessionId }));
       setSales(r.sales);
       setError('');
     } catch (e) {
       setError((e as CassaError).message);
     }
-  }, [api, sessionId]);
+  }, [api, sessionId, number]);
 
   useEffect(() => {
     load();
@@ -34,7 +36,33 @@ export function RecentSales({ api, sessionId, state, onBack }: Props) {
       <button type="button" onClick={onBack} className="mb-2 flex min-h-11 items-center gap-1 text-body text-muted">
         <ArrowLeft size={18} aria-hidden /> Torna alla vendita
       </button>
-      <h2 className="mb-3 text-title font-semibold">Ultime vendite del turno</h2>
+      <h2 className="mb-3 text-title font-semibold">{number ? `Vendite numero ${number}` : 'Ultime vendite del turno'}</h2>
+      <form
+        className="mb-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSales(null);
+          setNumber(query);
+        }}
+      >
+        <Input value={query} onChange={(e) => setQuery(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="Cerca per numero" aria-label="Numero della vendita" />
+        <Button type="submit" variant="secondary" size="lg">
+          Cerca
+        </Button>
+        {number && (
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => {
+              setQuery('');
+              setSales(null);
+              setNumber('');
+            }}
+          >
+            Tutte
+          </Button>
+        )}
+      </form>
       {error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !sales ? (
@@ -44,7 +72,7 @@ export function RecentSales({ api, sessionId, state, onBack }: Props) {
           ))}
         </div>
       ) : sales.length === 0 ? (
-        <EmptyState icon={History} title="Ancora nessuna vendita in questo turno" />
+        <EmptyState icon={History} title={number ? 'Nessuna vendita con questo numero su questa cassa' : 'Ancora nessuna vendita in questo turno'} />
       ) : (
         <ul className="flex flex-col gap-2">
           {sales.map((s) => (

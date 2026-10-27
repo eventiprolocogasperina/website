@@ -2,7 +2,7 @@
 // quattro modi (pay-link, in loco, contanti, omaggio) e la conferma ricontrolla i posti.
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { auditLog, discountsV2, emailLog, orderNotes, ordersV2, payments, products, ticketsV2 } from '@/server/db/schema';
+import { auditLog, discountsV2, emailLog, orderNotes, ordersV2, payments, products, sessions, ticketsV2 } from '@/server/db/schema';
 import { DomainError } from '@/server/domain/errors';
 import { cancelOrder, createOrder } from '@/server/domain/orders';
 import { buyer, createDiscount, createEdition, key, owner, roleOn, type Fixture } from '@/test/fixtures';
@@ -141,5 +141,16 @@ describe.skipIf(!enabled)('ordini in bozza', () => {
     expect((await confirmDraftOrder(owner, { orderId: d.id, mode: 'cash', overCapacity: true })).status).toBe('paid');
     const [log] = await db().select({ after: auditLog.after }).from(auditLog).where(and(eq(auditLog.entityId, d.id), eq(auditLog.action, 'order.draft_confirmed')));
     expect(log.after).toMatchObject({ oversold: true });
+  });
+  it('anche il link di pagamento va oltre i posti se lo si chiede, pure su una data segnata esaurita', async () => {
+    const { createPaylinkOrder } = await import('@/modules/paylink/server');
+    const link = { editionId: f.edition.id, lines: [{ productId: f.ticket.id, quantity: 1, sessionId: f.day1.id }], customer: buyer };
+    expect((await errorOf(createPaylinkOrder(owner, { ...link, idempotencyKey: key() }))).code).toBe('SOLD_OUT');
+    await db().update(sessions).set({ status: 'sold_out' }).where(eq(sessions.id, f.day1.id));
+    const r = await createPaylinkOrder(owner, { ...link, idempotencyKey: key(), overCapacity: true });
+    expect(r.status).toBe('pending');
+    await db().update(sessions).set({ status: 'closed' }).where(eq(sessions.id, f.day1.id));
+    expect((await errorOf(createPaylinkOrder(owner, { ...link, idempotencyKey: key(), overCapacity: true }))).code).toBe('SALES_CLOSED');
+    await db().update(sessions).set({ status: 'open' }).where(eq(sessions.id, f.day1.id));
   });
 });

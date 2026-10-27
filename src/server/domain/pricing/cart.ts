@@ -140,9 +140,12 @@ export function priceCart(input: {
       if (!sessionId) throw invalid(`Scegli la data per ${product.name}.`);
       const session = sessions.find((s) => s.id === sessionId);
       if (!session) throw invalid('La data scelta non esiste.');
-      // L'admin può vendere anche su una data segnata come esaurita: i posti li controlla reserveSeats.
-      if (session.status === 'sold_out' && channel !== 'admin') throw new DomainError('SOLD_OUT');
-      if (session.status !== 'open' && channel !== 'admin') throw new DomainError('SALES_CLOSED', { message: 'La data scelta non è in vendita.' });
+      // Admin e link di pagamento (sempre creati dallo staff) vendono anche su una data segnata come
+      // esaurita: i posti li controlla reserveSeats. Le date chiuse restano solo per l'admin.
+      const staff = channel === 'admin' || channel === 'paylink';
+      if (session.status === 'sold_out' && !staff) throw new DomainError('SOLD_OUT');
+      if (session.status !== 'open' && !(channel === 'admin' || (channel === 'paylink' && session.status === 'sold_out')))
+        throw new DomainError('SALES_CLOSED', { message: 'La data scelta non è in vendita.' });
     }
 
     const key = `${product.id}|${sessionId ?? ''}${product.openPrice ? `|${unitPriceCents}` : ''}`;

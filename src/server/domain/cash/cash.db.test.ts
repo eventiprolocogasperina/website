@@ -1,11 +1,11 @@
 // Cassa su un Postgres vero (npm run test:db): turni, vendite da due telefoni sull'ultima porzione,
 // idempotenza della coda offline, annullo con PIN del responsabile, chiusura Z che quadra col rendiconto.
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Ctx } from '@/server/auth/context-shared';
 import { hashPassword } from '@/server/auth/password';
-import { cashSales, devices, editions, orderLines, ordersV2, payments, products, quotaProducts, quotas, refundsV2, roleAssignments, users } from '@/server/db/schema';
+import { auditLog, cashSales, devices, editions, orderLines, ordersV2, payments, products, quotaProducts, quotas, refundsV2, roleAssignments, users } from '@/server/db/schema';
 import { DomainError } from '@/server/domain/errors';
 import { createEdition, owner, roleOn, type Fixture } from '@/test/fixtures';
 import { closeTestDb, getDb } from '@/test/pg-client';
@@ -13,9 +13,10 @@ import { getPosCatalog } from './catalog';
 import { departmentQueue, readyNumbers, setPrepStatus } from './departments';
 import { saveRegister } from './registers';
 import { cashReport, reportCsv } from './report';
-import { sell, type SellInput } from './sales';
+import { recentSales, sell, type SellInput } from './sales';
 import { closeSession, openSession, sessionSummary } from './sessions';
 import { voidSale } from './void';
+import { changeSaleMethod, findSalesByNumber } from './correct';
 
 const enabled = !!process.env.TEST_DATABASE_URL;
 
@@ -149,6 +150,23 @@ describe.skipIf(!enabled)('cassa sul database', () => {
     const [cs] = await getDb().select().from(cashSales).where(eq(cashSales.orderId, r.orderId));
     expect(cs).toMatchObject({ voidApprovedBy: manager.id, voidReason: 'Errore di battitura' });
     expect(await errorCode(voidSale(phone1, { orderId: r.orderId, reason: 'Ancora', managerUserId: manager.id, managerPin: '9876' }))).toBe('CONFLICT');
+  });
+
+  it('correzione del metodo: contanti → POS con il motivo nel registro, solo per chi può annullare', async () => {
+    const r = await sell(phone1, sale({ cashReceivedCents: 1000 }));
+    if (r.number !== null) {
+      const found = await findSalesByNumber(owner, f.slug, r.number);
+      expect(found.find((x) => x.orderId === r.orderId)).toMatchObject({ method: 'cash', voided: false });
+      // Anche dal tablet, cercando il numero sulla stessa cassa.
+      expect((await recentSales(f.slug, sessionId, 30, r.number)).map((x) => x.orderId)).toContain(r.orderId);
+    }
+    expect(await errorCode(changeSaleMethod(phone1, { orderId: r.orderId, method: 'card_pos', reason: 'Pagato col POS' }))).toBe('FORBIDDEN');
+    expect(await errorCode(changeSaleMethod(owner, { orderId: r.orderId, method: 'cash', reason: 'Nessun cambio' }))).toBe('CONFLICT');
+    expect(await changeSaleMethod(owner, { orderId: r.orderId, method: 'card_pos', reason: 'Pagato col POS' })).toEqual({ from: 'cash', to: 'card_pos' });
+    const pays = await getDb().select().from(payments).where(eq(payments.orderId, r.orderId));
+    expect(pays.map((p) => [p.method, p.amountCents])).toEqual([['card_pos', r.totalCents]]);
+    const [log] = await getDb().select().from(auditLog).where(and(eq(auditLog.entityId, r.orderId), eq(auditLog.action, 'cash.sale_method_changed')));
+    expect(log).toMatchObject({ reason: 'Pagato col POS', before: { method: 'cash' }, after: { method: 'card_pos' } });
   });
 
   it('chiusura Z: atteso contro contato, nota oltre 1 €, numero progressivo, totali uguali al rendiconto', async () => {

@@ -1,6 +1,6 @@
 // Ciclo di vita delle edizioni su un Postgres vero (npm run test:db): l'intero percorso da bozza ad
 // archiviata con la checklist di chiusura, l'esaurita automatica e la sola lettura dopo l'archivio.
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { editionReports, editions, sessions, ticketsV2 } from '@/server/db/schema';
 import { revertCheckin, saveCheckinList, scan } from '@/server/domain/checkin';
@@ -109,8 +109,9 @@ describe.skipIf(!enabled)('ciclo di vita delle edizioni', () => {
 
   it('esaurita in automatico quando i posti finiscono, e di nuovo in vendita quando si liberano', async () => {
     const f = await createEdition();
-    // Resta in vendita solo il sabato, con 2 posti.
+    // Resta in vendita solo il sabato, con 2 posti (spostato nel futuro: contano solo le date ancora da fare).
     await getDb().update(sessions).set({ status: 'closed' }).where(eq(sessions.id, f.day2.id));
+    await getDb().update(sessions).set({ startsAt: sql`${sessions.startsAt} + interval '5 years'` }).where(eq(sessions.id, f.day1.id));
     const one = () => createOrder(anon, online(f, { lines: [{ productId: f.ticket.id, quantity: 1, sessionId: f.day1.id }] }));
     await one();
     expect(await statusOf(f.edition.id)).toBe('on_sale');

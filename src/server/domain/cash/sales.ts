@@ -235,16 +235,19 @@ export async function loadSale(db: Tx | ReturnType<typeof getDb>, orderId: strin
 
 export type RecentSale = { orderId: string; code: string; number: number | null; totalCents: number; at: string; voided: boolean; summary: string };
 
-/** Ultime vendite di un turno, per la lista "Ultime vendite" e l'annullo. */
-export async function recentSales(editionSlug: string, sessionId: string, limit = 30): Promise<RecentSale[]> {
-  const [own] = await getDb().select({ slug: editions.slug }).from(cashSessions).innerJoin(editions, eq(editions.id, cashSessions.editionId)).where(eq(cashSessions.id, sessionId));
+/**
+ * Ultime vendite di un turno, per la lista "Ultime vendite" e l'annullo. Con `number`: le vendite
+ * della stessa cassa con quel numero progressivo, anche di turni precedenti.
+ */
+export async function recentSales(editionSlug: string, sessionId: string, limit = 30, number?: number): Promise<RecentSale[]> {
+  const [own] = await getDb().select({ slug: editions.slug, registerId: cashSessions.registerId }).from(cashSessions).innerJoin(editions, eq(editions.id, cashSessions.editionId)).where(eq(cashSessions.id, sessionId));
   if (!own) throw new DomainError('NOT_FOUND');
   if (own.slug !== editionSlug) throw new DomainError('FORBIDDEN');
   const rows = await getDb()
     .select({ s: cashSales, o: ordersV2 })
     .from(cashSales)
     .innerJoin(ordersV2, eq(ordersV2.id, cashSales.orderId))
-    .where(eq(cashSales.cashSessionId, sessionId))
+    .where(number ? and(eq(cashSales.registerId, own.registerId), eq(cashSales.number, number)) : eq(cashSales.cashSessionId, sessionId))
     .orderBy(desc(ordersV2.createdAt))
     .limit(limit);
   const ids = rows.map((r) => r.o.id);

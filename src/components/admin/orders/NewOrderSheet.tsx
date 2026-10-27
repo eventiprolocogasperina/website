@@ -95,7 +95,7 @@ export function NewOrderSheet({ context, detailBase = '', draft }: Props) {
             note: note || null,
             payNow: channel === 'admin' && pay !== 'none' ? (pay as 'cash' | 'card_pos' | 'bank_transfer' | 'complimentary') : null,
             complimentaryReason: channel === 'admin' && pay === 'complimentary' ? reason : null,
-            overCapacity: channel === 'admin' && overCapacity,
+            overCapacity,
           });
     setBusy(null);
     if (!res.ok) return toast.error(res.error);
@@ -191,7 +191,7 @@ export function NewOrderSheet({ context, detailBase = '', draft }: Props) {
               <Select value={pay} onValueChange={setPay} options={PAY_OPTIONS} />
             </Field>
           )}
-          {!editing && channel === 'admin' && (
+          {!editing && (
             <Checkbox
               checked={overCapacity}
               onCheckedChange={setOverCapacity}

@@ -28,6 +28,7 @@ export default async function CashAdminPage(props: EditionParams & { searchParam
     edit: can(ctx, 'catalog.edit', { edition: edition.slug }),
     report: can(ctx, 'reports.export', { edition: edition.slug }),
     devices: can(ctx, 'settings.manage'),
+    correct: can(ctx, 'pos.void', { edition: edition.slug }),
   };
 
   const registers = await listRegisters(edition.id);
