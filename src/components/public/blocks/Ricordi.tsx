@@ -5,6 +5,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Star, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { photoLoader } from '@/lib/photo';
 import { submitReviewAction } from '@/server/public/notify-actions';
 import type { BlockProps } from './schema';
 import type { BlockData } from './types';
@@ -75,7 +76,7 @@ export function Ricordi({ props, data }: { props: BlockProps<'Ricordi'>; data: B
         <AnimatePresence mode="sync">
           {slides[slide] && (
             <motion.div key={slides[slide].src} className="absolute inset-0" initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.5, ease: 'easeInOut' }}>
-              <Image src={slides[slide].src} alt="" fill sizes="100vw" priority={slide === 0} className="object-cover" />
+              <Image src={slides[slide].src} {...photoLoader(slides[slide].src)} alt="" fill sizes="100vw" priority={slide === 0} className="object-cover" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -138,7 +139,7 @@ export function Ricordi({ props, data }: { props: BlockProps<'Ricordi'>; data: B
                 className="relative cursor-zoom-in overflow-hidden rounded-xl bg-neutral-900 shadow-[0_10px_30px_rgba(0,0,0,0.3)]"
                 style={{ aspectRatio: p.width > p.height ? '4/3' : '3/4' }}
               >
-                <Image src={p.src} alt="" fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" loading={i < 6 ? 'eager' : 'lazy'} />
+                <Image src={p.src} {...photoLoader(p.src)} alt="" fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" loading={i < 6 ? 'eager' : 'lazy'} />
               </motion.button>
             ))}
           </div>
@@ -175,7 +176,7 @@ function Lightbox({ photo, index, total, onClose, onMove }: { photo: Photo; inde
         </>
       )}
       <motion.div key={photo.src} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }} className="relative h-[85vh] w-[90vw]" onClick={(e) => e.stopPropagation()}>
-        <Image src={photo.src} alt="" fill sizes="90vw" quality={90} priority className="object-contain" />
+        <Image src={photo.src} {...photoLoader(photo.src)} alt="" fill sizes="90vw" quality={90} priority className="object-contain" />
       </motion.div>
       <p className="absolute bottom-6 text-sm tabular-nums text-white/50">
         {index + 1} / {total}

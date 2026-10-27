@@ -1,4 +1,12 @@
+import { readdirSync } from 'node:fs';
 import type { NextConfig } from "next";
+
+// Album di foto webp (npm run foto): li serve la CDN da public/, le funzioni del server non li leggono mai.
+// Senza escluderli, il tracciamento di pdf-image.ts (che legge public/ per i loghi dei PDF) li copierebbe
+// in ogni funzione, oltre il limite di 250 MB di Vercel.
+const albumFolders = readdirSync('src/lib/data/albums')
+  .filter((f) => f.endsWith('.json'))
+  .map((f) => `public/img/${f.slice(0, -5)}/**`);
 
 // Anche durante la build del Preview: mai il database di produzione (vedi src/instrumentation.ts).
 if (process.env.VERCEL_ENV === 'preview') process.env.POSTGRES_URL = process.env.PREVIEW_POSTGRES_URL || '';
@@ -6,6 +14,7 @@ if (process.env.VERCEL_ENV === 'preview') process.env.POSTGRES_URL = process.env
 const nextConfig: NextConfig = {
   // Solo con LOCAL_DB=1 (sviluppo locale, vedi dev/README.md): una sola copia del driver Neon,
   // così la configurazione in src/instrumentation.ts vale per tutte le rotte.
+  outputFileTracingExcludes: { '*': albumFolders },
   serverExternalPackages: process.env.LOCAL_DB === '1' ? ['@neondatabase/serverless'] : [],
   async redirects() {
     return [
