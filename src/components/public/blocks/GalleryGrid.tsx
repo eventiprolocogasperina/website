@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
+import { photoLoader } from '@/lib/photo';
 
 type Photo = { src: string; alt: string; width: number; height: number };
 
@@ -36,7 +37,7 @@ export function GalleryGrid({ photos, step }: { photos: Photo[]; step: number })
         {photos.slice(0, shown).map((p, i) => (
           <li key={p.src + i} className="relative aspect-square overflow-hidden rounded-2xl bg-[var(--brand-soft)]">
             <button type="button" onClick={() => setOpen(i)} className="block size-full cursor-zoom-in" aria-label={`Apri la foto ${i + 1} di ${photos.length}`}>
-              <Image src={p.src} alt={p.alt || ''} fill sizes="(max-width: 768px) 50vw, 300px" className="object-cover transition-transform duration-300 hover:scale-105" />
+              <Image src={p.src} {...photoLoader(p.src)} alt={p.alt || ''} fill sizes="(max-width: 768px) 50vw, 300px" className="object-cover transition-transform duration-300 hover:scale-105" />
             </button>
           </li>
         ))}
@@ -54,7 +55,7 @@ export function GalleryGrid({ photos, step }: { photos: Photo[]; step: number })
       )}
       {current && (
         <div role="dialog" aria-modal="true" aria-label="Foto" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4" onClick={close}>
-          <Image src={current.src} alt={current.alt || ''} width={current.width} height={current.height} sizes="100vw" className="max-h-[88vh] w-auto max-w-full rounded-xl object-contain" onClick={(e) => e.stopPropagation()} priority />
+          <Image src={current.src} {...photoLoader(current.src)} alt={current.alt || ''} width={current.width} height={current.height} sizes="100vw" className="max-h-[88vh] w-auto max-w-full rounded-xl object-contain" onClick={(e) => e.stopPropagation()} priority />
           <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm tabular-nums text-white/80">
             {open! + 1} / {photos.length}
           </p>
