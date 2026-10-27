@@ -39,11 +39,10 @@ export function zuccalandEditionBlocks(c: ZuccalandContent): Block[] {
 /** Pagina fuori stagione di Zuccaland (§13.3): non esiste oggi, si compone dai contenuti dell'edizione. */
 export function zuccalandOffseasonBlocks(c: ZuccalandContent): Block[] {
   return [
-    newBlock('Hero', { logoUrl: '/img/zuccaland/Logo.png', title: 'Zuccaland', subtitle: c.hero.subtitle, description: 'Grazie a tutti! Ci vediamo alla prossima edizione 🧡' }),
+    newBlock('Ricordi', { text: 'Zuccaland è stata una festa. Ci vediamo alla prossima edizione 🧡', category: 'zuccaland', galleryTitle: 'Le edizioni passate in foto', accent: '#f97316', reviewSource: 'zuccaland' }),
     newBlock('RichText', { title: 'Cos’è Zuccaland', body: c.hero.description, align: 'centro' }),
     newBlock('Schede', { look: 'grandi', items: c.infoCards.map((i) => ({ emoji: i.emoji, title: i.title, text: i.description, color: i.color, chips: [] })) }),
     newBlock('NumeriChiave', { title: 'L’ultima edizione', items: [] }),
-    newBlock('Galleria', { title: 'Le edizioni passate in foto', category: 'zuccaland' }),
     newBlock('Recensioni', { source: 'zuccaland' }),
     newBlock('Edizioni', {}),
     newBlock('Avvisami', { nextDate: 'ottobre 2027' }),
@@ -77,8 +76,13 @@ export function assaggiaEditionBlocks(c: AssaggiaEPasseggiaContent): Block[] {
 /** Pagina fuori stagione di A&P: la pagina "Grazie" di oggi più le sezioni del §13.3. */
 export function assaggiaOffseasonBlocks(): Block[] {
   return [
-    newBlock('Hero', { title: 'Grazie!', subtitle: 'L’edizione di Assaggia & Passeggia è stata un successo. Ci vediamo il prossimo anno per brindare ancora insieme.', logoUrl: '/img/LogoAP_GA_nero.png' }),
-    newBlock('Galleria', { title: 'I Ricordi', subtitle: 'Le foto dell’edizione 2026', category: 'assaggia26', album: 'assaggia-2026', limit: 24 }),
+    newBlock('Ricordi', {
+      text: 'L’edizione di Assaggia & Passeggia è stata un successo.\nCi vediamo il prossimo anno per brindare ancora insieme.',
+      album: 'assaggia-2026',
+      category: 'assaggia26',
+      gallerySubtitle: 'Rivivi i momenti più belli della giornata.',
+      reviewSource: 'assaggia-passeggia',
+    }),
     newBlock('Recensioni', { title: 'Le vostre recensioni', source: 'assaggia-passeggia' }),
     newBlock('Edizioni', {}),
     newBlock('Avvisami', {}),

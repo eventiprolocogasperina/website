@@ -10,6 +10,7 @@ import { FAQ } from './FAQ';
 import { Hero } from './Hero';
 import { Programma } from './Programma';
 import { RichText } from './RichText';
+import { Ricordi } from './Ricordi';
 import { Schede } from './Schede';
 import type { Block } from './schema';
 import { Tappe } from './Tappe';
@@ -54,6 +55,8 @@ export function RenderBlock({ block, data }: { block: Block; data: BlockData }):
       return <Edizioni props={block.props} data={data} />;
     case 'Avvisami':
       return <Avvisami props={block.props} data={data} />;
+    case 'Ricordi':
+      return <Ricordi props={block.props} data={data} />;
   }
 }
 

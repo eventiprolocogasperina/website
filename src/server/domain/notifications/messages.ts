@@ -34,3 +34,22 @@ export function cashDifferenceMessage(p: { edition: string; registerName: string
     `Atteso ${formatMoney(p.expectedCashCents)}, contato ${formatMoney(p.countedCashCents)}: ${sign}${formatMoney(Math.abs(p.differenceCents))}.`
   );
 }
+
+export const CAPACITY_THRESHOLDS = [0.8, 1] as const;
+
+/**
+ * Soglia di riempimento superata da questo ordine, per data: 80% e tutto esaurito. Confronta i posti
+ * usati prima e dopo i biglietti dell'ordine, così ogni soglia si annuncia una volta sola.
+ */
+export function crossedThresholds(used: number, added: number, capacity: number): number[] {
+  if (capacity <= 0 || added <= 0) return [];
+  const before = used - added;
+  // Se un ordine le supera tutte e due insieme basta "tutto esaurito".
+  return CAPACITY_THRESHOLDS.filter((t) => before < Math.ceil(capacity * t) && used >= Math.ceil(capacity * t)).slice(-1);
+}
+
+export function capacityMessage(p: { edition: string; session: string; used: number; capacity: number; threshold: number }): string {
+  return p.threshold >= 1
+    ? `🔴 <b>Tutto esaurito</b> · ${escapeHtml(p.session)} (${escapeHtml(p.edition)}): ${p.used}/${p.capacity} posti.`
+    : `🟠 <b>Data quasi piena</b> · ${escapeHtml(p.session)} (${escapeHtml(p.edition)}): ${p.used}/${p.capacity} posti, liberi ${Math.max(p.capacity - p.used, 0)}.`;
+}

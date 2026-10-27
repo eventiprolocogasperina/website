@@ -5,6 +5,7 @@ import { editions, ordersV2, ticketsV2 } from '@/server/db/schema';
 import { on, registerOnce } from '@/server/domain/events';
 import { alertChatId, telegramClient } from '@/server/integrations/telegram';
 import { amountMismatchMessage, cashDifferenceMessage, orderPaidMessage, paymentFailedMessage, refundRequestedMessage } from './messages';
+import { capacityAlerts } from './reports';
 import { isNotificationOn, type NotificationType } from './settings';
 
 // Notifiche Telegram allo staff come handler degli eventi di dominio (§6): partono solo dagli ordini
@@ -35,6 +36,13 @@ registerOnce('telegram-notifications', () => {
       return orderPaidMessage({ code: event.code, edition, totalCents: event.totalCents, tickets: t?.n ?? 0, channel: o.channel });
     }),
   );
+  // Anche la cassa: i biglietti venduti all'ingresso riempiono la data come quelli online.
+  on('order.paid', async (event) => {
+    const e = await editionOf(event.edition);
+    if (!e || !isNotificationOn(e.settings, 'capacity')) return;
+    const chat = await alertChatId();
+    for (const text of await capacityAlerts(event.orderId, e.title)) await telegramClient().sendMessage(chat, text);
+  });
   on('payment.failed', (event) => notify(event.edition, 'paymentProblem', (edition) => paymentFailedMessage({ ...event, edition })));
   on('payment.amount_mismatch', (event) => notify(event.edition, 'paymentProblem', (edition) => amountMismatchMessage({ ...event, edition })));
   on('refund.requested', (event) => notify(event.edition, 'refundRequested', (edition) => refundRequestedMessage({ ...event, edition })));

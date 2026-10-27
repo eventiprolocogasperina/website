@@ -78,10 +78,10 @@ describe('conversione delle pagine di oggi', () => {
     const tappe = blocks.find((b) => b.type === 'Tappe');
     expect(tappe?.type === 'Tappe' && tappe.props.items.length).toBe(DEFAULT_ASSAGGIA_CONTENT.tappe.length);
     const off = PageBlocksSchema.parse(assaggiaOffseasonBlocks());
-    expect(off.map((b) => b.type)).toEqual(['Hero', 'Galleria', 'Recensioni', 'Edizioni', 'Avvisami', 'Sponsor']);
+    expect(off.map((b) => b.type)).toEqual(['Ricordi', 'Recensioni', 'Edizioni', 'Avvisami', 'Sponsor']);
     // Tutte le foto dell'album webp, non solo le prime 24 copiate nel blocco.
-    const galleria = readBlocks(off).find((b) => b.type === 'Galleria');
-    expect(galleria?.type === 'Galleria' && galleria.props.album).toBe('assaggia-2026');
+    const ricordi = readBlocks(off).find((b) => b.type === 'Ricordi');
+    expect(ricordi?.type === 'Ricordi' && ricordi.props.album).toBe('assaggia-2026');
     expect(ALBUMS.find((a) => a.name === 'assaggia-2026')?.count).toBe(324);
     expect(await loadAlbum('assaggia-2026')).toHaveLength(324);
   });

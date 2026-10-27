@@ -125,8 +125,8 @@ export async function resolveBlockData(blocks: Block[], o: ResolveOpts): Promise
   const db = getDb();
   const visible = blocks.filter((b) => !b.hidden);
   const has = (t: Block['type']) => o.preview || visible.some((b) => b.type === t);
-  const categories = [...new Set(visible.flatMap((b) => (b.type === 'Galleria' && b.props.category ? [b.props.category] : [])))];
-  const albumNames = o.preview ? ALBUMS.map((a) => a.name) : [...new Set(visible.flatMap((b) => (b.type === 'Galleria' && b.props.album ? [b.props.album] : [])))];
+  const categories = [...new Set(visible.flatMap((b) => ((b.type === 'Galleria' || b.type === 'Ricordi') && b.props.category ? [b.props.category] : [])))];
+  const albumNames = o.preview ? ALBUMS.map((a) => a.name) : [...new Set(visible.flatMap((b) => ((b.type === 'Galleria' || b.type === 'Ricordi') && b.props.album ? [b.props.album] : [])))];
   const sources = [...new Set(visible.flatMap((b) => (b.type === 'Recensioni' && b.props.source ? [b.props.source] : [])))];
   const e = o.edition;
 
