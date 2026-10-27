@@ -1,32 +1,29 @@
 import { Star } from 'lucide-react';
 import Image from 'next/image';
+import { GalleryGrid } from './GalleryGrid';
 import type { BlockProps } from './schema';
 import type { BlockData } from './types';
 import { h2, section, wrap } from './ui';
 
 /*
  * Blocchi che leggono contenuti del sito invece di ripeterli: foto della galleria, sponsor attivi,
- * recensioni dei visitatori. Le foto scelte a mano nel blocco vengono prima di quelle della categoria.
+ * recensioni dei visitatori. Le foto scelte a mano nel blocco vengono prima di quelle della categoria
+ * e dell'album webp (scripts/foto.ts); se ce ne sono più di `limit`, le altre si aprono con "Mostra altre".
  */
 
 export function Galleria({ props, data }: { props: BlockProps<'Galleria'>; data: BlockData }) {
   const fromCategory = props.category ? (data.gallery[props.category] ?? []) : [];
-  const photos = [...props.photos.filter((p) => p.src).map((p) => ({ ...p, width: 1200, height: 900 })), ...fromCategory].slice(0, props.limit);
+  const fromAlbum = props.album ? (data.albums[props.album] ?? []).map((p) => ({ ...p, alt: props.title || '' })) : [];
+  const all = [...props.photos.filter((p) => p.src).map((p) => ({ ...p, width: 1200, height: 900 })), ...fromCategory, ...fromAlbum];
+  // Una foto scelta a mano che è anche nell'album compare una volta sola.
+  const photos = all.filter((p, i) => all.findIndex((x) => x.src === p.src) === i);
   if (!photos.length) return null;
   return (
     <section id="galleria" className={`${section} scroll-mt-32`}>
       <div className={wrap}>
         <h2 className={h2}>{props.title || 'I ricordi'}</h2>
         {props.subtitle && <p className="-mt-3 mb-6 text-center text-[1.05rem] text-[var(--brand-ink-soft)]">{props.subtitle}</p>}
-        <ul className="grid grid-cols-2 gap-3 @3xl:grid-cols-3 @5xl:grid-cols-4">
-          {photos.map((p, i) => (
-            <li key={p.src + i} className="relative aspect-square overflow-hidden rounded-2xl bg-[var(--brand-soft)]">
-              <a href={p.src} target="_blank" rel="noopener noreferrer" className="block size-full">
-                <Image src={p.src} alt={p.alt || ''} fill sizes="(max-width: 768px) 50vw, 300px" className="object-cover transition-transform duration-300 hover:scale-105" />
-              </a>
-            </li>
-          ))}
-        </ul>
+        <GalleryGrid photos={photos} step={props.limit} />
       </div>
     </section>
   );

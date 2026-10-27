@@ -2,6 +2,7 @@ import 'server-only';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { newBlock, readBlocks, type Block } from '@/components/public/blocks/schema';
 import type { BlockData } from '@/components/public/blocks/types';
+import { ALBUMS, loadAlbum } from '@/lib/data/albums';
 import { formatDate } from '@/lib/dates';
 import { getDb } from '@/server/db/client';
 import { editions, gallery, products, reviews, series, sponsors } from '@/server/db/schema';
@@ -125,15 +126,17 @@ export async function resolveBlockData(blocks: Block[], o: ResolveOpts): Promise
   const visible = blocks.filter((b) => !b.hidden);
   const has = (t: Block['type']) => o.preview || visible.some((b) => b.type === t);
   const categories = [...new Set(visible.flatMap((b) => (b.type === 'Galleria' && b.props.category ? [b.props.category] : [])))];
+  const albumNames = o.preview ? ALBUMS.map((a) => a.name) : [...new Set(visible.flatMap((b) => (b.type === 'Galleria' && b.props.album ? [b.props.album] : [])))];
   const sources = [...new Set(visible.flatMap((b) => (b.type === 'Recensioni' && b.props.source ? [b.props.source] : [])))];
   const e = o.edition;
 
-  const [productRows, sponsorRows, galleryRows, reviewRows, href] = await Promise.all([
+  const [productRows, sponsorRows, galleryRows, reviewRows, href, albums] = await Promise.all([
     e && (has('Prezzi') || has('CTAAcquisto') || has('Hero')) ? db.select().from(products).where(and(eq(products.editionId, e.id), eq(products.active, true))).orderBy(asc(products.sort), asc(products.name)) : [],
     has('Sponsor') ? db.select().from(sponsors).where(eq(sponsors.active, true)).orderBy(asc(sponsors.sortOrder)) : [],
     o.preview || categories.length ? db.select().from(gallery).where(o.preview ? undefined : inArray(gallery.category, categories)).orderBy(desc(gallery.createdAt)) : [],
     o.preview || sources.length ? db.select().from(reviews).where(o.preview ? undefined : inArray(reviews.eventId, sources)).orderBy(desc(reviews.createdAt)).limit(200) : [],
     e ? checkoutHref(e, o.series, o.legacyPageLive) : null,
+    Promise.all(albumNames.map(async (name) => [name, await loadAlbum(name)] as const)).then(Object.fromEntries),
   ]);
 
   const group = <T, K extends string>(rows: T[], key: (r: T) => K) => rows.reduce<Record<string, T[]>>((acc, r) => ((acc[key(r)] ??= []).push(r), acc), {});
@@ -149,6 +152,7 @@ export async function resolveBlockData(blocks: Block[], o: ResolveOpts): Promise
       galleryRows.map((g) => ({ category: g.category, src: g.src, alt: g.alt, width: g.width, height: g.height })),
       (g) => g.category,
     ),
+    albums,
     reviews: group(
       reviewRows.map((r) => ({ source: r.eventId, name: r.name, rating: r.rating, comment: r.comment })),
       (r) => r.source,

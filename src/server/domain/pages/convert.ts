@@ -75,10 +75,10 @@ export function assaggiaEditionBlocks(c: AssaggiaEPasseggiaContent): Block[] {
 }
 
 /** Pagina fuori stagione di A&P: la pagina "Grazie" di oggi più le sezioni del §13.3. */
-export function assaggiaOffseasonBlocks(photos: Array<{ src: string }>): Block[] {
+export function assaggiaOffseasonBlocks(): Block[] {
   return [
     newBlock('Hero', { title: 'Grazie!', subtitle: 'L’edizione di Assaggia & Passeggia è stata un successo. Ci vediamo il prossimo anno per brindare ancora insieme.', logoUrl: '/img/LogoAP_GA_nero.png' }),
-    newBlock('Galleria', { title: 'I Ricordi', subtitle: 'Le foto dell’edizione 2026', category: 'assaggia26', photos: photos.slice(0, 24).map((p) => ({ src: p.src, alt: 'Assaggia & Passeggia 2026' })), limit: 24 }),
+    newBlock('Galleria', { title: 'I Ricordi', subtitle: 'Le foto dell’edizione 2026', category: 'assaggia26', album: 'assaggia-2026', limit: 24 }),
     newBlock('Recensioni', { title: 'Le vostre recensioni', source: 'assaggia-passeggia' }),
     newBlock('Edizioni', {}),
     newBlock('Avvisami', {}),

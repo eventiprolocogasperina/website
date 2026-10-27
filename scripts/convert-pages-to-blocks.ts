@@ -13,7 +13,6 @@
  */
 import { config } from 'dotenv';
 import { Client } from 'pg';
-import gallery from '../src/lib/data/assaggia-2026-gallery.json';
 import { DEFAULT_ASSAGGIA_CONTENT, DEFAULT_ZUCCALAND_CONTENT, type AssaggiaEPasseggiaContent, type ZuccalandContent } from '../src/lib/data/pages';
 import { PageBlocksSchema, type Block } from '../src/components/public/blocks/schema';
 import { assaggiaEditionBlocks, assaggiaOffseasonBlocks, zuccalandEditionBlocks, zuccalandOffseasonBlocks } from '../src/server/domain/pages/convert';
@@ -37,7 +36,7 @@ async function main() {
     { table: 'editions', slug: 'zuccaland-2026', blocks: zuccalandEditionBlocks(z) },
     { table: 'series', slug: 'zuccaland', blocks: zuccalandOffseasonBlocks(z) },
     { table: 'editions', slug: 'assaggia-e-passeggia-2026', blocks: assaggiaEditionBlocks(ap) },
-    { table: 'series', slug: 'assaggia-e-passeggia', blocks: assaggiaOffseasonBlocks(gallery as Array<{ src: string }>) },
+    { table: 'series', slug: 'assaggia-e-passeggia', blocks: assaggiaOffseasonBlocks() },
   ];
 
   await db.query('begin');
