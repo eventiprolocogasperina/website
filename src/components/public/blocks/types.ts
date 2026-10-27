@@ -14,6 +14,8 @@ export type BlockData = {
   sponsors: Array<{ name: string; logoUrl: string; websiteUrl: string | null }>;
   reviews: Record<string, Array<{ name: string | null; rating: number; comment: string | null }>>;
   gallery: Record<string, Array<{ src: string; alt: string; width: number; height: number }>>;
+  /** Album webp usati dalle Gallerie della pagina, per nome. */
+  albums: Record<string, Array<{ src: string; width: number; height: number }>>;
   /** Edizioni del format già passate o in corso, dalla più recente. */
   editions: Array<{ year: number | null; title: string; href: string; current: boolean }>;
 };
@@ -29,5 +31,6 @@ export const EMPTY_BLOCK_DATA: BlockData = {
   sponsors: [],
   reviews: {},
   gallery: {},
+  albums: {},
   editions: [],
 };

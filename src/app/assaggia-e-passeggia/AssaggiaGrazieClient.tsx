@@ -58,7 +58,7 @@ export default function AssaggiaGraziePage() {
           setGalleryPhotos(a26Photos);
         } else {
           // Fallback al JSON se non ancora nel DB
-          import('@/lib/data/assaggia-2026-gallery.json')
+          import('@/lib/data/albums/assaggia-2026.json')
             .then(module => setGalleryPhotos(module.default || []))
             .catch(() => console.log('Galleria JSON non trovata.'));
         }

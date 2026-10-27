@@ -7,6 +7,7 @@ import { BLOCK_SCHEMAS, BLOCK_TYPES, blockDefaults, newBlock, PageBlocksSchema, 
 import { Markup } from '@/components/public/blocks/markup';
 import { youtubeId } from '@/components/public/blocks/Extras';
 import { DEFAULT_ASSAGGIA_CONTENT, DEFAULT_ZUCCALAND_CONTENT } from '@/lib/data/pages';
+import { ALBUMS, loadAlbum } from '@/lib/data/albums';
 import { assaggiaEditionBlocks, assaggiaOffseasonBlocks, zuccalandEditionBlocks, zuccalandOffseasonBlocks } from './convert';
 
 vi.mock('server-only', () => ({}));
@@ -72,11 +73,16 @@ describe('conversione delle pagine di oggi', () => {
     expect(JSON.stringify(blocks)).not.toContain('"price"');
     expect(PageBlocksSchema.parse(zuccalandOffseasonBlocks(DEFAULT_ZUCCALAND_CONTENT)).some((b) => b.type === 'Avvisami')).toBe(true);
   });
-  it('A&P: tappe, info pratiche e pagina fuori stagione', () => {
+  it('A&P: tappe, info pratiche e pagina fuori stagione', async () => {
     const blocks = readBlocks(PageBlocksSchema.parse(assaggiaEditionBlocks(DEFAULT_ASSAGGIA_CONTENT)));
     const tappe = blocks.find((b) => b.type === 'Tappe');
     expect(tappe?.type === 'Tappe' && tappe.props.items.length).toBe(DEFAULT_ASSAGGIA_CONTENT.tappe.length);
-    const off = PageBlocksSchema.parse(assaggiaOffseasonBlocks([{ src: '/img/a.webp' }]));
+    const off = PageBlocksSchema.parse(assaggiaOffseasonBlocks());
     expect(off.map((b) => b.type)).toEqual(['Hero', 'Galleria', 'Recensioni', 'Edizioni', 'Avvisami', 'Sponsor']);
+    // Tutte le foto dell'album webp, non solo le prime 24 copiate nel blocco.
+    const galleria = readBlocks(off).find((b) => b.type === 'Galleria');
+    expect(galleria?.type === 'Galleria' && galleria.props.album).toBe('assaggia-2026');
+    expect(ALBUMS.find((a) => a.name === 'assaggia-2026')?.count).toBe(324);
+    expect(await loadAlbum('assaggia-2026')).toHaveLength(324);
   });
 });

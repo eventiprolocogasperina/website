@@ -51,6 +51,8 @@ export const BLOCK_SCHEMAS = {
     subtitle: str(300),
     /** Categoria della galleria del sito (es. "assaggia26"): le foto si leggono da lì. */
     category: str(50),
+    /** Album di foto webp in public/img/<album> (src/lib/data/albums, creato con `npm run foto`). */
+    album: str(60),
     photos: list(z.object({ src: link, alt: str(200) }), 60),
     limit: z.number().int().min(1).max(60).default(12),
   }),

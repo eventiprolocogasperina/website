@@ -1,4 +1,5 @@
 import type { BlockType } from '@/components/public/blocks/schema';
+import { ALBUMS } from '@/lib/data/albums';
 
 /*
  * Come si modifica ogni blocco nell'editor: etichetta, a cosa serve e i campi del modulo nella Sheet.
@@ -83,13 +84,20 @@ export const BLOCK_META: Record<BlockType, BlockMeta> = {
   },
   Galleria: {
     label: 'Galleria',
-    description: 'Foto scelte a mano o di una categoria della galleria del sito.',
+    description: 'Foto scelte a mano, di una categoria della galleria del sito o di un album webp.',
     fields: [
       title,
       { key: 'subtitle', label: 'Sottotitolo', kind: 'text' },
       { key: 'category', label: 'Categoria della galleria', kind: 'text', help: 'Es. assaggia26. Le foto si aggiornano da Sito › Galleria.' },
+      {
+        key: 'album',
+        label: 'Album di foto',
+        kind: 'select',
+        help: 'Le cartelle di foto webp del sito. Un album nuovo si crea con npm run foto.',
+        options: [{ value: 'nessuno', label: 'Nessun album' }, ...ALBUMS.map((a) => ({ value: a.name, label: `${a.name} (${a.count} foto)` }))],
+      },
       { key: 'photos', label: 'Foto scelte', kind: 'list', item: 'Foto', fields: [{ key: 'src', label: 'Immagine', kind: 'image' }, { key: 'alt', label: 'Descrizione', kind: 'text' }] },
-      { key: 'limit', label: 'Quante foto al massimo', kind: 'number' },
+      { key: 'limit', label: 'Quante foto mostrare all’inizio', kind: 'number', help: 'Le altre si aprono con “Mostra altre foto”.' },
     ],
   },
   Video: { label: 'Video', description: 'Un video di YouTube.', fields: [title, { key: 'url', label: 'Link di YouTube', kind: 'url' }] },
