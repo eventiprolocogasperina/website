@@ -1,24 +1,48 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { SafeResend as Resend } from '@/server/email/resend';
 import { generateSubscriptionPDF } from '@/lib/generatePDF';
+import { requestIp } from '@/server/auth/context';
+import { isRateLimited, recordFailure } from '@/server/auth/rateLimit';
+
+const text = (max: number) => z.string().trim().min(1).max(max);
+const optional = (max: number) => z.string().trim().max(max).optional().default('');
+
+// One applicant, one email address: the route is anonymous, so it must not become a mail relay.
+const Subscription = z.object({
+  nome: text(80), cognome: text(80), luogoNascita: text(80), provNascita: optional(4),
+  dataNascita: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  residenza: text(80), provResidenza: optional(4), cap: optional(10), indirizzo: text(120), civico: optional(10),
+  codiceFiscale: text(16), cellulare: text(20), email: z.string().trim().email().max(120),
+  tipoSocio: z.enum(['ordinario', 'sostenitore']),
+  quotaSostenitore: z.union([z.string(), z.number()]).optional().transform((v) => (v === undefined || v === '' ? '' : String(v))),
+  statuto: z.literal(true), privacy: z.literal(true),
+});
+
+const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 
 export async function POST(request: Request) {
   try {
+    const rateKey = `public:subscriptions:${(await requestIp()) ?? 'sconosciuto'}`;
+    if (isRateLimited(rateKey, 3)) {
+      return NextResponse.json({ error: 'Troppe richieste. Aspetta qualche minuto e riprova.' }, { status: 429 });
+    }
+    recordFailure(rateKey);
+
+    const parsed = Subscription.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Campi obbligatori mancanti o non validi' }, { status: 400 });
+    }
+    const raw = parsed.data;
     const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy_key');
 
-    const body = await request.json();
+    // Everything interpolated into the HTML emails is escaped; raw values go to the PDF and headers.
     const {
-      nome, cognome, luogoNascita, provNascita, dataNascita,
-      residenza, provResidenza, cap, indirizzo, civico,
-      codiceFiscale, cellulare, email,
-      tipoSocio, quotaSostenitore,
-      statuto, privacy,
-    } = body;
-
-    // Server-side validation
-    if (!nome || !cognome || !luogoNascita || !dataNascita || !residenza || !indirizzo || !codiceFiscale || !cellulare || !email || !statuto || !privacy) {
-      return NextResponse.json({ error: 'Campi obbligatori mancanti' }, { status: 400 });
-    }
+      nome, cognome, luogoNascita, provNascita, residenza, provResidenza, cap, indirizzo, civico,
+      codiceFiscale, cellulare, email, tipoSocio,
+    } = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, typeof v === 'string' ? escapeHtml(v) : v])) as Record<string, string>;
+    const { dataNascita, quotaSostenitore } = raw;
 
     const anno = new Date().getFullYear();
     const quotaBase = 20;
@@ -143,12 +167,12 @@ export async function POST(request: Request) {
 
     // Generate PDF
     const pdfBuffer = generateSubscriptionPDF({
-      nome, cognome, luogoNascita, provNascita, dataNascita,
-      residenza, provResidenza, cap, indirizzo, civico,
-      codiceFiscale, cellulare, email, tipoSocio, quotaSostenitore,
+      nome: raw.nome, cognome: raw.cognome, luogoNascita: raw.luogoNascita, provNascita: raw.provNascita, dataNascita,
+      residenza: raw.residenza, provResidenza: raw.provResidenza, cap: raw.cap, indirizzo: raw.indirizzo, civico: raw.civico,
+      codiceFiscale: raw.codiceFiscale, cellulare: raw.cellulare, email: raw.email, tipoSocio: raw.tipoSocio, quotaSostenitore,
     });
 
-    const pdfFilename = `Iscrizione_${cognome}_${nome}_${anno}.pdf`;
+    const pdfFilename = `Iscrizione_${raw.cognome}_${raw.nome}_${anno}.pdf`.replace(/[^\w.-]+/g, '_');
     const attachment = { filename: pdfFilename, content: pdfBuffer };
 
     // Send both emails concurrently
@@ -156,14 +180,14 @@ export async function POST(request: Request) {
       resend.emails.send({
         from: 'Pro Loco Gasperina <noreply@prolocogasperina.it>',
         to: 'iscrizioni@prolocogasperina.it',
-        subject: `Nuova Iscrizione: ${nome} ${cognome} — Socio ${tipoSocio}`,
-        replyTo: email,
+        subject: `Nuova Iscrizione: ${raw.nome} ${raw.cognome} — Socio ${raw.tipoSocio}`,
+        replyTo: raw.email,
         html: adminHtml,
         attachments: [attachment],
       }),
       resend.emails.send({
         from: 'Pro Loco Gasperina <noreply@prolocogasperina.it>',
-        to: email,
+        to: raw.email,
         subject: `Conferma richiesta di iscrizione — Pro Loco di Gasperina APS`,
         html: userHtml,
         attachments: [attachment],

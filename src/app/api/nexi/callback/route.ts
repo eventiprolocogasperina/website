@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 import { neon } from '@neondatabase/serverless';
 import { markOrderPaidByCodTrans, getOrder } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
+import { verifyResultMac } from '@/server/integrations/nexi/mac';
 
 
 export async function GET(request: Request) {
@@ -29,13 +29,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing codTrans' }, { status: 400 });
   }
 
-  // Verify MAC signature per official Nexi XPAY formula:
-  // SHA1(codTrans=<val>esito=<val>importo=<val>divisa=<val>data=<val>orario=<val>codAut=<val><SecretKey>)
-  const macString = `codTrans=${codTrans}esito=${esito}importo=${importo}divisa=${divisa}data=${data}orario=${orario}codAut=${codAut}${NEXI_MAC_KEY}`;
-  const calculatedMac = crypto.createHash('sha1').update(macString).digest('hex');
-
-  if (mac !== calculatedMac) {
-    console.error(`Invalid MAC signature. Expected ${calculatedMac}, got ${mac}`);
+  // Same Nexi XPay formula and timing-safe check as the new flow. Never log the expected MAC:
+  // anyone reading the logs could use it to forge a paid result.
+  const fields = { codTrans, esito, importo, divisa, data, orario, codAut, mac };
+  const params = Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, v ?? undefined]));
+  if (!verifyResultMac(params, NEXI_MAC_KEY)) {
+    console.error(`nexi/callback: MAC non valido per codTrans ${codTrans}`);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
   }
 

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import BookingForm from '@/components/events/BookingForm';
 import type { Event, EventLink } from '@/lib/data/events';
 import FormattedText from '@/components/ui/FormattedText';
@@ -79,27 +79,6 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
         : `${event.maxParticipants - event.registeredCount} posti disponibili`,
     }] : []),
   ];
-
-  // ─── Execute Instagram embed scripts ──────────────────────────────────────────
-  useEffect(() => {
-    const hasHtmlSection = extraSections.some(s => s.type === 'html' && s.content?.includes('instagram-media'));
-    if (hasHtmlSection) {
-      // Load Instagram script if not already present
-      if (!window.document.getElementById('instagram-embed-script')) {
-        const script = window.document.createElement('script');
-        script.id = 'instagram-embed-script';
-        script.src = '//www.instagram.com/embed.js';
-        script.async = true;
-        window.document.body.appendChild(script);
-      } else {
-        // If already loaded, trigger processing again (e.g. for client-side navigation)
-        const { instgrm } = window as Window & { instgrm?: { Embeds: { process: () => void } } };
-        if (instgrm) {
-          instgrm.Embeds.process();
-        }
-      }
-    }
-  }, [extraSections]);
 
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -438,9 +417,18 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                       </a>
                     </div>
                   )}
-                  {sec.type === 'html' && sec.content && (
-                    <div dangerouslySetInnerHTML={{ __html: sec.content }} style={{ color: 'var(--neutral-300)', lineHeight: 1.8 }} />
-                  )}
+                  {sec.type === 'html' && sec.content && (() => {
+                    // Never inject stored HTML: an Instagram embed becomes Instagram's own iframe,
+                    // anything else is shown as plain text.
+                    const post = /https:\/\/www\.instagram\.com\/(?:p|reel)\/[\w-]+/.exec(sec.content)?.[0];
+                    return post ? (
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <iframe src={`${post}/embed`} width="400" height="480" frameBorder="0" scrolling="no" title={sec.title || 'Post di Instagram'} style={{ maxWidth: '100%', borderRadius: 'var(--radius-lg)', border: '1px solid var(--neutral-700)', background: '#fff' }} />
+                      </div>
+                    ) : (
+                      <p style={{ color: 'var(--neutral-300)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>{sec.content.replace(/<[^>]*>/g, ' ').replace(/[ \t]+/g, ' ').trim()}</p>
+                    );
+                  })()}
                 </motion.div>
               ))}
 
