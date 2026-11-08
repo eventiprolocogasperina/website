@@ -29,6 +29,8 @@ export async function GET(request: Request) {
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
     const url = `${baseUrl}/api/nexi/callback`;
+    // Nexi confirms the payment on its own too, so it counts even if the customer never comes back.
+    const urlpost = `${baseUrl}/api/nexi/notifica`;
     // Se il cliente annulla su Nexi torna alla pagina dell'evento del suo ordine.
     const isZuccaland = order.tickets?.some(t => t.eventId?.includes('zuccaland'));
     const url_back = isZuccaland
@@ -68,6 +70,7 @@ export async function GET(request: Request) {
     <input type="hidden" name="codTrans" value="${codTrans}" />
     <input type="hidden" name="mac" value="${mac}" />
     <input type="hidden" name="url" value="${url}" />
+    <input type="hidden" name="urlpost" value="${urlpost}" />
     <input type="hidden" name="url_back" value="${url_back}" />
     <input type="hidden" name="languageId" value="ITA" />
   </form>

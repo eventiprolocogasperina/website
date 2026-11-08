@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resultMac } from '@/server/integrations/nexi/mac';
 
-vi.mock('@/lib/data/tickets', () => ({ markOrderPaidByCodTrans: vi.fn(), getOrder: vi.fn(async () => null) }));
-vi.mock('@/lib/tickets/sendTicketsEmail', () => ({ sendTicketsEmail: vi.fn() }));
+vi.mock('@/lib/data/tickets', () => ({ getOrder: vi.fn(async () => null) }));
+vi.mock('@/lib/tickets/legacyPayment', () => ({ confirmLegacyPayment: vi.fn(async () => 'https://x/ok') }));
 vi.mock('@/lib/telegram', () => ({ sendTelegramNotification: vi.fn() }));
+vi.mock('@/server/log', () => ({ log: { error: vi.fn() } }));
 
 const KEY = 'dummy-key';
 vi.stubEnv('NEXI_MAC_KEY', KEY);
@@ -22,12 +23,14 @@ describe('GET /api/nexi/callback', () => {
     const logged = spy.mock.calls.flat().join(' ');
     expect(logged).not.toContain(resultMac(fields, KEY));
     expect(logged).toContain('ORD123');
+    const { log } = await import('@/server/log');
+    expect(log.error).toHaveBeenCalledWith(expect.stringContaining('firma non valida'), { source: 'browser', codTrans: 'ORD123' });
   });
 
   it('accepts the correct MAC', async () => {
-    const { markOrderPaidByCodTrans } = await import('@/lib/data/tickets');
+    const { confirmLegacyPayment } = await import('@/lib/tickets/legacyPayment');
     const res = await call(resultMac(fields, KEY));
     expect(res.status).not.toBe(403);
-    expect(markOrderPaidByCodTrans).toHaveBeenCalledWith('ORD123');
+    expect(confirmLegacyPayment).toHaveBeenCalledWith('ORD123');
   });
 });

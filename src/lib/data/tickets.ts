@@ -104,7 +104,9 @@ export async function toggleOrderBlacklist(orderId: string, isBlacklisted: boole
 }
 
 // Nexi returns the codTrans which is exactly the orderId we sent (max 30 alphanumeric characters)
-export async function markOrderPaid(orderId: string, nexiMac?: string) {
+// Returns true only when this call moved the order to PAID: the browser return and Nexi's server
+// notification both arrive, and only the first must send the tickets email.
+export async function markOrderPaid(orderId: string, nexiMac?: string): Promise<boolean> {
   const sql = getDb();
   const paidAt = new Date().toISOString();
   
@@ -120,10 +122,11 @@ export async function markOrderPaid(orderId: string, nexiMac?: string) {
   if (updated.length > 0 && updated[0].discountId) {
     await incrementDiscountUses(updated[0].discountId);
   }
+  return updated.length > 0;
 }
 
-export async function markOrderPaidByCodTrans(codTrans: string) {
-  await markOrderPaid(codTrans);
+export async function markOrderPaidByCodTrans(codTrans: string): Promise<boolean> {
+  return markOrderPaid(codTrans);
 }
 
 export async function verifyTicketByQR(qrCodeData: string): Promise<{ 

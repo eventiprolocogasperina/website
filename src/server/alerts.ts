@@ -11,7 +11,7 @@ import { maskString } from '@/server/log';
 export const ALERT_WINDOW_MS = 10 * 60 * 1000;
 
 /** Campi del contesto che possono finire nell'allarme: codici e nomi tecnici. */
-const SAFE_FIELDS = ['event', 'code', 'edition', 'status', 'source', 'module'] as const;
+const SAFE_FIELDS = ['event', 'code', 'edition', 'status', 'source', 'module', 'codTrans'] as const;
 const SAFE_VALUE = /^[A-Za-z0-9._:-]{1,60}$/;
 
 type Context = Record<string, unknown> | undefined;
