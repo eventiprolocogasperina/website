@@ -20,17 +20,15 @@ const CASSA_PUBLIC = ['/cassa/pronti', '/cassa/sw.js', '/cassa/manifest.webmanif
 
 const PROTECTED = ['/admin', '/api/admin', '/scanner', '/cassa'];
 
-// Preview di Vercel bloccato finché non ha le sue variabili (database di prova, Nexi di test):
-// senza PREVIEW_READY=1 non apre nessuna pagina, così non lavora mai con le chiavi di produzione.
-const previewLocked = () => process.env.VERCEL_ENV === 'preview' && (process.env.PREVIEW_READY !== '1' || !process.env.PREVIEW_POSTGRES_URL);
+// Preview di Vercel bloccato finché non è pronto: senza PREVIEW_READY=1 non apre nessuna pagina.
+// Per scelta di Niccolo (2026-11-08) il Preview usa il database di produzione (POSTGRES_URL).
+const previewLocked = () => process.env.VERCEL_ENV === 'preview' && process.env.PREVIEW_READY !== '1';
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (previewLocked()) {
-    // Solo i nomi delle variabili mancanti, mai i valori.
-    const missing = ['PREVIEW_READY', 'PREVIEW_POSTGRES_URL'].filter((k) => (k === 'PREVIEW_READY' ? process.env[k] !== '1' : !process.env[k]));
-    return new NextResponse(`Preview non ancora configurato. Mancano: ${missing.join(', ')} (branch ${process.env.VERCEL_GIT_COMMIT_REF ?? '?'}).`, { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    return new NextResponse(`Preview non ancora configurato. Manca: PREVIEW_READY=1 (branch ${process.env.VERCEL_GIT_COMMIT_REF ?? '?'}).`, { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   }
   if (!PROTECTED.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
 
