@@ -2,10 +2,10 @@ import { notFound } from 'next/navigation';
 import { getNewsBySlug } from '@/lib/data/news';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
 import FormattedText from '@/components/ui/FormattedText';
 import ShareButtons from '@/components/ui/ShareButtons';
 import PhotoGallery from '@/components/ui/PhotoGallery';
+import { V3Page, newsDate } from '@/components/site/ui';
 import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
@@ -33,82 +33,48 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function NewsDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const news = await getNewsBySlug(slug);
-  
+
   if (!news) notFound();
 
+  const photos = news.config?.carouselPhotos;
+
   return (
-    <div style={{ paddingTop: '5rem', background: 'var(--neutral-950)', minHeight: '100vh' }}>
-      
-      {/* ── Hero ── */}
-      <div style={{ position: 'relative', overflow: 'hidden', minHeight: news.coverImage ? '50vh' : 'auto', padding: news.coverImage ? 0 : '4rem 0' }}>
-        {news.coverImage && (
-          <>
-            <Image
-              src={news.coverImage}
-              alt={news.title}
-              fill
-              style={{ objectFit: 'cover', objectPosition: 'center' }}
-              priority
-            />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,12,18,0.3) 0%, rgba(10,12,18,0.95) 100%)' }} />
-          </>
-        )}
-        
-        <div style={{ 
-          position: news.coverImage ? 'absolute' : 'relative',
-          bottom: 0, left: '50%', transform: 'translateX(-50%)', 
-          width: '100%', maxWidth: '800px', padding: '2rem'
-        }}>
-          <Link href="/notizie" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem', marginBottom: '1.5rem', transition: 'color 0.2s' }}>
-            <ArrowLeft size={14} /> Torna alle notizie
-          </Link>
-          
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', color: news.coverImage ? 'var(--neutral-300)' : 'var(--neutral-400)', fontSize: '0.85rem' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Calendar size={14} />
-              {new Date(news.publishedAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </span>
-            {news.author && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <User size={14} />
-                {news.author}
-              </span>
-            )}
-          </div>
+    <V3Page>
+      <section className="hero">
+        <Link className="crumb" href="/notizie">← Torna alle notizie</Link>
+        <br />
+        <span className="eyebrow">
+          {newsDate(news.publishedAt)}
+          {news.author ? ` · ${news.author}` : ''}
+        </span>
+        <FormattedText as="h1" className="h1" style={{ fontSize: 'clamp(40px,5.4vw,84px)', maxWidth: '18ch' }} text={news.title} />
+      </section>
 
-          <FormattedText as="h1" style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 500, color: 'var(--color-heading)', lineHeight: 1.2, marginBottom: '0' }} text={news.title} />
-        </div>
-      </div>
-
-      {/* ── Body ── */}
-      <div className="section" style={{ paddingTop: '2rem' }}>
-        <div className="section-inner" style={{ maxWidth: '800px' }}>
-          
-          {/* Accent bar */}
-          <div style={{ height: '2px', width: '60px', background: 'var(--gold-500)', marginBottom: '2.5rem' }} />
-
-          {/* Content */}
-          <div style={{ fontSize: '1.05rem', lineHeight: 1.8, color: 'var(--neutral-300)' }}>
+      <section className="panel p-white">
+        <div className="split" style={{ alignItems: 'start', gridTemplateColumns: news.coverImage ? '1.5fr 1fr' : '1fr' }}>
+          <article className="prose">
             {news.content.split('\n').filter(Boolean).map((para, i) => (
-              <FormattedText key={i} as="p" style={{ marginBottom: '1.5rem' }} text={para.trim()} />
+              <FormattedText key={i} as="p" text={para.trim()} />
             ))}
-          </div>
-          
-          <ShareButtons title={news.title} />
-
-          {/* Gallery */}
-          {news.config?.carouselPhotos && news.config.carouselPhotos.length > 0 && (
-            <PhotoGallery photos={news.config.carouselPhotos} />
+            <ShareButtons title={news.title} />
+          </article>
+          {news.coverImage && (
+            <aside style={{ display: 'grid', gap: 18 }}>
+              <div className="roundpic">
+                <Image src={news.coverImage} alt={news.title} width={700} height={700} priority sizes="(max-width: 960px) 100vw, 440px" />
+              </div>
+            </aside>
           )}
-
-          {/* Share / Footer */}
-          <div style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-800)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Link href="/notizie" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-              <ArrowLeft size={16} /> Tutte le notizie
-            </Link>
-          </div>
         </div>
-      </div>
-    </div>
+        {photos && photos.length > 0 && (
+          <div style={{ marginTop: 40 }}>
+            <PhotoGallery photos={photos} />
+          </div>
+        )}
+        <div className="actions" style={{ marginTop: 40 }}>
+          <Link className="vbtn vbtn-blue" href="/notizie">Tutte le notizie</Link>
+        </div>
+      </section>
+    </V3Page>
   );
 }

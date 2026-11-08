@@ -14,20 +14,7 @@ function href(f: CalendarFilters) {
 
 function Chip({ to, active, children }: { to: string; active: boolean; children: React.ReactNode }) {
   return (
-    <Link
-      href={to}
-      scroll={false}
-      aria-current={active ? 'true' : undefined}
-      className={active ? 'badge badge-gold' : 'badge'}
-      style={{
-        whiteSpace: 'nowrap',
-        padding: '0.4rem 0.9rem',
-        fontSize: '0.8rem',
-        textDecoration: 'none',
-        border: active ? undefined : '1px solid var(--neutral-800)',
-        color: active ? undefined : 'var(--neutral-300)',
-      }}
-    >
+    <Link href={to} scroll={false} aria-current={active ? 'true' : undefined} className={active ? 'chip on' : 'chip'} style={{ whiteSpace: 'nowrap' }}>
       {children}
     </Link>
   );
@@ -35,8 +22,8 @@ function Chip({ to, active, children }: { to: string; active: boolean; children:
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div role="group" aria-label={label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }}>
-      <span className="label" style={{ flexShrink: 0, minWidth: '5.5rem' }}>
+    <div role="group" aria-label={label} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <span className="eyebrow" style={{ margin: 0, minWidth: '5.5rem' }}>
         {label}
       </span>
       {children}
@@ -47,7 +34,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function CalendarFilterBar({ filters, months, categories }: { filters: CalendarFilters; months: string[]; categories: Array<{ value: EventCategory; label: string }> }) {
   if (!months.length && !categories.length) return null;
   return (
-    <nav aria-label="Filtra il calendario" className="section-inner" style={{ padding: '2rem 1.5rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <nav aria-label="Filtra il calendario" style={{ display: 'grid', gap: 14, marginBottom: 36 }}>
       {categories.length > 1 && (
         <Row label="Categoria">
           <Chip to={href({ ...filters, category: null })} active={!filters.category}>

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
-import { CheckCircle, Send, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { PageHero, V3Page } from '@/components/site/ui';
 
 interface FormData {
   nome: string;
@@ -30,27 +30,6 @@ const initialForm: FormData = {
   codiceFiscale: '', cellulare: '', email: '',
   tipoSocio: 'ordinario', quotaSostenitore: '',
   statuto: false, privacy: false,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '0.65rem 0.85rem',
-  background: 'var(--neutral-900)', border: '1px solid var(--neutral-700)',
-  borderRadius: 'var(--radius-md)', color: 'var(--color-text)',
-  fontFamily: 'var(--font-body)', fontSize: '0.88rem',
-  outline: 'none', transition: 'border-color 0.2s',
-};
-
-const labelStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-body)', fontSize: '0.78rem', fontWeight: 600,
-  color: 'var(--neutral-400)', marginBottom: '0.3rem', display: 'block',
-  letterSpacing: '0.02em',
-};
-
-const errStyle: React.CSSProperties = { fontSize: '0.72rem', color: '#f87171', marginTop: '0.2rem' };
-
-const sectionTitle: React.CSSProperties = {
-  fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--color-heading)',
-  marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--neutral-700)',
 };
 
 export default function IscrivitiPage() {
@@ -103,280 +82,130 @@ export default function IscrivitiPage() {
     }
   };
 
+  const year = new Date().getFullYear();
+  const err = (k: string) => (errors[k] ? <span className="err" role="alert">{errors[k]}</span> : null);
+  const tipo = (value: FormData['tipoSocio'], title: string, price: string) => (
+    <label className={form.tipoSocio === value ? 'sel' : undefined}>
+      <span>
+        <input type="radio" name="tipoSocio" checked={form.tipoSocio === value} onChange={() => setForm(f => ({ ...f, tipoSocio: value }))} />
+        <b>{title}</b>
+      </span>
+      <span className="muted" style={{ marginTop: 6 }}>{price}</span>
+    </label>
+  );
+
   return (
-    <div style={{ paddingTop: '7rem', background: 'var(--neutral-950)', minHeight: '100vh', padding: '7rem 1.5rem 5rem' }}>
-      <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+    <V3Page>
+      <PageHero
+        eyebrow={`Anno ${year}`}
+        title="Richiesta di"
+        accent="iscrizione."
+        lede="Modulo di richiesta di iscrizione all'Associazione Pro Loco di Gasperina APS. L'iscrizione è effettiva al momento dell'accettazione da parte del Consiglio Direttivo."
+      />
 
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <Image src="/img/Logo_color_sm.png" alt="Pro Loco Gasperina" width={80} height={80} style={{ margin: '0 auto 1rem', objectFit: 'contain' }} />
-          <p className="label">Anno {new Date().getFullYear()}</p>
-          <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300, marginBottom: '0.5rem', color: 'var(--color-heading)' }}>
-            Richiesta di <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>Iscrizione</em>
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: 'var(--neutral-400)', maxWidth: '520px', margin: '0 auto', lineHeight: 1.7 }}>
-            Modulo di Richiesta di Iscrizione all&apos;Associazione<br />
-            <strong style={{ color: 'var(--color-heading)' }}>Pro Loco di Gasperina APS</strong>
-          </p>
+      <section className="panel p-white">
+        <div className="split" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'start' }}>
+          {submitted ? (
+            <div className="vcard" role="status">
+              <h2 className="h2" style={{ fontSize: 'clamp(34px,3.4vw,48px)' }}>Richiesta inviata.</h2>
+              <p style={{ marginTop: 16 }}>
+                Grazie <strong>{form.nome} {form.cognome}</strong>! Riceverai una email di conferma all&apos;indirizzo <strong>{form.email}</strong>.
+              </p>
+              <p>L&apos;iscrizione si intende effettiva al momento della comunicazione dell&apos;accettazione da parte del Consiglio Direttivo, che ti contatterà quanto prima con i dettagli per il pagamento della quota associativa e il numero tessera.</p>
+            </div>
+          ) : (
+            <form className="form" onSubmit={handleSubmit} noValidate>
+              <fieldset>
+                <legend>Dati anagrafici</legend>
+                <label>Nome *<input value={form.nome} onChange={handleChange('nome')} autoComplete="given-name" />{err("nome")}</label>
+                <label>Cognome *<input value={form.cognome} onChange={handleChange('cognome')} autoComplete="family-name" />{err("cognome")}</label>
+                <label>Luogo di nascita *<input value={form.luogoNascita} onChange={handleChange('luogoNascita')} />{err("luogoNascita")}</label>
+                <label>Provincia<input value={form.provNascita} onChange={handleChange('provNascita')} placeholder="CZ" /></label>
+                <label>Data di nascita *<input type="date" value={form.dataNascita} onChange={handleChange('dataNascita')} autoComplete="bday" />{err("dataNascita")}</label>
+              </fieldset>
+
+              <fieldset>
+                <legend>Residenza</legend>
+                <label>Comune *<input value={form.residenza} onChange={handleChange('residenza')} autoComplete="address-level2" />{err("residenza")}</label>
+                <label>Provincia<input value={form.provResidenza} onChange={handleChange('provResidenza')} placeholder="CZ" /></label>
+                <label>Via / indirizzo *<input value={form.indirizzo} onChange={handleChange('indirizzo')} autoComplete="address-line1" />{err("indirizzo")}</label>
+                <label>N. civico<input value={form.civico} onChange={handleChange('civico')} /></label>
+                <label>CAP<input value={form.cap} onChange={handleChange('cap')} autoComplete="postal-code" inputMode="numeric" /></label>
+              </fieldset>
+
+              <fieldset>
+                <legend>Contatti</legend>
+                <label>Codice fiscale *<input value={form.codiceFiscale} onChange={handleChange('codiceFiscale')} />{err("codiceFiscale")}</label>
+                <label>Cellulare *<input type="tel" value={form.cellulare} onChange={handleChange('cellulare')} autoComplete="tel" />{err("cellulare")}</label>
+                <label className="full">Email *<input type="email" value={form.email} onChange={handleChange('email')} autoComplete="email" />{err("email")}</label>
+              </fieldset>
+
+              <fieldset>
+                <legend>Tipo di adesione</legend>
+                <div className="choice full">
+                  {tipo('ordinario', 'Socio ordinario', 'Quota annuale 20 €')}
+                  {tipo('sostenitore', 'Socio sostenitore', 'Quota annuale 20 € + contributo volontario')}
+                </div>
+                {form.tipoSocio === 'sostenitore' && (
+                  <label className="full" style={{ maxWidth: 240 }}>Contributo aggiuntivo (€)
+                    <input type="number" min="1" value={form.quotaSostenitore} onChange={e => setForm(f => ({ ...f, quotaSostenitore: e.target.value }))} placeholder="es. 10" />
+                  </label>
+                )}
+              </fieldset>
+
+              <fieldset>
+                <legend>Dichiarazioni e consensi</legend>
+                <p className="muted full" style={{ fontSize: 14.5, margin: 0 }}>
+                  Presa visione dello Statuto dell&apos;Associazione Pro Loco di Gasperina APS, accettato integralmente in ogni sua parte e tenuto conto, in particolare, delle finalità dell&apos;Associazione (art. 2) nella volontà di voler contribuire attivamente alla loro realizzazione, chiede di aderire all&apos;Associazione.
+                </p>
+                <label className="check full">
+                  <input type="checkbox" checked={form.statuto} onChange={handleChange('statuto')} />
+                  <span>Dichiaro di aver preso visione e di accettare integralmente lo Statuto dell&apos;Associazione Pro Loco di Gasperina APS *</span>
+                </label>
+                <span className="err full" role="alert" hidden={!errors.statuto}>{errors.statuto}</span>
+                <p className="muted full" style={{ fontSize: 13.5, margin: 0 }}>
+                  <strong>Informativa ex art. 13 D. Lgs 30.06.2003 n. 196.</strong> I dati personali raccolti con il presente modulo verranno trattati per esclusive finalità associative, gestionali e statistiche. L&apos;acquisizione dei dati personali è presupposto per lo svolgimento dei rapporti cui l&apos;acquisizione è finalizzata. I dati potranno essere comunicati esclusivamente per motivi associativi alle altre Pro Loco aderenti UNPLI, ed alle strutture organizzative UNPLI. Il trattamento sarà svolto manualmente e mediante strumenti elettronici e previa adozione delle misure minime e idonee di sicurezza. Titolare del trattamento dei dati e responsabile è il Presidente della Pro Loco di Gasperina APS.
+                </p>
+                <label className="check full">
+                  <input type="checkbox" checked={form.privacy} onChange={handleChange('privacy')} />
+                  <span>Acconsento al trattamento dei dati personali raccolti per le attività statutarie della Pro Loco di Gasperina e dell&apos;UNPLI (D. Lgs 196/2003 e GDPR UE 2016/679) *</span>
+                </label>
+                <span className="err full" role="alert" hidden={!errors.privacy}>{errors.privacy}</span>
+              </fieldset>
+
+              {apiError && <p className="err full" role="alert">{apiError}</p>}
+              <div className="full actions" style={{ marginTop: 8 }}>
+                <button className="vbtn vbtn-gold" type="submit" disabled={loading} style={{ cursor: 'pointer', opacity: loading ? 0.7 : 1 }}>
+                  {loading ? 'Invio in corso…' : 'Invia richiesta di iscrizione'}
+                </button>
+              </div>
+              <p className="muted full" style={{ fontSize: 13.5, margin: 0 }}>
+                Associazione Pro Loco di Gasperina APS · Sede legale in Gasperina (CZ), via Raffaele Milano, SNC · C.F. 99330790793 · Contatti: 3505757501 oppure prolocogasperina@gmail.com
+              </p>
+            </form>
+          )}
+
+          <aside style={{ display: 'grid', gap: 18, position: 'sticky', top: 24 }}>
+            <div className="vcard" style={{ background: 'var(--blue-xl)', borderColor: 'var(--blue-xl)' }}>
+              <h3 className="h3">Come funziona</h3>
+              <ol style={{ paddingLeft: 20, margin: '12px 0 0', lineHeight: 1.8 }}>
+                <li>Compili e invii il modulo.</li>
+                <li>Il Consiglio Direttivo valuta la richiesta.</li>
+                <li>Ricevi la conferma e la tessera UNPLI.</li>
+              </ol>
+            </div>
+            <div className="vcard">
+              <h3 className="h3">Validità</h3>
+              <p>L&apos;iscrizione, nonché la tessera UNPLI, è valida fino al 31 dicembre {year}: il rinnovo per l&apos;anno successivo avviene senza ulteriori formalità con la quota annuale stabilita dall&apos;Associazione.</p>
+            </div>
+            <div className="vcard">
+              <h3 className="h3">Informativa</h3>
+              <p style={{ fontSize: 14.5 }}>I dati sono trattati per finalità associative e possono essere comunicati solo alle Pro Loco aderenti UNPLI e alle sue strutture.</p>
+              <Link href="/privacy" style={{ fontWeight: 700, color: 'var(--blue)' }}>Informativa completa →</Link>
+            </div>
+          </aside>
         </div>
-
-        {submitted ? (
-          <div style={{ textAlign: 'center', padding: '3rem 2rem', background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)', borderRadius: 'var(--radius-xl)' }}>
-            <CheckCircle size={48} style={{ color: '#4ade80', margin: '0 auto 1rem' }} />
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: 'var(--color-heading)', marginBottom: '0.75rem' }}>
-              Richiesta inviata con successo!
-            </h3>
-            <p style={{ color: 'var(--neutral-400)', lineHeight: 1.8, maxWidth: '440px', margin: '0 auto' }}>
-              Grazie <strong style={{ color: 'var(--color-heading)' }}>{form.nome} {form.cognome}</strong>!<br />
-              Riceverai una email di conferma all&apos;indirizzo <strong style={{ color: 'var(--gold-400)' }}>{form.email}</strong>.<br /><br />
-              L&apos;iscrizione si intende effettiva al momento della comunicazione dell&apos;accettazione da parte del Consiglio Direttivo, che ti contatterà quanto prima con i dettagli per il pagamento della quota associativa e il numero tessera.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{
-            display: 'flex', flexDirection: 'column', gap: '1.5rem',
-            background: 'var(--neutral-800)', border: '1px solid var(--neutral-700)',
-            borderRadius: 'var(--radius-xl)', padding: '2rem',
-          }}>
-
-            {/* === SEZIONE 1: Dati Anagrafici === */}
-            <div>
-              <h3 style={sectionTitle}>Dati Anagrafici</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={labelStyle}>Nome *</label>
-                  <input type="text" value={form.nome} onChange={handleChange('nome')} placeholder="Mario" style={inputStyle} />
-                  {errors.nome && <p style={errStyle}>{errors.nome}</p>}
-                </div>
-                <div>
-                  <label style={labelStyle}>Cognome *</label>
-                  <input type="text" value={form.cognome} onChange={handleChange('cognome')} placeholder="Rossi" style={inputStyle} />
-                  {errors.cognome && <p style={errStyle}>{errors.cognome}</p>}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <div>
-                  <label style={labelStyle}>Luogo di nascita *</label>
-                  <input type="text" value={form.luogoNascita} onChange={handleChange('luogoNascita')} placeholder="Catanzaro" style={inputStyle} />
-                  {errors.luogoNascita && <p style={errStyle}>{errors.luogoNascita}</p>}
-                </div>
-                <div>
-                  <label style={labelStyle}>Prov.</label>
-                  <input type="text" value={form.provNascita} onChange={handleChange('provNascita')} placeholder="CZ" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Data di nascita *</label>
-                  <input type="date" value={form.dataNascita} onChange={handleChange('dataNascita')} style={inputStyle} />
-                  {errors.dataNascita && <p style={errStyle}>{errors.dataNascita}</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* === SEZIONE 2: Residenza === */}
-            <div>
-              <h3 style={sectionTitle}>Residenza</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: '0.75rem' }}>
-                <div>
-                  <label style={labelStyle}>Comune *</label>
-                  <input type="text" value={form.residenza} onChange={handleChange('residenza')} placeholder="Gasperina" style={inputStyle} />
-                  {errors.residenza && <p style={errStyle}>{errors.residenza}</p>}
-                </div>
-                <div>
-                  <label style={labelStyle}>Prov.</label>
-                  <input type="text" value={form.provResidenza} onChange={handleChange('provResidenza')} placeholder="CZ" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>CAP</label>
-                  <input type="text" value={form.cap} onChange={handleChange('cap')} placeholder="88060" style={inputStyle} />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <div>
-                  <label style={labelStyle}>Via / Indirizzo *</label>
-                  <input type="text" value={form.indirizzo} onChange={handleChange('indirizzo')} placeholder="Via Raffaele Milano" style={inputStyle} />
-                  {errors.indirizzo && <p style={errStyle}>{errors.indirizzo}</p>}
-                </div>
-                <div>
-                  <label style={labelStyle}>N.</label>
-                  <input type="text" value={form.civico} onChange={handleChange('civico')} placeholder="SNC" style={inputStyle} />
-                </div>
-              </div>
-            </div>
-
-            {/* === SEZIONE 3: Contatti === */}
-            <div>
-              <h3 style={sectionTitle}>Contatti</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={labelStyle}>Codice Fiscale *</label>
-                  <input type="text" value={form.codiceFiscale} onChange={handleChange('codiceFiscale')} placeholder="RSSMRA80A01C352E" style={inputStyle} />
-                  {errors.codiceFiscale && <p style={errStyle}>{errors.codiceFiscale}</p>}
-                </div>
-                <div>
-                  <label style={labelStyle}>Cellulare *</label>
-                  <input type="tel" value={form.cellulare} onChange={handleChange('cellulare')} placeholder="+39 333 1234567" style={inputStyle} />
-                  {errors.cellulare && <p style={errStyle}>{errors.cellulare}</p>}
-                </div>
-              </div>
-              <div style={{ marginTop: '0.75rem' }}>
-                <label style={labelStyle}>Email *</label>
-                <input type="email" value={form.email} onChange={handleChange('email')} placeholder="mario.rossi@email.com" style={inputStyle} />
-                {errors.email && <p style={errStyle}>{errors.email}</p>}
-              </div>
-            </div>
-
-            {/* === SEZIONE 4: Tipo Socio === */}
-            <div>
-              <h3 style={sectionTitle}>Tipo di Adesione</h3>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {/* Ordinario */}
-                <button type="button" onClick={() => setForm(f => ({ ...f, tipoSocio: 'ordinario' }))}
-                  style={{
-                    flex: '1 1 260px', padding: '1.25rem', borderRadius: 'var(--radius-lg)',
-                    border: form.tipoSocio === 'ordinario' ? '2px solid var(--gold-500)' : '2px solid var(--neutral-700)',
-                    background: form.tipoSocio === 'ordinario' ? 'rgba(232,169,26,0.08)' : 'var(--neutral-900)',
-                    cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
-                  }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                    <div style={{
-                      width: 18, height: 18, borderRadius: 4,
-                      border: form.tipoSocio === 'ordinario' ? '2px solid var(--gold-500)' : '2px solid var(--neutral-600)',
-                      background: form.tipoSocio === 'ordinario' ? 'var(--gold-500)' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      {form.tipoSocio === 'ordinario' && <span style={{ color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}>✓</span>}
-                    </div>
-                    <span style={{ fontWeight: 700, color: 'var(--color-heading)', fontSize: '0.95rem' }}>SOCIO ORDINARIO</span>
-                  </div>
-                  <div style={{ color: 'var(--gold-500)', fontSize: '0.88rem', fontWeight: 600, paddingLeft: '1.6rem' }}>
-                    Quota annuale €20
-                  </div>
-                </button>
-
-                {/* Sostenitore */}
-                <button type="button" onClick={() => setForm(f => ({ ...f, tipoSocio: 'sostenitore' }))}
-                  style={{
-                    flex: '1 1 260px', padding: '1.25rem', borderRadius: 'var(--radius-lg)',
-                    border: form.tipoSocio === 'sostenitore' ? '2px solid var(--gold-500)' : '2px solid var(--neutral-700)',
-                    background: form.tipoSocio === 'sostenitore' ? 'rgba(232,169,26,0.08)' : 'var(--neutral-900)',
-                    cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
-                  }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                    <div style={{
-                      width: 18, height: 18, borderRadius: 4,
-                      border: form.tipoSocio === 'sostenitore' ? '2px solid var(--gold-500)' : '2px solid var(--neutral-600)',
-                      background: form.tipoSocio === 'sostenitore' ? 'var(--gold-500)' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    }}>
-                      {form.tipoSocio === 'sostenitore' && <span style={{ color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}>✓</span>}
-                    </div>
-                    <span style={{ fontWeight: 700, color: 'var(--color-heading)', fontSize: '0.95rem' }}>SOCIO SOSTENITORE</span>
-                  </div>
-                  <div style={{ color: 'var(--gold-500)', fontSize: '0.88rem', fontWeight: 600, paddingLeft: '1.6rem' }}>
-                    Quota annuale €20 + contributo volontario
-                  </div>
-                  {form.tipoSocio === 'sostenitore' && (
-                    <div style={{ marginTop: '0.75rem', paddingLeft: '1.6rem' }}>
-                      <label style={{ ...labelStyle, marginBottom: '0.25rem' }}>Contributo aggiuntivo (€)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={form.quotaSostenitore}
-                        onChange={e => setForm(f => ({ ...f, quotaSostenitore: e.target.value }))}
-                        placeholder="es. 10"
-                        style={{ ...inputStyle, width: '120px' }}
-                        onClick={e => e.stopPropagation()}
-                      />
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* === SEZIONE 5: Dichiarazioni e Consensi === */}
-            <div>
-              <h3 style={sectionTitle}>Dichiarazioni e Consensi</h3>
-
-              <div style={{
-                background: 'var(--neutral-900)', borderRadius: 'var(--radius-md)',
-                padding: '1rem', marginBottom: '1rem',
-                fontSize: '0.8rem', color: 'var(--neutral-400)', lineHeight: 1.7,
-              }}>
-                Presa visione dello Statuto dell&apos;Associazione Pro Loco di Gasperina APS, accettato integralmente in ogni sua parte e tenuto conto, in particolare, delle finalità dell&apos;Associazione (art. 2) nella volontà di voler contribuire attivamente alla loro realizzazione, chiede di aderire all&apos;Associazione.
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                <input
-                  id="iscr-statuto" type="checkbox" checked={form.statuto}
-                  onChange={handleChange('statuto')}
-                  style={{ marginTop: '3px', accentColor: 'var(--gold-500)', flexShrink: 0 }}
-                />
-                <label htmlFor="iscr-statuto" style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>
-                  Dichiaro di aver preso visione e di accettare integralmente lo Statuto dell&apos;Associazione Pro Loco di Gasperina APS *
-                </label>
-              </div>
-              {errors.statuto && <p style={errStyle}>{errors.statuto}</p>}
-
-              <div style={{
-                background: 'var(--neutral-900)', borderRadius: 'var(--radius-md)',
-                padding: '1rem', marginTop: '1rem', marginBottom: '1rem',
-                fontSize: '0.72rem', color: 'var(--neutral-600)', lineHeight: 1.7,
-              }}>
-                <strong style={{ color: 'var(--neutral-400)' }}>Informativa ex art. 13 D. Lgs 30.06.2003 n. 196</strong><br />
-                I dati personali raccolti con il presente modulo verranno trattati per esclusive finalità associative, gestionali e statistiche.
-                L&apos;acquisizione dei dati personali è presupposto per lo svolgimento dei rapporti cui l&apos;acquisizione è finalizzata.
-                I dati potranno essere comunicati esclusivamente per motivi associativi alle altre Pro Loco aderenti UNPLI, ed alle strutture organizzative UNPLI.
-                Il trattamento sarà svolto manualmente e mediante strumenti elettronici e previa adozione delle misure minime e idonee di sicurezza.
-                Titolare del trattamento dei dati e responsabile è il Presidente della Pro Loco di Gasperina APS.
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
-                <input
-                  id="iscr-privacy" type="checkbox" checked={form.privacy}
-                  onChange={handleChange('privacy')}
-                  style={{ marginTop: '3px', accentColor: 'var(--gold-500)', flexShrink: 0 }}
-                />
-                <label htmlFor="iscr-privacy" style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>
-                  Acconsento al trattamento dei dati personali raccolti per le attività statutarie della Pro Loco di Gasperina e dell&apos;UNPLI (D. Lgs 196/2003 e GDPR UE 2016/679) *
-                </label>
-              </div>
-              {errors.privacy && <p style={errStyle}>{errors.privacy}</p>}
-            </div>
-
-            {/* Note validità */}
-            <div style={{
-              background: 'rgba(232,169,26,0.08)', border: '1px solid rgba(232,169,26,0.2)',
-              borderRadius: 'var(--radius-md)', padding: '1rem',
-              fontSize: '0.8rem', color: 'var(--gold-400)', lineHeight: 1.7,
-            }}>
-              L&apos;iscrizione si intende effettiva al momento della comunicazione dell&apos;accettazione da parte del Consiglio Direttivo.
-              L&apos;iscrizione, nonché la tessera UNPLI, è valida fino al 31 dicembre {new Date().getFullYear()}: il rinnovo per l&apos;anno successivo avverrà senza ulteriori formalità mediante la corresponsione della quota annuale stabilita dall&apos;Associazione.
-            </div>
-
-            {/* Error */}
-            {apiError && (
-              <div style={{ padding: '0.75rem', background: 'rgba(248, 113, 113, 0.1)', border: '1px solid #f87171', borderRadius: 'var(--radius-md)', color: '#f87171', fontSize: '0.85rem', textAlign: 'center' }}>
-                {apiError}
-              </div>
-            )}
-
-            {/* Submit */}
-            <button type="submit" className="btn btn-primary" disabled={loading}
-              style={{ width: '100%', justifyContent: 'center', opacity: loading ? 0.7 : 1, padding: '0.85rem', fontSize: '0.95rem' }}
-              id="membership-submit"
-            >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={16} />}
-              {loading ? ' Invio in corso...' : ' Invia Richiesta di Iscrizione'}
-            </button>
-
-            <p style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', textAlign: 'center', lineHeight: 1.5 }}>
-              Associazione Pro Loco di Gasperina APS — Sede legale in Gasperina (CZ), via Raffaele Milano, SNC<br />
-              C.F. 99330790793 · Contatti: 3505757501 oppure prolocogasperina@gmail.com
-            </p>
-          </form>
-        )}
-      </div>
-    </div>
+      </section>
+    </V3Page>
   );
 }

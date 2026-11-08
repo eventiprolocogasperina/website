@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { isRedesignedPath } from '@/lib/public/redesign';
+import SiteFooter from '@/components/site/SiteFooter';
 import { Share2, Camera, Mail, Phone, MapPin, Heart } from 'lucide-react';
 
 
@@ -30,6 +32,7 @@ const footerLinks = {
 
 export default function Footer() {
   const pathname = usePathname();
+  if (isRedesignedPath(pathname)) return <SiteFooter />;
   if (pathname?.startsWith('/admin') || pathname?.startsWith('/scanner') || pathname?.startsWith('/cashier') || pathname?.startsWith('/cassa') || pathname?.startsWith('/assaggia-e-passeggia')) return null;
   return (
     <footer style={{ background: 'var(--neutral-900)', borderTop: '1px solid var(--neutral-800)', paddingTop: '4rem' }}>

@@ -1,114 +1,112 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { teamMembers } from '@/lib/data/members';
-import { ChevronRight } from 'lucide-react';
+import { PageHero, V3Page } from '@/components/site/ui';
 
 export const metadata: Metadata = {
   title: 'Chi Siamo',
   description: 'Scopri la storia, la missione e il team della Pro Loco Gasperina APS, associazione di promozione sociale fondata nel 1995.',
 };
 
-export default function AssociazionePagePage() {
+const values = [
+  { title: 'Cultura', desc: 'Preservare e diffondere il patrimonio culturale e le tradizioni di Gasperina.' },
+  { title: 'Comunità', desc: 'Creare momenti di incontro e rafforzare il senso di appartenenza.' },
+  { title: 'Territorio', desc: 'Valorizzare e proteggere le risorse naturali e paesaggistiche locali.' },
+  { title: 'Inclusione', desc: 'Essere un punto di riferimento per tutti i cittadini, nessuno escluso.' },
+];
+
+export default function AssociazionePage() {
   return (
-    <div style={{ paddingTop: '5rem', background: 'var(--neutral-950)', minHeight: '100vh' }}>
-      {/* Hero */}
-      <div style={{ position: 'relative', height: '380px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Image src="/img/IMG1.jpg" alt="Gasperina" fill style={{ objectFit: 'cover', objectPosition: 'center 60%' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,12,18,0.5), rgba(10,12,18,0.9))' }} />
-        <div style={{ position: 'relative', textAlign: 'center' }}>
-          <p className="label">Dal 1995</p>
-          <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300, color: '#ffffff' }}>Chi <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>siamo</em></h1>
-        </div>
-      </div>
+    <V3Page>
+      <PageHero
+        eyebrow="Dal 1995"
+        title="Chi"
+        accent="siamo."
+        lede="La Pro Loco Gasperina APS è un'associazione di promozione sociale nata nel 1995 per la cultura, le tradizioni e il turismo del nostro borgo."
+        image="/img/assaggia-2026/A%26P_M-186.webp"
+        imageAlt="I volontari della Pro Loco Gasperina"
+      />
 
-      {/* Mission */}
-      <section id="missione" className="section">
-        <div className="section-inner" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <p className="label">La nostra missione</p>
-          <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h2 style={{ marginBottom: '1.5rem' }}>Promuovere, <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>valorizzare</em>, connettere</h2>
-          <p style={{ fontSize: '1.05rem', color: 'var(--neutral-400)', lineHeight: 1.8, marginBottom: '1rem' }}>
-            La Pro Loco Gasperina APS è un'associazione di promozione sociale nata nel 1995.
-            Con passione e dedizione promuoviamo la cultura, le tradizioni e il turismo del nostro borgo,
-            organizzando eventi, gestendo progetti culturali e rafforzando il senso di comunità.
-          </p>
-          <p style={{ fontSize: '1.05rem', color: 'var(--neutral-400)', lineHeight: 1.8 }}>
-            Siamo un'associazione apartitica, senza scopo di lucro, guidata dalla passione per Gasperina
-            e dal desiderio di tramandare l'identità calabrese alle future generazioni.
-          </p>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section className="section" style={{ background: 'var(--neutral-900)' }}>
-        <div className="section-inner">
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <p className="label">I nostri valori</p>
-            <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-            <h2>Cosa ci <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>guida</em></h2>
+      <section id="missione" className="panel p-cream">
+        <div className="split" style={{ alignItems: 'start' }}>
+          <div>
+            <span className="eyebrow">La nostra missione</span>
+            <h2 className="h2">Promuovere, valorizzare, connettere.</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
-            {[
-              { emoji: '🏛️', title: 'Cultura', desc: 'Preservare e diffondere il patrimonio culturale e le tradizioni di Gasperina.' },
-              { emoji: '🤝', title: 'Comunità', desc: 'Creare momenti di incontro e rafforzare il senso di appartenenza.' },
-              { emoji: '🌿', title: 'Territorio', desc: 'Valorizzare e proteggere le risorse naturali e paesaggistiche locali.' },
-              { emoji: '✨', title: 'Inclusione', desc: 'Essere un punto di riferimento per tutti i cittadini, nessuno escluso.' },
-            ].map(v => (
-              <div key={v.title} className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>{v.emoji}</div>
-                <h4 style={{ color: 'var(--color-heading)', marginBottom: '0.5rem' }}>{v.title}</h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>{v.desc}</p>
-              </div>
-            ))}
+          <div>
+            <p className="lede" style={{ margin: '0 0 16px' }}>
+              Con passione e dedizione promuoviamo la cultura, le tradizioni e il turismo del nostro borgo, organizzando eventi, gestendo progetti culturali e rafforzando il senso di comunità.
+            </p>
+            <p>Siamo un&apos;associazione apartitica, senza scopo di lucro, guidata dalla passione per Gasperina e dal desiderio di tramandare l&apos;identità calabrese alle future generazioni.</p>
           </div>
         </div>
       </section>
 
-      {/* Team */}
-      <section className="section">
-        <div className="section-inner">
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <p className="label">Le persone</p>
-            <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-            <h2>Il nostro <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>direttivo</em></h2>
+      <section className="panel p-gold">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">I nostri valori</span>
+            <h2 className="h2">Cosa ci guida.</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
-            {teamMembers.map(m => (
-              <div key={m.nome} className="card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--blue-700), var(--blue-900))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 1rem',
-                  fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: '#ffffff',
-                }}>
-                  {m.nome.split(' ').map(n => n[0]).join('')}
-                </div>
-                <h4 style={{ color: 'var(--color-heading)', marginBottom: '0.25rem' }}>{m.nome}</h4>
-                <p className="label">{m.ruolo}</p>
-              </div>
-            ))}
+        </div>
+        <div className="grid g4">
+          {values.map((v) => (
+            <div key={v.title} className="vcard">
+              <h3 className="h3">{v.title}</h3>
+              <p>{v.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel p-white">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">Le persone</span>
+            <h2 className="h2">Il consiglio direttivo.</h2>
+          </div>
+        </div>
+        <div className="grid g4" style={{ rowGap: 40 }}>
+          {teamMembers.map((m) => (
+            <div key={m.nome} className="person">
+              <div className="avatar" aria-hidden>{m.nome.split(' ').map((n) => n[0]).join('')}</div>
+              <b>{m.nome}</b>
+              <span>{m.ruolo || ' '}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel p-blued">
+        <div className="split">
+          <div>
+            <span className="eyebrow">Unisciti a noi</span>
+            <h2 className="h2">Diventa socio.</h2>
+            <p className="lede" style={{ marginTop: 18 }}>
+              Entra a far parte della nostra comunità: come socio partecipi alla vita dell&apos;associazione e ai nostri eventi, e contribuisci alla valorizzazione del territorio gasperinese.
+            </p>
+            <Link className="vbtn vbtn-gold" href="/iscriviti">Compila il modulo di iscrizione</Link>
+          </div>
+          <div className="grid g2">
+            <div className="tier top">
+              <h3 className="h3">Socio ordinario</h3>
+              <p style={{ margin: '10px 0 0' }}>Partecipi alla vita dell&apos;associazione con la quota annuale.</p>
+            </div>
+            <div className="tier top">
+              <h3 className="h3">Socio sostenitore</h3>
+              <p style={{ margin: '10px 0 0' }}>Sostieni la Pro Loco con un contributo volontario in più.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Diventa Socio CTA */}
-      <section className="section" style={{ background: 'var(--neutral-900)' }}>
-        <div className="section-inner" style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
-          <p className="label">Unisciti a noi</p>
-          <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h2>Diventa <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>socio</em></h2>
-          <p style={{ color: 'var(--neutral-400)', lineHeight: 1.8, margin: '1.25rem auto 2rem', maxWidth: '520px', fontSize: '0.95rem' }}>
-            Entra a far parte della nostra comunità! Come socio potrai partecipare attivamente alla vita dell&apos;associazione,
-            ai nostri eventi e contribuire alla valorizzazione del territorio gasperinese.
-          </p>
-          <Link href="/iscriviti" className="btn btn-gold" style={{ display: 'inline-flex', gap: '0.4rem' }}>
-            Compila il modulo di iscrizione <ChevronRight size={16} />
-          </Link>
+      <section className="panel p-bluexl">
+        <div className="grid g3">
+          <Link className="vcard" href="/trasparenza"><h3 className="h3">Trasparenza →</h3><p>Quali dati trattiamo, perché e per quanto tempo.</p></Link>
+          <Link className="vcard" href="/sponsor"><h3 className="h3">Sponsor →</h3><p>Sostieni gli eventi del borgo con la tua azienda.</p></Link>
+          <Link className="vcard" href="/contatti"><h3 className="h3">Contatti →</h3><p>Via Raffaele Milano SNC, Gasperina (CZ).</p></Link>
         </div>
       </section>
-    </div>
+    </V3Page>
   );
 }

@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Sun, Moon } from 'lucide-react';
-import { useTheme } from '@/components/ThemeProvider';
+import { Menu, X } from 'lucide-react';
 import type { ResolvedNav } from '@/lib/public/nav';
-import { isActiveHref } from '@/lib/public/nav';
+import { DEFAULT_NAV, isActiveHref, resolveNav } from '@/lib/public/nav';
+import { isRedesignedPath } from '@/lib/public/redesign';
+import SiteHeader from '@/components/site/SiteHeader';
 import { MobileNavAccordion, NavDropdown } from './NavDropdown';
 
 const navLinks = [
@@ -23,6 +24,11 @@ const navLinks = [
   // { href: '/progetti', label: 'Progetti' }, // nascosta temporaneamente
 ];
 
+const FORMAT_LINKS = [
+  { slug: 'zuccaland', name: 'Zuccaland', href: '/zuccaland' },
+  { slug: 'assaggia-e-passeggia', name: 'Assaggia e Passeggia', href: '/assaggia-e-passeggia' },
+];
+
 /**
  * `nav` arriva dal layout solo con il flag public_v2 acceso (menu da /admin/sito/navigazione, tendina Eventi).
  * Senza, il menu resta quello di sempre.
@@ -30,8 +36,7 @@ const navLinks = [
 export default function Navbar({ nav = null }: { nav?: ResolvedNav | null }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
-  const dark = theme === 'dark';
+  const dark = true; // the public site is dark only: the switch lives in the staff areas
   const pathname = usePathname();
   const links = nav ? nav.items : navLinks.map((l) => ({ ...l, children: [] }));
   const cta = nav ? nav.cta : { label: 'Iscriviti', href: '/iscriviti' };
@@ -42,6 +47,12 @@ export default function Navbar({ nav = null }: { nav?: ResolvedNav | null }) {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  if (isRedesignedPath(pathname)) {
+    // Without the public_v2 flag there is no saved menu: use the default one (§13.1) with the two formats.
+    const v3 = nav ?? resolveNav(DEFAULT_NAV, FORMAT_LINKS);
+    return <SiteHeader items={v3.items} cta={v3.cta} pathname={pathname ?? '/'} />;
+  }
 
   if (pathname?.startsWith('/admin') || pathname?.startsWith('/scanner') || pathname?.startsWith('/cashier') || pathname?.startsWith('/cassa') || pathname?.startsWith('/assaggia-e-passeggia') || pathname === '/zuccaland/photo' || pathname === '/zuccaland/galleria' || pathname?.startsWith('/paga') || pathname?.startsWith('/acquista') || pathname?.startsWith('/i-miei-biglietti')) return null;
 
@@ -113,30 +124,6 @@ export default function Navbar({ nav = null }: { nav?: ResolvedNav | null }) {
 
           {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            {/* Theme toggle */}
-            <button
-              onClick={toggleTheme}
-              id="theme-toggle"
-              aria-label={theme === 'dark' ? 'Passa alla modalità chiara' : 'Passa alla modalità scura'}
-              title={theme === 'dark' ? 'Modalità chiara' : 'Modalità scura'}
-              style={{
-                width: 36,
-                height: 36,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 'var(--radius-full)',
-                border: theme === 'dark' ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(0,0,0,0.12)',
-                background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-                cursor: 'pointer',
-                color: theme === 'dark' ? 'var(--gold-400)' : 'var(--blue-700)',
-                transition: 'all 0.25s ease',
-                flexShrink: 0,
-              }}
-            >
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-
             {cta && (
               <Link
                 href={cta.href}

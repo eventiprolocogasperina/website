@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./site-v3.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -49,7 +50,8 @@ export default async function RootLayout({
         <Script id="theme-script" strategy="beforeInteractive">
           {`
             try {
-              if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+              var staff = /^\\/(admin|scanner|cassa|cashier)(\\/|$)/.test(location.pathname);
+              if (staff && (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches))) {
                 document.documentElement.setAttribute('data-theme', 'light');
               } else {
                 document.documentElement.setAttribute('data-theme', 'dark');

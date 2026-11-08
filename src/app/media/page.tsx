@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { galleryItems, type GalleryItem } from '@/lib/data/gallery';
-import { X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PageHero, V3Page } from '@/components/site/ui';
 
 const categories = ['tutte', 'eventi', 'territorio', 'cultura', 'comunità'] as const;
 
@@ -36,120 +37,52 @@ export default function GalleryPage() {
   const prevImg = () => lightbox !== null && setLightbox((lightbox - 1 + filtered.length) % filtered.length);
   const nextImg = () => lightbox !== null && setLightbox((lightbox + 1) % filtered.length);
 
+  const roundBtn = { background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#fff', cursor: 'pointer' } as const;
+
   return (
-    <div style={{ paddingTop: '5rem', background: 'var(--neutral-950)', minHeight: '100vh' }}>
-      {/* Header */}
-      <section className="section" style={{ paddingBottom: '2rem' }}>
-        <div className="section-inner" style={{ textAlign: 'center' }}>
-          <p className="label">Immagini</p>
-          <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300, marginBottom: '0.75rem', color: '#ffffff' }}>
-            La nostra <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>galleria</em>
-          </h1>
-          <p style={{ color: 'var(--neutral-400)', maxWidth: '540px', margin: '0 auto 2rem', lineHeight: 1.7 }}>
-            Momenti, eventi e scorci del territorio di Gasperina catturati in immagini.
-          </p>
+    <V3Page>
+      <PageHero eyebrow="Immagini" title="La nostra" accent="galleria." lede="Momenti, eventi e scorci del territorio di Gasperina catturati in immagini." />
 
-          {/* Filter pills */}
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setFilter(cat)}
-                style={{
-                  padding: '0.5rem 1.25rem',
-                  borderRadius: 'var(--radius-full)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  border: filter === cat ? '1.5px solid var(--blue-700)' : '1.5px solid var(--neutral-700)',
-                  background: filter === cat ? 'rgba(27,75,170,0.2)' : 'transparent',
-                  color: filter === cat ? 'var(--blue-500)' : 'var(--neutral-400)',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+      <section className="panel p-cream">
+        <div className="chips" role="group" aria-label="Filtra per categoria" style={{ marginBottom: 32 }}>
+          {categories.map(cat => (
+            <button key={cat} type="button" className={filter === cat ? 'chip on' : 'chip'} aria-pressed={filter === cat} onClick={() => setFilter(cat)} style={{ textTransform: 'capitalize', cursor: 'pointer' }}>
+              {cat}
+            </button>
+          ))}
         </div>
-      </section>
-
-      {/* Masonry grid */}
-      <section style={{ padding: '0 1.5rem 5rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{
-          columns: 'auto 300px',
-          columnGap: '1rem',
-          gap: '1rem',
-        }}>
+        <div className="gallery">
           {filtered.map((item, idx) => (
-            <div
-              key={item.id}
-              onClick={() => openLightbox(idx)}
-              style={{
-                position: 'relative',
-                breakInside: 'avoid',
-                marginBottom: '1rem',
-                borderRadius: 'var(--radius-lg)',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                display: 'block',
-              }}
-            >
+            <button key={item.id} type="button" onClick={() => openLightbox(idx)} aria-label={`Ingrandisci: ${item.alt || item.category}`} style={{ display: 'block', width: '100%', padding: 0, border: 0, background: 'none', cursor: 'zoom-in' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.src}
-                alt={item.alt}
-                style={{ width: '100%', height: 'auto', display: 'block', transition: 'transform 0.4s ease' }}
-              />
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(to top, rgba(10,12,18,0.7) 0%, transparent 50%)',
-                opacity: 0, transition: 'opacity 0.3s',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
-              >
-                <ZoomIn size={32} style={{ color: 'white' }} />
-              </div>
-              <div style={{
-                position: 'absolute', bottom: '0.75rem', left: '0.75rem',
-              }}>
-                <span className="badge badge-blue" style={{ textTransform: 'capitalize' }}>{item.category}</span>
-              </div>
-            </div>
+              <img src={item.src} alt={item.alt} loading="lazy" />
+            </button>
           ))}
         </div>
       </section>
 
-      {/* Video section */}
       {videos.length > 0 && (
-        <section style={{ padding: '0 1.5rem 5rem', maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <div className="divider-gold" style={{ margin: '0 auto 1.5rem' }} />
-            <h2 style={{ fontWeight: 300, fontSize: '2rem', color: 'var(--color-heading)' }}>
-              I nostri <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>video</em>
-            </h2>
+        <section className="panel p-white">
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">In movimento</span>
+              <h2 className="h2">I nostri video.</h2>
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          <div className="grid g3">
             {videos.map(item => {
               const videoId = extractYoutubeId(item.src);
               if (!videoId) return null;
               return (
-                <div key={item.id} style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--neutral-800)', background: 'var(--neutral-900)' }}>
-                  <iframe 
-                    src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`} 
-                    width="100%" 
-                    style={{ aspectRatio: '16/9', display: 'block' }} 
-                    frameBorder="0" 
-                    allowFullScreen 
+                <div key={item.id} className="vcard" style={{ padding: 0, overflow: 'hidden' }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+                    title={item.alt || 'Video'}
+                    width="100%"
+                    style={{ aspectRatio: '16/9', display: 'block', border: 0 }}
+                    allowFullScreen
                   />
-                  <div style={{ padding: '1.25rem' }}>
-                    <p style={{ color: 'var(--color-text)', fontSize: '0.95rem', lineHeight: 1.5 }}>{item.alt}</p>
-                  </div>
+                  <p style={{ padding: '16px 20px' }}>{item.alt}</p>
                 </div>
               );
             })}
@@ -157,70 +90,37 @@ export default function GalleryPage() {
         </section>
       )}
 
-      {/* Lightbox */}
-      {lightbox !== null && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 200,
-            background: 'rgba(5,7,12,0.97)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            animation: 'fadeIn 0.2s ease',
-          }}
-          onClick={closeLightbox}
-        >
-          {/* Close */}
-          <button onClick={closeLightbox} style={{
-            position: 'absolute', top: '1.5rem', right: '1.5rem',
-            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 'var(--radius-full)', width: 44, height: 44,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--white)', cursor: 'pointer', zIndex: 201,
-          }}>
+      <section className="panel p-gold">
+        <div className="split">
+          <div>
+            <span className="eyebrow">Hai scattato delle foto?</span>
+            <h2 className="h2">Condividile con noi.</h2>
+          </div>
+          <p className="lede">Durante gli eventi puoi caricare le tue foto dalla pagina dell&apos;evento.</p>
+        </div>
+      </section>
+
+      {lightbox !== null && filtered[lightbox] && (
+        <div role="dialog" aria-modal="true" aria-label="Foto ingrandita" style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(5,12,28,0.96)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={closeLightbox}>
+          <button type="button" aria-label="Chiudi" onClick={closeLightbox} style={{ ...roundBtn, position: 'absolute', top: 24, right: 24, width: 44, height: 44, zIndex: 201 }}>
             <X size={20} />
           </button>
-
-          {/* Prev */}
-          <button onClick={e => { e.stopPropagation(); prevImg(); }} style={{
-            position: 'absolute', left: '1.5rem',
-            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 'var(--radius-full)', width: 48, height: 48,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--white)', cursor: 'pointer',
-          }}>
+          <button type="button" aria-label="Foto precedente" onClick={e => { e.stopPropagation(); prevImg(); }} style={{ ...roundBtn, position: 'absolute', left: 24, width: 48, height: 48 }}>
             <ChevronLeft size={22} />
           </button>
-
-          {/* Image */}
-          <div style={{ maxWidth: '90vw', maxHeight: '85vh', position: 'relative' }} onClick={e => e.stopPropagation()}>
+          <div style={{ maxWidth: '90vw', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={filtered[lightbox].src}
-              alt={filtered[lightbox].alt}
-              style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: 'var(--radius-lg)', display: 'block' }}
-            />
-            <p style={{ textAlign: 'center', marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--neutral-400)' }}>
-              {filtered[lightbox].alt}
-            </p>
+            <img src={filtered[lightbox].src} alt={filtered[lightbox].alt} style={{ maxWidth: '90vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 18 }} />
+            <p style={{ textAlign: 'center', marginTop: 12, fontSize: 14, color: 'rgba(251,244,230,.8)' }}>{filtered[lightbox].alt}</p>
           </div>
-
-          {/* Next */}
-          <button onClick={e => { e.stopPropagation(); nextImg(); }} style={{
-            position: 'absolute', right: '1.5rem',
-            background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 'var(--radius-full)', width: 48, height: 48,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--white)', cursor: 'pointer',
-          }}>
+          <button type="button" aria-label="Foto successiva" onClick={e => { e.stopPropagation(); nextImg(); }} style={{ ...roundBtn, position: 'absolute', right: 24, width: 48, height: 48 }}>
             <ChevronRight size={22} />
           </button>
-
-          {/* Counter */}
-          <div style={{ position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
-            fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
+          <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', fontSize: 13, color: 'rgba(251,244,230,.8)' }}>
             {lightbox + 1} / {filtered.length}
           </div>
         </div>
       )}
-    </div>
+    </V3Page>
   );
 }

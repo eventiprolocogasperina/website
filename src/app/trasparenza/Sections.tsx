@@ -1,21 +1,26 @@
-// Mattoni della pagina /trasparenza, con lo stesso aspetto delle sezioni di /privacy.
+// Mattoni della pagina /trasparenza: pannelli e tabelle del design v3.
 
-export function Section({ n, id, title, children }: { n: number; id: string; title: string; children: React.ReactNode }) {
+const TONES = { cream: 'p-cream', white: 'p-white', blue: 'p-bluexl', dark: 'p-blued' } as const;
+
+export function Section({ n, id, title, tone = 'white', children }: { n: number; id: string; title: string; tone?: keyof typeof TONES; children: React.ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-t`} style={{ background: 'var(--neutral-900)', border: '1px solid var(--neutral-800)', borderRadius: '1rem', padding: '1.75rem' }}>
-      <h2 id={`${id}-t`} style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--color-heading)', display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
-        <span style={{ color: 'var(--gold-400)' }}>{n}.</span> {title}
-      </h2>
+    <section id={id} aria-labelledby={`${id}-t`} className={`panel ${TONES[tone]}`}>
+      <div className="panel-head">
+        <div>
+          <span className="eyebrow">{n}</span>
+          <h2 id={`${id}-t`} className="h2">{title}</h2>
+        </div>
+      </div>
       {children}
     </section>
   );
 }
 
-/** Tabella che su telefono diventa una scheda per riga (classe .tr-table in globals.css). */
+/** Tabella che scorre in orizzontale su telefono. */
 export function DataTable<T>({ caption, columns, rows }: { caption: string; columns: Array<{ label: string; cell: (row: T) => React.ReactNode }>; rows: T[] }) {
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table className="tr-table">
+    <div className="table-wrap" tabIndex={0} role="region" aria-label={caption}>
+      <table>
         <caption style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{caption}</caption>
         <thead>
           <tr>

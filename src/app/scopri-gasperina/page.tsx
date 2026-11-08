@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import type { Metadata } from 'next';
+import { PageHero, V3Page } from '@/components/site/ui';
 
 export const metadata: Metadata = {
   title: 'Scopri Gasperina',
@@ -7,145 +8,103 @@ export const metadata: Metadata = {
 };
 
 const pois = [
-  { nome: 'Santuario della Madonna dei Termini', cat: 'religioso', desc: 'Luogo di grande devozione popolare, legato alla leggenda della statua della Madonna ritrovata in mare e trasportata su un carro trainato da buoi.' },
-  { nome: 'Belvedere sul Golfo di Squillace', cat: 'panorama', desc: 'Vista mozzafiato sul Mar Ionio: nelle giornate più limpide lo sguardo arriva fino a Punta Stilo e Capo Rizzuto.' },
-  { nome: 'Centro Storico – Le Rughe', cat: 'cultura', desc: 'Strette viuzze, archi in pietra e scalinate intrecciate. I "vicoli" nel dialetto locale rivelano antichi palazzi nobiliari e chiese storiche.' },
-  { nome: 'Parco Naturale delle Serre', cat: 'natura', desc: 'A pochi chilometri da Gasperina, boschi di faggio e castagno tra le Serre Calabresi, già frequentate dai monaci certosini.' },
+  { nome: 'Santuario della Madonna dei Termini', cat: 'Religioso', desc: 'Luogo di grande devozione popolare, legato alla leggenda della statua della Madonna ritrovata in mare e trasportata su un carro trainato da buoi.' },
+  { nome: 'Belvedere sul Golfo di Squillace', cat: 'Panorama', desc: 'Vista mozzafiato sul Mar Ionio: nelle giornate più limpide lo sguardo arriva fino a Punta Stilo e Capo Rizzuto.' },
+  { nome: 'Centro Storico – Le Rughe', cat: 'Cultura', desc: 'Strette viuzze, archi in pietra e scalinate intrecciate. I "vicoli" nel dialetto locale rivelano antichi palazzi nobiliari e chiese storiche.' },
+  { nome: 'Parco Naturale delle Serre', cat: 'Natura', desc: 'A pochi chilometri da Gasperina, boschi di faggio e castagno tra le Serre Calabresi, già frequentate dai monaci certosini.' },
 ];
 
 const foods = [
-  { nome: 'Vino di Gasperina', desc: 'La produzione vinicola di Gasperina vanta una tradizione secolare, apprezzata ben oltre i confini locali. Un vino autentico che racconta il territorio.', emoji: '🍷' },
-  { nome: 'Olio Extravergine d\'Oliva', desc: 'Gli uliveti gasperinesi producono un olio di qualità eccellente, frutto di una vocazione agricola tramandata da generazioni tra le colline della Calabria ionica.', emoji: '🫒' },
-  { nome: 'Buccunotti', desc: 'Dolci tipici della tradizione gasperinese, fragranti e ripieni di marmellata o crema. Uno dei simboli della pasticceria locale.', emoji: '🍪' },
-  { nome: 'Zzìppuli', desc: 'Frittelle natalizie preparate con un impasto di farina, acqua, sale e lievito, fritte in abbondante olio d\'oliva. La variante con l\'acciuga è tipicamente gasperinese.', emoji: '🎄' },
-  { nome: 'Cuzzupi', desc: 'Biscotti pasquali dalla forma intrecciata, decorati con uova fresche intere che diventano sode durante la cottura. La forma classica è grande e rotonda.', emoji: '🥚' },
-  { nome: 'Chjàcchjari & Nguanti', desc: 'Dolci di Carnevale a base di acqua, uova e farina, ricoperti di zucchero a velo. Croccanti e leggeri, accompagnano le feste del periodo carnevalesco.', emoji: '🎭' },
-  { nome: 'Muruneḍi', desc: 'Dolci tradizionali a base di mosto cotto, legati alla stagione della vendemmia. Un connubio tra la tradizione vinicola e quella dolciaria del territorio.', emoji: '🍇' },
-  { nome: 'Taralli Pasquali', desc: 'Biscotti secchi a pasta dura del periodo pasquale, spesso ricoperti da una glassa bianca chiamata \'u nnaspu. Croccanti e profumati, sono un classico della Pasqua gasperinese.', emoji: '🥨' },
+  { nome: 'Vino di Gasperina', desc: 'La produzione vinicola di Gasperina vanta una tradizione secolare, apprezzata ben oltre i confini locali. Un vino autentico che racconta il territorio.' },
+  { nome: "Olio extravergine d'oliva", desc: 'Gli uliveti gasperinesi producono un olio di qualità eccellente, frutto di una vocazione agricola tramandata da generazioni tra le colline della Calabria ionica.' },
+  { nome: 'Buccunotti', desc: 'Dolci tipici della tradizione gasperinese, fragranti e ripieni di marmellata o crema. Uno dei simboli della pasticceria locale.' },
+  { nome: 'Zzìppuli', desc: "Frittelle natalizie preparate con un impasto di farina, acqua, sale e lievito, fritte in abbondante olio d'oliva. La variante con l'acciuga è tipicamente gasperinese." },
+  { nome: 'Cuzzupi', desc: 'Biscotti pasquali dalla forma intrecciata, decorati con uova fresche intere che diventano sode durante la cottura. La forma classica è grande e rotonda.' },
+  { nome: 'Chjàcchjari & Nguanti', desc: 'Dolci di Carnevale a base di acqua, uova e farina, ricoperti di zucchero a velo. Croccanti e leggeri, accompagnano le feste del periodo carnevalesco.' },
+  { nome: 'Muruneḍi', desc: 'Dolci tradizionali a base di mosto cotto, legati alla stagione della vendemmia. Un connubio tra la tradizione vinicola e quella dolciaria del territorio.' },
+  { nome: 'Taralli pasquali', desc: "Biscotti secchi a pasta dura del periodo pasquale, spesso ricoperti da una glassa bianca chiamata 'u nnaspu. Croccanti e profumati, sono un classico della Pasqua gasperinese." },
 ];
 
 export default function ScopriGasperinaPage() {
   return (
-    <div style={{ paddingTop: '5rem', background: 'var(--neutral-950)', minHeight: '100vh' }}>
+    <V3Page>
+      <PageHero
+        eyebrow="450 m s.l.m. · Calabria centrale"
+        title="Scopri"
+        accent="Gasperina."
+        lede="Arroccata a circa 500 metri sul livello del mare, Gasperina è una vera terrazza naturale affacciata sul Golfo di Squillace: un piccolo gioiello della Calabria ionica, capace di sorprendere con la sua autenticità e il suo fascino senza tempo."
+        image="/img/IMG_2.jpg"
+        imageAlt="Gasperina vista aerea"
+      />
 
-      {/* Hero */}
-      <div style={{ position: 'relative', height: '520px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Image src="/img/IMG_3.jpg" alt="Gasperina vista aerea" fill style={{ objectFit: 'cover', objectPosition: 'center 40%' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(10,12,18,0.4) 0%, rgba(10,12,18,0.9) 100%)' }} />
-        <div style={{ position: 'relative', textAlign: 'center', padding: '0 1.5rem' }}>
-          <p className="label">450 m s.l.m. · Calabria Centrale</p>
-          <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-          <h1 style={{ fontWeight: 300, color: '#ffffff' }}>
-            Scopri <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>Gasperina</em>
-          </h1>
-          <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.85)', maxWidth: '640px', margin: '1rem auto 0', lineHeight: 1.7 }}>
-            Arroccata a circa 500 metri sul livello del mare, Gasperina è una vera terrazza naturale affacciata sul Golfo di Squillace — un piccolo gioiello della Calabria ionica capace di sorprendere con la sua autenticità e il suo fascino senza tempo.
-          </p>
-        </div>
-      </div>
-
-      {/* Storia */}
-      <section id="storia" className="section">
-        <div className="section-inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '4rem', alignItems: 'center' }}>
+      <section id="storia" className="panel p-cream">
+        <div className="split">
           <div>
-            <p className="label">Le radici</p>
-            <div className="divider-gold" />
-            <h2>Storia e <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>identità</em></h2>
-            <p style={{ color: 'var(--neutral-400)', lineHeight: 1.8, margin: '1.25rem 0', fontSize: '0.95rem' }}>
+            <span className="eyebrow">Le radici</span>
+            <h2 className="h2">Storia e identità.</h2>
+            <p style={{ marginTop: 22 }}>
               Le origini di Gasperina risalgono almeno all&apos;XI secolo, in epoca medievale, ma è probabile che il territorio fosse già abitato tra il VII e l&apos;VIII secolo, quando le popolazioni costiere cercavano rifugio sulle alture per sfuggire alle incursioni saracene. Nel corso dei secoli, il borgo è stato influenzato da diverse dominazioni, tra cui quella normanna e quella sveva, che hanno contribuito a modellarne l&apos;identità culturale e architettonica.
             </p>
-            <p style={{ color: 'var(--neutral-400)', lineHeight: 1.8, fontSize: '0.95rem' }}>
-              Un ruolo importante nella storia locale è stato svolto dai monaci certosini, legati alla vicina Certosa di Serra San Bruno, che hanno favorito lo sviluppo agricolo e spirituale della zona. Il centro storico conserva ancora oggi un impianto urbanistico tipico, fatto di strette viuzze, archi in pietra e scalinate — le cosiddette <em style={{ color: 'var(--gold-400)' }}>&ldquo;rughe&rdquo;</em> — che si intrecciano tra loro, creando un&apos;atmosfera intima e raccolta.
+            <p>
+              Un ruolo importante nella storia locale è stato svolto dai monaci certosini, legati alla vicina Certosa di Serra San Bruno, che hanno favorito lo sviluppo agricolo e spirituale della zona. Il centro storico conserva ancora oggi un impianto urbanistico tipico, fatto di strette viuzze, archi in pietra e scalinate, le cosiddette <em>&ldquo;rughe&rdquo;</em>, che si intrecciano tra loro creando un&apos;atmosfera intima e raccolta.
             </p>
           </div>
-          <div style={{ position: 'relative', height: '400px', borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
-            <Image src="/img/IMG1.jpg" alt="Centro storico di Gasperina" fill style={{ objectFit: 'cover' }} />
+          <div className="roundpic" style={{ aspectRatio: '4/5', position: 'relative' }}>
+            <Image src="/img/IMG1.jpg" alt="Centro storico di Gasperina" fill sizes="(max-width: 960px) 100vw, 520px" style={{ objectFit: 'cover' }} />
           </div>
         </div>
       </section>
 
-      {/* Gastronomia */}
-      <section id="gastronomia" className="section" style={{ background: 'var(--neutral-900)' }}>
-        <div className="section-inner">
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <p className="label">Sapori autentici</p>
-            <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-            <h2>La <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>tradizione</em> gasperinese</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1.25rem' }}>
-            {foods.map(food => (
-              <div key={food.nome} className="card" style={{ padding: '1.5rem' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>{food.emoji}</div>
-                <h4 style={{ color: 'var(--color-heading)', marginBottom: '0.5rem' }}>{food.nome}</h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>{food.desc}</p>
-              </div>
-            ))}
+      <section id="gastronomia" className="panel p-gold">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">Sapori autentici</span>
+            <h2 className="h2">La tradizione gasperinese.</h2>
           </div>
         </div>
-      </section>
-
-      {/* Punti di interesse */}
-      <section id="mappa" className="section">
-        <div className="section-inner">
-          <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <p className="label">Da visitare</p>
-            <div className="divider-gold" style={{ margin: '0.75rem auto' }} />
-            <h2>Luoghi da <em style={{ fontStyle: 'italic', color: 'var(--gold-400)' }}>scoprire</em></h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '3rem' }}>
-            {pois.map((poi, i) => (
-              <div key={poi.nome} className="card" style={{ padding: '1.5rem' }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 'var(--radius-full)',
-                  background: 'rgba(27,75,170,0.2)', border: '1px solid rgba(27,75,170,0.35)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: '0.85rem',
-                  fontFamily: 'var(--font-display)', color: 'var(--blue-500)', fontWeight: 600,
-                }}>
-                  {i + 1}
-                </div>
-                <span className="badge badge-blue" style={{ marginBottom: '0.6rem', textTransform: 'capitalize' }}>{poi.cat}</span>
-                <h4 style={{ color: 'var(--color-heading)', marginBottom: '0.5rem', marginTop: '0.4rem' }}>{poi.nome}</h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--neutral-400)', lineHeight: 1.6 }}>{poi.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Static map placeholder — Leaflet would go here with 'use client' */}
-          <div style={{
-            borderRadius: 'var(--radius-xl)',
-            overflow: 'hidden',
-            height: '400px',
-            background: 'var(--neutral-800)',
-            border: '1px solid var(--neutral-700)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            color: 'var(--neutral-400)',
-            position: 'relative',
-          }}>
-            <Image src="/img/IMG_2.jpg" alt="Mappa area di Gasperina" fill style={{ objectFit: 'cover', opacity: 0.2 }} />
-            <div style={{ position: 'relative', textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗺️</div>
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--color-heading)' }}>
-                Gasperina, Calabria
-              </p>
-              <p style={{ fontSize: '0.85rem' }}>39.0333° N, 16.5167° E</p>
-              <a
-                href="https://maps.google.com/?q=Gasperina,Calabria,Italy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary"
-                style={{ marginTop: '1rem', display: 'inline-flex' }}
-              >
-                Apri in Google Maps
-              </a>
+        <div className="grid g4">
+          {foods.map((food) => (
+            <div key={food.nome} className="vcard">
+              <h3 className="h3">{food.nome}</h3>
+              <p>{food.desc}</p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="mappa" className="panel p-bluexl">
+        <div className="panel-head">
+          <div>
+            <span className="eyebrow">Da visitare</span>
+            <h2 className="h2">Luoghi da scoprire.</h2>
+          </div>
+        </div>
+        <div className="grid g2">
+          {pois.map((poi) => (
+            <div key={poi.nome} className="vcard">
+              <span className="tag">{poi.cat}</span>
+              <h3 className="h3" style={{ marginTop: 14 }}>{poi.nome}</h3>
+              <p>{poi.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel p-blued">
+        <div className="split">
+          <div>
+            <span className="eyebrow">Come arrivare</span>
+            <h2 className="h2">Gasperina, Calabria.</h2>
+            <p className="lede" style={{ marginTop: 18 }}>39.0333° N, 16.5167° E · Provincia di Catanzaro, a pochi chilometri dalla costa ionica di Soverato.</p>
+            <a className="vbtn vbtn-gold" href="https://maps.google.com/?q=Gasperina,Calabria,Italy" target="_blank" rel="noopener noreferrer">
+              Apri in Google Maps
+            </a>
+          </div>
+          <div className="roundpic" style={{ aspectRatio: '16/10', position: 'relative' }}>
+            <Image src="/img/IMG_3.jpg" alt="Gasperina e il suo territorio" fill sizes="(max-width: 960px) 100vw, 560px" style={{ objectFit: 'cover' }} />
           </div>
         </div>
       </section>
-    </div>
+    </V3Page>
   );
 }
