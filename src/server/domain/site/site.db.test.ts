@@ -2,7 +2,7 @@
 // pagina Trasparenza e richieste degli interessati.
 import { eq } from 'drizzle-orm';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { auditLog, editions, privacyRequests, series, siteSettings } from '@/server/db/schema';
+import { auditLog, editions, events, legacyIdMap, privacyRequests, series, siteSettings } from '@/server/db/schema';
 import { DEFAULT_NAV } from '@/lib/public/nav';
 import { DEFAULT_TRANSPARENCY } from '@/lib/public/transparency';
 import { createEdition, owner, roleOn } from '@/test/fixtures';
@@ -56,6 +56,14 @@ describe.skipIf(!enabled)('edizioni pubbliche', () => {
     expect(await findPublicEdition(live.slug)).toMatchObject({ href: `/eventi/${live.slug}`, byLegacySlug: false });
     expect(await findPublicEdition(draft.slug)).toBeNull();
     expect(await findPublicEdition('../x')).toBeNull();
+  });
+
+  it('senza copertina usa la foto dell\'evento di oggi collegato', async () => {
+    const e = await createEdition({ status: 'on_sale' });
+    const id = `ev-${Date.now()}`;
+    await getDb().insert(events).values({ id, slug: id, title: 'T', date: '2026-10-10', time: '10:30', location: 'G', category: 'altro', description: '', fullDescription: '', image: '/img/foto-evento.webp', maxParticipants: 0, registeredCount: 0, price: 0, featured: false, bookable: false });
+    await getDb().insert(legacyIdMap).values({ legacyKind: 'event', legacyId: id, newId: e.edition.id });
+    expect((await listPublicEditions()).find((x) => x.slug === e.slug)?.coverImage).toBe('/img/foto-evento.webp');
   });
 });
 

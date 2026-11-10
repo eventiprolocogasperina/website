@@ -14,6 +14,7 @@ type Row = {
   s: { slug: string; name: string; landingPath: string | null; theme: { dot?: string } } | null;
   legacySlug: string | null;
   legacyDescription: string | null;
+  legacyImage: string | null;
 };
 
 async function loadRows(where?: ReturnType<typeof eq>): Promise<Row[]> {
@@ -23,6 +24,7 @@ async function loadRows(where?: ReturnType<typeof eq>): Promise<Row[]> {
       s: { slug: series.slug, name: series.name, landingPath: series.landingPath, theme: series.theme },
       legacySlug: events.slug,
       legacyDescription: events.description,
+      legacyImage: events.image,
     })
     .from(editions)
     .leftJoin(series, eq(series.id, editions.seriesId))
@@ -35,7 +37,7 @@ async function loadRows(where?: ReturnType<typeof eq>): Promise<Row[]> {
   return rows.filter((r) => !seen.has(r.e.id) && !!seen.add(r.e.id));
 }
 
-function toPublic({ e, s, legacySlug, legacyDescription }: Row): PublicEdition {
+function toPublic({ e, s, legacySlug, legacyDescription, legacyImage }: Row): PublicEdition {
   return {
     id: e.id,
     slug: e.slug,
@@ -47,7 +49,8 @@ function toPublic({ e, s, legacySlug, legacyDescription }: Row): PublicEdition {
     startsAt: e.startsAt,
     endsAt: e.endsAt,
     location: e.location,
-    coverImage: e.coverImage,
+    // Senza copertina dell'edizione vale la foto dell'evento di oggi collegato (quella che l'admin modifica nell'editor eventi).
+    coverImage: e.coverImage || legacyImage || null,
     category: isEventCategory(e.category) ? e.category : null,
     publicPageMode: e.publicPageMode,
     series: s ? { slug: s.slug, name: s.name, landingPath: s.landingPath, dot: s.theme?.dot ?? null } : null,
