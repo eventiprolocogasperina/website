@@ -25,8 +25,9 @@ import { assertCan } from './index';
 /*
  * Eliminazione di edizioni e format dalle Impostazioni. Si elimina solo ciò che non ha storia:
  * un'edizione con ordini, incassi, ingressi, costi o messaggi resta (§18.5: ordini, pagamenti e
- * registro non si cancellano mai) e si nasconde cambiando stato; un'edizione archiviata è in sola
- * lettura (§18.7). Date, prodotti, quote e impostazioni se ne vanno con l'edizione (cascade).
+ * registro non si cancellano mai) e si nasconde cambiando stato. Un'edizione archiviata senza
+ * storia (es. un evento passato portato dal backfill) si può eliminare: decisione del 10/11/2026,
+ * eccezione al §18.7. Date, prodotti, quote e impostazioni se ne vanno con l'edizione (cascade).
  */
 
 const n = async (q: Promise<Array<{ n: number }>>) => (await q)[0]?.n ?? 0;
@@ -61,7 +62,6 @@ export async function deleteEdition(ctx: Ctx, slug: string): Promise<void> {
   await withTransaction(async (tx) => {
     const [row] = await tx.select().from(editions).where(eq(editions.slug, slug)).for('update');
     if (!row) throw new DomainError('NOT_FOUND');
-    if (row.status === 'archived') throw new DomainError('EDITION_ARCHIVED', { message: 'Un’edizione archiviata non si può eliminare: resta come storico.' });
     const blockers = await editionDeleteBlockers(tx, row.id);
     if (blockers.length) {
       throw new DomainError('CONFLICT', { message: `Non si può eliminare: l’edizione ha ${blockers.join(', ')}. Per toglierla dal sito cambia lo stato (es. Torna in bozza).` });

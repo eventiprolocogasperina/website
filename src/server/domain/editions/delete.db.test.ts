@@ -20,12 +20,15 @@ describe('eliminazione', () => {
     expect(logs.map((l) => l.action)).toContain('edition.deleted');
   });
 
-  it('con ordini o archiviata non si elimina', async () => {
+  it('con ordini non si elimina, anche se archiviata; archiviata senza storia sì', async () => {
     const f = await createEdition();
     await createOrder(owner, { editionId: f.edition.id, channel: 'admin', lines: [{ productId: f.ticket.id, quantity: 1, sessionId: f.day2.id }], customer: buyer, idempotencyKey: key(), payNow: 'cash' });
     await expect(deleteEdition(owner, f.slug)).rejects.toMatchObject({ code: 'CONFLICT', message: expect.stringContaining('1 ordini') });
+    await getDb().update(editions).set({ status: 'archived' }).where(eq(editions.id, f.edition.id));
+    await expect(deleteEdition(owner, f.slug)).rejects.toMatchObject({ code: 'CONFLICT' });
     const a = await createEdition({ status: 'archived' });
-    await expect(deleteEdition(owner, a.slug)).rejects.toMatchObject({ code: 'EDITION_ARCHIVED' });
+    await deleteEdition(owner, a.slug);
+    expect(await getDb().select().from(editions).where(eq(editions.id, a.edition.id))).toHaveLength(0);
   });
 
   it('un format con edizioni non si elimina, vuoto sì', async () => {

@@ -78,9 +78,7 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
         edition={e.slug}
         title={e.title}
         blockers={
-          e.status === 'archived'
-            ? ['è archiviata e resta come storico']
-            : !can(ctx, 'editions.archive', { edition: slug })
+          !can(ctx, 'editions.archive', { edition: slug })
               ? ['serve il ruolo Titolare o Amministratore']
               : (await editionDeleteBlockersFor(e.id)).map((b) => `ha ${b}`)
         }
