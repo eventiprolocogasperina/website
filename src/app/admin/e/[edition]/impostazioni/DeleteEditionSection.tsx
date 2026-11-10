@@ -29,7 +29,7 @@ export function DeleteEditionSection({ edition, title, blockers }: { edition: st
         <div className="flex flex-col items-start gap-2">
           {blockers.length > 0 && (
             <p className="text-body text-muted">
-              Non si può eliminare perché ha {blockers.join(', ')}. Per toglierla dal sito cambia lo stato qui sopra.
+              Non si può eliminare: {blockers.join(', ')}.
             </p>
           )}
           <Button variant="danger" disabled={blockers.length > 0} onClick={() => setOpen(true)}>

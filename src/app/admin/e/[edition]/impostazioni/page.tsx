@@ -74,9 +74,17 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
         closing={closing}
         canSkipChecks={can(ctx, 'editions.archive', { edition: slug })}
       />
-      {e.status !== 'archived' && can(ctx, 'editions.archive', { edition: slug }) && (
-        <DeleteEditionSection edition={e.slug} title={e.title} blockers={await editionDeleteBlockersFor(e.id)} />
-      )}
+      <DeleteEditionSection
+        edition={e.slug}
+        title={e.title}
+        blockers={
+          e.status === 'archived'
+            ? ['è archiviata e resta come storico']
+            : !can(ctx, 'editions.archive', { edition: slug })
+              ? ['serve il ruolo Titolare o Amministratore']
+              : (await editionDeleteBlockersFor(e.id)).map((b) => `ha ${b}`)
+        }
+      />
     </AdminPage>
   );
 }
