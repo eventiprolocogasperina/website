@@ -1,6 +1,7 @@
 import 'server-only';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { cache } from 'react';
+import { romeDateTime } from '@/lib/dates';
 import { getDb } from '@/server/db/client';
 import { editions, events, legacyIdMap, series, sessions } from '@/server/db/schema';
 import { editionHrefs, isEventCategory, normalizeLandingPath, VISIBLE_STATUSES, type PublicEdition, type PublicEditionStatus } from '@/lib/public/editions';
@@ -15,6 +16,8 @@ type Row = {
   legacySlug: string | null;
   legacyDescription: string | null;
   legacyImage: string | null;
+  legacyDate: string | null;
+  legacyTime: string | null;
 };
 
 async function loadRows(where?: ReturnType<typeof eq>): Promise<Row[]> {
@@ -25,6 +28,8 @@ async function loadRows(where?: ReturnType<typeof eq>): Promise<Row[]> {
       legacySlug: events.slug,
       legacyDescription: events.description,
       legacyImage: events.image,
+      legacyDate: events.date,
+      legacyTime: events.time,
     })
     .from(editions)
     .leftJoin(series, eq(series.id, editions.seriesId))
@@ -37,7 +42,13 @@ async function loadRows(where?: ReturnType<typeof eq>): Promise<Row[]> {
   return rows.filter((r) => !seen.has(r.e.id) && !!seen.add(r.e.id));
 }
 
-function toPublic({ e, s, legacySlug, legacyDescription, legacyImage }: Row): PublicEdition {
+/** Data dell'evento di oggi collegato, per le edizioni senza data (es. archiviate prima di averne una). */
+function legacyStart(date: string | null, time: string | null): Date | null {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return romeDateTime(date, time && /^\d{1,2}:\d{2}$/.test(time.trim()) ? time.trim().padStart(5, '0') : '00:00');
+}
+
+function toPublic({ e, s, legacySlug, legacyDescription, legacyImage, legacyDate, legacyTime }: Row): PublicEdition {
   return {
     id: e.id,
     slug: e.slug,
@@ -46,7 +57,7 @@ function toPublic({ e, s, legacySlug, legacyDescription, legacyImage }: Row): Pu
     description: e.subtitle || legacyDescription?.replace(/\*\*?/g, '') || null,
     year: e.year,
     status: e.status as PublicEditionStatus,
-    startsAt: e.startsAt,
+    startsAt: e.startsAt ?? legacyStart(legacyDate, legacyTime),
     endsAt: e.endsAt,
     location: e.location,
     // Senza copertina dell'edizione vale la foto dell'evento di oggi collegato (quella che l'admin modifica nell'editor eventi).

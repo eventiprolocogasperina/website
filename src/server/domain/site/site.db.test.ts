@@ -58,12 +58,15 @@ describe.skipIf(!enabled)('edizioni pubbliche', () => {
     expect(await findPublicEdition('../x')).toBeNull();
   });
 
-  it('senza copertina usa la foto dell\'evento di oggi collegato', async () => {
+  it('senza copertina né data usa foto e data dell\'evento di oggi collegato', async () => {
     const e = await createEdition({ status: 'on_sale' });
     const id = `ev-${Date.now()}`;
     await getDb().insert(events).values({ id, slug: id, title: 'T', date: '2026-10-10', time: '10:30', location: 'G', category: 'altro', description: '', fullDescription: '', image: '/img/foto-evento.webp', maxParticipants: 0, registeredCount: 0, price: 0, featured: false, bookable: false });
     await getDb().insert(legacyIdMap).values({ legacyKind: 'event', legacyId: id, newId: e.edition.id });
-    expect((await listPublicEditions()).find((x) => x.slug === e.slug)?.coverImage).toBe('/img/foto-evento.webp');
+    await getDb().update(editions).set({ startsAt: null }).where(eq(editions.id, e.edition.id));
+    const found = (await listPublicEditions()).find((x) => x.slug === e.slug);
+    expect(found?.coverImage).toBe('/img/foto-evento.webp');
+    expect(found?.startsAt?.toISOString()).toBe('2026-10-10T08:30:00.000Z');
   });
 });
 
