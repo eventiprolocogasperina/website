@@ -238,3 +238,26 @@
 .v3 .page { padding-bottom: 0; }
 .v3 .site-footer { margin-bottom: 24px; }
 @media (max-width: 960px) { .v3 .site-footer { margin-bottom: 12px; } }
+
+/* Movimento: al caricamento il titolo sale e le foto si posano; al passaggio del mouse le foto si avvicinano.
+   Si usano translate/scale separati da transform, così le rotazioni delle foto e del sigillo restano. */
+@keyframes v3-rise { from { opacity: 0; translate: 0 24px; } }
+@keyframes v3-settle { from { opacity: 0; translate: 0 48px; scale: .92; } }
+@keyframes v3-pop { from { opacity: 0; scale: .4; } 70% { scale: 1.08; } }
+.v3 .hero > *, .v3 .home-hero > :not(.pstack, .seal) { animation: v3-rise .75s cubic-bezier(.2, .7, .2, 1) both; }
+.v3 .hero > :nth-child(2), .v3 .home-hero > :nth-child(2) { animation-delay: .08s; }
+.v3 .hero > :nth-child(3), .v3 .home-hero > :nth-child(3) { animation-delay: .16s; }
+.v3 .hero > :nth-child(n+4), .v3 .home-hero > :nth-child(4) { animation-delay: .24s; }
+.v3 .pstack img { animation: v3-settle 1s cubic-bezier(.2, .7, .2, 1) .2s both; }
+.v3 .pstack img:nth-child(2) { animation-delay: .38s; }
+.v3 .home-hero .seal { animation: v3-pop .6s cubic-bezier(.3, .7, .3, 1) .7s both; }
+
+.v3 .ev .ph img, .v3 .news-card img, .v3 .lead-news img, .v3 .roundpic img, .v3 .collage img, .v3 .pstack img, .v3 .gallery img { transition: scale .6s cubic-bezier(.2, .7, .2, 1), translate .3s, box-shadow .3s; }
+.v3 .news-card { transition: transform .2s; }
+@media (hover: hover) {
+  .v3 .ev:hover .ph img, .v3 .news-card:hover img, .v3 .lead-news:hover img, .v3 .roundpic:hover img { scale: 1.06; }
+  .v3 .news-card:hover { transform: translateY(-4px); }
+  .v3 .collage img:hover, .v3 .pstack img:hover { scale: 1.03; z-index: 4; }
+  .v3 .gallery img:hover { translate: 0 -4px; box-shadow: 0 18px 34px -18px rgba(0, 0, 0, .45); }
+}
+@media (prefers-reduced-motion: reduce) { .v3 *, .v3 *::before, .v3 *::after { animation: none !important; } }
