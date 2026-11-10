@@ -7,11 +7,13 @@ import { can } from '@/server/auth/permissions';
 import { getEditionDetail } from '@/server/domain/editions';
 import { describeEditionModules, moduleFieldOptions } from '@/server/domain/editions/modules';
 import { getClosingChecklist } from '@/server/domain/editions/closing';
+import { editionDeleteBlockersFor } from '@/server/domain/editions/delete';
 import { TRANSITIONS } from '@/server/domain/editions/lifecycle';
 import type { EditionParams } from '@/server/domain/editions/page-params';
 import { listSeries } from '@/server/domain/editions/series';
 import { getSetupChecklist } from '@/server/domain/editions/setup';
 import { opensSales, salesBlockedMessage } from '@/lib/edition-setup';
+import { DeleteEditionSection } from './DeleteEditionSection';
 import { SettingsClient } from './SettingsClient';
 
 export const metadata = { title: 'Impostazioni' };
@@ -72,6 +74,9 @@ export default async function EditionSettingsPage({ params }: EditionParams) {
         closing={closing}
         canSkipChecks={can(ctx, 'editions.archive', { edition: slug })}
       />
+      {e.status !== 'archived' && can(ctx, 'editions.archive', { edition: slug }) && (
+        <DeleteEditionSection edition={e.slug} title={e.title} blockers={await editionDeleteBlockersFor(e.id)} />
+      )}
     </AdminPage>
   );
 }

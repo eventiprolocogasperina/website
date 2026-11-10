@@ -17,6 +17,7 @@ import {
 } from '@/server/domain/catalog';
 import { setProductStock, type StockInput } from '@/server/domain/catalog/stock';
 import { changeEditionStatus, updateEdition, type UpdateEditionInput } from '@/server/domain/editions';
+import { deleteEdition } from '@/server/domain/editions/delete';
 import { skipClosingCheck, unskipClosingCheck } from '@/server/domain/editions/closing';
 import { generateFinalReport } from '@/server/domain/editions/final-report';
 import { saveModuleSettings, setModuleEnabled } from '@/server/domain/editions/modules';
@@ -59,6 +60,9 @@ export async function deleteDiscountAction(edition: string, id: string) {
 
 export async function updateEditionAction(edition: string, input: UpdateEditionInput) {
   return runAction(['/admin'], (ctx) => updateEdition(ctx, edition, input));
+}
+export async function deleteEditionAction(edition: string) {
+  return runAction(['/admin', '/eventi', '/'], (ctx) => deleteEdition(ctx, edition));
 }
 export async function changeStatusAction(edition: string, to: EditionStatus, reason: string | null) {
   return runAction(['/admin'], (ctx) => changeEditionStatus(ctx, edition, { to, reason }));

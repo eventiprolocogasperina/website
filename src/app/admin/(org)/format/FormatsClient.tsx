@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { EditionDot } from '@/components/admin/shell/EditionDot';
-import { Button, DataTable, dataTableColumns, EmptyState, Field, Input, PageHeader, RadioGroup, Sheet, SheetContent, Switch, Textarea, toast } from '@/components/ui';
+import { Button, ConfirmDialog, DataTable, dataTableColumns, EmptyState, Field, Input, PageHeader, RadioGroup, Sheet, SheetContent, Switch, Textarea, toast } from '@/components/ui';
 import type { SeriesRow } from '@/server/domain/editions/series';
-import { saveSeriesAction } from '../edizioni/actions';
+import { deleteSeriesAction, saveSeriesAction } from '../edizioni/actions';
 import { setPublicV2Action } from './actions';
 import { LogoField } from './LogoField';
 
@@ -121,7 +121,19 @@ function FormatSheet({ row, onClose }: { row: SeriesRow | null; onClose: () => v
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+
+  async function remove() {
+    const res = await deleteSeriesAction(row!.id);
+    if (!res.ok) {
+      toast.error(res.error);
+      throw new Error('stop');
+    }
+    toast.success('Format eliminato');
+    onClose();
+    router.refresh();
+  }
 
   async function submit() {
     setBusy(true);
@@ -140,6 +152,17 @@ function FormatSheet({ row, onClose }: { row: SeriesRow | null; onClose: () => v
         title={row ? row.name : 'Nuovo format'}
         footer={
           <>
+            {row && (
+              <Button
+                variant="danger"
+                className="mr-auto"
+                disabled={row.editions > 0}
+                title={row.editions > 0 ? 'Il format ha delle edizioni: elimina o sposta prima quelle.' : undefined}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Elimina
+              </Button>
+            )}
             <Button variant="secondary" onClick={onClose}>
               Annulla
             </Button>
@@ -188,8 +211,20 @@ function FormatSheet({ row, onClose }: { row: SeriesRow | null; onClose: () => v
               {error}
             </p>
           )}
+          {row && row.editions > 0 && <p className="text-label text-muted">Per eliminare il format elimina o sposta prima le sue {row.editions} edizioni.</p>}
         </div>
       </SheetContent>
+      {row && (
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title={`Eliminare il format “${row.name}”?`}
+          description="Il format e la sua pagina fuori stagione spariscono dall’admin e dal sito. Non si può annullare."
+          confirmLabel="Elimina definitivamente"
+          confirmText={row.name}
+          onConfirm={remove}
+        />
+      )}
     </Sheet>
   );
 }
