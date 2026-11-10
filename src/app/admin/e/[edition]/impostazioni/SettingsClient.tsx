@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import ImageUpload from '@/components/admin/ImageUpload';
 import { ArchivedNotice } from '@/components/admin/edition/common';
 import {
   AnnotatedSection,
@@ -146,8 +147,12 @@ export function SettingsClient({
                 <Input type="time" value={form.endsTime} onChange={(e) => set({ endsTime: e.target.value })} disabled={ro || !form.endsDate} />
               </Field>
             </div>
-            <Field label="Immagine di copertina" help="Indirizzo dell’immagine (Cloudinary o /images/…).">
-              <Input value={form.coverImage} onChange={(e) => set({ coverImage: e.target.value })} disabled={ro} />
+            <Field label="Immagine di copertina" help="La foto della card nel calendario e in home: caricala o incolla un indirizzo (Cloudinary o /img/…).">
+              {ro ? (
+                form.coverImage && <img src={form.coverImage} alt="" className="max-h-48 rounded-lg object-cover" />
+              ) : (
+                <ImageUpload value={form.coverImage} onChange={(coverImage) => set({ coverImage })} folder="pro-loco-gasperina/edizioni" label="Copertina" />
+              )}
             </Field>
             <Field label="Format" help="Le edizioni dello stesso format condividono la pagina pubblica e l’archivio.">
               <Select

@@ -27,10 +27,10 @@ events = [
        image="/img/IMG1.jpg", maxParticipants=900, registeredCount=0, price=5, featured=True, bookable=False, isFree=False),
   dict(id="assaggia-passeggia-2026", slug="assaggia-e-passeggia-2026", title="Assaggia e Passeggia 2026", date="2026-08-10", dateLabel=None, time="19:00",
        location="Centro storico di Gasperina", category="gastronomia", description="Percorso enogastronomico a tappe.", fullDescription="Evento di prova (concluso).",
-       image="/img/IMG_2.jpg", maxParticipants=600, registeredCount=0, price=17, featured=True, bookable=False, isFree=False),
+       image="/img/assaggia-2026/A%26P_M-186.webp", maxParticipants=600, registeredCount=0, price=17, featured=True, bookable=False, isFree=False),
   dict(id="baguette-2026", slug="la-baguette-da-record-2026", title="La Baguette da Record 2026", date="2026-06-14", dateLabel=None, time="18:00",
        location="Piazza di Gasperina", category="comunità", description="Tentativo di record della baguette più lunga.", fullDescription="Evento di prova (concluso).",
-       image="/img/IMG_3.jpg", maxParticipants=0, registeredCount=0, price=0, featured=False, bookable=False, isFree=True),
+       image="/img/baguette-2026/BAguette_MZ-20.webp", maxParticipants=0, registeredCount=0, price=0, featured=False, bookable=False, isFree=True),
   dict(id="concerto-natale-2026", slug="concerto-di-natale-2026", title="Concerto di Natale 2026", date="2026-12-20", dateLabel=None, time="21:00",
        location="Chiesa Matrice", category="musica", description="Concerto gratuito con prenotazione.", fullDescription="Evento di prova prenotabile.",
        image="/img/Event_1.jpeg", maxParticipants=120, registeredCount=0, price=0, featured=True, bookable=True, isFree=True),
@@ -99,7 +99,7 @@ for i in range(30):
 # --- Contenuti ---
 ins("news", dict(id="news_1", slug="zuccaland-2026-al-via", title="Zuccaland 2026 è al via", coverImage="/img/IMG1.jpg",
     content="Notizia di prova per lo sviluppo locale.", author="Pro Loco", featured=True))
-ins("news", dict(id="news_2", slug="grazie-assaggia-e-passeggia", title="Grazie per Assaggia e Passeggia", coverImage="/img/IMG_2.jpg",
+ins("news", dict(id="news_2", slug="grazie-assaggia-e-passeggia", title="Grazie per Assaggia e Passeggia", coverImage="/img/assaggia-2026/A%26P_M-186.webp",
     content="Seconda notizia di prova.", author="Pro Loco", featured=False))
 for i, (img, cat) in enumerate([("/img/IMG1.jpg", "eventi"), ("/img/IMG_2.jpg", "territorio"), ("/img/IMG_3.jpg", "cultura"), ("/img/Event_1.jpeg", "comunità")]):
     ins("gallery", dict(id=f"gal_{i+1}", src=img, alt=f"Foto di prova {i+1}", category=cat, width=1920, height=1080))
