@@ -105,6 +105,7 @@ export const ORG_NAV: NavGroup[] = [
   {
     label: 'Sistema',
     items: [
+      { label: 'Mappa del sistema', href: '/admin/sistema/mappa', permission: 'settings.manage', icon: MapIcon, keywords: ['stato', 'salute', 'errori', 'problemi'] },
       { label: 'Utenti', href: '/admin/sistema/utenti', permission: ['users.manage', 'settings.manage'], icon: Users, keywords: ['operatori', 'ruoli', 'pin', 'dispositivi'] },
       { label: 'Pagamenti', href: '/admin/sistema/pagamenti', permission: 'settings.payments', icon: CreditCard, keywords: ['nexi'] },
       { label: 'Email', href: '/admin/sistema/email', permission: 'settings.manage', icon: Mail, keywords: ['modelli', 'anteprima'] },

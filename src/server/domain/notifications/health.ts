@@ -25,7 +25,7 @@ const REQUIRED_ENV: Array<[string, string]> = [
 ];
 
 /** Il database risponde, e in quanto tempo. */
-async function database(): Promise<Check> {
+export async function database(): Promise<Check> {
   const start = Date.now();
   try {
     await getDb().execute(sql`select 1`);
@@ -37,7 +37,7 @@ async function database(): Promise<Check> {
 }
 
 /** Ordini in attesa scaduti da più di 2 giorni: il cron notturno che li chiude non sta girando. */
-async function nightlyJob(): Promise<Check> {
+export async function nightlyJob(): Promise<Check> {
   try {
     const [r] = await getDb()
       .select({ n: count() })
@@ -50,7 +50,7 @@ async function nightlyJob(): Promise<Check> {
 }
 
 /** Il webhook del bot: indirizzo registrato, messaggi in coda e ultimo errore di consegna. */
-async function telegramWebhook(): Promise<Check> {
+export async function telegramWebhook(): Promise<Check> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return { name: 'Bot Telegram', ok: false, detail: 'token mancante' };
   try {
@@ -69,7 +69,7 @@ async function telegramWebhook(): Promise<Check> {
   }
 }
 
-function environment(): Check {
+export function environment(): Check {
   const missing = REQUIRED_ENV.filter(([key]) => !process.env[key]);
   return {
     name: 'Configurazione',

@@ -1,0 +1,440 @@
+<title>Mappa del sito Pro Loco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: indice fisso a sinistra + colonna di lettura; sezioni per area, schemi in riquadri chiari. */
+:root {
+  --bg: #F6F7FB; --surface: #FFFFFF; --ink: #14203A; --muted: #56627A; --line: #DCE2EE;
+  --blue: #114D99; --blue-soft: #E4ECF8; --gold: #B8860F; --gold-soft: #FBF0D6;
+  --risk: #B42318; --risk-soft: #FDE8E6; --ok: #1E7A44; --ok-soft: #E2F4E9;
+  --diagram: #FFFFFF;
+  --font-body: "Figtree", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1422; --surface: #161E30; --ink: #E7ECF6; --muted: #9AA6BF; --line: #28324A;
+  --blue: #7FA8E8; --blue-soft: #1B2A48; --gold: #E9B44C; --gold-soft: #33290F;
+  --risk: #F2827A; --risk-soft: #3A1A18; --ok: #6FD39A; --ok-soft: #12301F;
+  --diagram: #F4F6FB; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E1422; --surface: #161E30; --ink: #E7ECF6; --muted: #9AA6BF; --line: #28324A;
+  --blue: #7FA8E8; --blue-soft: #1B2A48; --gold: #E9B44C; --gold-soft: #33290F;
+  --risk: #F2827A; --risk-soft: #3A1A18; --ok: #6FD39A; --ok-soft: #12301F;
+  --diagram: #F4F6FB; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.62 var(--font-body); padding-inline: 20px; padding-block: 0 64px; }
+.layout { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; }
+nav.toc { position: sticky; top: env(safe-area-inset-top, 0px); align-self: start; padding-block: 36px; font-size: 14px; }
+nav.toc b { display: block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+nav.toc a { display: block; padding: 5px 10px; border-radius: 8px; color: var(--ink); text-decoration: none; }
+nav.toc a:hover { background: var(--blue-soft); }
+main { min-width: 0; padding-block: 36px 0; }
+header.top { padding-bottom: 28px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.kicker { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
+h1 { font-size: clamp(32px, 4.6vw, 48px); line-height: 1.08; letter-spacing: -.02em; margin: 10px 0 14px; text-wrap: balance; font-weight: 800; }
+h2 { font-size: 26px; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 10px; text-wrap: balance; font-weight: 800; }
+h3 { font-size: 18px; margin: 26px 0 8px; font-weight: 700; }
+p, li { max-width: 72ch; }
+p { margin: 0 0 12px; }
+ul { padding-left: 20px; margin: 0 0 12px; } li { margin-bottom: 6px; }
+section { padding-block: 40px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+.lede { font-size: 18px; color: var(--muted); }
+code, .path { font-family: var(--font-mono); font-size: .86em; background: var(--blue-soft); color: var(--ink); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
+a { color: var(--blue); }
+
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; vertical-align: 2px; }
+.b-old { background: var(--gold-soft); color: var(--gold); }
+.b-new { background: var(--blue-soft); color: var(--blue); }
+.b-risk { background: var(--risk-soft); color: var(--risk); }
+.b-ok { background: var(--ok-soft); color: var(--ok); }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 18px; font-size: 14px; color: var(--muted); align-items: center; }
+
+.diagram { background: var(--diagram); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 18px 0; overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; background: transparent; text-align: center; }
+.cap { font-size: 13.5px; color: var(--muted); margin-top: -8px; }
+
+.table-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 640px; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-top: 1px solid var(--line); }
+th { border-top: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+td:first-child { font-weight: 600; }
+
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 16px 0; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.box h3 { margin-top: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.box ul { margin: 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps li { counter-increment: s; position: relative; padding-left: 40px; margin-bottom: 12px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 26px; height: 26px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-weight: 800; font-size: 13px; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.risk { border-left: 4px solid var(--risk); background: var(--surface); border-radius: 0 12px 12px 0; padding: 14px 18px; margin: 12px 0; }
+.risk b { color: var(--risk); }
+.note { border-left: 4px solid var(--gold); background: var(--surface); border-radius: 0 12px 12px 0; padding: 14px 18px; margin: 14px 0; }
+footer { color: var(--muted); font-size: 13.5px; padding-top: 24px; }
+a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; gap: 0; }
+  nav.toc { position: static; padding-block: 24px 0; display: flex; flex-wrap: wrap; gap: 4px; }
+  nav.toc b { width: 100%; }
+  nav.toc a { background: var(--surface); border: 1px solid var(--line); }
+  .cols { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="layout">
+<nav class="toc" aria-label="Indice">
+  <b>Indice</b>
+  <a href="#panoramica">Panoramica</a>
+  <a href="#due-sistemi">Due sistemi, un sito</a>
+  <a href="#interruttori">Interruttori</a>
+  <a href="#sito">Sito pubblico</a>
+  <a href="#edizioni">Edizioni e catalogo</a>
+  <a href="#acquisto-oggi">Acquisto oggi</a>
+  <a href="#acquisto-nuovo">Acquisto nuovo</a>
+  <a href="#ordini">Stati dell'ordine</a>
+  <a href="#biglietti">Biglietti</a>
+  <a href="#ingresso">Ingresso e scanner</a>
+  <a href="#cassa">Cassa</a>
+  <a href="#rimborsi">Rimborsi</a>
+  <a href="#accessi">Accessi e ruoli</a>
+  <a href="#automatismi">Notifiche e automatismi</a>
+  <a href="#novita">Cosa è cambiato</a>
+  <a href="#aperti">Punti aperti</a>
+</nav>
+
+<main>
+<header class="top">
+  <div class="kicker">Pro Loco Gasperina APS · sito e biglietteria</div>
+  <h1>Mappa del sito Pro Loco</h1>
+  <p class="lede">Come funzionano sito, ordini, pagamenti, biglietti, ingresso e cassa, ricostruito dal codice. Versione del 9 novembre 2026, branch <code>fix/nexi-urlpost</code> (commit <code>cca6dd5</code>), che contiene il redesign, le correzioni di sicurezza e la conferma Nexi di oggi.</p>
+  <div class="legend">
+    <span><span class="badge b-old">In uso oggi</span> sistema vecchio, quello che vende e incassa</span>
+    <span><span class="badge b-new">Pronto, dietro interruttore</span> sistema nuovo, già scritto</span>
+    <span><span class="badge b-risk">Rischio</span> da sistemare</span>
+  </div>
+</header>
+
+<section id="panoramica">
+  <h2>Panoramica</h2>
+  <p>Il sito è un'unica applicazione Next.js ospitata su Vercel, con un database Postgres su Neon. Ha tre parti per tre tipi di persone, e parla con cinque servizi esterni.</p>
+  <div class="cols">
+    <div class="box"><h3>Sito pubblico</h3><ul><li>Per visitatori e acquirenti.</li><li>Racconta l'associazione e vende i biglietti.</li><li>Pagine: home, eventi, notizie, galleria, chi siamo, iscrizione, Zuccaland, Assaggia e Passeggia.</li></ul></div>
+    <div class="box"><h3>Area admin <code>/admin</code></h3><ul><li>Per il direttivo e i responsabili.</li><li>Edizioni, catalogo, ordini, rimborsi, soci, contenuti del sito, utenti e registro attività.</li></ul></div>
+    <div class="box"><h3>App da campo</h3><ul><li>Per i volontari in piazza, dal telefono.</li><li><code>/cassa</code> per vendere, <code>/scanner</code> per far entrare.</li><li>I telefoni vengono abbinati con QR e PIN.</li></ul></div>
+    <div class="box"><h3>Servizi esterni</h3><ul><li><b>Nexi XPay</b>: pagamenti con carta.</li><li><b>Resend</b>: email (biglietti, conferme).</li><li><b>Cloudinary</b>: foto e album.</li><li><b>Telegram</b>: avvisi e resoconti al direttivo.</li><li><b>Neon / Vercel</b>: database e hosting.</li></ul></div>
+  </div>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  V([Visitatore]) --> SP[Sito pubblico]
+  SP -->|acquista| ORD[(Ordini e biglietti)]
+  SP -->|paga| NEXI[Nexi XPay]
+  NEXI -->|esito firmato| ORD
+  ORD -->|PDF con QR| EM[Email Resend]
+  ORD -->|avvisi| TG[Telegram direttivo]
+  ADM([Direttivo]) --> AD[Area admin]
+  AD --> ORD
+  VOL([Volontari]) --> CF[Cassa e scanner]
+  CF -->|vendite e ingressi| ORD
+  SP --- CL[Cloudinary foto]
+  </pre></div>
+</section>
+
+<section id="due-sistemi">
+  <h2>Due sistemi, un sito</h2>
+  <p>Questa è la cosa più importante da capire. Nel codice convivono <b>due versioni</b> della biglietteria:</p>
+  <ul>
+    <li><span class="badge b-old">In uso oggi</span> Il <b>sistema vecchio</b> lavora sulle tabelle <code>orders</code> e <code>tickets</code>. È quello con cui Zuccaland e Assaggia hanno venduto nel 2026.</li>
+    <li><span class="badge b-new">Pronto, dietro interruttore</span> Il <b>sistema nuovo</b> è il "nucleo ordini": tabelle <code>orders_v2</code>, <code>order_lines</code>, <code>tickets_v2</code>, <code>payments</code>, <code>refunds_v2</code>, con prezzi, posti e permessi controllati tutti sul server.</li>
+  </ul>
+  <p>I due sistemi non vendono mai la stessa edizione insieme. Il checkout nuovo resta chiuso finché un'edizione non è stata <b>migrata</b> (script <code>npm run migrate:orders</code>), così lo stesso posto non viene venduto due volte. La migrazione copia ordini, biglietti, cassa e rimborsi senza toccare le tabelle vecchie, e i QR già emessi restano validi.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Area</th><th>Sistema vecchio (in uso)</th><th>Sistema nuovo (pronto)</th></tr>
+    <tr><td>Acquisto</td><td>Riquadro nella pagina Zuccaland o Assaggia → <code>/api/orders</code></td><td><code>/acquista/[edizione]</code> in 4 passi</td></tr>
+    <tr><td>Pagamento</td><td><code>/api/nexi/checkout</code> → <code>/api/nexi/callback</code> e <code>/api/nexi/notifica</code></td><td><code>/acquista/paga/[token]</code> → <code>/api/pagamenti/nexi/esito</code> e <code>notifica</code></td></tr>
+    <tr><td>Biglietti del cliente</td><td>Email con PDF, pagina <code>/zuccaland/success</code></td><td>Pagina di conferma e <code>/i-miei-biglietti/[token]</code></td></tr>
+    <tr><td>Ingresso</td><td>Scanner vecchio, <code>/api/tickets/verify</code></td><td>Scanner nuovo <code>/scanner</code> con liste di check-in</td></tr>
+    <tr><td>Cassa</td><td><code>/cashier</code>, accesso con codice evento</td><td><code>/cassa</code>, telefoni abbinati, turni e chiusura Z</td></tr>
+    <tr><td>Rimborsi</td><td>Modulo <code>/zuccaland/rimborso</code> → <code>/api/refunds</code></td><td>Richiesta da "I miei biglietti", IBAN cifrato, approvazione in admin</td></tr>
+    <tr><td>Ordini in admin</td><td>Pagina Ordini di oggi</td><td>Pagine nuove per edizione (con <code>orders_v2</code> acceso)</td></tr>
+  </table></div>
+</section>
+
+<section id="interruttori">
+  <h2>Interruttori</h2>
+  <p>Quale sistema si vede lo decidono questi interruttori. Quelli in <code>site_settings</code> si cambiano dall'admin (Sistema › Impostazioni) e finiscono nel registro attività; le variabili d'ambiente si cambiano su Vercel.</p>
+  <div class="note">La mappa descrive cosa fa ogni interruttore. Il loro valore attuale in produzione non è nel codice: controllalo in Sistema › Impostazioni e nelle variabili di Vercel.</div>
+  <div class="table-wrap"><table>
+    <tr><th>Interruttore</th><th>Dove</th><th>Acceso</th><th>Spento (predefinito)</th></tr>
+    <tr><td><code>public_v2</code></td><td>Impostazioni</td><td>Calendario eventi e menu letti dalle edizioni dell'admin, con filtri</td><td>Calendario dagli eventi di oggi, menu predefinito</td></tr>
+    <tr><td><code>orders_v2</code></td><td>Impostazioni</td><td>In admin, Ordini, Rimborsi e Prenotazioni portano alle pagine nuove</td><td>Restano le pagine di oggi</td></tr>
+    <tr><td><code>scanner_v2</code></td><td>Impostazioni</td><td><code>/scanner</code> apre lo scanner nuovo</td><td>Scanner di oggi</td></tr>
+    <tr><td><code>legacy_event_code</code></td><td>Impostazioni</td><td>La vecchia cassa accetta il codice evento</td><td>Solo telefoni abbinati (con <code>false</code>)</td></tr>
+    <tr><td><code>NUOVO_CHECKOUT=1</code></td><td>Vercel</td><td>A Zuccaland il pulsante d'acquisto porta a <code>/acquista</code></td><td>Acquisto dentro la pagina Zuccaland</td></tr>
+    <tr><td><code>ALLOW_LEGACY_ADMIN=true</code></td><td>Vercel</td><td>Accesso di emergenza con la vecchia password unica</td><td>Solo email e password personali</td></tr>
+    <tr><td><code>EVENING_SUMMARY=1</code></td><td>Vercel</td><td>Riepilogo serale degli ordini su Telegram</td><td>Spento da oggi: restano gli allarmi</td></tr>
+    <tr><td><code>PREVIEW_READY=1</code></td><td>Vercel (Preview)</td><td>Le anteprime dei branch si aprono</td><td>Anteprima bloccata con un messaggio</td></tr>
+    <tr><td><code>NEXI_MODE=simulatore</code></td><td>Solo in locale</td><td>Finta pagina Nexi per le prove</td><td>Nexi vero</td></tr>
+  </table></div>
+</section>
+
+<section id="sito">
+  <h2>Sito pubblico</h2>
+  <p>Il menu segue la decisione del direttivo: Home · Scopri Gasperina · Notizie · Eventi (Calendario, Zuccaland, Assaggia e Passeggia) · Galleria · Chi siamo · Sponsor · Contatti, più "Diventa socio". Con <code>public_v2</code> acceso il menu si modifica da Sito › Navigazione.</p>
+  <div class="cols">
+    <div class="box"><h3>Nuovo design v3</h3><ul><li>Home, Scopri Gasperina, Calendario <code>/eventi</code></li><li>Notizie ed elenco notizie, Galleria <code>/media</code></li><li>Chi siamo, Iscriviti, Sponsor, Contatti</li><li>Trasparenza, Privacy</li></ul><p class="cap" style="margin:10px 0 0">Elenco in <code>src/lib/public/redesign.ts</code>: solo queste pagine usano la nuova intestazione e il nuovo piè di pagina.</p></div>
+    <div class="box"><h3>Come prima, per scelta</h3><ul><li>Zuccaland e Assaggia e Passeggia (pagine dei format)</li><li>Schede dei singoli eventi <code>/eventi/[slug]</code>, compresa la Baguette</li><li>Acquisto, pagamento, conferme, "I miei biglietti"</li><li>Admin, cassa, scanner</li></ul></div>
+  </div>
+  <h3>Pagine dei format e indirizzi stampati</h3>
+  <ul>
+    <li><code>/zuccaland</code> mostra l'edizione in corso; se non c'è, la pagina "fuori stagione" o "Grazie e ricordi" con l'iscrizione <b>Avvisami</b> (email e consenso), che scrive a tutti quando apre la prossima vendita.</li>
+    <li><code>/assaggia-e-passeggia/tappa/[id]</code> è l'indirizzo dei QR stampati nelle tappe: deve restare valido per sempre.</li>
+    <li>Ogni indirizzo già condiviso che cambia riceve un reindirizzamento permanente: nessun link stampato deve dare errore.</li>
+  </ul>
+  <h3>Moduli sotto il sito</h3>
+  <p>Iscrizione soci (<code>/api/subscriptions</code>: due email con PDF, una all'associazione e una al socio), contatti, Avvisami e caricamento foto dei visitatori (moderate in admin prima di comparire).</p>
+</section>
+
+<section id="edizioni">
+  <h2>Edizioni e catalogo</h2>
+  <p>Tutto quello che si vende parte da qui. La struttura è la stessa per ogni evento, senza codice scritto per Zuccaland o Assaggia: le differenze stanno nei <b>moduli</b> accesi sull'edizione.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  F[Format<br/>es. Zuccaland] --> E[Edizione<br/>Zuccaland 2026]
+  E --> S[Date<br/>sab 10 ott, 10:30]
+  E --> P[Prodotti<br/>biglietti, extra, cibo]
+  E --> Q[Quote<br/>posti condivisi]
+  Q -.limita.-> P
+  S -.capienza.-> Q
+  E --> M[Moduli accesi<br/>fasce orarie, rinvio...]
+  E --> D[Codici sconto]
+  </pre></div>
+  <ul>
+    <li><b>Format</b>: l'evento che si ripete, con la sua pagina pubblica stabile.</li>
+    <li><b>Edizione</b>: un anno del format, o un evento singolo. Lo slug non cambia mai.</li>
+    <li><b>Date</b>: giorni o turni con orario, capienza e stato (aperta, chiusa, esaurita, annullata, rinviata).</li>
+    <li><b>Prodotti</b>: prezzo in centesimi, canali di vendita (online, cassa), se richiede una data, se emette un QR.</li>
+    <li><b>Quote</b>: posti condivisi tra prodotti. Un prodotto si vende fino alla quota più piccola.</li>
+  </ul>
+  <h3>Moduli disponibili</h3>
+  <p>Fasce orarie, Attività e laboratori, Rinvio per maltempo, Inviti, Pay-link, Foto dei visitatori, Recensioni, Tappe, Reparti (cassa), Prenotazione gratuita, Messaggi broadcast, Pagina a blocchi. Spegnere un modulo non cancella i suoi dati.</p>
+  <h3>Ciclo di vita di un'edizione</h3>
+  <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> Bozza
+  Bozza --> Pubblicata: Pubblica
+  Pubblicata --> InVendita: Apri le vendite
+  Pubblicata --> Bozza
+  InVendita --> Esaurita: posti finiti (anche automatico)
+  Esaurita --> InVendita: si libera un posto
+  InVendita --> InCorso: Segna come in corso
+  Esaurita --> InCorso
+  InVendita --> Pubblicata: Chiudi le vendite
+  InCorso --> Conclusa: Dichiara conclusa
+  Sospesa --> Conclusa
+  Conclusa --> Archiviata: Archivia (checklist completa)
+  Archiviata --> [*]
+  </pre></div>
+  <p class="cap">Da Pubblicata, In vendita, Esaurita e In corso si può anche Sospendere. Un'edizione archiviata è in sola lettura per sempre. Prima di archiviare la checklist di chiusura chiede: niente ordini in attesa, rimborsi chiusi, rendiconto finale, più i controlli dei moduli.</p>
+</section>
+
+<section id="acquisto-oggi">
+  <h2>Acquisto oggi <span class="badge b-old">In uso oggi</span></h2>
+  <p>È il percorso di Zuccaland 2026 e di Assaggia 2026. Il pay-link dell'admin (<code>/paga/[id]</code>) usa lo stesso pagamento.</p>
+  <ol class="steps">
+    <li><b>Il cliente sceglie</b> nella pagina dell'evento (data, biglietti, bambini e attività) e conferma. Il browser chiama <code>POST /api/orders</code>.</li>
+    <li><b>Il server ricalcola tutto</b> dal listino ufficiale (<code>priceCartForOrder</code>): il totale inviato dal browser viene ignorato. Controlla posti per data, esaurimenti e limiti specifici.</li>
+    <li><b>Crea l'ordine</b> con stato <code>PENDING</code>, un codice di 30 caratteri e un biglietto per ogni posto, ognuno con il suo QR. Manda su Telegram codice, biglietti e totale, senza dati personali.</li>
+    <li><b>Se il totale è 0 €</b> (omaggio o sconto del 100%) l'ordine diventa pagato subito e parte l'email.</li>
+    <li><b>Altrimenti</b> il browser va su <code>/api/nexi/checkout</code>, che rilegge importo e codice dal database, firma la richiesta (MAC) e la invia a Nexi con tre indirizzi: ritorno del browser (<code>url</code>), notifica al server (<code>urlpost</code>, nuovo da oggi) e annullo (<code>url_back</code>).</li>
+    <li><b>Nexi risponde due volte</b>, in qualsiasi ordine: notifica server-to-server su <code>/api/nexi/notifica</code> e ritorno del browser su <code>/api/nexi/callback</code>. Entrambe verificano la firma a tempo costante e chiamano la stessa funzione, <code>confirmLegacyPayment</code>.</li>
+    <li><b>La prima conferma vince</b>: l'ordine passa a <code>PAID</code>, parte l'email con il PDF dei biglietti e un messaggio Telegram. La seconda conferma non rifà nulla.</li>
+    <li><b>Il cliente arriva alla pagina di successo</b>; se il pagamento è fallito o annullato torna alla pagina dell'evento con un avviso.</li>
+  </ol>
+  <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  participant C as Cliente
+  participant S as Sito
+  participant DB as Database (orders, tickets)
+  participant N as Nexi
+  C->>S: POST /api/orders (carrello)
+  S->>DB: prezzi dal listino, posti, ordine PENDING + biglietti QR
+  S-->>C: codice ordine
+  C->>S: /api/nexi/checkout
+  S->>N: modulo firmato (importo, codTrans, url, urlpost)
+  C->>N: paga con carta
+  par Notifica server
+    N->>S: POST /api/nexi/notifica
+  and Ritorno browser
+    N->>C: rimanda a /api/nexi/callback
+    C->>S: GET /api/nexi/callback
+  end
+  S->>DB: confirmLegacyPayment: PAID una volta sola
+  S->>C: email con PDF + pagina di successo
+  </pre></div>
+  <h3>Integrazioni con il pay-link</h3>
+  <p>Dall'admin si può far pagare un'aggiunta a un ordine esistente (es. "+1 bambino"). Si crea un sotto-ordine con nelle note il marcatore <code>[INTEGRAZIONE_PARENT:&lt;ordine&gt;]</code>; il cliente paga da <code>/paga/[id]</code>. Alla conferma i biglietti passano all'ordine principale, il totale si somma e il sotto-ordine viene archiviato. Da oggi un'integrazione non si somma due volte.</p>
+  <div class="risk"><b>Rischio aperto (audit, pista 2).</b> La conferma riconosce un'integrazione leggendo il testo delle note, e le note dell'ordine le invia il browser in <code>/api/orders</code>. Un acquirente può quindi scrivere quel marcatore e, pagando un ordine suo, spostare biglietti e cambiare il totale dell'ordine di un altro. Va chiuso prima della prossima vendita con il sistema vecchio (vedi Punti aperti).</div>
+</section>
+
+<section id="acquisto-nuovo">
+  <h2>Acquisto nuovo <span class="badge b-new">Pronto, dietro interruttore</span></h2>
+  <p>Si attiva per un'edizione migrata, oppure a Zuccaland con <code>NUOVO_CHECKOUT=1</code>.</p>
+  <ol class="steps">
+    <li><code>/acquista/[edizione]</code>: <b>Scegli</b> (data e biglietti), <b>Dati</b> (nome, email, telefono, consensi, risposte dei moduli), <b>Riepilogo</b> calcolato dal server (con codice sconto), <b>Pagamento</b>.</li>
+    <li>"Vai al pagamento" chiama <code>placeOrder</code> → <code>createOrder</code>: in un'unica transazione blocca quote e date, ricalcola i prezzi e crea ordine, righe, biglietti e risposte. L'ordine è <code>pending</code> e tiene i posti <b>15 minuti</b> (48 ore per un pay-link). La stessa richiesta inviata due volte crea un solo ordine.</li>
+    <li><code>/acquista/paga/[token]</code> invia a Nexi il modulo firmato, con importo e codice letti dal database.</li>
+    <li>Nexi chiama <code>/api/pagamenti/nexi/notifica</code> e rimanda il browser a <code>/api/pagamenti/nexi/esito</code>. Entrambi passano da <code>processResult</code> → <code>recordPayment</code>, che registra un solo pagamento per riferimento Nexi.</li>
+    <li>Se l'importo pagato non corrisponde al totale, l'ordine <b>non</b> diventa pagato e parte un allarme. Se il pagamento arriva dopo la scadenza, l'ordine torna pagato solo se i posti ci sono ancora; altrimenti va rimborsato.</li>
+    <li>All'evento <code>order.paid</code> parte l'email con il PDF. Il cliente vede la conferma (QR, PDF, calendario .ics) e il link a <code>/i-miei-biglietti/[token]</code>.</li>
+  </ol>
+  <div class="diagram"><pre class="mermaid">
+flowchart TD
+  A["/acquista/edizione"] --> B[placeOrder]
+  B --> C{createOrder<br/>transazione}
+  C -->|posti ok| D[ordine pending<br/>posti tenuti 15 min]
+  C -->|posti finiti| X[errore: esaurito]
+  D --> E["/acquista/paga/token → Nexi"]
+  E --> F[notifica + esito]
+  F --> G{firma valida?}
+  G -->|no| H[nulla registrato<br/>pagina esito non valido]
+  G -->|sì| I{importo giusto?}
+  I -->|sì| J[pagamento succeeded<br/>ordine paid]
+  I -->|no| K[resta in attesa<br/>allarme Telegram]
+  J --> L[order.paid → email PDF<br/>conferma e I miei biglietti]
+  D -->|nessun pagamento| M[scaduto: posti liberi]
+  </pre></div>
+</section>
+
+<section id="ordini">
+  <h2>Stati dell'ordine</h2>
+  <div class="cols">
+    <div class="box"><h3>Sistema vecchio <span class="badge b-old">In uso oggi</span></h3><ul><li><code>PENDING</code> → <code>PAID</code></li><li>Ordini archiviati con <code>deletedAt</code> (es. sotto-ordini integrati)</li><li>Ordini messi in lista nera dall'admin</li><li>Bambini, attività, spostamenti e integrazioni vivono nel testo delle note</li></ul></div>
+    <div class="box"><h3>Sistema nuovo <span class="badge b-new">Pronto</span></h3><ul><li>Canali: online, cassa, pay-link, invito, admin</li><li>Lo stato si ricava da totale, pagamenti e rimborsi</li><li>Ogni modifica scrive nel registro attività</li><li>Ordini, pagamenti e rimborsi non si cancellano mai</li></ul></div>
+  </div>
+  <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> pending: online o pay-link
+  [*] --> paid: cassa, omaggio o 0 €
+  pending --> paid: pagamento riuscito
+  pending --> expired: nessun pagamento entro la scadenza
+  pending --> cancelled: annullato
+  paid --> partially_refunded: rimborso parziale
+  paid --> refunded: rimborso totale
+  partially_refunded --> refunded
+  paid --> cancelled: annullato dopo il rimborso
+  </pre></div>
+  <p class="cap">Annullare un ordine con un importo ancora pagato non è permesso: prima va rimborsato. Un rimborso totale rende nulli i biglietti, uno parziale li lascia validi.</p>
+</section>
+
+<section id="biglietti">
+  <h2>Biglietti</h2>
+  <ul>
+    <li><b>QR del sistema vecchio</b>: <code>codiceOrdine-idBiglietto-momento</code>, salvato in <code>qrCodeData</code>. Con la migrazione diventa il <code>qr_token</code> del sistema nuovo, quindi i QR già inviati continuano a funzionare.</li>
+    <li><b>Stati nel sistema nuovo</b>: <code>valid</code> o <code>void</code>. Un biglietto annullato o rimborsato non entra più.</li>
+    <li><b>Email</b>: PDF con tutti i biglietti dell'ordine, inviato alla prima conferma di pagamento (e di nuovo con "Rimanda biglietti" dall'admin).</li>
+    <li><b>"I miei biglietti"</b> (nuovo): biglietti, PDF, calendario, <b>cambio data</b> e <b>richiesta di rimborso</b>, solo se il modulo Rinvio li consente. L'accesso è tramite un token segreto nel link, senza password.</li>
+    <li><b>Rinvio per maltempo</b> (modulo): collega una giornata alla sua data di recupero (es. 10 → 17 ottobre) e sposta gli ordini in un passo. Il biglietto mostra la data in cui vale davvero.</li>
+  </ul>
+</section>
+
+<section id="ingresso">
+  <h2>Ingresso e scanner</h2>
+  <div class="cols">
+    <div class="box"><h3>Scanner vecchio <span class="badge b-old">In uso oggi</span></h3><ul><li>Legge il QR e chiama <code>/api/tickets/verify</code> (e <code>unverify</code>, <code>stats</code>).</li><li>Segna il biglietto come entrato.</li><li>"+1 Bambino" aggiunge extra dall'ingresso.</li></ul></div>
+    <div class="box"><h3>Scanner nuovo <span class="badge b-new">Pronto</span></h3><ul><li>Liste di check-in: Ingresso, Laboratorio, Tappa 3…</li><li>Per ogni QR controlla: biglietto valido, ordine pagato, data giusta (anche dopo un rinvio), già entrato.</li><li>Mostra prodotto, data, codice e nome, mai email e telefono.</li><li>Gruppi, annullo di un ingresso, ricerca per nome (se permesso), funziona anche offline e poi sincronizza.</li><li>"Paga in loco": incasso all'ingresso, solo con il permesso dedicato.</li></ul></div>
+  </div>
+  <div class="diagram"><pre class="mermaid">
+flowchart LR
+  Q[QR letto] --> V{biglietto valido?}
+  V -->|no| R1[Rosso: annullato o sconosciuto]
+  V -->|sì| P{ordine pagato?}
+  P -->|no| R2[Giallo: da pagare in cassa<br/>o Paga in loco]
+  P -->|sì| D{data giusta?}
+  D -->|no| R3[Rosso: vale un altro giorno]
+  D -->|sì| G{già entrato?}
+  G -->|sì| R4[Giallo: già entrato alle ...]
+  G -->|no| OK[Verde: entra<br/>ticket.checked_in]
+  </pre></div>
+</section>
+
+<section id="cassa">
+  <h2>Cassa</h2>
+  <div class="cols">
+    <div class="box"><h3>Cassa vecchia <code>/cashier</code> <span class="badge b-old">In uso oggi</span></h3><ul><li>Accesso con il codice evento (finché <code>legacy_event_code</code> non è <code>false</code>) o con un telefono abbinato.</li><li>Vendite e stati dei piatti, stream in tempo reale.</li></ul></div>
+    <div class="box"><h3>Cassa nuova <code>/cassa</code> <span class="badge b-new">Pronto</span></h3><ul><li>Solo telefoni abbinati, ognuno legato a una cassa e con i suoi permessi.</li><li><b>Turno</b>: apertura con il fondo cassa; due telefoni sulla stessa cassa condividono il turno.</li><li><b>Vendita</b>: un ordine "cassa" pagato subito; prezzi e scorte decisi dal server. Sull'ultima porzione, con due telefoni, uno vende e l'altro riceve "esaurito".</li><li><b>Offline</b>: le vendite fatte senza rete si accettano sempre e si segnalano in admin.</li><li><b>Annullo</b>: chiede il PIN di un responsabile, salvo permesso.</li><li><b>Chiusura Z</b>: conteggio per taglio, atteso contro contato, differenza con nota sopra 1 €, numero Z progressivo.</li><li><b>Reparti</b> (modulo): le righe vanno allo schermo di preparazione, con lo schermo "Pronti" opzionale.</li></ul></div>
+  </div>
+  <p>La cassa registra <b>contributi</b>, non vendite con scontrino fiscale: nessuna IVA.</p>
+</section>
+
+<section id="rimborsi">
+  <h2>Rimborsi</h2>
+  <div class="cols">
+    <div class="box"><h3>Vecchio <span class="badge b-old">In uso oggi</span></h3><ul><li>Modulo pubblico <code>/zuccaland/rimborso</code> → <code>/api/refunds</code>.</li><li>IBAN validato (struttura e checksum) e salvato.</li><li>Senza importo: si assume l'intero ordine.</li></ul></div>
+    <div class="box"><h3>Nuovo <span class="badge b-new">Pronto</span></h3><ol class="steps" style="margin:0"><li>Richiesta da "I miei biglietti" (serve il token dell'ordine).</li><li>IBAN validato e <b>cifrato</b>; non compare mai nel registro.</li><li>In admin: approva o rifiuta con motivo.</li><li>"Segna eseguito" dopo il bonifico: lo stato dell'ordine si ricalcola.</li></ol></div>
+  </div>
+</section>
+
+<section id="accessi">
+  <h2>Accessi e ruoli</h2>
+  <ul>
+    <li><b>Admin</b>: email e password personali da <code>/login</code>; inviti via email (link valido 7 giorni); password dimenticata (link di 30 minuti).</li>
+    <li><b>Ruoli</b>: Titolare, Amministratore e Redattore su tutta l'associazione; Responsabile evento, Cassiere e Ingresso su un'edizione o su tutto. Le API controllano i permessi anche se l'interfaccia li nasconde.</li>
+    <li><b>Telefoni da campo</b>: abbinati dall'admin con QR e PIN di 6 cifre (validi 10 minuti, una volta sola). Ogni telefono ha il ruolo Cassa o Varco, una cassa e una lista di permessi; revocarlo toglie l'accesso subito.</li>
+    <li><b>PIN dei responsabili</b>: servono ad approvare gli annulli; si bloccano dopo 5 errori.</li>
+    <li><b>Accesso di emergenza</b>: la vecchia password unica funziona solo con <code>ALLOW_LEGACY_ADMIN=true</code>, ed è registrata come tale.</li>
+    <li><b>Registro attività</b>: si può solo scrivere (il database rifiuta modifiche e cancellazioni). Password, PIN, token e IBAN non ci entrano mai.</li>
+  </ul>
+</section>
+
+<section id="automatismi">
+  <h2>Notifiche e automatismi</h2>
+  <p>Il sistema nuovo pubblica <b>eventi di dominio</b> dopo ogni operazione confermata; dei gestori reagiscono senza bloccare l'operazione se falliscono.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Evento</th><th>Cosa succede</th></tr>
+    <tr><td><code>order.paid</code></td><td>Email con i biglietti al cliente, avviso Telegram (solo codice e importi)</td></tr>
+    <tr><td><code>order.tickets_resent</code></td><td>Nuovo invio dell'email con il PDF</td></tr>
+    <tr><td><code>payment.failed</code>, <code>payment.amount_mismatch</code></td><td>Allarme Telegram al direttivo</td></tr>
+    <tr><td><code>refund.requested</code></td><td>Avviso Telegram: c'è un rimborso da guardare</td></tr>
+    <tr><td><code>cash.session_closed</code></td><td>Resoconto della chiusura Z su Telegram</td></tr>
+    <tr><td><code>edition.on_sale</code></td><td>Email "Avvisami" a chi si era iscritto</td></tr>
+    <tr><td>Ordine creato, scaduto, annullato, rimborsato, spostato</td><td>Si ricalcola se l'edizione è esaurita o torna in vendita</td></tr>
+  </table></div>
+  <h3>Lavori pianificati (Vercel Cron)</h3>
+  <ul>
+    <li><code>/api/cron/expire-orders</code> ogni giorno alle 04:00: segna come scaduti gli ordini in attesa oltre la scadenza. I posti si liberano comunque subito, perché il conteggio ignora gli ordini scaduti.</li>
+    <li><code>/api/cron/riepilogo</code> ogni giorno alle 20:00: riepilogo degli ordini, spento salvo <code>EVENING_SUMMARY=1</code>.</li>
+  </ul>
+  <h3>Mappa del sistema in admin</h3>
+  <p><b>Sistema › Mappa del sistema</b> (<code>/admin/sistema/mappa</code>, per titolare e amministratori) mostra i nodi di questa mappa con un semaforo. <b>Rosso</b>: un controllo non passa (database, configurazione, Nexi, bot, pulizia notturna, email o pagamenti falliti nelle ultime 24 ore) o un errore nell'ultima ora. <b>Giallo</b>: errori negli ultimi 7 giorni o rimborsi fermi da più di una settimana. Gli errori arrivano dagli allarmi Telegram (tabella <code>alert_throttle</code>), quindi la pagina vede solo quelli scritti con <code>log.error</code> e con il bot configurato. Il collegamento tra testo dell'errore e nodo è in <code>src/server/domain/notifications/systemMap.ts</code>.</p>
+  <h3>Bot e messaggi</h3>
+  <p>Telegram riceve avvisi e risponde ad alcuni comandi (<code>/api/telegram/webhook</code>). WhatsApp serve per i messaggi broadcast ai partecipanti e per il widget di contatto sul sito.</p>
+</section>
+
+<section id="novita">
+  <h2>Cosa è cambiato</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Data</th><th>Commit</th><th>Cosa cambia</th></tr>
+    <tr><td>3 nov</td><td><code>5624975</code></td><td><span class="badge b-ok">Sicurezza</span> La firma Nexi non finisce più nei log; il testo salvato dagli editor non diventa mai HTML; il modulo iscrizione accetta un solo indirizzo, fa l'escape dei campi e ha un limite di richieste.</td></tr>
+    <tr><td>8 nov</td><td><code>f35a060</code></td><td>Redesign v3 delle pagine pubbliche (le pagine dei format, gli eventi singoli e l'acquisto restano come prima).</td></tr>
+    <tr><td>8 nov</td><td><code>cd3c9e0</code></td><td>Le anteprime di Vercel usano il database di produzione (eccezione decisa e registrata nel documento di architettura).</td></tr>
+    <tr><td>9 nov</td><td><code>cca6dd5</code></td><td><span class="badge b-ok">Pagamenti</span> Nexi conferma da solo anche gli ordini del checkout classico (<code>urlpost</code> → <code>/api/nexi/notifica</code>): un cliente che chiude la pagina dopo aver pagato non resta più "in attesa". Email, Telegram e integrazioni partono una sola volta. Firma non valida: allarme con il solo codice. Riepilogo serale spento.</td></tr>
+  </table></div>
+  <p class="cap">Questi commit sono sui branch <code>redesign/sito-pubblico-v3</code> e <code>fix/nexi-urlpost</code>, non ancora su <code>main</code>: il sito in produzione cambia solo dopo l'approvazione della PR.</p>
+</section>
+
+<section id="aperti">
+  <h2>Punti aperti</h2>
+  <div class="risk"><b>Note che comandano il pagamento (pista 2 dell'audit).</b> Nel sistema vecchio un acquirente può scrivere <code>[INTEGRAZIONE_PARENT:…]</code> nelle note e modificare l'ordine di un altro alla conferma del pagamento. Soluzione minima: in <code>/api/orders</code> rifiutare note che contengono quel marcatore, e in conferma accettare un'integrazione solo se il sotto-ordine è stato creato dal pay-link dell'admin.</div>
+  <div class="risk"><b>Anteprime sul database di produzione.</b> Un acquisto di prova su un'anteprima crea ordini veri; se l'anteprima usa le chiavi Nexi di produzione, anche pagamenti veri. Conviene chiavi Nexi di test sull'ambiente Preview e nessuna prova di acquisto in anteprima.</div>
+  <div class="risk"><b>Controllo dell'importo nel pagamento vecchio.</b> La firma Nexi impedisce di alterare l'importo, ma la conferma non confronta l'importo pagato con il totale dell'ordine come fa il sistema nuovo. Un controllo in più costa poco.</div>
+  <div class="note"><b>Chiave Nexi.</b> Se nei log di Vercel compare <code>Invalid MAC signature. Expected</code> (scritto dal codice prima del 3 novembre), va cambiata <code>NEXI_MAC_KEY</code> su Nexi e su Vercel insieme.</div>
+  <div class="note"><b>Resto dell'audit del 1° novembre.</b> Sono ancora aperte le piste sulle rotte vecchie: verifica biglietti e statistiche accessibili a qualsiasi scanner, vecchia cassa, rimborsi con IBAN in chiaro, upload anonimi senza limite, recensioni e prenotazioni senza controlli. Il piano concordato è decidere quali percorsi vecchi servono ancora e togliere gli altri, attenti ai QR stampati e ai link nelle vecchie email.</div>
+  <div class="note"><b>Documentazione da allineare.</b> <code>docs/ordini.md</code> dice che la scadenza degli ordini gira ogni 5 minuti; in <code>vercel.json</code> gira una volta al giorno alle 04:00 (piano gratuito di Vercel).</div>
+</section>
+
+<footer><b>Come si aggiorna.</b> Questo file (<code>docs/mappa-logica.html</code>) è la fonte: ogni PR che cambia un flusso descritto qui lo aggiorna, e se aggiunge un nodo o un nuovo messaggio di errore aggiorna anche <code>NODES</code> ed <code>ERROR_RULES</code> in <code>systemMap.ts</code>. Poi si ripubblica la pagina condivisa.<br>Ricostruita leggendo il codice del branch <code>fix/nexi-urlpost</code> e i documenti in <code>docs/</code>. I valori degli interruttori in produzione non sono nel codice e vanno letti dall'admin e da Vercel.</footer>
+</main>
+</div>
