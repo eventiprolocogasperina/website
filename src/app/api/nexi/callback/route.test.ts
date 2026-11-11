@@ -31,6 +31,6 @@ describe('GET /api/nexi/callback', () => {
     const { confirmLegacyPayment } = await import('@/lib/tickets/legacyPayment');
     const res = await call(resultMac(fields, KEY));
     expect(res.status).not.toBe(403);
-    expect(confirmLegacyPayment).toHaveBeenCalledWith('ORD123');
+    expect(confirmLegacyPayment).toHaveBeenCalledWith('ORD123', '100');
   });
 });

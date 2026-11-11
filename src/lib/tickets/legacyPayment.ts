@@ -2,8 +2,23 @@ import { neon } from '@neondatabase/serverless';
 import { markOrderPaidByCodTrans, getOrder } from '@/lib/data/tickets';
 import { sendTicketsEmail } from '@/lib/tickets/sendTicketsEmail';
 import { sendTelegramNotification } from '@/lib/telegram';
+import { log } from '@/server/log';
 
 const baseUrl = () => process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasperina.it';
+
+/**
+ * Integrazione creata dal pay-link dell'admin: le note iniziano col marcatore e il cliente è lo stesso
+ * dell'ordine principale. Le note di un ordine del sito le scrive il cliente, quindi il marcatore da solo
+ * non basta (altrimenti chi paga potrebbe spostare biglietti e totale nell'ordine di un altro).
+ */
+export function integrationParentId(sub: { notes?: string | null; buyerEmail: string }, parent: { buyerEmail: string } | null): string | null {
+  const m = sub.notes?.match(/^\[INTEGRAZIONE_PARENT:([^\]]+)\]/);
+  if (!m || !parent) return null;
+  return sub.buyerEmail.trim().toLowerCase() === parent.buyerEmail.trim().toLowerCase() ? m[1] : null;
+}
+
+/** L'importo pagato (centesimi, firmato da Nexi) deve essere il totale dell'ordine. */
+export const amountMatches = (importo: string | null | undefined, totalAmount: number) => importo == null || Number(importo) === Math.round(totalAmount * 100);
 
 /**
  * Pagamento Nexi riuscito di un ordine del checkout classico (tabella `orders`). Lo chiamano il ritorno
@@ -11,11 +26,17 @@ const baseUrl = () => process.env.NEXT_PUBLIC_BASE_URL || 'https://prolocogasper
  * arrivano tutti e due, in qualsiasi ordine, e il secondo non deve rifare nulla (né email, né Telegram,
  * né sommare due volte un'integrazione). Ritorna l'indirizzo a cui mandare il cliente.
  */
-export async function confirmLegacyPayment(codTrans: string): Promise<string> {
+export async function confirmLegacyPayment(codTrans: string, importo?: string | null): Promise<string> {
   // The codTrans IS the orderId (we generate it as 30-chars max in /api/orders)
   const orderId = codTrans;
-  const changed = await markOrderPaidByCodTrans(codTrans);
   const fallback = `${baseUrl()}/assaggia-e-passeggia/edizione-2026/success?order=${orderId}`;
+  const before = await getOrder(orderId);
+  if (before && !amountMatches(importo, before.totalAmount)) {
+    // Come nel sistema nuovo: l'ordine resta in attesa e parte un allarme (solo codice, niente dati del cliente).
+    log.error('Nexi: importo pagato diverso dal totale, ordine non confermato', { codTrans });
+    return `${baseUrl()}/assaggia-e-passeggia/edizione-2026/ticket?error=payment_review`;
+  }
+  const changed = await markOrderPaidByCodTrans(codTrans);
 
   // Fetch full order with tickets and send PDF email (non-blocking on failure)
   try {
@@ -23,10 +44,12 @@ export async function confirmLegacyPayment(codTrans: string): Promise<string> {
     if (!order) return fallback;
 
     // ─── GESTIONE INTEGRAZIONE ORDINE ESISTENTE (Pay-by-Link) ─────────
-    const integrationMatch = order.notes?.match(/\[INTEGRAZIONE_PARENT:([^\]]+)\]/);
-    if (integrationMatch) {
-      const parentOrderId = integrationMatch[1];
-      const parentOrder = await getOrder(parentOrderId);
+    const markedParent = order.notes?.match(/\[INTEGRAZIONE_PARENT:([^\]]+)\]/)?.[1];
+    const parentCandidate = markedParent ? await getOrder(markedParent) : null;
+    const parentOrderId = integrationParentId(order, parentCandidate);
+    if (markedParent && !parentOrderId) log.error('Nexi: integrazione non riconosciuta, trattata come ordine normale', { codTrans });
+    if (parentOrderId) {
+      const parentOrder = parentCandidate;
 
       if (parentOrder && process.env.POSTGRES_URL) {
         const parentIsZuccaland = parentOrder.tickets.some(t => t.eventId?.includes('zuccaland'));

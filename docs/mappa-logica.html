@@ -248,7 +248,7 @@ stateDiagram-v2
     <li><b>Crea l'ordine</b> con stato <code>PENDING</code>, un codice di 30 caratteri e un biglietto per ogni posto, ognuno con il suo QR. Manda su Telegram codice, biglietti e totale, senza dati personali.</li>
     <li><b>Se il totale è 0 €</b> (omaggio o sconto del 100%) l'ordine diventa pagato subito e parte l'email.</li>
     <li><b>Altrimenti</b> il browser va su <code>/api/nexi/checkout</code>, che rilegge importo e codice dal database, firma la richiesta (MAC) e la invia a Nexi con tre indirizzi: ritorno del browser (<code>url</code>), notifica al server (<code>urlpost</code>, nuovo da oggi) e annullo (<code>url_back</code>).</li>
-    <li><b>Nexi risponde due volte</b>, in qualsiasi ordine: notifica server-to-server su <code>/api/nexi/notifica</code> e ritorno del browser su <code>/api/nexi/callback</code>. Entrambe verificano la firma a tempo costante e chiamano la stessa funzione, <code>confirmLegacyPayment</code>.</li>
+    <li><b>Nexi risponde due volte</b>, in qualsiasi ordine: notifica server-to-server su <code>/api/nexi/notifica</code> e ritorno del browser su <code>/api/nexi/callback</code>. Entrambe verificano la firma a tempo costante e chiamano la stessa funzione, <code>confirmLegacyPayment</code>, che controlla anche che l’importo pagato sia il totale dell’ordine (altrimenti l’ordine resta in attesa e parte un allarme).</li>
     <li><b>La prima conferma vince</b>: l'ordine passa a <code>PAID</code>, parte l'email con il PDF dei biglietti e un messaggio Telegram. La seconda conferma non rifà nulla.</li>
     <li><b>Il cliente arriva alla pagina di successo</b>; se il pagamento è fallito o annullato torna alla pagina dell'evento con un avviso.</li>
   </ol>
@@ -275,7 +275,7 @@ sequenceDiagram
   </pre></div>
   <h3>Integrazioni con il pay-link</h3>
   <p>Dall'admin si può far pagare un'aggiunta a un ordine esistente (es. "+1 bambino"). Si crea un sotto-ordine con nelle note il marcatore <code>[INTEGRAZIONE_PARENT:&lt;ordine&gt;]</code>; il cliente paga da <code>/paga/[id]</code>. Alla conferma i biglietti passano all'ordine principale, il totale si somma e il sotto-ordine viene archiviato. Da oggi un'integrazione non si somma due volte.</p>
-  <div class="risk"><b>Rischio aperto (audit, pista 2).</b> La conferma riconosce un'integrazione leggendo il testo delle note, e le note dell'ordine le invia il browser in <code>/api/orders</code>. Un acquirente può quindi scrivere quel marcatore e, pagando un ordine suo, spostare biglietti e cambiare il totale dell'ordine di un altro. Va chiuso prima della prossima vendita con il sistema vecchio (vedi Punti aperti).</div>
+  <div class="note"><b>Integrazioni protette (11 novembre).</b> La conferma riconosce un’integrazione solo se le note iniziano col marcatore e il cliente è lo stesso dell’ordine principale; <code>/api/orders</code> rifiuta note che contengono il marcatore.</div>
 </section>
 
 <section id="acquisto-nuovo">
@@ -427,9 +427,7 @@ flowchart LR
 
 <section id="aperti">
   <h2>Punti aperti</h2>
-  <div class="risk"><b>Note che comandano il pagamento (pista 2 dell'audit).</b> Nel sistema vecchio un acquirente può scrivere <code>[INTEGRAZIONE_PARENT:…]</code> nelle note e modificare l'ordine di un altro alla conferma del pagamento. Soluzione minima: in <code>/api/orders</code> rifiutare note che contengono quel marcatore, e in conferma accettare un'integrazione solo se il sotto-ordine è stato creato dal pay-link dell'admin.</div>
   <div class="risk"><b>Anteprime sul database di produzione.</b> Un acquisto di prova su un'anteprima crea ordini veri; se l'anteprima usa le chiavi Nexi di produzione, anche pagamenti veri. Conviene chiavi Nexi di test sull'ambiente Preview e nessuna prova di acquisto in anteprima.</div>
-  <div class="risk"><b>Controllo dell'importo nel pagamento vecchio.</b> La firma Nexi impedisce di alterare l'importo, ma la conferma non confronta l'importo pagato con il totale dell'ordine come fa il sistema nuovo. Un controllo in più costa poco.</div>
   <div class="note"><b>Chiave Nexi.</b> Se nei log di Vercel compare <code>Invalid MAC signature. Expected</code> (scritto dal codice prima del 3 novembre), va cambiata <code>NEXI_MAC_KEY</code> su Nexi e su Vercel insieme.</div>
   <div class="note"><b>Resto dell'audit del 1° novembre.</b> Sono ancora aperte le piste sulle rotte vecchie: verifica biglietti e statistiche accessibili a qualsiasi scanner, vecchia cassa, rimborsi con IBAN in chiaro, upload anonimi senza limite, recensioni e prenotazioni senza controlli. Il piano concordato è decidere quali percorsi vecchi servono ancora e togliere gli altri, attenti ai QR stampati e ai link nelle vecchie email.</div>
   <div class="note"><b>Documentazione da allineare.</b> <code>docs/ordini.md</code> dice che la scadenza degli ordini gira ogni 5 minuti; in <code>vercel.json</code> gira una volta al giorno alle 04:00 (piano gratuito di Vercel).</div>

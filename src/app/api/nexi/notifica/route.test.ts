@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resultMac } from '@/server/integrations/nexi/mac';
 
-const confirm = vi.fn(async (_codTrans: string) => 'https://x/ok');
+const confirm = vi.fn(async (..._args: unknown[]) => 'https://x/ok');
 const logError = vi.fn();
-vi.mock('@/lib/tickets/legacyPayment', () => ({ confirmLegacyPayment: (c: string) => confirm(c) }));
+vi.mock('@/lib/tickets/legacyPayment', () => ({ confirmLegacyPayment: (c: string, i?: string) => confirm(c, i) }));
 vi.mock('@/server/log', () => ({ log: { error: (...a: unknown[]) => logError(...a) } }));
 
 const KEY = 'dummy-key';
@@ -22,7 +22,7 @@ describe('POST /api/nexi/notifica (Nexi urlpost, classic checkout)', () => {
   it('confirms a paid order even though the customer never came back', async () => {
     const res = await post({ ...fields, mac: resultMac(fields, KEY) });
     expect(res.status).toBe(200);
-    expect(confirm).toHaveBeenCalledWith('ORD123');
+    expect(confirm).toHaveBeenCalledWith('ORD123', '100');
   });
 
   it('rejects a wrong signature, confirms nothing and raises an alert with the order code only', async () => {

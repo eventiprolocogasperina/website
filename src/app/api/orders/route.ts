@@ -16,6 +16,10 @@ export async function POST(request: Request) {
     if (!buyerName || !buyerEmail || !buyerPhone || !Array.isArray(cart) || cart.length === 0) {
       return NextResponse.json({ error: 'Dati incompleti' }, { status: 400 });
     }
+    // Il marcatore delle integrazioni lo scrive solo il pay-link dell'admin: nelle note del cliente si rifiuta.
+    if (typeof notes === 'string' && /\[\s*INTEGRAZIONE/i.test(notes)) {
+      return NextResponse.json({ error: 'Le note contengono testo non ammesso.' }, { status: 400 });
+    }
 
     let priced;
     try {

@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   if (params.esito !== 'OK') return new Response('OK'); // annullato o fallito: ci pensa il ritorno del browser
 
   try {
-    await confirmLegacyPayment(codTrans);
+    await confirmLegacyPayment(codTrans, params.importo);
     return new Response('OK');
   } catch (error) {
     log.error('Notifica Nexi non elaborata', { source: 'server', codTrans, error });

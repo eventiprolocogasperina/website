@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
   if (esito === 'OK') {
     try {
-      return NextResponse.redirect(await confirmLegacyPayment(codTrans));
+      return NextResponse.redirect(await confirmLegacyPayment(codTrans, importo));
     } catch (error) {
       console.error('Failed to process successful payment:', error);
       return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });

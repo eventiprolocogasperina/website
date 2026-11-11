@@ -10,7 +10,7 @@ vi.mock('@/lib/tickets/sendTicketsEmail', () => ({ sendTicketsEmail: (o: unknown
 vi.mock('@/lib/telegram', () => ({ sendTelegramNotification: (m: string) => telegram(m) }));
 
 const { confirmLegacyPayment } = await import('./legacyPayment');
-const order = { id: 'ORD123', totalAmount: 20, notes: '', tickets: [{ type: 'Adulto', eventId: 'zuccaland-2026' }] };
+const order = { id: 'ORD123', totalAmount: 20, notes: '', buyerEmail: 'a@b.it', tickets: [{ type: 'Adulto', eventId: 'zuccaland-2026' }] };
 
 describe('confirmLegacyPayment', () => {
   beforeEach(() => {
@@ -37,10 +37,31 @@ describe('confirmLegacyPayment', () => {
     getOrder.mockImplementation(async (id: string) =>
       id === 'ORD123'
         ? { ...order, notes: '[INTEGRAZIONE_PARENT:PARENT1]' }
-        : { id: 'PARENT1', totalAmount: 40, notes: 'x | [INTEGRAZIONE NEXI PAGATA]: +€20.00 - Transazione: ORD123', tickets: order.tickets });
+        : { id: 'PARENT1', buyerEmail: 'A@B.it', totalAmount: 40, notes: 'x | [INTEGRAZIONE NEXI PAGATA]: +€20.00 - Transazione: ORD123', tickets: order.tickets });
     vi.stubEnv('POSTGRES_URL', 'postgres://never-used');
     const url = await confirmLegacyPayment('ORD123');
     expect(url).toContain('order=PARENT1&integration=true');
     expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not confirm when the signed amount differs from the order total', async () => {
+    const url = await confirmLegacyPayment('ORD123', '100'); // 1,00 € paid for a 20,00 € order
+    expect(markPaid).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(url).toContain('error=payment_review');
+    markPaid.mockResolvedValue(true);
+    await confirmLegacyPayment('ORD123', '2000');
+    expect(markPaid).toHaveBeenCalledWith('ORD123');
+  });
+
+  it('ignores an integration marker written by the customer (other buyer or not at the start)', async () => {
+    markPaid.mockResolvedValue(true);
+    const victim = { id: 'VICTIM', buyerEmail: 'victim@x.it', totalAmount: 50, notes: '', tickets: order.tickets };
+    for (const notes of ['[INTEGRAZIONE_PARENT:VICTIM]', 'Bambini: 1 | [INTEGRAZIONE_PARENT:VICTIM]']) {
+      getOrder.mockImplementation(async (id: string) => (id === 'VICTIM' ? victim : { ...order, notes, buyerEmail: notes.startsWith('[') ? 'attacker@x.it' : victim.buyerEmail }));
+      const url = await confirmLegacyPayment('ORD123', '2000');
+      expect(url).toContain('order=ORD123');
+      expect(url).not.toContain('VICTIM');
+    }
   });
 });
