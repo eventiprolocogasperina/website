@@ -110,7 +110,7 @@ export async function systemMap(now = new Date()): Promise<MapNode[]> {
 
   const system: Partial<Record<NodeId, string>> = {
     sito: publicV2 ? 'calendario nuovo' : 'calendario di oggi',
-    ordini: newCheckoutEnabled() ? 'checkout nuovo a Zuccaland' : 'checkout di oggi',
+    ordini: newCheckoutEnabled() ? 'checkout nuovo' : 'checkout nuovo spento (NUOVO_CHECKOUT=0)',
     ingresso: scannerV2 ? 'scanner nuovo' : 'scanner di oggi',
     rimborsi: ordersV2 ? 'pagine nuove' : 'pagine di oggi',
   };

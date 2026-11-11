@@ -2,32 +2,7 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { requirePermission } from '@/server/auth/context';
 
-export async function POST(request: Request) {
-  try {
-    const data = await request.json();
-    const { eventId, name, rating, comment } = data;
-
-    if (!eventId || !rating) {
-      return NextResponse.json({ error: 'Dati incompleti' }, { status: 400 });
-    }
-
-    if (!process.env.POSTGRES_URL) {
-      throw new Error('Missing POSTGRES_URL');
-    }
-    const sql = neon(process.env.POSTGRES_URL);
-
-    await sql`
-      INSERT INTO reviews ("eventId", name, rating, comment)
-      VALUES (${eventId}, ${name || null}, ${rating}, ${comment || null})
-    `;
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('API Error saving review:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
-
+// L'invio di recensioni dal sito è stato tolto il 2026-11-11 (non più usato): resta la lettura per la moderazione.
 export async function GET(request: Request) {
   const denied = await requirePermission('reviews.moderate');
   if (denied) return denied;

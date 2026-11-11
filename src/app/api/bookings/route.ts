@@ -35,34 +35,4 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { event_id, nome, cognome, email, telefono, partecipanti, note } = body;
-
-    if (!event_id || !nome || !cognome || !email) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    const sql = neon(process.env.POSTGRES_URL!);
-    const id = `bk_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
-
-    // 1. Insert booking
-    await sql`
-      INSERT INTO bookings (id, event_id, nome, cognome, email, telefono, partecipanti, note)
-      VALUES (${id}, ${event_id}, ${nome}, ${cognome}, ${email}, ${telefono}, ${partecipanti}, ${note})
-    `;
-
-    // 2. Increment registeredCount in events
-    await sql`
-      UPDATE events 
-      SET "registeredCount" = "registeredCount" + ${parseInt(partecipanti)}
-      WHERE id = ${event_id}
-    `;
-
-    return NextResponse.json({ id, success: true });
-  } catch (error: any) {
-    console.error('Booking POST error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+// La prenotazione dalle schede evento di prima è stata tolta il 2026-11-11: si prenota dalle edizioni (modulo Prenotazione gratuita).

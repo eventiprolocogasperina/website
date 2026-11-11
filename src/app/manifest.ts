@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Cassa Pro Loco Gasperina',
     short_name: 'Cassa ProLoco',
     description: 'Registratore di cassa e gestione contributi per sagre ed eventi - Pro Loco Gasperina APS',
-    start_url: '/cashier',
+    start_url: '/cassa',
     display: 'standalone',
     background_color: '#0f172a',
     theme_color: '#1e3a8a',

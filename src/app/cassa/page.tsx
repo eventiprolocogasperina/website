@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Nuova cassa (§12.1). Dai telefoni abbinati l'edizione è quella del dispositivo; dall'admin si
- * arriva con ?edizione=<slug> (pulsante "Apri la cassa" in Cassa). La vecchia /cashier resta attiva.
+ * arriva con ?edizione=<slug> (pulsante "Apri la cassa" in Cassa).
  */
 export default async function CassaPage({ searchParams }: { searchParams: Promise<{ edizione?: string }> }) {
   const { edizione } = await searchParams;

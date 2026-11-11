@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { sendTelegramNotification } from '@/lib/telegram';
 import { validateIban } from '@/lib/validation/iban';
+import { requestIp } from '@/server/auth/context';
+import { isRateLimited, recordFailure } from '@/server/auth/rateLimit';
 
 function getDb() {
   if (!process.env.POSTGRES_URL) {
@@ -11,6 +13,10 @@ function getDb() {
 }
 
 export async function POST(request: Request) {
+  // Al massimo 3 richieste ogni 15 minuti dallo stesso indirizzo: il modulo è pubblico.
+  const rateKey = `public:refunds:${(await requestIp()) ?? 'sconosciuto'}`;
+  if (isRateLimited(rateKey, 3)) return NextResponse.json({ error: 'Troppe richieste. Aspetta qualche minuto e riprova.' }, { status: 429 });
+  recordFailure(rateKey);
   try {
     const body = await request.json();
     const { 

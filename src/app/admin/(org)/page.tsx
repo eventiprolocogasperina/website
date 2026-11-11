@@ -49,7 +49,7 @@ export default async function AdminHomePage() {
           </ButtonLink>
         }
         primaryAction={
-          <ButtonLink href="/cashier">
+          <ButtonLink href="/cassa">
             <Store size={16} aria-hidden /> Apri la cassa
           </ButtonLink>
         }

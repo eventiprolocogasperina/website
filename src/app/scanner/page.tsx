@@ -1,13 +1,8 @@
 import { ScannerApp } from '@/components/scanner/ScannerApp';
-import { scannerV2Enabled } from '@/server/domain/checkin';
-import LegacyScanner from './LegacyScanner';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * /scanner: lo scanner di oggi finché il flag scanner_v2 è spento (Zuccaland 2026 è in vendita e i
- * suoi ordini arrivano nel nucleo nuovo solo con la migrazione); acceso, lo scanner nuovo (§12.3).
- */
-export default async function ScannerPage() {
-  return (await scannerV2Enabled()) ? <ScannerApp /> : <LegacyScanner />;
+/** /scanner: lo scanner nuovo con le liste di check-in (§12.3). Lo scanner di prima è stato tolto il 2026-11-11. */
+export default function ScannerPage() {
+  return <ScannerApp />;
 }

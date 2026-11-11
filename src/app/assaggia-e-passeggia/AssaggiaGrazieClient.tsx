@@ -203,13 +203,6 @@ export default function AssaggiaGraziePage() {
             >
               Guarda le Foto
             </button>
-            <button 
-              onClick={() => setShowReviewForm(true)} 
-              className="btn btn-primary" 
-              style={{ padding: '0.8rem 2rem' }}
-            >
-              Lascia una Recensione
-            </button>
           </motion.div>
 
           <motion.div

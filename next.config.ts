@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
       // Sito pubblico (§13.2, prompt 17): l'edizione A&P 2026 vive in /assaggia-e-passeggia/2026 e i QR stampati
       // delle tappe (/assaggia-e-passeggia/tappa/:id) sono l'URL stabile, risolto dal modulo route-stops.
       // La vecchia pagina di successo resta (link nelle email già inviate, con ?order=…).
+      // Cassa vecchia tolta il 2026-11-11: i segnalibri e le app installate aprono la cassa nuova.
+      { source: '/cashier', destination: '/cassa', permanent: true },
+      { source: '/cashier/:path*', destination: '/cassa', permanent: true },
       { source: '/assaggia-e-passeggia/edizione-2026', destination: '/assaggia-e-passeggia/2026', permanent: true },
       { source: '/assaggia-e-passeggia/edizione-2026/tappa/:id', destination: '/assaggia-e-passeggia/tappa/:id', permanent: true },
       { source: '/assaggia-e-passeggia/edizione-2026/ticket', destination: '/assaggia-e-passeggia/2026', permanent: true },

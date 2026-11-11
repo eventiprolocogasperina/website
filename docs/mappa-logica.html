@@ -147,6 +147,7 @@ flowchart LR
     <li><span class="badge b-old">In uso oggi</span> Il <b>sistema vecchio</b> lavora sulle tabelle <code>orders</code> e <code>tickets</code>. È quello con cui Zuccaland e Assaggia hanno venduto nel 2026.</li>
     <li><span class="badge b-new">Pronto, dietro interruttore</span> Il <b>sistema nuovo</b> è il "nucleo ordini": tabelle <code>orders_v2</code>, <code>order_lines</code>, <code>tickets_v2</code>, <code>payments</code>, <code>refunds_v2</code>, con prezzi, posti e permessi controllati tutti sul server.</li>
   </ul>
+  <div class="note"><b>11 novembre: il sistema vecchio si chiude.</b> Il checkout classico non crea più ordini né pagamenti (restano solo ritorno e notifica Nexi per i pagamenti già avviati), lo scanner è sempre quello nuovo, l'invio di recensioni e prenotazioni dalle schede evento è stato tolto. Anche la cassa vecchia <code>/cashier</code> è stata tolta (porta a <code>/cassa</code>) e il checkout nuovo è acceso per tutte le edizioni. Restano del vecchio: le pagine dei vecchi ordini e il modulo rimborsi.</div>
   <p>I due sistemi non vendono mai la stessa edizione insieme. Il checkout nuovo resta chiuso finché un'edizione non è stata <b>migrata</b> (script <code>npm run migrate:orders</code>), così lo stesso posto non viene venduto due volte. La migrazione copia ordini, biglietti, cassa e rimborsi senza toccare le tabelle vecchie, e i QR già emessi restano validi.</p>
   <div class="table-wrap"><table>
     <tr><th>Area</th><th>Sistema vecchio (in uso)</th><th>Sistema nuovo (pronto)</th></tr>

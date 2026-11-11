@@ -10,7 +10,6 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useCallback } from 'react';
-import BookingForm from '@/components/events/BookingForm';
 import type { Event, EventLink } from '@/lib/data/events';
 import FormattedText from '@/components/ui/FormattedText';
 import ShareButtons from '@/components/ui/ShareButtons';
@@ -483,7 +482,9 @@ export default function EventDetailContent({ event, isPast, showBooking, fullDat
                     </p>
                   </div>
                   <div style={{ padding: '1.5rem' }}>
-                    <BookingForm eventId={event.id} eventTitle={event.title} eventSlug={event.slug} />
+                    <p style={{ fontSize: '0.9rem', color: 'var(--neutral-300)' }}>
+                      Per prenotare <Link href="/contatti" style={{ color: 'var(--primary-300, #F2C14E)' }}>contattaci</Link>.
+                    </p>
                   </div>
                 </div>
               ) : isPast ? (

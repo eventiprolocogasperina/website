@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { resetCashierOrderSequence, getCashierConfig } from '@/lib/data/cashier';
-import { broadcastCashierEvent } from '@/app/api/cashier/realtime/route';
 import { requirePermission } from '@/server/auth/context';
 
 export const dynamic = 'force-dynamic';
@@ -20,10 +19,6 @@ export async function POST(request: Request) {
 
     const startNum = Math.max(1, parseInt(startingNumber) || 1);
     await resetCashierOrderSequence(targetEventId, startNum);
-
-    try {
-      broadcastCashierEvent('sequence_reset', { eventId: targetEventId, startingNumber: startNum });
-    } catch { /* ignore */ }
 
     return NextResponse.json({ success: true, startingNumber: startNum });
   } catch (err: any) {
